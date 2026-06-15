@@ -1,0 +1,727 @@
+<style>
+     .datepicker {
+        border-radius: 0px !important;
+        /*height:30px!important;*/
+    }
+
+    .input-sm {
+        height: 30px !important;
+    }
+
+    .fa-calendar {
+        margin-left: -5px !important;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Purchase Usage</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-4">
+                @Html.Label("Item wise", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Item Brand", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItemBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Item Category", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItemCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+            </div>
+            @if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-4">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                </div>
+            }
+
+            <div class="form-group col-md-4">
+                @Html.Label("Supplier", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExecutive, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Material Requested By", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlMatReqBy", (SelectList)ViewBag.MatReqby, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm datepicker", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm datepicker", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Search", null, new { @class = "control-label" })
+                @Html.TextBox("Searchtext", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="QReport">
+    
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td style="width:25px;">S/N</td>
+                        <td>Item</td>
+                        <td>P.Price</td>
+                        <td>Op.Stock</td>
+                        <td>Pur.Qty</td>
+                        <td>Pur Ret</td>
+                        <td>Sales</td>
+                        <td>Sales Ret</td>
+                        <td>Stk.In</td>
+                        <td>Stk.Out</td>
+                        <td>Cl.Stock</td>
+                        <td>Current Stock</td>
+                        <td>Stock Movement</td>
+                        @*<td>Sales Executive</td>
+        <td>Material Requested By</td>*@
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+    $(window).scroll(function (e) {
+        var scroll = $(window).scrollTop();
+
+
+        if (scroll >= 0) {
+            $('.treeview-menu').addClass("navbar-hide");
+            var i = scroll;
+            $(".navbar-hide").css('margin-top', -i);
+
+        } else {
+            $(".navbar-hide").css('margin-top', 0);
+            $('.treeview-menu').removeClass("navbar-hide");
+        }
+
+    });
+
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    })
+
+    $(document).ready(function () {
+        CallMC();
+        $('#To').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#From').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 30));
+        $('#To').datepicker('setDate', today);
+        $('#From').datepicker('setDate', priordate);
+        ItemSearchable();
+        CallRepSupplier();
+        CallRepEmployee();
+        $('#QReport').hide();
+        $("#ddlMatReqBy").select2({
+            placeholder: 'Search by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#ddlItemBrand").select2({
+            placeholder: 'Search Item Brand',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemBrand/SearchBrand",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#ddlItemCategory").select2({
+            placeholder: 'Search Item Category',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemCategory/SearchCategory",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+    });
+    jQuery(function ($) {
+        var oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": false, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            // "bStateSave": true,
+            "bLengthChange": false,
+            "paging": true,
+            "pageLength": 5000,
+            "deferLoading": 0,
+            "ordering": false,
+            "ajax": {
+                "url": '/MyReports/GetPurchaseUsage',
+                "data": function (data) {
+                    data.Item = $('#ddlItem').val();
+                    data.supplier = $('#ddlSupplier').val();
+                    data.ItemBrand = $('#ddlItemBrand').val();
+                    data.ItemCategory = $('#ddlItemCategory').val();
+                    data.fromdate = $('#From').val();
+                    data.todate = $('#To').val();
+                    data.saleExe = $('#ddlEmployee').val();
+                    data.matReqBy = $('#ddlMatReqBy').val();
+                    data.mc = $('#ddlMC').val();
+                    data.srchtxt = $('#Searchtext').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columns": [
+                 {
+                     "data": "ItemID", "name": "ItemID",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+                //{ "data": "ItemName", "name": "ItemName" },
+                {
+                    "name": "ItemName", "data": function (data) {
+                        return data.ItemCode + " - " + data.ItemName;
+                    }
+                },
+                {
+                    "name": "purchaseprice", "data": function (data) {
+                        return data.purchaseprice;
+                    }
+                },
+                {
+                    "name": "openingstock", "data": "openingstock"
+                },
+                
+                //{
+                //    "name": "SecondaryUnitSum", "data": function (data) {
+                //        var datas = "";
+                //        var datas2 = "";
+                //        $.each(data.SecondaryUnitSum, function (i, item) {
+                //            if (item.sum2 != null) {
+
+                //                datas +=item.sum2;
+
+                //            }
+                //        });
+                //        $.each(data.PrimaryUnitSum, function (i, item) {
+                //            if (item.sum1 != null) {
+
+                //                datas2 += item.sum1;
+
+                //            }
+                //        });
+                //        if (datas == "") {
+                //            datas = 0;
+                //        }
+                //        if (datas2 == "") {
+                //            datas2 = 0;
+                //        }
+                //        var total = parseInt(datas) + parseInt(datas2);
+                //        if (data.ItemUnitName == null) {
+                //            return '<a href=\"/MyReports/PurchaseUsageDetails?itemID=' + data.ItemID + ' &From=' + data.FromD + ' &To=' + data.ToD + '\"target=\"_new\"> ' + total + '</a>'
+                //        } else {
+                //             return '<a href=\"/MyReports/PurchaseUsageDetails?itemID=' + data.ItemID + ' &From=' + data.FromD + ' &To=' + data.ToD + '\"target=\"_new\"> ' + total + ' ' + data.ItemUnitName + '</a>'
+
+                //        }
+                //    }
+                //},
+                //////
+                ////{ "data": "SalesQuantity", "name": "SalesQuantity" },
+                //{
+                //    "name": "PrimaryUnitSalesSum", "data": function (data) {
+                //        var datas3 = "";
+                //        var datas4 = "";
+                //        $.each(data.PrimaryUnitSalesSum, function (i, item) {
+                //            if (item.sum3 != null) {
+
+                //                datas3 += item.sum3;
+
+                //            }
+                //        });
+                //        $.each(data.SecondaryUnitSalesSum, function (i, item) {
+                //            if (item.sum4 != null) {
+
+                //                datas4 += item.sum4;
+
+                //            }
+                //        });
+                //        if (datas4 == "") {
+                //            datas4 = 0;
+                //        }
+                //        if (datas3 == "") {
+                //            datas3 = 0;
+                //        }
+                //        var total2 = parseInt(datas3) + parseInt(datas4);
+
+
+                //        if (data.ItemUnitName == null) {
+                //            return total2;
+                //        } else {
+                //            return total2 + " " + data.ItemUnitName;
+                //        }
+                //    }
+                //},
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return data.totalpurchase;
+                    }
+                },
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return data.totalpurchasereturn;
+                    }
+                },
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return data.totalsales;
+                    }
+                },
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return data.totalsalesreturn;
+                    }
+                },
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return data.totalstckin;
+                    }
+                },
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return data.totalstockout;
+                    }
+                },
+                { "name": "closingstock", "data": "closingstock" },
+                { "name": "currentstock", "data": "currentstock" },
+                //{
+                //    "name": "PrimaryUnitSalesSum", "data": function (data) {
+                //        var datas3 = "";
+                //        var datas4 = "";
+                //        var data5 = data.openingstock;
+                //        $.each(data.PrimaryUnitSalesSum, function (i, item) {
+                //            if (item.sum3 != null) {
+
+                //                datas3 += item.sum3;
+
+                //            }
+                //        });
+                //        $.each(data.SecondaryUnitSalesSum, function (i, item) {
+                //            if (item.sum4 != null) {
+
+                //                datas4 += item.sum4;
+
+                //            }
+                //        });
+                //        if (datas4 == "") {
+                //            datas4 = 0;
+                //        }
+                //        if (datas3 == "") {
+                //            datas3 = 0;
+                //        }
+                //        var total2 = parseInt(datas3) + parseInt(datas4);
+                //        //
+                //        var datas = "";
+                //        var datas2 = "";
+                //        $.each(data.SecondaryUnitSum, function (i, item) {
+                //            if (item.sum2 != null) {
+
+                //                datas += item.sum2;
+
+                //            }
+                //        });
+                //        $.each(data.PrimaryUnitSum, function (i, item) {
+                //            if (item.sum1 != null) {
+
+                //                datas2 += item.sum1;
+
+                //            }
+                //        });
+                //        if (datas == "") {
+                //            datas = 0;
+                //        }
+                //        if (datas2 == "") {
+                //            datas2 = 0;
+                //        }
+
+                //        var total = parseInt(data5)+ parseInt(datas) + parseInt(datas2);
+                //        if (data.ItemUnitName == null) {
+                //            return total-total2;
+                //        } else {
+                //            return (total - total2);// + " " + data.ItemUnitName;
+                //        }
+                //    }
+                //},
+
+//                {
+//                    "name": "FirstName", "data": function (data) {
+//                        var datas3 = "";
+//                        var datas4 = "";
+//                        $.each(data.PrimaryUnitSalesSum, function (i, item) {
+//                            if (item.sum3 != null) {
+
+//                                datas3 += item.sum3;
+
+//                            }
+//                        });
+//                        $.each(data.SecondaryUnitSalesSum, function (i, item) {
+//                            if (item.sum4 != null) {
+
+//                                datas4 += item.sum4;
+
+//                            }
+//                        });
+//                        if (datas4 == "") {
+//                            datas4 = 0;
+//                        }
+//                        if (datas3 == "") {
+//                            datas3 = 0;
+//                        }
+//                        var total2 = parseInt(datas3) + parseInt(datas4);
+
+
+
+
+//                        return parseFloat(total2 / data.daydiff) + " / Day";
+//                      }
+
+
+
+//},
+                {
+                    "name": "closingstock", "data": function (data) {
+                        return parseFloat(data.totalsales / data.daydiff).toFixed(2) + " / Days";
+                    }
+                },
+                 //{
+                 //    "name": "FirstName", "data": function (data) {
+                 //        var datas = "";
+                 //        $.each(data.FirstName, function (i, item) {
+                 //            if (item.Name != null) {
+                 //                if (datas != "") {
+                 //                    datas += " ";
+                 //                }
+                 //                datas += item.Name + ',';
+                                 
+                 //            }
+                 //        });
+                 //        return datas;
+                 //    }
+                 //},
+                 //{
+                 //    "name": "MaterialRequestedBy", "data": function (data) {
+                 //        var datas = "";
+                 //        $.each(data.MaterialRequestedBy, function (i, item) {
+                 //            if (item.Name != null) {
+                 //                if (datas != "") {
+                 //                    datas += " ";
+                 //                }
+                 //                datas += item.Name + ',';
+
+                 //            }
+                 //        });
+                 //        return datas;
+                 //    }
+                 //},
+                //{ "data": "PODate", "name": "PODate", "render": function (data) { return convertToDate(data); } },
+                //{ "data": "Supplier", "name": "Supplier" },
+                //{ "data": "TaxRegNo", "name": "TaxRegNo" },
+                //{ "data": "POGrandTotal", "name": "POGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                //{ "data": "POValidity", "name": "POValidity", "sClass": "numberright" },
+                //{ "data": "EmpName", "name": "EmpName" },
+                //{ "data": "User", "name": "User" },
+            ],
+            buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+            'colvis',
+                {
+                    extend: 'print',//
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Purchase Order-Report';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Purchase Order Report</h4></th></tr>' +
+                            ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv',// 'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Purchase Order-Report';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                        '' + $('#caddress').val() + '\n' +
+                        ' Purchase Order Report \n' +
+                        // 'Quot No : ' + $('#QuotNo').val() + '\n' +
+                        'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+          {
+              extend: 'pdf',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return 'Purchase Order-Report';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                  '' + $('#caddress').val() + '\n' +
+                  ' Purchase Order Report \n' +
+                  // 'Quot No : ' + $('#QuotNo').val() + '\n' +
+                  'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: ':visible'
+              },
+              customize: function (doc) {
+                  doc.pageMargins = [10, 10, 10, 10];
+                  doc.defaultStyle.fontSize = 10;
+                  doc.styles.tableHeader.fontSize = 10;
+                  doc.styles.title.fontSize = 12;
+                  // Header font and bg color
+                  doc.styles.tableHeader.fillColor = '#d3d3d3';
+                  doc.styles.tableHeader.color = 'black';
+                  // Remove spaces around page title
+                  doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                  doc.content[1].table.widths = [
+                  '8%',
+                  '10%',
+                  '12%',
+                  '12%',
+                  '15%',
+                  '10%',
+                  '10%',
+                  '10%',
+                  '13%'
+                  ]
+
+                  var objLayout = {};
+                  // Horizontal line thickness
+                  objLayout['hLineWidth'] = function (i) { return .5; };
+                  // Vertikal line thickness
+                  objLayout['vLineWidth'] = function (i) { return .5; };
+                  //// Horizontal line color
+                  //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                  //// Vertical line color
+                  //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                  // Left padding of the cell
+                  objLayout['paddingLeft'] = function (i) { return 4; };
+                  // Right padding of the cell
+                  objLayout['paddingRight'] = function (i) { return 4; };
+                  // Inject the object in the document
+                  doc.content[1].layout = objLayout;
+                  // Footer font and bg color
+                  doc.styles.tableFooter.fillColor = '#d3d3d3';
+                  doc.styles.tableFooter.color = 'black';
+              }
+
+
+          },
+
+            ],
+
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api(), data;
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                        i : 0;
+                };
+
+
+
+                // Total over all pages
+                //total = api
+                //    .column(5)
+                //    .data()
+                //    .reduce(function (a, b) {
+                //        return intVal(a) + intVal(b);
+                //    }, 0);
+
+                // Total over this page
+                //pageTotal = api
+                //    .column(5, { page: 'current' })
+                //    .data()
+                //    .reduce(function (a, b) {
+                //        return intVal(a) + intVal(b);
+                //    }, 0);
+
+                // Update footer
+                //$(api.column(5).footer()).html(
+                //     pageTotal.toFixed(2)
+                //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                //);
+
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $('#UserTable tfoot').hide();
+                } else {
+                    $('#UserTable tfoot').show();
+                }
+            }
+
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+            $('#QReport').show();
+        });
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+
+        $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+            //var data = oTable.row(this).data();
+            //var url = "/PurchaseOrder/Edit/" + data.PurchaseOrderId + "";
+            //$(location).attr('href', url);
+        });
+    });
+    </script>
+}

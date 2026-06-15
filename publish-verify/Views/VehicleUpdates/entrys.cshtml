@@ -1,0 +1,389 @@
+@model QuickSoft.Models.Vehicleupdateviewmodal
+@{
+    ViewBag.Title = "Create Vehicle Update";
+    ViewBag.SubTitle = "Vehicle update";
+    ViewBag.Active = "Utility";
+    string partialconfig = "";
+    string check = "";
+    string strImage = "";
+
+
+    int di = 0;
+
+}
+<head>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <style>
+        #loadingImg {
+            display: none;
+        }
+    </style>
+</head>
+<div class="pull-right">
+
+    <p>
+        <a class="btn btn-info no-border" href="/VehicleUpdates/Index">
+            <i class="glyphicon glyphicon-plus"></i> List
+        </a>
+        <a href="/VehicleUpdates/create" class="btn btn-info"><i class="glyphicon glyphicon-plus"></i> Hand Over</a>
+
+
+
+        <a class="btn btn-info no-border" href="/VehicleMaster/Index">
+            <i class="glyphicon glyphicon-plus"></i> Current Vehicles
+        </a>
+    </p>
+
+</div>
+<div style="clear:both"></div>
+<div class="box box-info">
+
+    <br />
+    @using (Html.BeginForm("Update", "VehicleUpdates", FormMethod.Post, new { @class = "dropzone", id = "createform", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <br /><br />
+            <h3 class="box-title">Meter Readings</h3>
+            <div class="pull-right">
+
+
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
+        <input type="hidden" class="form-control" id="MultidocumentRowcount" value="0" placeholder="">
+        <div class="row">
+            @if (User.IsInRole("editvehicleemployee"))
+            {
+                <div class="col-md-4 col-sm-4 col-xs-12 form-group">
+                    @Html.Label("Employee", null, new { @class = "control-label temp2" })
+
+                    @Html.DropDownListFor(m => m.employee, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+
+                </div>
+            }
+            else
+            {
+                <div class="col-md-4 col-sm-4 col-xs-12 form-group" style="pointer-events:none">
+                    @Html.Label("Employee", null, new { @class = "control-label temp2" })
+
+                    @Html.DropDownListFor(m => m.employee, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+
+                </div>
+            }
+
+
+
+            <div class="col-md-4 col-sm-4 col-xs-12 form-group">
+                @Html.Label("Vehicle", null, new { @class = "control-label temp2" })
+
+                @Html.DropDownListFor(m => m.vehicleid, (SelectList)ViewBag.vehicle, "", new { id = "ddlvehicle", @class = "form-control select2" })
+
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="col-md-2 col-sm-4 col-xs-12 form-group">
+                <h4>Use Type</h4>
+
+
+
+            </div>
+
+        </div>
+        <div class="row">
+
+            <div class="col-md-2 col-sm-4 col-xs-12 form-group">
+                Personal<input type="radio" name="usetype" value="1" onchange="shows(this)" />
+                <br />Task <input type="radio" name="usetype" value="2" onchange="shows(this)" checked="checked" />
+                <br />leads <input type="radio" name="usetype" value="3" onchange="shows(this)" />
+                <br />Company Use <input type="radio" name="usetype" value="4" onchange="shows(this)" />
+
+
+            </div>
+
+        </div>
+        <div class="row" id="taskrow" ->
+
+            <div class="col-md-4 col-sm-4 col-xs-12 form-group">
+                @Html.Label("Task", null, new { @class = "control-label temp2" })
+
+                @Html.DropDownListFor(m => m.taskid, (SelectList)ViewBag.protasks, "", new { id = "taskid", @class = "form-control select2" })
+
+            </div>
+
+        </div>
+        <div class="row" id="leadrow" style="display:none">
+
+            <div class="col-md-4 col-sm-4 col-xs-12 form-group">
+                @Html.Label("Leads", null, new { @class = "control-label temp2" })
+
+                @Html.DropDownListFor(m => m.leadid, (SelectList)ViewBag.leads, "", new { id = "leadid", @class = "form-control select2" })
+
+            </div>
+
+        </div>
+        <div class="row">
+
+            <div class="col-md-4 col-sm-4 col-xs-12 form-group">
+                @Html.Label("Remarks", null, new { @class = "control-label temp2" })
+
+                @Html.TextAreaFor(m => m.remarks, new { @class = "form-control " })
+
+            </div>
+
+
+        </div>
+        <div class="row">
+
+            <div class="col-md-4 col-sm-4 col-xs-12 form-group">
+                @Html.Label("Meter Reading", null, new { @class = "control-label temp2" })
+
+                @Html.EditorFor(m => m.reading, new { @class = "form-control " })
+
+            </div>
+
+
+        </div>
+
+        <div class="row">
+            <div class="form-group col-md-12 point">
+                @Html.Label("Meter Image", null, new { @class = "control-label" })
+                <div class="file-loading">
+                    <input id="input-24" name="input24[]" type="file" required>
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <div class="row">
+            <div class="form-group ">
+                <button type="submit" id="Save" class="btn btn-success">
+                    <span class="glyphicon"></span> Save
+                </button>
+                @*  <button type="button" class="btn btn-warning" onclick="@("window.location.href='/FileDocument/Index'");">Cancel</button>*@
+            </div>
+
+        </div>
+    }
+</div>
+
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/Mobile")
+
+
+    <script type="text/javascript">
+                function shows(obj) {
+                    if ($(obj).prop("checked") == true) {
+
+                        if ($(obj).val() == 2) {
+                            $("#taskrow").show();
+                            $("#leadrow").hide();
+                        }
+                        else if($(obj).val() == 3) {
+                            $("#leadrow").show();
+                            $("#taskrow").hide();
+                        }
+                        else if ($(obj).val() == 1 || $(obj).val() == 4) {
+                            $("#leadrow").hide();
+                            $("#taskrow").hide();
+                        }
+                    }
+                }
+       /*.........tooltip message...........*/
+        $(".point").prop('title', 'Ctrl + select on Browse');
+
+
+    $("#input-24").fileinput({
+            maxFilePreviewSize: 10240,
+            autoReplace: false,
+            maxFileCount: 10,
+            showUploadedThumbs: true,
+            showUpload: false,
+        overwriteInitial: false,
+        enableResumableUpload: true,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png","csv", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+                'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showUpload: false,
+                showZoom: true,
+            },
+              initialPreviewConfig: [
+               @partialconfig
+            ],
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        });
+
+
+
+
+
+        $(document).ready(function () {
+            $("#leadid").select2({});
+            $("#taskid").select2({});
+            $("#ddlvehicle").select2({});
+            $("#ddlvehicle").on("change", function () {
+
+                $.ajax({
+                    type: "POST",
+                    url: "/VehicleUpdates/getstatus",
+                        data: {
+                        vehicleid: $("#ddlvehicle").val()
+                    }
+                    ,
+
+                    success: function (data) {
+                        $("#Save").text(data);
+                        if (data == "Stop") {
+                            $("#Save").css("background-color", "#dd0d0d");
+                        }
+                        else {
+                            $("#Save").css("background-color", "#0d83dd");
+
+                        }
+
+                    }
+
+                    });
+            });
+            CallEmployee();
+            var max_fields = 2; //maximum input boxes allowed
+            var wrapper3 = $(".input_fields_wrap3"); //Fields wrapper
+            var add_button = $(".add_field_button3"); //Add button ID
+
+            var x = 1; //initlal text box count
+            $(add_button).click(function (e) { //on add input button click
+                e.preventDefault();
+                if (x < max_fields) { //max input box allowed
+
+
+                    var rowno = document.getElementById('documentRowcount').value;
+
+                    //paste here
+
+                    x++;
+
+                    rowno++;
+                    document.getElementById('documentRowcount').value = rowno;
+                }
+            });
+        });
+        $(document).ready(function () {
+
+
+        });
+        var date = new Date();
+        date.setDate(date.getDate());
+       // $('#QuotDate').datepicker('setDate', date,);
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            setDate:date,
+
+        });
+
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+
+        /* Create function for File Document */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#createform').on('submit', function (e) {
+            e.preventDefault();
+           // $("button").prop('disabled', true);
+            if ($("#createform").valid()) {
+                var url = $('#createform')[0].action;
+                var formData = new FormData(this);
+
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '@Url.Action("Index", "Home")';
+                           // alert("Suucess")
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });
+
+
+        Dropzone.autoDiscover = false;
+
+
+        Dropzone.autoDiscover = false;
+        // Dropzone class:
+        var myDropzone = new Dropzone(".dropzone", {
+            //url: "/file/post",
+            acceptedFiles: ".jpeg,.jpg,.png,.gif,.pdf",
+            uploadMultiple: false,
+            createImageThumbnails: true,
+            addRemoveLinks: true,
+            maxFiles: 10,
+            maxfilesexceeded: function (file) {
+                this.removeAllFiles();
+                this.addFile(file);
+            }, init: function () {
+                this.on('error', function (file, errorMessage) {
+                    var mypreview = document.getElementsByClassName('dz-error');
+                    mypreview = mypreview[mypreview.length - 1];
+                    mypreview.classList.toggle('dz-error');
+                    mypreview.classList.toggle('dz-success');
+                });
+            }
+
+        });
+    </script>
+}
+

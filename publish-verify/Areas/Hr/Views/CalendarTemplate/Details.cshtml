@@ -1,0 +1,123 @@
+﻿@model QuickSoft.Models.CalendarTemplate
+@{
+    ViewBag.Title = "Calendar List";
+    ViewBag.SubTitle = "Calendar";
+    ViewBag.Active = "Payroll";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Monthly Holiday Calendar</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("CalendarTemplate List"))
+            {
+                <a class="btn btn-success no-border" href="/Hr/CalendarTemplate/Index">
+                    <i class="fa fa-fw fa-history"></i> Calendar Template List
+                </a>
+            }
+            @if (User.IsInRole("Dev") || User.IsInRole("Create CalendarTemplate"))
+            {
+                <a class="btn btn-info no-border"  href="/Hr/CalendarTemplate/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Calendar Template
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="box box-default">
+            <div class="box-body no-padding">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/fullcalendar")
+}
+@section scripts{
+    @Scripts.Render("~/js/fullcalendar")
+    <script type="text/javascript">
+        $(function () {
+            /* initialize the calendar
+             -----------------------------------------------------------------*/
+            //Date for the calendar events (dummy data)
+            var date = new Date();
+            var d = date.getDate(),
+                m = date.getMonth(),
+                y = date.getFullYear();
+            var EntryID = getQueryString('');
+
+            //$('#calendar').fullCalendar({
+            //    header: {
+            //        left: 'prev,next today',
+            //        center: 'title',
+            //        right: 'month,agendaWeek,agendaDay,listWeek'
+            //    },
+            //    buttonText: {
+            //        today: 'today',
+            //        month: 'month',
+            //        week: 'week',
+            //        day: 'day',
+            //        list:'Week list'
+            //    },
+            //    events: {
+            //        url: '/CalendarTemplate/GetMonthlyLeave',
+            //        cache: true,
+            //        type: 'POST',
+            //        data: {
+            //            EntryID: EntryID
+            //        },
+            //        error: function () {
+            //            alert('there was an error while fetching events!');
+            //        },
+            //    },
+            //    eventAfterRender: function (event, element, view) {
+            //        if (event.title == "Holiday") {//booked
+            //            element.css('background-color', '#00c0ef');
+            //            element.css('border-color', '#00c0ef')
+            //        }
+            //    },
+            //    eventRender: function (event, element) {
+            //    },
+            //    editable: false,
+
+            //});
+
+            $('#calendar').fullCalendar({
+                displayEventTime: false,
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                firstDay: 1, //The day that each week begins (Monday=1)
+                slotMinutes: 60,
+                    events: {
+                        url: '/CalendarTemplate/GetMonthlyLeave',
+                        cache: true,
+                        type: 'POST',
+                        data: {
+                            EntryID: EntryID
+                        },
+                        error: function () {
+                            alert('Not Found Holiday..!!');
+                        },
+                    },
+                    eventAfterRender: function (event, element, view) {
+                        if (event.title == "Weekly Holidays") {//booked
+                            element.css('background-color', '#ff6666');
+                            element.css('border-color', '#ff6666')
+                        } else {
+                            element.css('background-color', '#ff9999');
+                            element.css('border-color', '#ff9999')
+                        }
+                },
+            });
+        });
+
+
+
+    </script>
+}

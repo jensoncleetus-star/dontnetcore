@@ -1,0 +1,690 @@
+@model QuickSoft.ViewModel.AMCViewModel
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "AMC List";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string actData2 = "";
+    string delchk = "";
+    string deleteBTn = "";
+
+    deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+        "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#AMC').submit(); e.preventDefault();} " +
+         "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+
+    string refreshBTn = "{text: 'Refresh', className: 'btn-primary', action: function(e, dt, node, config) {" +
+              " $('#AmcTable').DataTable().ajax.reload();" +
+               " }},";
+}
+
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+
+    .box-header .pull-right {
+        margin-top: -22px;
+    }
+
+    .col-md-3 {
+        float: none;
+        display: inline-block;
+    }
+
+    @@media only screen and (max-width: 400px) {
+        .top3 {
+            margin-top: 27px;
+        }
+
+        .adv-search-height {
+            margin-left: 10px !important;
+        }
+
+        .responsive-search {
+            padding: 0px 0px 0px 0px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+            width: 150px !important;
+        }
+
+        .task-name-center {
+            text-align: center !important;
+        }
+    }
+
+    @@media only screen and (min-width: 800px) {
+        .top3 {
+            margin-top: 10px;
+        }
+
+        .adv-search-height {
+            top: -8px !important;
+            margin-left: 13px;
+        }
+
+        .responsive-search {
+            padding: 20px 0px 0px 50px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+        }
+
+        .btn-h-change {
+            margin: 0px !important;
+        }
+
+        .btn-up {
+            margin-top: 0px !important;
+        }
+    }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <div class="row">
+            <div class="col-md-10 col-xs-12 task-name-center">
+                <h3 class="box-title " style="font-size:x-large;">AMC Report</h3>
+            </div>
+            <div class="col-md-2 col-xs-12 pull-right" style="padding: 0px; margin: 10px 0px 0px 0px;">
+                <div class="row">
+                    <div class="col-md-10 col-xs-6 pull-right" style="padding:0px;">
+                        <a class="btn btn-info no-border" style="margin-top:2rem; " href="/AMC/Create">
+                            <i class="glyphicon glyphicon-plus"></i>Create AMC
+                        </a>
+                    </div>
+                    <div class="col-md-10 col-xs-6 pull-right btn-h-change" style="padding:0px;">
+                        <a class="btn btn-info no-border btn-up" style="margin-top:2rem; " href="/AMC/MyAMC">
+                            <i class="glyphicon glyphicon-plus"></i>My AMC
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+            <div id="modal-container3" class="modal fade" role="dialog" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                            <h4>Remarks</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="box-body" id="modelview">
+                                <table class="table table-bordered table-hover" id="RemarkInfo">
+                                    <thead>
+                                        <tr class="bg-gray">
+                                            <td>#</td>
+                                            <td>Date & Time</td>
+                                            <td>Employees</td>
+                                            <td>Remarks</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          
+            <div class="col-md-10 col-xs-2 text-right top3" style="">
+                &nbsp;
+            </div>
+            <div class="col-md-12">
+                <div class="box-body search-box adv-search-height" id="advsearchlist">
+
+                    <div class="search-body col-md-12 responsive-search" style="background:none;">
+
+                        <form id="search-formm">
+                            <div class="row">
+                                <input type="hidden" id="remId" />
+                                
+                                
+                                <div class="form-group col-md-2 col-xs-12" id="searchtaskstatus">
+                                    @Html.Label("Document Type", null, new { @class = "control-label temp2" })
+                                    @Html.DropDownList("documenttype", (SelectList)ViewBag.documenttypes,"All" ,new {@id= "ddldocumenttype", @class = "form-control input-sm select2" })
+                                </div>
+
+                                <div class="form-group col-md-2" id="searchRfromdate">
+                                    @Html.Label("From Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2" id="searchRtodate">
+                                    @Html.Label("To Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                              
+                               
+
+                                <div class="form-group col-md-2 col-xs-12 text-center " id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2 col-xs-12  text-center" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class=" col-md-2" id="searchpagelength">
+
+                <span class="sh-spaan-text-style">Show &nbsp;</span>@Html.DropDownList("ddlPagesize", new SelectList(new List<SelectListItem>
+{
+new SelectListItem() {Text = "50 Rows", Value="50"},
+new SelectListItem() {Text = "All Rows", Value="10000000"},
+
+}, "Value", "Text"), new { @class = "sh-input-drop select2" })
+
+            </div>
+        </div>
+
+    </div>
+    @using (Html.BeginForm("DeleteAll", "AMC", FormMethod.Post, new { id = "AMC", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="AmcTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Contract No</td>
+                        <td data-priority="1">Customer Name</td>
+                        <td data-priority="1">Document Name</td>
+
+                        <td data-priority="2">Expiry Date</td>
+
+                        
+                        <td data-priority="1">Action</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@{var vModel = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @vModel)
+@Html.Partial("../Common/_ModalDelete")
+@Html.Partial("../Common/_ModalEdit")
+
+
+
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+
+<script type="text/javascript">
+
+    //$('#advsearchlist').hide();
+
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+
+    jQuery.validator.methods["date"] = function (value, element) { return true; }
+    $(".timepicker").timepicker({
+        showInputs: true,
+        defaultTime: false,
+        format: 'dd-mm-yyyy'
+    });
+
+    $(document).ready(function () {
+
+
+        $('#ddldocumenttype').select2({});
+
+       $('#advsearchlist').show();
+        $('#ddlPagesize').on('change', function (e) {
+
+            let pagedroplength = $('#ddlPagesize').val();
+            oTable.page.len(pagedroplength).draw();
+        });
+        $("#nextdate").show();
+
+
+
+
+
+
+
+        $('#FromDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        $('#ToDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 60));
+        //$('#ToDate').datepicker('setDate', today);
+        $('#FromDate').datepicker('setDate', priordate);
+        $('#ToDate').datepicker('setDate', today);
+    });
+
+    //Customer DropDown
+
+
+    function Alertfn() {
+        alert("There is no Document Attached");
+    }
+
+    var oTable = null;
+
+   
+
+    //Retrieving data from table for display
+
+
+
+
+    //".checkbox" change
+
+
+    //Button Close
+    $('#srch, .search-box .btn-close').on('click', function (e) {
+        /*   $('#advsearchlist').toggle();*/
+
+        /*******  To uncheck all the checkboxes in the Select List  ************/
+        var checkboxes = document.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(function (Checkbox) {
+            Checkbox.checked = false;
+        });
+
+        if ($('#srch').hasClass('btn-primary')) {
+
+            $('#srch').addClass('btn-danger');
+            $('#srch').removeClass('btn-primary');
+        }
+        else {
+            if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+            }
+
+            /*******  To clear all the data entered  *********/
+
+        }
+    });
+
+    $('#search-formm').on('submit', function (e) {
+        e.preventDefault();
+        if (oTable!=null)
+        oTable.destroy()
+       oTable = $('#AmcTable').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": true, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "bStateSave": true,
+           retrieve: true,
+        "pageLength": 50,
+        responsive: true,
+        "bLengthChange": false,
+        "ajax": {
+            "url": '/AMC/GetDetailsdocument',
+            "data": function (data) {
+
+                data.documenttype = $('#ddldocumenttype').val();
+                data.FromDate = $('#FromDate').val();
+                data.ToDate = $('#ToDate').val();
+
+
+
+            },
+            "type": "POST",
+            "datatype": "json"
+        },
+
+        "columns": [
+            {
+                "data": "AmcId", "name": "AmcId",
+                "render": function (data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
+            {
+                "name": "AmcNo", "data": function (data) {
+                    @{
+                        var datass = "";
+                        datass = "'<a href=\"/AMC/Details/'+ data.AmcId +'\"  target=\"_new\">'+ data.AmcNo +'</a>' ";
+
+                           }
+                    return @Html.Raw(datass);
+                }
+            },
+            {
+                "name": "CustomerName", "data": function (data) {
+                    @{
+                        var datas = "";
+                        datas = "'<a href=\"/Customer/Details/'+ data.CustomerId +'\"  target=\"_new\">'+ data.CustomerName +'</a>' ";
+
+                           }
+                    return @Html.Raw(datas);
+                }
+            },
+            {
+                "name": "documenttype", "data": "documenttype"
+            },
+            {
+                "data": "expiryate", "name": "expiryate",
+                "render": function (data) {
+                    var date = convertToDate(data);
+                    return date.toString();
+                }
+            },
+           {
+                "name": "AmcId", "data": function (data) {
+
+                    var rest = "";
+                    var rest2= "";
+
+                    @{
+
+
+    //  actData += "<a class=\"modal-create\" href=\"/AMC/DownloadDoc/'+ data.AmcId +'\" title=\"Download Document\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+    if (User.IsInRole("Upload Amc Document"))
+    {
+        actData += "<a class=\"modal-create\" href=\"/AMC/AddamcImage/'+ data.AmcId +'\" title=\"Add Amc Document\"><i class=\"fa-lg fa fa-upload\" ></i></a> ";
+    }
+    //                        actData += "<a class=\"Updation\" onclick=\"detailsRemark(' + data.AmcId + ')\" title=\"View AMC Update\"><i class=\"fa-lg fa fa-calendar\" ></i></a> ";
+
+}
+
+                        if (data.docdownload == 0) {
+
+                            rest2 = "<a class=\"btn btn-icons btn-rounded btn-edit \" onclick=\"Alertfn();\" title=\"Download Entry\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+
+                        } else {
+                            rest2 = '<a class=\"btn btn-icons btn-rounded btn-edit modal-create\" href=\"/AMC/DownloadDoc/'+ data.AmcId +'\" title=\"Download Entry\"><i class=\"fa-lg fa fa-download\" ></i></a> ';
+                        }
+                        return rest += '@Html.Raw(actData)' + rest2;
+                }
+                },
+
+
+
+
+
+
+
+        ],
+        buttons: [
+           'colvis',
+           {
+               extend: 'print',//
+               title: "",
+               footer: true,
+               filename: function () {
+                   return 'AMC';
+               },
+               columnDefs: [
+                   { width: 400, targets: 2 }
+               ],
+               exportOptions: {
+                   columns: ':visible'
+               },
+               message: function () {
+                   var head = '<table class="tblcompact table table-bordered"><thead>' +
+                   ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>AMC</h4></th></tr>';
+                   return head;
+               },
+               customize: function (win) {
+                   // $(win.document.body)
+                   //.css('font-size', '10pt')
+                   //.css('padding', '1px');
+                   $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                   $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                       .css('font-size', '10pt')
+                       .css('padding', '5px')
+                       .addClass('compact');
+                   $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                       .css('min-width', '80px');
+                   //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                   //    .css('padding', '0px');
+                   $(win.document.body).append('</td></tr></tbody>')
+
+               }
+           }, 'copy', 'csv', 'excel',
+           {
+               extend: 'pdf',//
+               title: "",
+               footer: true,
+               filename: function () {
+                   return 'AMC';
+               },
+               message: function () {
+                   var head = 'AMC';
+                   return head;
+               },
+               pageSize: 'A4',
+               exportOptions: {
+                   columns: ':visible'
+               },
+               customize: function (doc) {
+                   doc.pageMargins = [10, 10, 10, 10];
+                   doc.defaultStyle.fontSize = 10;
+                   doc.styles.tableHeader.fontSize = 10;
+                   doc.styles.title.fontSize = 12;
+                   // Header font and bg color
+                   doc.styles.tableHeader.fillColor = '#d3d3d3';
+                   doc.styles.tableHeader.color = 'black';
+                   // Remove spaces around page title
+                   doc.content[0].text = doc.content[0].text.trim();
+
+                   doc.styles['td:nth-child(2)'] = {
+                       width: '100%',
+                       'max-width': '100%'
+                   }
+
+                   var objLayout = {};
+                   // Horizontal line thickness
+                   objLayout['hLineWidth'] = function (i) { return .5; };
+                   // Vertikal line thickness
+                   objLayout['vLineWidth'] = function (i) { return .5; };
+                   //// Horizontal line color
+                   //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                   //// Vertical line color
+                   //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                   // Left padding of the cell
+                   objLayout['paddingLeft'] = function (i) { return 4; };
+                   // Right padding of the cell
+                   objLayout['paddingRight'] = function (i) { return 4; };
+                   // Inject the object in the document
+                   doc.content[1].layout = objLayout;
+                   // Footer font and bg color
+                   doc.styles.tableFooter.fillColor = '#d3d3d3';
+                   doc.styles.tableFooter.color = 'black';
+               }
+           },@Html.Raw(refreshBTn),
+           @Html.Raw(deleteBTn)
+        ],
+
+        sDom: "lBfr<'datatable-scroll't>ip",
+        "drawCallback": function (settings) {
+        }
+    });
+    });
+        $('#modal-create').on('submit', '#createForm', function (e) {
+            e.preventDefault();
+            var url = $('#createForm')[0].action;
+            var data = $('#createForm').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+    /* function for delete popup */
+    $('.table').on('click', '.modal-delete', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-delete');
+    });
+
+    $('#modal-delete').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-delete');
+        Table.draw(false);
+    });
+
+    $('.table').on('click', '.modal-create', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+    function detailsRemark(AmcId) {
+        var RequisitionId = AmcId;
+
+        //List all other remarks from table CustomerRemarks
+        var oTable1 = $('#RemarkInfo').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "paging": false,
+            "sortable": true,
+            "ordering": true,
+            "searching": true,
+            "ajax": {
+                "url": '/AMC/GetAllRemarksadded',
+                "type": "POST",
+                "datatype": "json",
+                "data": { RequisitionId: AmcId }
+            },
+            "order": [[0, "desc"]],
+
+            "columns": [
+                {
+                    "data": "id", "name": "id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                { "data": "EmpName", "name": "EmpName" },
+                { "data": "Remarks", "name": "Remarks" },
+            ],
+        });
+
+        oTable1.destroy();
+
+    }
+        $('.table').on('click', 'a.ViewUpdates', function (e) {
+        e.preventDefault();
+        $(this).attr('data-target', '#modal-container3');
+        $(this).attr('data-toggle', 'modal');
+    });
+    $('div').on('click', '.AddUpdates', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+    $('div').on('submit', '#createform', function (e) {
+        e.preventDefault();
+        var url = $('#createform')[0].action;
+        var data = $('#createform').serialize();
+        createajax(url, data, '#modal-create');
+    });
+
+</script>
+}
+
+

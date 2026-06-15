@@ -1,0 +1,2060 @@
+﻿@model QuickSoft.ViewModel.POSEntryViewModel
+@{ ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "POS";
+    ViewBag.Active = "Customer";
+    ViewBag.PActive = "POS";
+
+}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans&family=League+Spartan:wght@300;700&display=swap" rel="stylesheet">
+<script>
+    var j = 10;
+    var filterData = {
+        init: function (e, t, f) {
+            // MixItUp plugin
+            // http://mixitup.io
+            $(e).mixItUp({
+                selectors: {
+                    target: t,
+                    filter: f
+                },
+
+            });
+        },
+        del: function (e) {
+            $(e).mixItUp('destroy');
+        }
+    };
+    function reinit() {
+
+        filterData = {
+            init: function (e, t, f) {
+                // MixItUp plugin
+                // http://mixitup.io
+                $(e).mixItUp({
+                    selectors: {
+                        target: t,
+                        filter: f
+                    }
+                });
+            },
+            del: function (e) {
+                $(e).mixItUp('destroy');
+            }
+        };
+
+
+
+
+
+
+        $('#itembox').html(itemlist(orgallitem));
+        var s = "";
+        $('.item-search').empty()
+        //s = s + '<option value="-1">-select-</option>';
+        //$.each(item, function (i, it) {
+        //     s = s+'<option value="' + it.ItemID + '">' + it.ItemName + '</option>';
+        //});
+        //$('.item-search').append(s);
+        try {
+            filterData.init('#portfoliolist', '.portfolio', '.filter');
+        }
+        catch (x) {
+            alert("Error");
+        }
+
+        $('.item-search').empty()
+        try {
+            filterData.del('#portfoliolist');
+        } catch (x) { }
+        filterData.init('#portfoliolist', '.portfolio', '.filter');
+
+    }
+    function onchangmanualbarcode(bar) {
+        var srch = $(bar).val();
+        readBarcode(srch);
+        $(bar).val("");
+    }
+
+</script>
+<style>
+    h1, h2, h3, h4, h5, span, a, p, div {
+        font-family: 'Fira Sans', sans-serif;
+    }
+
+    .btn-warning {
+        background-color: gray;
+        border-color: gray;
+    }
+
+    #itembox .portfolio img {
+        height: 75px !important;
+    }
+
+    .amenu {
+        font-size: 15px;
+        color: white;
+        border: 1px;
+        display: block;
+        height: 30p;
+        font-weight: bold;
+    }
+
+    .navbar {
+        display: none;
+    }
+
+    .sidebar-menu {
+        display: none;
+    }
+
+    @@media only screen and (max-width: 995px) {
+
+        .scroll-box2 {
+            height: -96px;
+        }
+
+        .lpos {
+            /*height: 1000px;*/
+        }
+
+        .button-82-pushable {
+            width: 150px;
+        }
+
+        #filters {
+            width: 150px;
+        }
+
+        .scroll-box2 .slimScrollDiv {
+            width: calc(100% - 120px) !important;
+        }
+
+            .scroll-box2 .slimScrollDiv:first-child {
+                width: 120px !important;
+            }
+
+        .price_h {
+            display: none !important;
+        }
+    }
+
+    @@media only screen and (max-width: 1200px) {
+        .button-82-pushable {
+            width: 200px;
+        }
+    }
+</style>
+@using (Html.BeginForm("Edit", "OrderRES", FormMethod.Post, new { name = "myposforms", id = "myposforms", role = "form", autocomplete = "off" }))
+{
+    <input type="hidden" name="SEDiscount" class="disc-am" id="SEDiscount" value="0" />
+    <input type="hidden" name="RoundOff" class="round-Off" id="RoundOff" value="0" />
+    <input type="hidden" name="SEPaidAmount" class="SEPaidAmount" id="SEPaidAmount" value="0" />
+    <input type="hidden" name="SEDueAmount" class="SEDueAmount" value="0" id="SEDueAmount" />
+    <input type="hidden" name="SEGrandTotal" class="SEDueAmount" value="0" id="SEGrandTotal" />
+    <input type="hidden" name="SETotal" class="SEDueAmount" id="SETotal" value="0" />
+    <input type="hidden" name="offline" id="offline" value="1" />
+    <div class="row" style="background-color:gray;padding:5px;">
+        <div class="col-md-2">
+            <a href="/Home/Index" target="_new"><span style="font-size:20px;color:white">@ViewBag.CName</span></a>
+
+        </div>
+        <div class="col-md-2">
+            <a href="/CreditSale/Index" target="_new"><span style="font-size:20px;color:white">Orders</span></a>
+
+        </div>
+        <div class="col-md-2">
+            <div class="btn-group-vertical btn-block">
+
+                @*   <a class="amenu" data-toggle="modal" data-target="#running-orders" data-backdrop="false" role="button">
+
+                        <span class=" text">
+                            Orders
+                        </span>
+                    </a>*@
+
+                <a href="/CreditSaleReturn/Create" target="_new">
+
+                    <span class=" text" style="color:white;font-weight:bold">
+                        Sales Return
+                    </span>
+                </a>
+            </div>
+        </div>
+        @*<div class="col-md-2">
+                <div class="btn-group-vertical btn-block">
+
+                    <a href="/POSRES/Index" target="_blank">
+
+                        <span class=" text" style="color:white;font-weight:bold">
+                            Sales List
+                        </span>
+                    </a>
+                </div>
+            </div>*@
+
+
+        <div class="col-md-2">
+            <div class="btn-group-vertical btn-block">
+
+                <a href="/POSRES/handover" target="_blank">
+
+                    <span class=" text" style="color:white;font-weight:bold">
+                        Start Session
+                    </span>
+                </a>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="btn-group-vertical btn-block">
+
+                <a href="/POSRES/handoverend" target="_blank">
+
+                    <span class=" text" style="color:white;font-weight:bold">
+                        End Session
+                    </span>
+                </a>
+            </div>
+        </div>
+        @*<div class="col-md-1">
+                        <div class="btn-group-vertical btn-block">
+                            <a class="amenu"  class="" id="delSettl" role="button" data-toggle="modal" data-target="#delivery-settlement" data-backdrop="false">
+
+                                <span class=" text">
+                                    Delivery Settlement
+                                </span>
+                                </a>
+
+            </div>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="btn-group-vertical btn-block">
+
+                            <a class="amenu" class="" data-toggle="modal" id="orderhold" data-target="#hold-orders" data-backdrop="false" role="button">
+
+                                <span class=" text">
+                                    Hold Orders
+                                </span>
+                                </a>
+            </div>
+                    </div>*@
+
+        @*<div class="col-md-1">
+                        <div class="btn-group-vertical btn-block">
+
+
+                            <a class="amenu" href="/home/index/" class="" data-toggle="modal" role="button" onclick='window.open("/home/index/")'>
+
+                                <span class=" text">
+                                    Goto Dashboard
+                                </span>
+                                </a>
+            </div>
+                    </div>*@
+        @*<div class="col-md-2">
+                <div class="btn-group-vertical btn-block">
+                    <button type="button" type="button" class="button-82-pushable" data-toggle="modal" id="saleslist" href="/itemsizeprice/Index" )'>
+                        <span class="button-82-shadow"></span>
+                        <span class="button-82-edge"></span>
+                        <span class=" text">
+                            Item Size Price
+                        </span>
+                    </button>
+
+
+
+                </div>
+            </div>*@
+        <div class="col-md-2">
+            <div class="btn-group-vertical btn-block">
+                <a class="amenu" class="" data-toggle="modal" id="opendrawer" role="button">
+
+                    <span class=" text">
+                        Open Drawer
+                    </span>
+                </a>
+
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="btn-group-vertical btn-block">
+                <a class="amenu" class="" data-toggle="modal" id="resets" role="button">
+
+                    <span class=" text">
+                        Cancel
+                    </span>
+                </a>
+
+            </div>
+        </div>
+        @*<div class="col-md-4">
+
+                    <select class="form-control qwerty item-search hidden" placeholder="Search product by code or name, you can scan barcode too"></select>
+
+            </div>*@
+        <div class="col-md-2">
+            <span id="itemcount" style="float: right; padding-right: 10px; font-size: 20px; color: white; background-color: black; text-align: center; padding-left: 9px;">0</span>
+
+            <a type="button" id="opencart" data-toggle="modal" data-target="#cartModal" data-backdrop="false" style="float:right;padding-right:20px;">
+
+                <i class="fa fa-shopping-cart" aria-hidden="true" style="font-size: 30px; color: #f9f9f9;"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+
+
+
+        <div class="col-md-12 rpos" style="padding-left:0px;">
+            @if (@ViewBag.MultiCategory == 0)
+            {
+                <div class="col-sm-12 Mainategory">
+                    <ul class="myfilters">
+                    </ul>
+                </div>
+                <div class="scroll-box2" id="itembox">
+                    <!-- item list-->
+                </div>
+            }
+            else
+            {
+                <div>
+                    <div class="row">
+                        <div class="col-md-6 col-xs-6">
+                            <input type="text" class="form-control barcode" id="barcode" style="padding-left: 10px; border-radius: 0px !important; text-align: center;" placeholder="Search Barcode" />
+                        </div>
+                        <div class="col-md-3 col-xs-3">
+                            <input type="text" class="form-control " id="barcodema" style="padding-left: 10px; border-radius: 0px !important; text-align: center;" onchange="onchangmanualbarcode(this)" placeholder="Manual Barcode" />
+                        </div>
+                        <div class="col-md-2 col-xs-2"><input type="text" value="0.00" id="txtamounttopay" disabled="disabled" readonly="readonly" style="font-size:17px;font-weight:bold;padding-left: 10px; border-radius: 0px !important;" /></div>
+                    </div>
+                </div>
+                <div class="scroll-box2" id="itembox">
+                    <!-- item list-->
+                </div>}
+
+
+
+
+
+
+        </div>
+    </div>
+
+
+    <div id="modal-itemunit" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group text-center"><h2><label id="selitemname"></label></h2></div>
+                    <div id="divaddon">
+
+                    </div>
+                    <div id="divselunit">
+                        <input type="hidden" id="selectitem" />
+                        <div class="form-group text-center"><select class="form-control" id="ItemUnitSelect"></select></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="text-center"><button class="btn btn-warning btn-full" id="btnitemunit" type="button" data-dismiss="modal"> Add </button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--modelpop for unit selection -->
+
+    <!--modelpop for Addon selection --> @*<div id="modal-addon" class="modal fade" role="dialog" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="Addons">
+
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="text-center"><button class="btn btn-primary btn-full" id="btnitemunit" type="button" data-dismiss="modal"> Add </button></div>
+                    </div>
+                </div>
+            </div>
+        </div>*@
+
+    <!-- Modal -->
+    <div class="modal fade" id="cartModal" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header bg-black">
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                    <h4 class="modal-title">Cart</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="col-md-12 lpos" style="padding-right:0px;">
+                        <div id="leftdivv">
+                            <div id="lefttop">
+                                @*<div class="col-sm-2 form-group">
+                                        <button type="button" class="btn btn-success btn-block btn-flat" id="mergeOrder">Merge Order</button>
+                                    </div>
+                                    <div class="col-sm-2 form-group">
+                                        <button type="button" class="btn btn-warning btn-block btn-flat" id="splitOrder">Split Order</button>
+                                    </div>*@
+                                <div class="row">
+                                    <div class="col-sm-4 form-group">
+                                        <button type="button" class="btn btn-warning btn-block btn-flat" id="takeaway"><span class="fa fa-shopping-bag"></span> TakeAway</button>
+                                    </div>
+                                    <div class="col-sm-4 form-group">
+                                        <button type="button" class="btn btn-warning btn-block btn-flat" id="delivery"><span class="fa fa-truck"></span> Delivery</button>
+                                    </div>
+                                    <div class="col-sm-4 form-group">
+                                        <button type="button" class="btn btn-warning btn-block btn-flat" id="dinein" data-toggle="modal" data-target="#dineInModel" data-backdrop="false"><span class="fa fa-table"></span> Dinein</button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-1 form-group ">
+                                    @Html.EditorFor(model => model.OrderNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                                    @Html.HiddenFor(model => model.SENo)
+                                    <input type="hidden" id="HideOrderId" value="" />
+                                    <input type="hidden" id="HideWaiterId" value="" />
+                                </div>
+                                <div class="col-sm-3 form-group">
+                                    <div class="input-group date">
+                                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                                        @Html.TextBoxFor(m => m.SEDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @style = "height:38px !important" })
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-xs-12 form-group">
+                                    @* @Html.EnumDropDownListFor(model => model.CustomerType, new { @class = "form-control", @onchange = "customertype()", @style = "height:38px !important" })*@
+                                    <select name="CustomerType" onchange="customertype()" style="height:38px !important;width:100%" id="CustomerType">
+                                        <option value="1">Cash</option>
+                                        <option value="2">Card</option>
+                                        <option value="0">Credit</option>
+                                    </select>
+
+                                </div>
+                                <div class="col-sm-6 form-group creditsale">
+                                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                                    {
+                                        <div class="input-group input-group-sm" style="width:90% !important">
+                                            @Html.DropDownListFor(m => m.Customer, new SelectList("", ""), new { id = "ddlCustomer", @class = "form-control qwerty select2", @style = "width:180px !important" })
+                                            <span class="input-group-btn">
+                                                <a type="button" href="/Customer/AddCustomerLite" class="modal-create btn btn-success btn-flat" target="_new"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                            </span>
+                                        </div> }
+                                    else
+                                    {
+                                        @Html.DropDownListFor(m => m.Customer, new SelectList("", ""), new { id = "ddlCustomer", @class = "form-control qwerty select2" })}
+                                </div>
+                                @if (1 == 2)
+                                {
+                                    <div class="col-sm-6 form-group cashsale hidden">
+                                        @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { @class = "form-control qwerty" } })
+                                    </div>
+                                    <div class="col-sm-6 form-group cashsale hidden">
+                                        @Html.EditorFor(model => model.MobileNo, new { htmlAttributes = new { @class = "form-control numbers" } })
+                                    </div> }
+                                else
+                                { @*<div class="col-sm-6 form-group cashsale">
+                                            @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { @class = "form-control" } })
+                                        </div>
+                                        <div class="col-sm-6 form-group cashsale hidden">
+                                            @Html.EditorFor(model => model.MobileNo, new { htmlAttributes = new { @class = "form-control"} })
+                                        </div>*@}
+                                <div class="col-sm-6 form-group" style="display:none">
+                                    @Html.DropDownListFor(m => m.SECashier, new SelectList("", ""), new { id = "ddlSalesPerson", @class = "form-control qwerty select2" })
+                                </div>
+
+                            </div>
+                            <div class="fixed-table-container">
+                                <div id="list-table-div">
+                                    <div class="price_h">
+                                        <div class="col-md-1"><b>#</b></div>
+                                        <div class="col-sm-4"><b>Product</b></div>
+                                        <div class="col-sm-2 smh"><b>Size</b></div>
+                                        @*<div class="col-sm-1"><b>Unit</b></div>*@
+                                        <div class="col-sm-1"><b>Price</b></div>
+                                        <div class="col-sm-2"><b>Qty</b></div>
+                                        <div class="col-sm-1 smh"><b>Tax</b></div>
+                                        <div class="col-sm-1 smh"><b>SubTotal</b></div>
+
+                                        @*<div class="col-sm-1"><i class="fa fa-trash-o tip pointer posdel" title="Remove"></i></div>*@
+                                    </div>
+                                    <div class="scroll-box" id="POSForm">
+                                        <div class="spin"><i class="fa fa-spinner fa-3x fa-spin"></i></div>
+                                        @*added products shows here*@
+                                    </div>
+                                </div>
+                                <div id="totaldiv">
+                                    <div class="price_tot">
+                                        <div class="col-sm-3 hidden"><b>Item Count</b></div>
+                                        <div class="col-sm-3 hidden"><input type="text" readonly id="ItemCount" value="0"></div>
+                                        <div class="col-sm-6 hidden">SubTotal</div>
+                                        <div class="col-sm-6 hidden"><input type="text" readonly id="total" value="0.00"></div>
+
+                                        <div class="col-sm-3 hidden"><b>Item Qty</b></div>
+                                        <div class="col-sm-3 hidden"><input type="text" readonly id="ItemQty" value="0.00"></div>
+                                        <div class="col-sm-6">Delivery Charge</div>
+                                        <div class="col-sm-6"><input type="number" value="0.00" id="dcharge" onchange="itemTotal()"></div>
+                                        <div class="col-sm-6">Discount</div>
+                                        <div class="col-sm-6"><input type="text" readonly value="0.00" id="discount" name="discount"></div>
+
+                                        <div class="col-sm-6">VAT</div>
+                                        <div class="col-sm-6"><input type="text" readonly value="0.00" id="total_tax"></div>
+
+                                        <div class="tot_sec">
+                                            <div class="col-sm-6"><b>GrandTotal</b></div>
+                                            <div class="col-sm-6"><input type="text" readonly value="0.00" min="0.01" id="total_payable"></div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div id="leftCustomItem">
+                            <div id="leftCustomtop">
+                                @if (@ViewBag.KBEnable == 0)
+                                {
+                                    <div class="col-sm-12 form-group">
+                                        <input type="text" class="form-control qwerty" placeholder="Item Name" required id="Custom-ItemName" name="Custom-ItemName" />
+                                    </div> }
+                                else
+                                {
+                                    <div class="col-sm-12 form-group">
+                                        <input type="text" class="form-control" placeholder="Item Name" required id="Custom-ItemName" name="Custom-ItemName" />
+                                    </div>}
+                            </div>
+                            <div class="fixed-table-container">
+                                <div id="list-table-div">
+                                    <div class="price_h">
+                                        <div class="col-sm-1"><b>#</b></div>
+                                        <div class="col-sm-3"><b>Product</b></div>
+                                        <div class="col-sm-1"><b>Unit</b></div>
+                                        <div class="col-sm-2"><b>Price</b></div>
+                                        <div class="col-sm-2"><b>Qty</b></div>
+                                        <div class="col-sm-2"><b>SubTotal</b></div>
+                                        <div class="col-sm-1"><i class="fa fa-trash-o tip pointer posdel" title="Remove"></i></div>
+                                    </div>
+                                    <div class="scroll-box" id="custom-items">
+                                        <div class="spin"><i class="fa fa-spinner fa-3x fa-spin"></i></div>
+                                        @*added products shows here*@
+                                    </div>
+                                    <div id="totalCustomDiv">
+                                        <div class="price_tot">
+                                            <div class="col-sm-3 hidden"><b>Item Count</b></div>
+                                            <div class="col-sm-3 hidden"><input type="text" readonly id="Custom-ItemCount" value="0"></div>
+                                            <div class="col-sm-6">Item SubTotal</div>
+                                            <div class="col-sm-6"><input type="text" id="Custom-total" value="0.00"></div>
+                                            <div class="col-sm-3 hidden"><b>Item Qty</b></div>
+                                            <div class="col-sm-3 hidden"><input type="text" readonly id="Custom-ItemQty" value="0.00"></div>
+                                            <div class="col-sm-6">VAT %<input type="number" value="0.00" id="Custom-total_tax_p"></div>
+                                            <div class="col-sm-6"><input type="text" readonly value="0.00" id="Custom-total_tax"></div>
+                                            <div class="tot_sec">
+                                                <div class="col-sm-6"><b>Sale Price</b></div>
+                                                <div class="col-sm-6"><input type="text" readonly value="0.00" min="0.01" id="Custom-total_payable"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="botbuttons text-center">
+                                <div class="col-xs-6">
+                                    <div class="btn-group-vertical btn-block">
+                                        <button type="button" class="btn btn-success btn-block btn-flat" id="cust-save">Save</button>
+                                    </div>
+                                </div>
+                                <div class="col-xs-6">
+                                    <div class="btn-group-vertical btn-block">
+                                        <button type="button" class="btn btn-danger btn-block btn-flat" id="cust-cancel">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:5px;">
+                        <div class="col-md-12">
+                            <div class="botbuttons text-center">
+                                @*<div class="col-xs-4">
+                                        <div class="btn-group-vertical btn-block">
+                                            <button type="button" class="btn btn-warning btn-block btn-flat" id="suspend">Hold</button>
+                                            <button type="button" class="btn btn-danger btn-block btn-flat" id="resets">Cancel</button>
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-4">
+                                        <div class="btn-group-vertical btn-block">
+                                            <button type="button" class="btn bg-purple btn-block btn-flat" id="print_order">Print Order</button>
+                                            <button type="button" class="btn bg-navy btn-block btn-flat" id="print_bill">Print Bill</button>
+                                        </div>
+                                    </div>*@
+                                <div class="col-md-3">
+                                    <div class="btn-group-vertical btn-block">
+                                        <button type="button" class="button-82-pushable" data-toggle="modal" id="payment" role="button">
+                                            <span class="button-82-shadow"></span>
+                                            <span class="button-82-edge"></span>
+                                            <span class="button-82-front text">
+                                                Payment
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="btn-group-vertical btn-block">
+                                        <button type="button" class="button-82-pushable" data-toggle="modal" id="saveorder" role="button">
+                                            <span class="button-82-shadow"></span>
+                                            <span class="button-82-edge"></span>
+                                            <span class="button-82-front text">
+                                                Save Order
+                                            </span>
+                                        </button>
+
+
+
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="btn-group-vertical btn-block">
+                                        <button type="button" class="button-82-pushable" data-toggle="modal" id="printkot" role="button">
+                                            <span class="button-82-shadow"></span>
+                                            <span class="button-82-edge"></span>
+                                            <span class="button-82-front text">
+                                                Print KOT
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                                @*<div class="col-md-2">
+                                        <div class="btn-group-vertical btn-block">
+                                            <button type="button" class="button-82-pushable" data-toggle="modal" id="hold" role="button">
+                                                <span class="button-82-shadow"></span>
+                                                <span class="button-82-edge"></span>
+                                                <span class="button-82-front text">
+                                                    Hold
+                                                </span>
+                                            </button>
+
+
+
+                                        </div>
+                                    </div>*@
+                                <div class="col-md-3">
+                                    <div class="btn-group-vertical btn-block">
+
+                                        <button type="button" class="button-82-pushable" data-toggle="modal" id="printbill" role="button">
+                                            <span class="button-82-shadow"></span>
+                                            <span class="button-82-edge"></span>
+                                            <span class="button-82-front text">
+                                                Print Bill
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+
+                                @*<div class="col-xs-4">
+                                        <div class="payment">
+                                            <div class="payment_box">
+                                                <button type="button" id="payment1" class="btn btn-success btn-sm">Payment</button>
+                                            </div>
+                                        </div>
+                                    </div>*@
+                            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            <div class="botbuttons text-center">
+
+
+                                @*@if (@ViewBag.POSCustomItem == 0)
+                                                                        {
+                                                        <div class="col-xs-3">
+                                                            <div class="btn-group-vertical btn-block">
+                                                                <button type="button" class="btn bg-fuchsia btn-flat" id="customitem"><i class="fa fa-birthday-cake"></i> Custom Item</button>
+                                                                <a href="/SalesReturn/Create" type="button" class="btn bg-teal btn-flat">Sales Return</a>
+                                                            </div>
+                                                        </div> }
+                                                    else
+                                                    {
+                                    <div class="col-xs-3">
+                                        <div class="payment">
+                                            <div class="payment_box">
+                                                <a href="/SalesReturn/Create" type="button" class="btn bg-teal btn-sm ">Sales Return</a>
+                                            </div>
+                                        </div>
+                                    </div>}*@
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    @Html.Partial("_posPayment")
+    @Html.Partial("_posDineIn")
+    @Html.Partial("_viewOrders")
+    @Html.Partial("_holdOrders")
+    @Html.Partial("_deliverySettl")
+    @Html.Partial("_printBill")
+    @Html.Partial("_duplicateKOT")
+    @Html.Partial("_duplicateBILL")
+    @Html.Partial("_selectWaiter")
+
+    @Html.Partial("_AddDiscount")}
+
+@Html.Partial("_POSInvoice")
+@Html.Partial("_PrintKOT")
+@Html.Partial("../Common/_ModeItemCreate")
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/posres")
+    @Styles.Render("~/css/dineinpos")
+    <link href="~/Content/plugins/jquery.keypad.package/jquery.keypad.css" rel="stylesheet" />
+}
+@section scripts{
+    @Scripts.Render("~/js/mixitup")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/scaner")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/printThis")
+    <script type="text/javascript" src="~/Content/js/pos.js?c=x"></script>
+
+    <script type="text/javascript" src="~/Content/js/orders.js?c=sss22"></script>
+    <script type="text/javascript" src="~/Content/plugins/jquery.keypad.package/jquery.plugin.js"></script>
+    <script type="text/javascript" src="~/Content/plugins/jquery.keypad.package/jquery.keypad.js"></script>
+    <script type="text/javascript">
+
+        $(window).on("load", function () {
+            $("#itembox").append("<div id='loader' style='padding-top:200px' ><center>First time Loading.. Please Wait</center></div>");
+
+            var MultiCategory = '@ViewBag.MultiCategory';
+            if (1==1) {
+                itemsload('itembox');
+            }
+            else {
+                bindCategory();
+            }
+            $("#dinein").text("Dinein");
+            $("#delivery").text("Delivery");
+            bindPayMethod();
+        });
+
+
+
+
+        var allitems;
+        var orgallitem;
+        function itemsload(divid) {
+                     var prmitem = JSON.parse(localStorage.getItem("itemlist"));
+                      if (prmitem == null) {
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/Item/AllItem",
+                data: JSON.stringify({ type: 'POS' }),
+                success: function (item) {
+                    $("#loader").remove();
+                       localStorage.setItem("itemlist", JSON.stringify(item))
+                    allitems = item;
+                    orgallitem=item;
+                    $('#' + divid).append(itemlist(item));
+                    var s = "";
+                    $('.item-search').empty()
+                    //s = s + '<option value="-1">-select-</option>';
+                    //$.each(item, function (i, it) {
+                    //     s = s+'<option value="' + it.ItemID + '">' + it.ItemName + '</option>';
+                    //});
+                    //$('.item-search').append(s);
+                    try {
+                        filterData.init('#portfoliolist', '.portfolio', '.filter');
+                    }
+                    catch (x) {
+                        alert("Error");
+                    }
+                    slimScrolls.init('#portfoliolist');
+                    slimScrolls.init('#itscrol');
+                }
+            });
+                      }
+                      else{
+                            orgallitem=prmitem;
+                            reinit();
+                      }
+        }
+        $("body").addClass("sidebar-collapse");
+        $("body").addClass("pos");
+
+        // add slim scroll
+        $('.scroll-box').slimScroll({
+            alwaysVisible: true
+        });
+
+        /* function for Create customer popup */
+
+
+
+
+        // onclick right side icon function
+        $(document).on('click', '.portfolio', function (event) {
+            dataid = $(this).attr('data-id');
+            $("#txtfilter").val("");
+            //$("#txtfilter").focus();
+            if (!$(this).hasClass('addonss')) {
+                $('.spin').show();
+                itemDetails(dataid,"");
+                $('.spin').hide();
+            }
+            else {
+                //var fil = $(this).children("button").attr('data-toggle');
+                $('.spin').show();
+                itemDetails(dataid, "addon");
+                $('.spin').hide();
+
+            }
+
+        });
+        // select items via search box
+        var j = 1;
+        $(document).on('change', '.item-search', function (event) {
+            $('.spin').show();
+            dataid = $(".item-search").val();
+           // itemDetails(dataid);
+
+
+
+            for (i = 0; i < allitems.length; i++) {
+                if (dataid == allitems[i].ItemID) {
+                    var result = Array();
+                    result['item'] = allitems[i];
+                    result['item'].KeepStock = false;
+                    result['item'].total = 1000;
+                    result['item'].ItemQuantity = 1;
+                    result['item'].price = allitems[i].SellingPrice;
+
+
+                    createRow(result, j, "sales", result.item.ItemUnitID);
+                    j++;
+                }
+            }
+            $('.spin').hide();
+            $('.item-search').select2('close');
+            $(".item-search").val(null).trigger("change");
+        });
+
+        // delete row
+        $(document).on('click', '.rowtrash', function (event) {
+            $(this).closest('.price_main').remove();
+         //   itemDisc();
+            itemTotal();
+
+        });
+        // change quantity
+        $(document).on('change', '.price_q', function (event) {
+            var divid = $(this).closest(".price_main").prop("id");
+            rowSubTotal(divid);
+        });
+        // reset fields on click cancel button
+        $(document).on('click', '#resets', function (event) {
+        
+            $("#dinein").text("Dinein");
+            $("#delivery").text("Delivery");
+        });
+   $(document).on('click', '#opendrawer', function (event) {
+
+    var newWin = window.open('', 'Print-Window');
+    newWin.document.open();
+    newWin.document.write('<html><body onload="window.print()"></body></html>');
+    newWin.document.close();
+    setTimeout(function () {
+         newWin.close();
+
+
+    }, 500);
+        });
+        //// form submit
+        //$('#myposforms').on('submit', function (e) {
+        //    e.preventDefault();
+        //    //var fnval = e.originalEvent.explicitOriginalTarget.id;
+        //    var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+        //    if ($("#myposforms").valid()) {
+        //        FormSubmit(fnval);
+        //    }
+        //    else {
+        //        $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+        //    }
+        //});
+        // calculate payment balance
+        $(document).on('change', '.amount', function (event) {
+            cashBalance();
+        });
+        $(document).on('change', '#discount', function (event) {
+            itemTotal();
+        });
+
+
+        // onclick right side icon function
+        $(document).on('click', '.pftable', function (event) {
+            $('.spin').show();
+            dataid = $(this).attr('data-id');
+            tableDetails(dataid);
+            $('.spin').hide();
+        });
+
+
+
+        $("#takeaway").click(function () {
+            $(this).addClass("btn-primary");
+            $(this).removeClass("btn-warning");
+            $("#delivery").removeClass("btn-primary");
+            $("#dinein").removeClass("btn-primary");
+
+            $("#delivery").addClass("btn-warning");
+            $("#dinein").addClass("btn-warning");
+
+            $("#dinein").text("Dinein");
+            $("#delivery").text("Delivery");
+
+        });
+        $("#delivery").click(function () {
+            $(this).addClass("btn-primary");
+            $(this).removeClass("btn-warning");
+            $("#takeaway").removeClass("btn-primary");
+            $("#dinein").removeClass("btn-primary");
+            $("#dinein").text("Dinein");
+
+            $("#takeaway").addClass("btn-warning");
+            $("#dinein").addClass("btn-warning");
+
+         //   waiterlist();
+           // $("#CustomerType").val('0');
+           // customertype();
+         //   $('#select-waiter').modal("show");
+        });
+        $("#dinein").click(function () {
+            $(this).addClass("btn-primary");
+            $(this).removeClass("btn-warning");
+
+            $("#delivery").removeClass("btn-primary");
+            $("#takeaway").removeClass("btn-primary");
+
+            $("#takeaway").addClass("btn-warning");
+            $("#delivery").addClass("btn-warning");
+            $("#delivery").text("Delivery");
+
+        });
+
+        //print KOT
+
+
+        //print Bill
+        $("#printkot").click(function () {
+            if ($("#ddlCustomer").val() == null) {
+              //  alert("select customer");
+            }
+            else {
+                $("button").prop('disabled', true);
+                orderSubmitRES(0);
+            }
+
+        });
+        $("#drivers").click(function () {
+              waiterlist();
+            //$("#CustomerType").val('0');
+           // customertype();
+            $('#select-waiter').modal("show");
+
+        });
+
+        $("#printbill").click(function () {
+
+            var id = $(".btn-primary").attr('id');
+            if ($("#ddlCustomer").val() != null)
+                if (id != "delivery") {
+                    orderSubmitRES(1);
+                }
+                else {
+                    waiterlist();
+
+                    $('#select-waiter').modal("show");
+                }
+            else
+                alert("Enter Customer Name");
+            //if (1==1) {
+            //    $("button").prop('disabled', true);
+            //    orderSubmitRES(1);
+           // }
+        });
+
+        //Hold
+        $("#hold").click(function () {
+            if ($("#ddlCustomer").val() == null) {
+                alert("select customer");
+            }
+        else    {
+                $("button").prop('disabled', true);
+                orderSubmitRES(2);
+            }
+        });
+
+        //Save Order
+        $("#saveorder").click(function () {
+            if ($("#ddlCustomer").val() == null) {
+                alert("select customer");
+            }
+            else
+            {
+                $("button").prop('disabled', true);
+                orderSubmitRES(3);
+            }
+        });
+        // validation on click payment button
+        //Payment button
+        $("#payment").click(function () {
+            $("#amount").val($("#total_payables").text());
+            if ($("#ddlCustomer").val() == null) {
+                alert("select customer");
+            }
+            else {
+                $('#clear-cash-notes').click();
+                paymethodchange();
+                $('#payModal').modal("show");
+            }
+        });
+
+        // payment save or save and print
+        $('#myposforms').on('submit', function (e) {
+            e.preventDefault();
+//payCheck()
+            if (1==1) {
+                subtype = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                $("button").prop('disabled', true);
+                orderSubmitRES(4, subtype);
+                //if (dataid>0)
+             
+                $("#dinein").text("Dinein");
+                $("#delivery").text("Delivery");
+                deleteorder(dataid, "kot_");
+                //FormSubmit(fnval);
+            }
+        });
+        var loadeddata = "";
+                     var Option = "<option selected='selected' value='" + 7 + "'>" + "Customer" + "</option>";
+ function readBarcode(q) {
+     var itemunit = $("#ItemUnitSelect").val();
+            $.ajax({
+                url: "/Item/GetByBarcode",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: { q: q },
+                success: function (e) {
+                      if (e.length == 1) {
+                        var dataid = e[0]['id'];
+
+  $.ajax({
+                    url: '/ItemBundle/GetItem',
+                    type: "POST",
+                    dataType: "JSON",
+                    data: { itemID: dataid },
+                    success: function (result) {
+
+                        if (result.item.Barcode !=q)
+                        result.item.price = parseFloat(parseFloat(e[0]['text'])/1000).toFixed(2);
+
+        createRow(result,"sales", itemunit);
+                    }
+                    });
+
+
+                }
+                },
+                complete: function () {
+                    me.data('requestRunning', false);
+                },
+                cache: true
+
+            });
+        }
+
+        $(document).ready(function () {
+                $(".barcode").scannerDetection({
+                timeBeforeScanTest: 200,
+                avgTimeByChar: 40,
+                preventDefault: true,
+                endChar: [13],
+                onComplete: function (barcode, qty) {
+                        validScan = true;
+                        readBarcode(barcode);
+                    },
+                onError: function (string, qty) {
+                        readBarcode(string);
+                    }
+                });
+            setTimeout(function () {
+                $("#payModal").modal("hide");
+            }, 1000);
+            setTimeout(function () {
+                $("#cartModal").modal("hide");
+            }, 1000);
+            $("button").prop('disabled', false);
+           // loadeddata = document.body.innerHTML;
+             var Option = "<option selected='selected' value='" + 7 + "'>" + "Customer" + "</option>";
+        $("#ddlCustomer").append(Option);
+        $('#ddlCustomer').val(7).trigger('change');
+        });
+
+        $('#takeaway').addClass("btn-primary");
+        $('#takeaway').removeClass("btn-warning");
+        $("#myposforms").validate({
+            // other rules, options, callbacks, etc.,
+            invalidHandler: function (event, validator) {
+                var errors = validator.numberOfInvalids(); // <- NUMBER OF INVALIDS
+                console.log(errors);
+            }
+        });
+        // onclick alert right side icon function
+        $(document).on('click', '.alert .close', function (event) {
+            closeAlert();
+        });
+        // list tables in model dinin
+        $('#dineInModel').on('shown.bs.modal', function (e) {
+            tablelist();
+        });
+        // list hold orders in model
+        $('#hold-orders').on('shown.bs.modal', function (e) {
+            holdorders();
+        });
+        // list running orders in model
+        $('#running-orders').on('shown.bs.modal', function (e) {
+            orderkot();
+        });
+        // list delivery settlement list
+        $('#delivery-settlement').on('shown.bs.modal', function (e) {
+            deliveryList();
+        });
+
+var jqxhr = { abort: function () { } };
+
+        $('#txtfilter').keyup(function () {
+            setTimeout(() => {
+                console.log("this is the first message");
+            }, 5000);
+            var prmitem = JSON.parse(localStorage.getItem("itemlist"));
+            if (1==1) {
+                jqxhr.abort();
+
+                if (prmitem == null) {
+                    jqxhr = $.ajax({
+                        async: true,
+                        cache: false,
+                        dataType: "json",
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        url: "/Item/AllItemsearch",
+                        data: JSON.stringify({ search: $(this).val() }),
+                        success: function (item) {
+                            $("#loader").remove();
+                            $("#itembox").html("");
+                            allitems = item;
+
+                            //s = s + '<option value="-1">-select-</option>';
+                            //$.each(item, function (i, it) {
+                            //     s = s+'<option value="' + it.ItemID + '">' + it.ItemName + '</option>';
+                            //});
+                            //$('.item-search').append(s);
+
+
+
+                            $('#itembox').html(itemlist(item));
+                            var s = "";
+                            $('.item-search').empty()
+                            try {
+                                filterData.del('#portfoliolist');
+                            } catch (x) { }
+                            filterData.init('#portfoliolist', '.portfolio', '.filter');
+                            //$("#itscrol").hide();
+                            //} else {
+                            //    $('#running-orders').modal("hide");
+
+
+                        }
+                    });
+                }
+                else {
+                     $("#loader").remove();
+                            $("#itembox").html("");
+                            allitems = prmitem;
+
+                            //s = s + '<option value="-1">-select-</option>';
+                            //$.each(item, function (i, it) {
+                            //     s = s+'<option value="' + it.ItemID + '">' + it.ItemName + '</option>';
+                            //});
+                            //$('.item-search').append(s);
+
+item=prmitem;
+
+                            $('#itembox').html(itemlist(item));
+                            var s = "";
+                            $('.item-search').empty()
+                            try {
+                                filterData.del('#portfoliolist');
+                            } catch (x) { }
+                            filterData.init('#portfoliolist', '.portfolio', '.filter');
+                            //$("#itscrol").hide();
+                            //} else {
+                            //    $('#running-orders').mo
+                }
+
+            }
+
+
+                //if ($filtered.length == 0) {
+
+                //    $filtered = state.$targets.filter(function (index, element) {
+                //        return $(this).text().toString().indexOf(valorg.trim()) >= 0;
+
+                //    });
+                //}
+
+
+            });
+
+
+
+        //list duplicate kot
+        $('#duplicate-kot').on('shown.bs.modal', function (e) {
+            duplicatekot();
+        });
+        //list duplicate bill
+        $('#duplicate-bill').on('shown.bs.modal', function (e) {
+            $('#dupbillorder').val("");
+            $('#dupbilldate').val("");
+            $('#duplicatebilllist').html("");
+            $('#duplicate-bill').modal("show");
+        });
+
+
+        //runnning order select
+        $(document).on('click', '.selectorder', function (event) {
+            $('#running-orders').modal("hide");
+            dataid = $(this).attr('data-id');
+            fillorder(dataid, 0);
+            $("#printkot").prop('disabled', false);
+            $("#saveorder").prop('disabled', false);
+
+            //
+            setTimeout(function () {
+               // $("#opencart").click();
+                $("#cartModal").modal("show");
+            }, 1000);
+
+        }); //runnning order delete
+
+        $(document).on('click', '.deleteorder', function (event) {
+            dataid = $(this).attr('data-id');
+            var r = confirm("Do you want to Delete Order ?");
+            if (r == true) {
+                deleteorder(dataid, "kot_");
+            }
+
+        });
+
+        //hold order select
+        $(document).on('click', '.holdmakepay', function (event) {
+            dataid = $(this).attr('data-id');
+            fillorder(dataid, 2);
+            $("#printkot").prop('disabled', true);
+            $("#saveorder").prop('disabled', true);
+
+            $("#takeaway").prop('disabled', true);
+            $("#delivery").prop('disabled', true);
+            $("#dinein").prop('disabled', true);
+
+
+            $('#hold-orders').modal("hide");
+        }); //hold order delete
+        $(document).on('click', '.holddelete', function (event) {
+            dataid = $(this).attr('data-id');
+            var r = confirm("Do you want to Delete Order ?");
+            if (r == true) {
+                deleteorder(dataid, "holdor_");
+            }
+
+        });
+        //delivery statement order select
+        $(document).on('click', '.delvselect', function (event) {
+            dataid = $(this).attr('data-id');
+            fillorder(dataid);
+            $("#printkot").prop('disabled', false);
+            $("#saveorder").prop('disabled', false);
+            $('#delivery-settlement').modal("hide");
+        }); //delivery statement order delete
+        $(document).on('click', '.delvdelete', function (event) {
+            dataid = $(this).attr('data-id');
+            var r = confirm("Do you want to Delete Order ?");
+            if (r == true) {
+                deleteorder(dataid, "deset_");
+            }
+
+        });
+
+        //duplicate kot order print
+        $(document).on('click', '.selectdkot', function (event) {
+            dataid = $(this).attr('data-id');
+            printdupkot(dataid);
+            $("#printkot").prop('disabled', false);
+            $("#saveorder").prop('disabled', false);
+            $('#duplicate-kot').modal("hide");
+        });
+
+        //duplicate print bill search
+        $(document).on('click', '#dupsearch', function (event) {
+            duplicatebill();
+            $("#printkot").prop('disabled', false);
+            $("#saveorder").prop('disabled', false);
+        });
+
+        //duplicate print bill select order
+        $(document).on('click', '.printdbill', function (event) {
+            dataid = $(this).attr('data-id');
+            printdupbill(dataid);
+            $('#duplicate-bill').modal("hide");
+        });
+
+
+        //select waiter
+        $(document).on('click', '.selectwaiter', function (event) {
+            dataid = $(this).attr('data-id');
+            $("#HideWaiterId").val(dataid);
+            var waitname = $(this).attr('name');
+            $("#delivery").text("Delivered : " + waitname);
+            $('#select-waiter').modal("hide");
+            orderSubmitRES(1);
+        });
+
+        // payment type change function
+        $(document).on('change', '#PayMethod', function (event) {
+            paymethodchange();
+            cashBalance();
+        });
+        //discount pop up
+        $(document).on('click', '#discount', function (event) {
+            $('#add-discount').modal("show");
+        });
+
+        // change disc percentage
+        $(document).on('change', '#disc_p', function (event) {
+            discAmount();
+        });
+        // change disc amount
+        $(document).on('change', '#disc_m', function (event) {
+            discPerc();
+        });
+        // calculate tax based on
+        $(document).on('click', '#tax_disc', function (event) {
+            itemDisc();
+            itemTotal();
+        });
+
+        //$(document).on('click', '#payment', function (event) {
+        //    if ($("#myposforms").valid()) {
+        //        $('#payModal').modal("show");
+        //    }
+        //    else {
+        //        alert('hai');
+        //    }
+        //});
+        //$('.price_q').on('click', function () {
+        //    $(".price_q").numpad();
+        //});
+
+        AddItemPopUp();
+
+        //$(".price_q").click(function () {
+        //    $(this).numpad();
+        //});
+
+        // $('.price_q').numpad();
+        // $("#lblpeoplcount").numpad();
+        // $("#amount").numpad();
+        $(".qwerty").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+        //$("#txtfilter").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+        $(".select2-search__field").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+        //$(".numbers").keypad({ keypadOnly: false });
+
+        $.keypad.addKeyDef('DELT', 'delt', function (inst) {
+            this.val(this.val().slice(0, -1)).focus();
+        });
+        $(".numbers").keypad({
+            target: $('.inlineTarget:first'),
+            keypadOnly: false,
+            separator: '|',
+            deltText: 'BACK',
+            deltStatus: 'BACK SPACE',
+            layout: ['7|8|9|' + $.keypad.CLOSE,
+                    '4|5|6|' + $.keypad.DELT,
+                    '1|2|3|' + $.keypad.CLEAR,
+                    '.|0|00'
+            ]
+        });
+
+        //paymethod cash/card/credit
+        function bindPayMethod() {
+            $.ajax({
+                url: '/PaymentMethod/GetPayMethod',
+                type: "GET",
+                dataType: "JSON",
+                data: "",
+                success: function (result) {
+                    var select = $("#PayMethod");
+                    if (result != "") {
+                        select.children().remove();
+                        $.each(result, function (i, item) {
+                            select.append($("<option>").val(item).text(item));
+                        });
+                    } else {
+                        select.append($("<option>").val('Cash').text('Cash'));
+                        $("#PayMethod option[value='Cash']").attr("selected", true);
+                    }
+                }
+            });
+        }
+        $("#btnitemunit").click(function () {
+            var dataid = $("#selectitem").val();
+            var itemunit = $("#ItemUnitSelect").val();
+
+            if (dataid != null) {
+                $.ajax({
+                    url: '/ItemBundle/GetItem',
+                    type: "POST",
+                    dataType: "JSON",
+                    data: { itemID: dataid },
+                    success: function (result) {
+                        createRow(result,"sales", itemunit);
+
+                    }
+                });
+            }
+
+        });
+
+
+        $(document).on('change', '#SEDate', function (event) {
+            var date = $(this).val();
+            if (date != null) {
+                $.ajax({
+                    url: '/POS/GetOrderNoByDate',
+                    dataType: 'json',
+                    data: { date: date },
+                    cache: true,
+                    success: function (data) {
+                        $('#OrderNo').val(data);
+                    }
+                });
+            }
+        });
+        var custtype = $('#CustomerType').val();
+        if (custtype == 1) {
+            $('.creditsale').show();
+            //$('.cashsale').show();
+            //$('#ddlCustomer').prop('required', false);
+        }
+        if (custtype == 0) {
+            $('.creditsale').show();
+            //$('.creditsale').show();
+            //$('#ddlCustomer').prop('required', true);
+        }
+    </script>
+    <script>
+        //var objShell = new ActiveXObject("shell.application");
+        //objShell.ShellExecute("cmd.exe", 'RunDLL32.EXE printui.dll,PrintUIEntry /y /n "Adobe PDF (redirected 2)"', "C:\\WINDOWS\\system32", "open", 1);
+    </script>
+}
+<style>
+    .slimScrollDiv {
+        //overflow: scroll !important;
+    }
+</style>
+<script>
+    //if (window.matchMedia("(max-width: 400px)").matches) {
+    //    /*  Code to execute */
+
+    //    $('.lpos').css("height", "1000px");
+
+    //} else {
+    //    $('.lpos').css("height", "500px");
+
+    //}
+    //window.onresize = doALoadOfStuff;
+    //function doALoadOfStuff() {
+    //    if ($(window).width() < 400)
+    //        $('.lpos').css("height", "1000px");
+    //    else {
+    //        $('.scroll-box2').css("height", "-96px");
+    //        $('.lpos').css("height", "1000px");
+    //    }
+    // -------------------
+
+    // doALoadOfStuff();
+</script>
+<script type="text/javascript">
+    $(document).ready(function () {
+       // items('itembox');
+        customertype();
+        bindPayMethod();
+
+
+
+        var SalesEntryID = getQueryString('');
+        if (SalesEntryID != null) {
+            $.ajax({
+                url: '/POSRES/GetSEItems',
+                dataType: 'json',
+                data: { SalesEntryID: SalesEntryID },
+                cache: true,
+                success: function (data) {
+                    if (data.sales.OrderType == 1) {
+                        $("#delivery").text("Delivered : " + data.sales.WaiterName);
+                    }
+                    if (data.sales.OrderType == 2) {
+                        if (data.sales.TableName != null) {
+                            $("#dinein").text("Dineinon " + data.sales.TableName);
+                        }
+                    }
+                    if (data.sales.oc != null) {
+                        $('#dcharge').val((data.sales.oc.dcharge).toFixed(2));
+                    }
+                    else {
+                        $('#dcharge').val(0);
+                    }
+                    $('#disc_m').val((data.sales.SEDiscount).toFixed(2));
+                    if (data.sales.taxAFdisc == true) {
+                        $('#tax_disc').prop('checked', true);
+                    } else {
+                        $('#tax_disc').prop('checked', false);
+                    }
+
+                    var ln = data.item.length;
+                    $.each(data.item, function (i, item) {
+                        createRow(item, "sales", item.ItemUnit);
+                        ln--;
+                    });
+                    if (ln == 0) {
+                        discPerc();
+                    } else {
+                        alert("error");
+                    }
+                    itemTotalres();
+                    $("#PayMode").val(data.sales.PayMode);
+                    itemTotal();
+                    //itemunitpopup(data, "sales");
+                }
+            });
+        }
+    });
+    $("body").addClass("sidebar-collapse");
+    $("body").addClass("pos");
+    $("body").addClass("edit");
+
+    // add slim scroll
+    $('.scroll-box').slimScroll({
+        alwaysVisible: true
+    });
+
+    /* function for Create customer popup */
+
+    $('span').on('click', '.modal-create', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+    $('#modal-create').on('submit', '#createform', function (e) {
+        e.preventDefault();
+        var url = $('#createform')[0].action;
+        var data = $('#createform').serialize();
+        createajax(url, data, '#modal-create');
+    });
+
+    $('#modal-create').on('shown.bs.modal', function (e) {
+        $("#ddlCity").select2({
+            placeholder: 'Search City by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/City/SearchCity",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+
+                    return {
+                        q: params.term,
+                        page: params.page
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+    });
+    $('div').on('click', '.modal-edit', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-edit');
+    });
+    $('#modal-edit').on('submit', '#createform', function (e) {
+        e.preventDefault();
+        var url = $('#createform')[0].action;
+        var data = $('#createform').serialize();
+        createajax(url, data, '#modal-edit');
+    });
+
+ 
+    jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+    // customer search
+    $("#ddlCustomer").select2({
+        placeholder: 'SearchCustomerbyNameorCode',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/Customer/SearchCustomer",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+
+    var selecteditem = new Array();
+    $(".item_name").each(function () {
+        selecteditem.push($(this).val());
+    });
+    $(".item-search").select2({
+        placeholder: 'SearchItembyNameorCode',
+        minimumInputLength: 1,
+        ajax: {
+            url: "/Item/Search",
+            dataType: 'json',
+            type: "POST",
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term || "",
+                    ItemID: selecteditem,
+                    page: params.page || 0
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 0;
+
+                return {
+                    results: data,
+                    pagination: {
+                        //more: (params.page * 10) < 50
+                        more: true
+                    }
+                };
+            },
+            cache: true
+        },
+    });
+    // onclick right side icon function
+    $(document).on('click', '.portfolio', function (event) {
+        $('.spin').show();
+        dataid = $(this).attr('data-id');
+        itemDetails(dataid);
+        $('.spin').hide();
+    });
+    // select items via search box
+    $(document).on('change', '.item-search', function (event) {
+        $('.spin').show();
+        dataid = $(".item-search").val();
+        itemDetails(dataid);
+        $('.spin').hide();
+        $('.item-search').select2('close');
+        $(".item-search").val(null).trigger("change");
+    });
+
+    // delete row
+    $(document).on('click', '.rowtrash', function (event) {
+        $(this).closest('.price_main').remove();
+        itemDisc();
+        itemTotal();
+    });
+    // change quantity
+    $(document).on('change', '.price_q', function (event) {
+        var divid = $(this).closest(".price_main").prop("id");
+        rowSubTotal(divid);
+    });
+    // reset fields on click cancel button
+    $(document).on('click', '#resets', function (event) {
+        //resetfiled();
+        window.location.href = '/POSRES/Index';
+    });
+
+
+    // payment type change function
+    $(document).on('change', '#PayMethod', function (event) {
+        paymethodchange();
+        cashBalance();
+    });
+    //// form submit
+    $('#myposforms').on('submit', function (e) {
+        e.preventDefault();
+        // var fnval = e.originalEvent.explicitOriginalTarget.id;
+        if (editpay()) {
+            // var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if (1) {
+                //EditFormSubmitres(fnval);
+                //orderSubmitRES(4, subtype);
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                $("button").prop('disabled', true);
+                orderSubmitRESEdit(4, fnval);
+                //if (dataid>0)
+                $("button").prop('disabled', false);
+                deleteorder(dataid, "kot_");
+
+
+            }
+            else {
+                alertUpdate();
+            }
+        }
+    });
+    // calculate payment balance
+    $(document).on('change', '.amount', function (event) {
+        cashBalance();
+    });
+    $(document).on('change', '#discount', function (event) {
+        itemTotal();
+    });
+    // validation on click payment button
+    var form = document.querySelector('#myposforms');
+    var payment_btn = document.querySelector('#payments1');
+
+    payment_btn.addEventListener('click', function () {
+        if (1) {
+            var senote = $("#SENote").val();
+            $("#SENote").val(senote);
+            //var type = $("#PayType").val();
+            //$("#PayMethod").val(type);
+            var amt = $("#SEPaidAmount").val();
+            $("#amount").val(amt);
+            cashBalance();
+
+            paymethodchange();
+            $('#payModal').modal("show");
+        }
+        else {
+            $('#submit').click();
+        }
+    }, false);
+
+    $("#hold").click(function () {
+        if ($("#ddlCustomer").val() == null) {
+            alert("select customer");
+        }
+        else {
+            $("button").prop('disabled', true);
+            orderSubmitRES(2);
+        }
+    });
+
+    //Save Order
+    $("#saveorder").click(function () {
+        if ($("#ddlCustomer").val() == null) {
+            alert("select customer");
+        }
+        else {
+            $("button").prop('disabled', true);
+            orderSubmitRES(3);
+        }
+    });
+    $(document).on('change', '#discount', function (event) {
+        itemTotal();
+    });
+
+
+    // onclick right side icon function
+    $(document).on('click', '.pftable', function (event) {
+        $('.spin').show();
+        dataid = $(this).attr('data-id');
+        tableDetails(dataid);
+        $('.spin').hide();
+    });
+
+
+
+    $("#takeaway").click(function () {
+        $(this).addClass("btn-primary");
+        $(this).removeClass("btn-warning");
+        $("#delivery").removeClass("btn-primary");
+        $("#dinein").removeClass("btn-primary");
+
+        $("#delivery").addClass("btn-warning");
+        $("#dinein").addClass("btn-warning");
+
+        $("#dinein").text("Dinein");
+        $("#delivery").text("Delivery");
+
+    });
+    $("#delivery").click(function () {
+        $(this).addClass("btn-primary");
+        $(this).removeClass("btn-warning");
+        $("#takeaway").removeClass("btn-primary");
+        $("#dinein").removeClass("btn-primary");
+        $("#dinein").text("Dinein");
+
+        $("#takeaway").addClass("btn-warning");
+        $("#dinein").addClass("btn-warning");
+
+        //   waiterlist();
+        // $("#CustomerType").val('0');
+        // customertype();
+        //   $('#select-waiter').modal("show");
+    });
+    $("#dinein").click(function () {
+        $(this).addClass("btn-primary");
+        $(this).removeClass("btn-warning");
+
+        $("#delivery").removeClass("btn-primary");
+        $("#takeaway").removeClass("btn-primary");
+
+        $("#takeaway").addClass("btn-warning");
+        $("#delivery").addClass("btn-warning");
+        $("#delivery").text("Delivery");
+
+    });
+
+    //print KOT
+    $("#printkot").click(function () {
+        if ($("#ddlCustomer").val() == null) {
+            alert("select customer");
+        }
+        else {
+            $("button").prop('disabled', true);
+            orderSubmitRES(0);
+        }
+
+    });
+
+    //print Bill
+    $("#printkot").click(function () {
+        if ($("#ddlCustomer").val() = null) {
+            alert("Enter Customer Name");
+        }
+    });
+    $("#printbill").click(function () {
+
+
+        if ($("#ddlCustomer").val() != null)
+            orderSubmitRES(1);
+        else
+            alert("Enter Customer Name");
+        //if (1==1) {
+        //    $("button").prop('disabled', true);
+        //    orderSubmitRES(1);
+        // }
+    });
+
+
+
+
+    //$(document).on('click', '#payment', function (event) {
+    //    if ($("#myposforms").valid()) {
+    //        $('#payModal').modal("show");
+    //    }
+    //    else {
+    //        alert('hai');
+    //    }
+    //});
+
+    AddItemPopUp();
+    function editpay() {
+        var result = true;
+        if ($('#CustomerType').val() == 1) {
+            var amount = parseFloat($('#amount').val()) || 0;
+            var total = parseFloat($('#total_payables').text());
+            if (amount < total) {
+                result = false;
+                $('.alert ul').html("");
+                $('.alert ul').append('<li>Please Enter Valid Amount.</li>');
+                $('.alert').addClass("validation-summary-errors");
+                $('.alert').removeClass("validation-summary-valid");
+                $('.alert').removeClass("alert-message");
+                $("button").prop('disabled', false);
+                alertUpdate();
+            }
+        }
+        else {
+            var Paymethod = $('#PayMethod').val();
+            if (Paymethod == "Cash") {
+                var amount = parseFloat($('#amount').val()) || 0;
+                var total = parseFloat($('#total_payables').text());
+                if (amount < total) {
+                    result = false;
+                    $('.alert ul').html("");
+                    $('.alert ul').append('<li>Please Enter Valid Amount.</li>');
+                    $('.alert').addClass("validation-summary-errors");
+                    $('.alert').removeClass("validation-summary-valid");
+                    $('.alert').removeClass("alert-message");
+                    $("button").prop('disabled', false);
+                    alertUpdate();
+                }
+            }
+            else if (Paymethod == "Card") {
+                var total = parseFloat($('#total_payables').text());
+                $('#amount').val(total);
+                cashBalance();
+            }
+            else if (Paymethod == "Credit") {
+                var amount = parseFloat($('#amount').val()) || 0;
+                var total = parseFloat($('#total_payables').text());
+                if (amount > 0) {
+                    result = false;
+                    $('.alert ul').html("");
+                    $('.alert ul').append('<li>Please Check Payment Method.</li>');
+                    $('.alert').addClass("validation-summary-errors");
+                    $('.alert').removeClass("validation-summary-valid");
+                    $('.alert').removeClass("alert-message");
+                    $("button").prop('disabled', false);
+                    alertUpdate();
+                }
+            }
+        }
+        return result;
+    }
+
+    $(".qwerty").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+    $(".select2-search__field").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+    //$(".numbers").keypad({ keypadOnly: false });
+    $.keypad.addKeyDef('DELT', 'delt', function (inst) {
+        this.val(this.val().slice(0, -1)).focus();
+    });
+    $(".numbers").keypad({
+        target: $('.inlineTarget:first'),
+        keypadOnly: false,
+        separator: '|',
+        deltText: 'BACK',
+        deltStatus: 'BACK SPACE',
+        layout: ['7|8|9|' + $.keypad.CLOSE,
+        '4|5|6|' + $.keypad.DELT,
+        '1|2|3|' + $.keypad.CLEAR,
+            '.|0|00'
+        ]
+    });
+    //discount pop up
+    $(document).on('click', '#discount', function (event) {
+        $('#add-discount').modal("show");
+    });
+
+    // change disc percentage
+    $(document).on('change', '#disc_p', function (event) {
+        discAmount();
+    });
+    // change disc amount
+    $(document).on('change', '#disc_m', function (event) {
+        discPerc();
+    });
+    // calculate tax based on
+    $(document).on('click', '#tax_disc', function (event) {
+        itemDisc();
+        itemTotal();
+    });
+
+    //paymethod cash/card/credit
+    function bindPayMethod() {
+        $.ajax({
+            url: '/PaymentMethod/GetPayMethod',
+            type: "GET",
+            dataType: "JSON",
+            data: "",
+            success: function (result) {
+                var check = true;
+                var select = $("#PayMethod");
+                var paytype = $("#PayType").val();
+                var newOption = "";
+                if (result != "") {
+                    select.children().remove();
+                    $.each(result, function (i, item) {
+                        var sel = "";
+                        if (paytype == item) {
+                            sel = 'selected="selected"';
+                            check = false;
+                        }
+                        newOption += '<option ' + sel + ' value="' + item + '">' + item + '</option>';
+                    });
+                    select.append(newOption);
+                    if (check == true) {
+                        newOption = "";
+                        newOption += '<option selected="selected" value="' + paytype + '">' + paytype + '</option>';
+                    }
+                } else {
+                    select.append($("<option>").val('Cash').text('Cash'));
+                }
+            }
+        });
+    }
+
+    $("#btnitemunit").click(function () {
+        var dataid = $("#selectitem").val();
+        var itemunit = $("#ItemUnitSelect").val();
+        if (dataid != null) {
+            $.ajax({
+                url: '/ItemBundle/GetItem',
+                type: "POST",
+                dataType: "JSON",
+                data: { itemID: dataid },
+                success: function (result) {
+                    createRow(result, "sales", itemunit);
+                }
+            });
+        }
+    });
+</script>

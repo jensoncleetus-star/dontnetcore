@@ -1,0 +1,276 @@
+﻿@{
+    ViewBag.Title = "View Stock";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default" id="StockReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="itemname" value="@ViewBag.ItemName" />
+    <input type="hidden" id="PoNo" value="@ViewBag.PartNoCheck" />
+    <div class="box-header with-border">
+        <h3 class="box-title">Stock Details</h3>
+        <div class="pull-right">
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="javascript:history.back()">
+                <i class="fa fa-undo"></i> Back
+            </a>
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td colspan="4">
+                            <strong>@ViewBag.Item</strong> 
+                        </td>
+                        <td colspan="3">
+                            Material Center: @ViewBag.Mc
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <th>S/N</th>
+                        <th>Type</th>
+                        <th>Stock In </th>
+                        <th>Stock Out</th>
+                        <th class="hidden"></th>
+                        <th class="hidden"></th>
+                        <th class="hidden"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th class="hidden"></th>
+                        <th class="hidden"></th>
+                        <th class="hidden"></th>
+                    </tr>
+                    <tr>
+                        <th>Current Stock : </th>
+                        <th></th>
+                        <th id="st"></th>
+                        <th class="hidden"></th>
+                        <th class="hidden"></th>
+                        <th class="hidden"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+    $(document).ready(function () {
+            oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/StockReport/GetDetails',
+                    "data": { iditem: getQueryString1('iditem'), ddmc: getQueryString1('ddmc') },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                     {
+                         "data": "ItemID", "name": "ItemID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "type", "name": "type" },
+                    {
+                        "data": "Stockin", "data": function (data) {
+                            if (data.Stockin > 0 || data.StockOut == 0) {
+                                return data.Stockin + " " + data.PriUnit;
+                            }
+                            else {
+                                return "";
+                            }
+                        }
+                    },
+                    {
+                        "data": "StockOut", "data": function (data) {
+                            if (data.StockOut > 0) {
+                                return data.StockOut + " " + data.PriUnit;
+                            }
+                            else {
+                                return "";
+                            }
+                        }
+                    },
+                    { "data": "Stockin", "name": "Stockin", "visible": false, },
+                    { "data": "StockOut", "name": "StockOut", "visible": false, },
+                    { "data": "PriUnit", "name": "PriUnit", "visible": false, },
+
+                ],
+                buttons: [
+            {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return 'Stock Details';
+                },
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: function()
+                {
+                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock Details</h4></th></tr>' +
+                    ' <tr><th><span class="text-left">Item Name : ' + $('#itemname').val() + '</span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                    return head;
+                },
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', //'excel',
+            {
+                extend: 'excel',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return 'Stock Details';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' Stock Details \n' +
+                     'Item Name : ' + $('#itemname').val() + '\n';
+                    //'From :  ' + $('#From').val() + ' To :' + $('#To').val() + ''
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'//[0, 1, 2, 3, 4]
+                },
+            },
+            {
+                extend: 'pdf',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return 'Stock Details';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' Stock Details \n' +
+                     'Item Name : ' + $('#itemname').val() + '\n';
+                    //'From :  ' + $('#From').val() + ' To :' + $('#To').val() + ''
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns:'visible'// [0, 1, 2, 3, 4]
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Header font and bg color
+                    doc.styles.tableHeader.fillColor = '#d3d3d3';
+                    doc.styles.tableHeader.color = 'black';
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    //doc.content[1].table.widths = [
+                    //'10%',
+                    //'25%',
+                    //'25%',
+                    //'20%',
+                    //'20%'
+                    //]
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                    // Footer font and bg color
+                    doc.styles.tableFooter.fillColor = '#d3d3d3';
+                    doc.styles.tableFooter.color = 'black';
+                }
+            },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+                    // converting to interger to find total
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+                    // computing column Total of the complete result
+                    var stockIn = api
+                        .column(4)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+                    var stockOut = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+                    var current = stockIn - stockOut;
+                    var Unit = api.cell(0,6).data();
+                    $(api.column(2).footer()).html(stockIn + " " + Unit);
+                    $(api.column(3).footer()).html(stockOut + " " + Unit);
+                    $('#st').html(current.toFixed(2) + " " + Unit);
+                }
+
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+    });
+    </script>
+}

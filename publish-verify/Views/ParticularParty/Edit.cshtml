@@ -1,0 +1,154 @@
+@model QuickSoft.Models.ParticularParty
+<style>
+    .hide3 {
+        display: none !important;
+    }
+</style>
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Particular Party</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "ParticularParty", FormMethod.Post, new { id = "editform" }))
+    {
+        <script type="text/javascript">
+            $('form#popupFormColor').removeData("validator");
+            $('form#popupFormColor').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#popupFormColor'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.Id)
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Party Type", null, new { @class = "control-label" })
+                    <div class="input-group">
+                        @Html.DropDownListFor(model => model.PartyType, new SelectList(new List<SelectListItem>
+                            {
+                            new SelectListItem() {Text = "Supplier", Value="1"},
+                            new SelectListItem() {Text = "Customer", Value="0"},
+                            }, "Value", "Text"), new { @class = "form-control input-sm select2", @name = "", @onchange = "chngtype()" })
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 hide1">
+                @*<div class="form-group">
+                        @Html.Label("Party", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(model => model.CusPartyID, (SelectList)ViewBag.cus, new { @class = "form-control select2 ddlcustomer", @required = "required", tabindex = 2 })
+                    </div>*@
+                <div class="form-group">
+                    @Html.Label("Customer", null, new { @class = "control-label" })
+                    @Html.DropDownList("customerid", (SelectList)ViewBag.cus, new { @class = "form-control select2 ddlcustomer", @required = "required", tabindex = 2 })
+                </div>
+            </div>
+            <div class="col-md-12 hide2">
+                @*<div class="form-group">
+                        @Html.Label("Party", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(model => model.SupPartyID, (SelectList)ViewBag.sup, new { @class = "form-control select2 ddlsupplier", @required = "required", tabindex = 2 })
+                    </div>*@
+                <div class="form-group">
+                    @Html.Label("Supplier", null, new { @class = "control-label" })
+                    @Html.DropDownList("supplierid", (SelectList)ViewBag.sup, new { @class = "form-control select2 ddlsupplier", @required = "required", tabindex = 2 })
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Party Name", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.PartyName, new { htmlAttributes = new { @class = "form-control", autofocus = "autofocus", @placeholder = "Enter Party Name" } })
+
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" class="btn btn-info col-sm-offset-4" value="Update" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+}
+<script>
+    function chngtype() {
+        if ($("#PartyType").val() == 1) {
+            $('.hide1').addClass('hide3');
+            $('.hide2').removeClass('hide3');
+        } else {
+            $('.hide2').addClass('hide3');
+            $('.hide1').removeClass('hide3');
+        }
+    }
+    $(document).ready(function () {
+        if ('@ViewBag.partyTyp' == 1) {
+            $('.hide1').addClass('hide3');
+        } else {
+            $('.hide2').addClass('hide3');
+        }
+        $(".ddlcustomer").select2({
+            placeholder: 'Search Customer by Name or Code',
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: "/Customer/SearchCustomer",
+                dataType: 'json',
+                delay: 50,
+
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+        $(".ddlsupplier").select2({
+            placeholder: 'Search Supplier by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Supplier/SearchSupplier",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+    });
+</script>
+
+
+
+

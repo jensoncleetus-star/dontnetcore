@@ -1,0 +1,140 @@
+
+@model QuickSoft.ViewModel.BRSViewModel
+@{
+
+    ViewBag.Title = "Show Statement";
+    ViewBag.SubTitle = "BRS";
+    ViewBag.Active = "Master";
+    var sl = 0;
+    string balance = "";
+    var colspan = 10;
+    string actData = "";
+    string delchk = "";
+}
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Bank Reconciliation</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <div class="form-group col-md-4">
+                @Html.Label("Account", null, new { @class = "control-label" })
+                @Html.DropDownListFor(m => m.AcName, (SelectList)ViewBag.AccName, "Select Bank Account", new { id = "ddlbank", @class = "form-control select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <label id="new"></label>
+                <input type="button" value="Enter" class="btn btn-info col-sm-offset-1" onclick="tableload()" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+    <div id="Tabledata">
+        <table class="table table-bordered table-hover ctables" id="brsitem">
+            <thead>
+                <tr>
+                    <td class="text-center">Details</td>
+                    <td class="text-center">Amount</td>
+                </tr>
+            </thead>
+            <tbody id="BRSTable"></tbody>
+        </table>
+    </div>
+</div>
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        //$('.date').datepicker({
+        //    format: 'dd-mm-yyyy',
+        //    autoclose: true,
+        //    allowInputToggle: true
+        //});
+        $(document).ready(function () {
+            $("#ddlbank").select2();
+            $('#Tabledata').hide();
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+        });
+
+        function tableload() {
+            if ($("#ddlbank").val() != "") {
+                $('#brsitem').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": false,     // this is for disable filter (search box)
+                    "orderMulti": false,// for disable multiple column at once
+                    "bStateSave": true,
+                    "bLengthChange": false,
+                    "pageLength": 50,
+                    responsive: true,
+                    "ajax": {
+                        "url": '/BRS/GetStatement',
+                        "data": function (data) {
+                            //alert($('#ddlbank').val());
+                            data.Account = $('#ddlbank').val();
+                            data.fromdate = $('#From').val();
+                            data.todate = $('#To').val();
+                        },
+                        "type": "POST",
+                        "datatype": "json"
+                    },
+                    "order": [[1, "desc"]],
+                    "columnDefs": [{
+                        "targets": [1],
+                        "orderable": false
+                    }],
+                    "columns":
+                    [
+
+                        { "data": "Narration", "name": "Narration" },
+                        { "data": "Amount", "name": "Amount" }
+
+                    ]
+                });
+                $('#Tabledata').show();
+            }
+            else {
+                alert("Select Bank Account");
+            }
+        }
+
+    </script>
+}

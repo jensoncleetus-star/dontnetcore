@@ -1,0 +1,442 @@
+@model QuickSoft.ViewModel.ItemBundleViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "ItemBundle";
+    ViewBag.Active = "Master";
+    var CheckDate = "";
+    var CheckStock = "";
+}
+<div class="box box-info">
+
+    @using (Html.BeginForm("Edit", "ItemBundle", FormMethod.Post, new { id = "updateForm", role = "form", enctype = "multipart/form-data" }))
+            {
+        <div class="box-header with-border">
+            <h3 class="box-title">Item Bundle</h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit ItemBundle"))
+                    {
+                        <a class="btn bg-black no-border" href="/ItemBundle/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit ItemBundle"))
+                    {
+                        <a class="btn bg-black no-border" href="/ItemBundle/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create ItemBundle"))
+                    {
+                        <a class="btn bg-black no-border" href="/ItemBundle/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("ItemBundle List"))
+                {
+                    <a class="btn btn-success no-border" href="/ItemBundle">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.HiddenFor(model => model.ItemBundleId)
+        <div class="box-body">
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+            <input type="hidden" id="BItemExist" value="@ViewBag.BItemExist" />
+            <div class="col-md-12">
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.ItemCode, new { @class = "control-label" }) *
+                    @Html.TextBoxFor(m => m.ItemCode, new { @class = "form-control input-sm", autofocus = "autofocus", @required = "required" })
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.ItemName, new { @class = "control-label" }) *
+                    @Html.TextBoxFor(m => m.ItemName, new { @class = "form-control input-sm", @required = "required" })
+                </div>
+                @*<div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.Barcode, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Barcode, new { @class = "form-control input-sm", @readonly = "readonly" })
+                </div>*@
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.ItemCategoryID, htmlAttributes: new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Item Category"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.ItemCategoryID, (SelectList)ViewBag.Category,"", new { id = "ddlCategory", @class = "form-control select2" })
+                            <span class="input-group-btn">
+                                <a href="/ItemCategory/Create" class="btn btn-default btncategoryAdd" tabindex="6" title="Add Category"><i class="glyphicon glyphicon-plus"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.ItemCategoryID, (SelectList)ViewBag.Category,"", new { id = "ddlCategory", @class = "form-control select2" })
+                    }
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.TaxID, htmlAttributes: new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Tax"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.TaxID, (SelectList)ViewBag.Tax," ", new { id = "ddlTax", @class = "form-control select2" })
+                            <span class="input-group-btn">
+                                <a href="/Tax/Create" class="btn btn-default btntaxAdd" title="Add Tax"><i class="glyphicon glyphicon-plus"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.TaxID, (SelectList)ViewBag.Tax," ", new { id = "ddlTax", @class = "form-control select2" })
+                    }
+                </div>
+
+            </div>
+            <div class="col-md-12">
+                <div class="table-responsive bomtable">
+                    <hr>
+                    <table class="table table-bordered table-hover" id="bundletable">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S.N.</th>
+                                <th class="text-center">Item <i class="text-danger">*</i></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Quantity <i class="text-danger">*</i></th>
+                                <th class="text-center">Selling Price <i class="text-danger">*</i></th>
+                                <th class="text-center">Sub Total</th>
+                                <th class="text-center">TAX</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbundleitem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemQty"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="ActualPrice"></label>
+                                    <input type="hidden" name="ActualCost" id="ActualCost" />
+                                </td>
+                                <td class="text-right">
+                                    <label id="SubTotal"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="total_tax_amount"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="total"></label>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.SellingPrice, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.SellingPrice, new { @type = "number", @class = "form-control input-sm", @required = "required" })
+                </div>
+
+                @if (ViewBag.BusinessType == "Scaffold")
+                {
+                    var tabi = 27;
+                    for (int i = 0; i < Model.HireType.Count; i++)
+                    {
+                        decimal? myrate = Model.HireTypes.Where(a => a.type == Model.HireType[i].HireTypeId).Select(a => a.Rate).FirstOrDefault();
+                        var ratev = (myrate != null) ? myrate : 0;
+                        <div class="form-group col-sm-2">
+                            <label class="control-label" for="SellingPrice">Hire Rate @Model.HireType[i].Name</label>
+                            <input type="hidden" name="HireTypes[@i].type" value="@Model.HireType[i].HireTypeId" />
+                            <input class="form-control input-sm" id="HireRate@i" name="HireTypes[@i].Rate" data-val="true" data-val-number="Hire Rate must be a number." data-val-required="Hire Rate is required." tabindex="@tabi" type="text" value="@ratev">
+                        </div>
+
+                        tabi++;
+                    }
+                }
+
+                <div class="form-group col-sm-2 lblpadding">
+                    <div class="checkbox-inline">
+                        @Html.CheckBoxFor(m => m.KeepStock, new { @class = "checkbox" })
+                        @Html.LabelFor(m => m.KeepStock, new { @class = "control-label" })
+                    </div>
+                </div>
+                <div class="form-group col-sm-2" id="divstkqty" @CheckStock>
+                    @Html.LabelFor(m => m.StockQuantity, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.StockQuantity, new { @type = "number", @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-sm-2 lblpadding">
+                    <div class="checkbox-inline">
+                        <input type="checkbox" id="datewise" />
+                        @Html.Label("Enable Schedule Wise", null, new { @class = "control-label" })
+                    </div>
+                </div>
+                <div id="divdate" @CheckDate>
+                    <div class="col-sm-2 form-group">
+                        @Html.LabelFor(model => model.StartDate, htmlAttributes: new { @class = "control-label" })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.StartDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                        </div>
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        @Html.LabelFor(model => model.EndDate, htmlAttributes: new { @class = "control-label" })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.EndDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-sm-2 lblpadding">
+                    @Html.DropDownList("BundleType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Combo Item", Value="ComboItem"},
+                        new SelectListItem() {Text = "Grouped Item", Value="GroupedItem"}
+                    }, "Value", "Text"), new { @class = "form-control select2 input-sm", @name = "BundleType" })
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="col-sm-4" id="itemimgs">
+                    <div class="form-group col-sm-12 no-padding">
+                            @Html.LabelFor(model => model.ImgFileName, htmlAttributes: new { @class = "control-label" })
+                            @Html.TextBoxFor(m => m.ImgFileName, new { type = "file", multiple = "multiple" })
+                        <img class="img-responsive editclogo" alt="@Html.DisplayFor(model=> model.ImgFileName)" src="~/uploads/itemimages/@Model.mainItem/@Model.FileNameImg" id="ImageButton1" />
+                        </div>
+                </div>
+                <div class="form-group col-sm-8">
+                    @Html.LabelFor(m => m.Note, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm textarea", rows = 3 })
+                </div>
+            </div>
+            <div class="col-md-12 headeralign">
+                <div class="box-footer">
+                    <button type="submit" id="update" class="btn btn-info">
+                        Update
+                    </button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "ItemBundle") + "'");">Cancel</button>
+                </div>
+            </div>
+
+        </div>
+
+    }
+
+
+</div>
+@Html.Partial("../Common/_ModeItemCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/itembundle")
+    <script type="text/javascript">
+        //   $('#KeepStock').prop('checked', true);
+        var date = new Date();
+        date.setDate(date.getDate());
+        var ndate = new Date();
+        ndate.setDate(ndate.getDate() + 1);
+        $('#StartDate').datepicker({
+            startDate: date,
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#EndDate').datepicker({
+            startDate: ndate,
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        $(document).ready(function () {
+
+            var sdate = $('#StartDate').val();
+            if (sdate != "") {
+                $('#StartDate').datepicker("setStartDate", sdate);
+            } else {
+                var date = new Date();
+                date.setDate(date.getDate());
+                $('#StartDate').val("");
+               // $('#StartDate').datepicker("setStartDate", date);
+            }
+
+            //var edate = $('#EndDate').val();
+            //if (edate != "") {
+            //    $('#EndDate').datepicker("setStartDate", edate);
+            //} else {
+            //    var ndate = new Date();
+            //    ndate.setDate(ndate.getDate() + 1);
+            //    $('#EndDate').datepicker("setStartDate", ndate);
+            //}
+
+            var EntryID = getQueryString('');
+            if (EntryID != null) {
+                $.ajax({
+                    url: '/ItemBundle/GetBundleItems',
+                    dataType: 'json',
+                    data: { EntryID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        if (data != null) {
+
+                            if (data.bundle.KeepStock == true) {
+                                $('#divstkqty').show();
+                            } else {
+                                $('#divstkqty').hide();
+                            }
+                            if (data.bundle.StartDate != null || data.bundle.EndDate != null) {
+                                $('#datewise').prop('checked', true);
+                                $('#divdate').show();
+                            } else {
+                                $('#datewise').prop('checked', false);
+                                $('#divdate').hide();
+                            }
+
+
+                            $('#addbundleitem').html('');
+                            $.each(data.item, function (i, item) {
+                                addbundleitem('addbundleitem', 'foredit', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.PurchasePrice, item);
+                            });
+                            if ('@ViewBag.BItemExist' == 'false') {
+                                addbundleitem('addbundleitem', '', "", "0.00", "0.00", "0");
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            $('#StartDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#EndDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            CallCategory();
+            CallTax();
+
+        });
+
+
+
+         /* function for Create popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        AddItemPopUp();
+
+        // form submit
+        $('#updateForm').on('submit', function (e) {
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if ($("#updateForm").valid()) {
+                BundleSubmit(fnval, this);
+            }
+            else {
+                $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+            }
+        });
+        //Function to Search Category in dropdown 
+        function CallTax() {
+            $("#ddlTax").select2({
+                placeholder: 'Search Item Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Tax/SearchTax",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    results: function (data) {
+                        return { results: data };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+
+            });
+        }
+
+        //Function to Search Tax in dropdown
+        function CallCategory() {
+            $("#ddlCategory").select2({
+                placeholder: 'Search Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemCategory/SearchItemCategory",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "empty",
+                            page: params.page || 0
+                        };
+                    },
+                    results: function (data) {
+                        return { results: data };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+
+            });
+        }
+    </script>
+}
+
+
+
+
+
+
+

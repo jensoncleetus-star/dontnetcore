@@ -1,0 +1,644 @@
+
+@{
+    ViewBag.Title = "Daily Summary";
+    ViewBag.SubTitle = "Reports";
+    ViewBag.Active = "Reports";
+}
+@if (!IsPost)
+{
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Daily Summary</h3>
+        </div>
+        <div class="box-body">
+            @using (Html.BeginForm("DailySummary", "MyReports", FormMethod.Post, new { id = "popupForm" }))
+            {
+                if (@ViewBag.Upermission == "True")
+                {
+                    <div class="form-group col-md-5" id="creditsale">
+                        @Html.Label("User", null, new { @class = "control-label" })
+                        <select class="form-control input-sm select2" id="ddlCashier" name="Cashier">
+                            <option value="All">All</option>
+                        </select>
+                    </div>
+                }
+                if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+                <div class="form-group col-md-2">
+                    @Html.Label("Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="form-group col-md-4">
+                    <label class="control-label"><input type="checkbox" value="true" name="stockable" id="stockable" />  Include Items Details</label>
+                </div>
+
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+    @section style{
+        @Styles.Render("~/css/bootstrap-datepicker")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/bootstrap-datepicker")
+        <script type="text/javascript">
+            $(document).ready(function () {
+                var datetd = new Date();
+                datetd.setDate(datetd.getDate());
+                $('#From').datepicker({
+                    endDate: datetd,
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                $('.date').datepicker({
+                    endDate: datetd,
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                var date = new Date();
+                var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                $('#From').datepicker('setDate', today);
+                $("#ddlCashier").select2({
+                    placeholder: 'Search Cashier by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Users/SearchUser",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                x: "all"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                CallRepMCUser();
+
+            });
+
+        </script>
+    }
+}
+else
+{
+    @model QuickSoft.ViewModel.DailySummaryViewModel
+
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Daily Summary</h3>
+            <div class="pull-right">
+                <button class="btn btn-success no-border" id="printthis">
+                    <i class="fa fa-fw fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-md-12 pos-preview">
+                <div id="invoice-POS" class="printit">
+                    <center id="top">
+                        @if (@ViewBag.CLogo != null)
+                        {
+                            <div class="logo"><img class="img-responsive" src="../uploads/company/@ViewBag.CLogo" /></div>
+                        }
+                        <div class="detail">
+                            <h3>@ViewBag.CName</h3>
+                            <h5>
+                                @ViewBag.CAddress<br>
+                                @if (@ViewBag.CPhone != null)
+                                {
+                                    <span>
+                                        @ViewBag.CPhone
+                                    </span>
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span> , @ViewBag.CPMob</span>
+                                    }
+                                    <br />
+
+                                }
+                                else
+                                {
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span>@ViewBag.CPMob</span>
+                                        <br />
+                                    }
+                                }
+                                @ViewBag.CEmail<br>
+                                @if (@ViewBag.CTaxRegNo != null)
+                                {
+                                    <span>TRN: @ViewBag.CTaxRegNo</span>
+                                }
+                            </h5>
+                            <h5>Reading Date :  @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.Date)) </h5>
+                            <h5>Reading By   : @Model.by </h5>
+                            @if (Model.UserName != null)
+                            {
+                                <h5>User   : @Model.UserName </h5>
+                            }
+                            <h5>Date : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.time)) </h5>
+                        </div>
+                    </center>
+                    @*<div class="text-left">
+                            <h2>SALESMAN : </h2>
+                            <h2>SALESMAN PH : </h2><br />
+                        </div>*@
+                    <div id="mid">
+                        <div class="detail">
+                            @if (@ViewBag.CustDailySummary == 0)
+                            {
+
+                                @*<p><b>Total Cash Purchase</b> : <span>@Model.PTotal</span></p>
+                                    <p><b>Total Cash Purchase Discount</b> : <span>@Model.PDiscount</span></p>
+                                    <p><b>Total Cash Purchase Vat</b> : <span>@Model.PVat</span></p>
+                                    <p><b>Net Amount</b> : <span>@Model.PNet</span></p>
+                                    <br /><hr />*@
+
+                                @*<p><b>Total Credit Purchase</b> : <span>@Model.PTotalC</span></p>
+                                    <p><b>Total Credit Purchase Discount</b> : <span>@Model.PDiscountC</span></p>
+                                    <p><b>Total Credit Purchase Vat</b> : <span>@Model.PVatC</span></p>
+                                    <p><b>Net Amount</b> : <span>@Model.PNetC</span></p>
+                                    <br /><hr />*@
+
+                                @*<p><b>Total Purchase Return</b> : <span>@Model.PRTotal</span></p>
+                                    <p><b>Total Purchase Return Discount</b> : <span>@Model.PRDiscount</span></p>
+                                    <p><b>Total Purchase Return Vat</b> : <span>@Model.PRVat</span></p>
+                                    <p><b>Net Amount</b> : <span>@Model.PRNet</span></p>
+                                    <br /><hr />
+                                    <p><b>Net Purchase</b> : <span>@Model.NetPurchase</span></p>
+                                    <br /><hr />*@
+
+                                <p><b>Total Cash Sales</b> : <span>@Model.TotalSale</span></p>
+                                <p><b>Total Cash Sales Discount</b> : <span>@Model.SDiscount</span></p>
+                                <p><b>Total Cash Sales Vat</b> : <span>@Model.SVat</span></p>
+                                <p><b>Total Amount</b> : <span>@Model.SaleNetAmount</span></p>
+                                <br /><hr />
+                                if (Model.CustSum.Count > 0)
+                                {
+                                    <p>
+                                        <b>Cash Customer Sales Details</b>
+                                        <table>
+                                            <tr>
+                                                <td><b>Customer</b></td>
+                                                <td><b>Amount</b></td>
+                                                <td class="text-right"><b>PRT</b></td>
+                                            </tr>
+                                            @foreach (var custs in Model.CustSum)
+                                            {
+                                                <tr>
+                                                    <td>@custs.CustomerName</td>
+                                                    <td>@custs.CustAmount</td>
+                                                    <td class="text-right">@custs.CustCount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </p>
+                                    <br /><hr />
+                                }
+
+                                <p><b>Total Credit Sales</b> : <span>@Model.TotalSaleC</span></p>
+                                <p><b>Total Credit Sales Discount</b> : <span>@Model.SDiscountC</span></p>
+                                <p><b>Total Credit Sales Vat</b> : <span>@Model.SVatC</span></p>
+                                <p><b>Total Amount</b> : <span>@Model.SaleNetAmountC</span></p>
+                                <br /><hr />
+
+
+                                if (Model.CustSumC.Count > 0)
+                                {
+                                    <p>
+                                        <b>Credit Customer Sales Details</b>
+                                        <table>
+                                            <tr>
+                                                <td><b>Customer</b></td>
+                                                <td><b>Amount</b></td>
+                                                <td class="text-right"><b>PRT</b></td>
+                                            </tr>
+                                            @foreach (var custs in Model.CustSumC)
+                                            {
+                                                <tr>
+                                                    <td>@custs.CustomerName</td>
+                                                    <td>@custs.CustAmount</td>
+                                                    <td class="text-right">@custs.CustCount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </p>
+                                    <br /><hr />
+                                }
+
+                                <p><b>Total Cash Sales Return</b> : <span>@Model.SaleRetTotal</span></p>
+                                <p><b>Total Cash Sales Return Discount</b> : <span>@Model.SaleRetDiscount</span></p>
+                                <p><b>Total Cash Sales Return Vat</b> : <span>@Model.SaleRetVat</span></p>
+                                <p><b>Total Cash Amount</b> : <span>@Model.SaleRetNetAmount</span></p>
+                                <br /><hr />
+
+                                if (Model.CustSumSR.Count > 0)
+                                {
+                                    <p>
+                                        <b>Cash Customer Sales Return Details</b>
+                                        <table>
+                                            <tr>
+                                                <td><b>Customer</b></td>
+                                                <td><b>Amount</b></td>
+                                                <td class="text-right"><b>PRT</b></td>
+                                            </tr>
+                                            @foreach (var custs in Model.CustSumSR)
+                                            {
+                                                <tr>
+                                                    <td>@custs.CustomerName</td>
+                                                    <td>@custs.CustAmount</td>
+                                                    <td class="text-right">@custs.CustCount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </p>
+                                    <br /><hr />
+                                }
+
+                                <p><b>Total Credit Sales Return</b> : <span>@Model.SaleRetTotalC</span></p>
+                                <p><b>Total Credit Sales Return Discount</b> : <span>@Model.SaleRetDiscountC</span></p>
+                                <p><b>Total Credit Sales Return Vat</b> : <span>@Model.SaleRetVatC</span></p>
+                                <p><b>Total Credit Amount</b> : <span>@Model.SaleRetNetAmountC</span></p>
+                                <br /><hr />
+
+                                if (Model.CustSumSRC.Count > 0)
+                                {
+                                    <p>
+                                        <b>Credit Customer Sales Return Details</b>
+                                        <table>
+                                            <tr>
+                                                <td><b>Customer</b></td>
+                                                <td><b>Amount</b></td>
+                                                <td class="text-right"><b>PRT</b></td>
+                                            </tr>
+                                            @foreach (var custs in Model.CustSumSRC)
+                                            {
+                                                <tr>
+                                                    <td>@custs.CustomerName</td>
+                                                    <td>@custs.CustAmount</td>
+                                                    <td class="text-right">@custs.CustCount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </p>
+                                    <br /><hr />
+                                }
+
+
+                                <p><b>Net Sales</b> : <span>@Model.NetSale</span></p>
+                                <br /><hr />
+                                <p><b>Stock Transfer Amount</b> : <span>@Model.STransTotal</span></p>
+                                <br /><hr />
+                                <p><b>Cash Receipt Amount</b> : <span>@Model.Receipt</span></p>
+                                <p><b>Cheque Receipt Amount</b> : <span>@Model.ChqReceipt</span></p>
+
+
+                                if (Model.CustSumR.Count > 0)
+                                {
+                                    <br /><hr />
+                                    <p>
+                                        <b>Cash Receipt Details</b>
+                                        <table>
+                                            <tr>
+                                                <td><b>Customer</b></td>
+                                                <td><b>Amount</b></td>
+                                                <td class="text-right"><b>PRT</b></td>
+                                            </tr>
+                                            @foreach (var custs in Model.CustSumR)
+                                            {
+                                                <tr>
+                                                    <td>@custs.CustomerName</td>
+                                                    <td>@custs.CustAmount</td>
+                                                    <td class="text-right">@custs.CustCount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </p>
+                                    <br /><hr />
+                                }
+
+
+                                if (Model.CustSumRC.Count > 0)
+                                {
+                                    <br /><hr />
+                                    <p>
+                                        <b>Cheque Receipt Details</b>
+                                        <table>
+                                            <tr>
+                                                <td><b>Customer</b></td>
+                                                <td><b>Amount</b></td>
+                                                <td class="text-right"><b>PRT</b></td>
+                                            </tr>
+                                            @foreach (var custs in Model.CustSumRC)
+                                            {
+                                                <tr>
+                                                    <td>@custs.CustomerName</td>
+                                                    <td>@custs.CustAmount</td>
+                                                    <td class="text-right">@custs.CustCount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </p>
+                                    <br /><hr />
+                                }
+
+                                @*<p><b>Cash Payment Amount</b> : <span>@Model.Payment</span></p>
+                                    <p><b>Cheque Payment Amount</b> : <span>@Model.ChqPayment</span></p>*@
+                                <br /><hr />
+
+                                @*<p><b>Total Cash Sale</b> : <span>@Model.TotalCashSale</span></p>
+                                    <p><b>Total Credit Sale</b> : <span>@Model.TotalCreditSale</span></p>
+                                    <hr />
+                                    <p><b>Total Sales Return</b> : <span>@Model.TotalSalesReturn</span></p>
+                                    <hr />
+                                    <p><b>Total Payment</b> : <span>@Model.TotalPayment</span></p>
+                                    <br />
+                                    <p><b>Payment Cash</b> : <span>@Model.PayTotalCash</span></p>
+                                    <p><b>Payment PDC</b> : <span>@Model.PayTotalPdc</span></p>
+                                    <hr />
+                                    <p><b>Total Receipt</b> : <span>@Model.TotalReceipt</span></p>
+                                    <br />
+                                    <p><b>Receipt Cash</b> : <span>@Model.RptTotalCash</span></p>
+                                    <p><b>Receipt PDC</b> : <span>@Model.RptTotalPdc</span></p>
+                                    <hr /><br />*@
+
+                                @*<p><b>VAT Amount</b> : <span>@Model.TotalVAT</span></p>*@
+
+                            }
+                            else
+                            {
+                                <p><b>Total Purchase</b> : <span>@Model.PTotal</span></p>
+                                <p><b>Total Purchase Discount</b> : <span>@Model.PDiscount</span></p>
+                                <p><b>Total Purchase Vat</b> : <span>@Model.PVat</span></p>
+                                <p><b>Net Amount</b> : <span>@Model.PNet</span></p>
+                                <br /><hr />
+                                <p><b>Total Purchase Return</b> : <span>@Model.PRTotal</span></p>
+                                <p><b>Total Purchase Return Discount</b> : <span>@Model.PRDiscount</span></p>
+                                <p><b>Total Purchase Return Vat</b> : <span>@Model.PRVat</span></p>
+                                <p><b>Net Amount</b> : <span>@Model.PRNet</span></p>
+                                <br /><hr />
+                                <p><b>Net Purchase</b> : <span>@Model.NetPurchase</span></p>
+                                <br /><hr />
+                                <p><b>Total Sales</b> : <span>@Model.TotalSale</span></p>
+                                <p><b>Total Sales Discount</b> : <span>@Model.SDiscount</span></p>
+                                <p><b>Total Sales Vat</b> : <span>@Model.SVat</span></p>
+                                <p><b>Total Amount</b> : <span>@Model.SaleNetAmount</span></p>
+                                <br /><hr />
+                                <p><b>Total Sales Return</b> : <span>@Model.SaleRetTotal</span></p>
+                                <p><b>Total Sales Return Discount</b> : <span>@Model.SaleRetDiscount</span></p>
+                                <p><b>Total Sales Return Vat</b> : <span>@Model.SaleRetVat</span></p>
+                                <p><b>Total Amount</b> : <span>@Model.SaleRetNetAmount</span></p>
+                                <br /><hr />
+                                <p><b>Net Sales</b> : <span>@Model.NetSale</span></p>
+                                <br /><hr />
+                                <p><b>Stock Transfer Amount</b> : <span>@Model.STransTotal</span></p>
+                                <br /><hr />
+                                <p><b>Receipt Amount</b> : <span>@Model.Receipt</span></p>
+                                <p><b>Payment Amount</b> : <span>@Model.Payment</span></p>
+                                <br /><hr />
+                            }
+
+                            @if (@ViewBag.EnableMCcheck == 0)
+                            {
+                                if (Model.MCName != null)
+                                {
+                                    <p><b>Material Center</b> : <span>@Model.MCName</span></p>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    @if (Model.SaleItems != null)
+                    {
+                        <div class="text-center">
+                            <h4>
+                                Summary By Sale Items
+                            </h4>
+                        </div>
+                        <div id="mid">
+                            <div class="detail">
+                                <p><b>Item Name</b> : <span><b>Quantity</b></span></p>
+                                @foreach (var itm in Model.SaleItems)
+                                {
+                                    <p><b>@itm.IName</b> : <span>@itm.Quantity @itm.UName</span></p>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.SaleRetItems != null)
+                    {
+                        <div class="text-center">
+                            <h4>
+                                Summary By Sales Return Items
+                            </h4>
+                        </div>
+                        <div id="mid">
+                            <div class="detail">
+                                <p><b>Item Name</b> : <span><b>Quantity</b></span></p>
+                                @foreach (var itm in Model.SaleRetItems)
+                                {
+                                    <p><b>@itm.IName</b> : <span>@itm.Quantity @itm.UName</span></p>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    @section style{
+        @Styles.Render("~/css/posprint")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/printThis")
+        <script type="text/javascript">
+            $('#printthis').on("click", function () {
+                $(".printit").printThis();
+            });
+            $(document).ready(function () {
+
+            });
+        </script>
+    }
+}
+@*else
+    {
+        @model QuickSoft.ViewModel.DailySummary
+        <div class="box box-default">
+            <div class="box-header with-border">
+                <h3 class="box-title">Daily Summary</h3>
+                <div class="pull-right">
+                    <button class="btn btn-success no-border" id="printthis">
+                        <i class="fa fa-fw fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+            <div class="box-body">
+                <div class="col-md-12 pos-preview">
+                    <div id="invoice-POS" class="printit">
+                        <center id="top">
+                            @if (@ViewBag.CLogo != null)
+                            {
+                                <div class="logo"><img class="img-responsive" src="../uploads/company/@ViewBag.CLogo" /></div>
+                            }
+                            <div class="detail">
+                                <h3>@ViewBag.CName</h3>
+                                <h5>
+                                    @ViewBag.CAddress<br>
+                                    @if (@ViewBag.CPhone != null)
+                                    {
+                                        <span>
+                                            @ViewBag.CPhone
+                                        </span>
+                                        if (@ViewBag.CPMob != null)
+                                        {
+                                            <span> , @ViewBag.CPMob</span>
+                                        }
+                                        <br />
+
+                                    }
+                                    else
+                                    {
+                                        if (@ViewBag.CPMob != null)
+                                        {
+                                            <span>@ViewBag.CPMob</span>
+                                            <br />
+                                        }
+                                    }
+                                    @ViewBag.CEmail<br>
+                                    @if (@ViewBag.CTaxRegNo != null)
+                                    {
+                                        <span>TRN: @ViewBag.CTaxRegNo</span>
+                                    }
+                                </h5>
+                                <h5>Reading Time :  @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.time)) </h5>
+                                <h5>Reading By   : @Model.by </h5>
+                                <h5>Date : @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.Date)) </h5>
+                            </div>
+                        </center>
+                        <div id="mid">
+                            <div class="detail">
+                                <p><b>First Order</b> : <span> @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.first)) </span></p>
+                                <p><b>Last Order </b> : <span> @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.last))</span></p>
+                                <p><b>First Invoice</b> : <span>@Model.firstInvoice</span></p>
+                                <p><b>Last Invoice</b> : <span>@Model.lastInvoice</span></p>
+                                <p><b>No. of Customers</b> : <span>@Model.customers</span></p>
+                                <p><b>Grand Total</b> : <span>@Model.GTotal</span></p>
+                                <p><b>VAT 5%</b> : <span>@Model.Tax</span></p>
+                                <p><b>Discount</b> : <span>@Model.Disc</span></p>
+                                <p><b>No of Sales</b> : <span>@Model.Sales</span></p>
+                                <p><b>Sub Total</b> : <span>@Model.STotal</span></p>
+                                <p><b>Average Check</b> : <span>@Model.Average</span></p>
+                                @if (@ViewBag.EnableMCcheck == 0)
+                                {
+                                    <p><b>Material Center</b> : <span>@Model.MCName</span></p>
+                                }
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4>
+                                Net Sales <br />
+                                @Model.GTotal AED
+                            </h4>
+                            <h5>
+                                Summary Of Payment
+                            </h5>
+                        </div>
+                        <div id="mid">
+                            <div class="detail">
+                                @if (Model.Payment != null)
+                                {
+                                    foreach (var pay in Model.Payment)
+                                    {
+                                        if (pay.quantity != 0)
+                                        {
+                                            <p><b>@pay.name</b> : <span>@pay.quantity</span></p>
+                                        }
+                                    }
+                                }
+                            </div>
+                        </div>
+                        @if (Model.category != null)
+                        {
+                            <div class="text-center">
+                                <h4>
+                                    Summary By Category
+                                </h4>
+                            </div>
+                            <div id="mid">
+                                <div class="detail">
+                                    @foreach (var catry in Model.category)
+                                    {
+                                        if (catry.quantity != 0)
+                                        {
+                                            <p><b>@catry.name</b> : <span>@catry.quantity</span></p>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @if (Model.item != null)
+                        {
+                            <div class="text-center">
+                                <h4>
+                                    Summary By Items
+                                </h4>
+                            </div>
+                            <div id="mid">
+                                <div class="detail">
+                                    @foreach (var itm in Model.item)
+                                    {
+                                        <p><b>@itm.name</b> : <span>@itm.quantity</span></p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        @section style{
+            @Styles.Render("~/css/posprint")
+        }
+        @section Scripts {
+            @Scripts.Render("~/js/printThis")
+            <script type="text/javascript">
+                $('#printthis').on("click", function () {
+                    $(".printit").printThis();
+                });
+                $(document).ready(function () {
+
+                });
+            </script>
+        }
+    }*@

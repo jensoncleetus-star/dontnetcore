@@ -1,0 +1,246 @@
+@using QuickSoft.Models
+@model LoginViewModel
+@{
+    Layout = null;
+    var loginErrs = new System.Collections.Generic.List<string>();
+    foreach (var st in ViewData.ModelState.Values)
+    {
+        foreach (var er in st.Errors)
+        {
+            if (!string.IsNullOrWhiteSpace(er.ErrorMessage)) { loginErrs.Add(er.ErrorMessage); }
+        }
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login — @(string.IsNullOrEmpty((string)ViewBag.CName) ? "BOS — Business Operating System" : (string)ViewBag.CName)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="~/Content/login/images/icons/favicon.ico" />
+    @* PWA: make the app installable straight from the login screen (the usual entry point). *@
+    <link rel="manifest" href="~/manifest.webmanifest" />
+    <meta name="theme-color" content="#6366f1" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BOS" />
+    <link rel="apple-touch-icon" href="~/Content/icons/apple-touch-icon.png" />
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function (e) { });
+            });
+        }
+    </script>
+    <style>
+        /* Advanced login (2026): animated aurora + glassmorphism + floating labels + failure alert.
+           FORM contract UNCHANGED (Html.BeginForm antiforgery token; Email/Password/RememberMe/fromapp;
+           legacy anti-autofill password mechanism). Security: password is NOT echoed back on a failed
+           attempt; generic message (no username enumeration); Caps Lock hint. */
+        :root {
+            --brand-1: #6366f1; --brand-2: #8b5cf6; --brand-3: #3b82f6; --brand-4: #06b6d4;
+            --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+            color: var(--ink); background: #070b1a;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 24px; position: relative; overflow: hidden;
+        }
+        .aurora { position: fixed; inset: -20%; z-index: 0; filter: blur(70px); }
+        .aurora span { position: absolute; border-radius: 50%; opacity: .55; mix-blend-mode: screen; }
+        .aurora .a1 { width: 46vw; height: 46vw; background: var(--brand-2); top: -8%; left: -6%; animation: drift1 18s ease-in-out infinite; }
+        .aurora .a2 { width: 42vw; height: 42vw; background: var(--brand-3); top: 10%; right: -10%; animation: drift2 22s ease-in-out infinite; }
+        .aurora .a3 { width: 38vw; height: 38vw; background: var(--brand-1); bottom: -14%; left: 18%; animation: drift3 20s ease-in-out infinite; }
+        .aurora .a4 { width: 30vw; height: 30vw; background: var(--brand-4); bottom: -6%; right: 12%; animation: drift1 26s ease-in-out infinite reverse; }
+        @@keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(6%,8%) scale(1.12); } }
+        @@keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7%,6%) scale(1.08); } }
+        @@keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5%,-7%) scale(1.15); } }
+        .grid-dots {
+            position: fixed; inset: 0; z-index: 0; opacity: .35;
+            background-image: radial-gradient(rgba(255,255,255,.12) 1px, transparent 1px);
+            background-size: 26px 26px; mask-image: radial-gradient(ellipse at center, #000 30%, transparent 72%);
+        }
+        .shell {
+            position: relative; z-index: 1; width: 100%; max-width: 980px; min-height: 580px;
+            display: grid; grid-template-columns: 1.05fr 1fr; border-radius: 28px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(255,255,255,.05); backdrop-filter: blur(22px) saturate(140%); -webkit-backdrop-filter: blur(22px) saturate(140%);
+            box-shadow: 0 40px 90px rgba(2, 6, 23, .65), inset 0 1px 0 rgba(255,255,255,.18);
+            animation: rise .7s cubic-bezier(.2,.8,.2,1) both;
+        }
+        @@keyframes rise { from { opacity: 0; transform: translateY(22px) scale(.985); } to { opacity: 1; transform: none; } }
+        .brand {
+            position: relative; color: #fff; padding: 56px 48px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: linear-gradient(160deg, rgba(99,102,241,.92), rgba(139,92,246,.86) 55%, rgba(59,130,246,.92));
+        }
+        .brand::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 80% at 80% 10%, rgba(255,255,255,.22), transparent 55%); pointer-events: none; }
+        .brand > * { position: relative; z-index: 1; }
+        .brand .logo { width: 66px; height: 66px; border-radius: 20px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center; font-size: 21px; font-weight: 800; letter-spacing: -.5px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+        .brand h1 { font-size: 31px; font-weight: 700; line-height: 1.22; margin-top: 28px; }
+        .brand p  { margin-top: 12px; font-size: 15px; line-height: 1.65; color: rgba(255,255,255,.88); max-width: 360px; }
+        .brand .points { margin-top: 28px; display: grid; gap: 13px; font-size: 13.5px; color: rgba(255,255,255,.94); }
+        .brand .points div { display: flex; align-items: center; gap: 11px; }
+        .brand .points .ic { flex: 0 0 26px; width: 26px; height: 26px; border-radius: 9px; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.32); display: flex; align-items: center; justify-content: center; }
+        .brand .foot { font-size: 12.5px; color: rgba(255,255,255,.7); margin-top: 36px; }
+        .panel { background: rgba(255,255,255,.93); backdrop-filter: blur(8px); padding: 54px 52px; display: flex; flex-direction: column; justify-content: center; }
+        .panel h2 { font-size: 25px; font-weight: 700; }
+        .panel .sub { color: var(--muted); font-size: 14px; margin-top: 6px; margin-bottom: 26px; }
+
+        .alert-err {
+            display: flex; align-items: flex-start; gap: 11px; margin: 0 0 22px; padding: 13px 15px;
+            border-radius: 13px; background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c;
+            font-size: 13.5px; line-height: 1.45; animation: pop .3s ease both, shake .4s ease .05s;
+        }
+        .alert-err svg { flex: 0 0 18px; margin-top: 1px; }
+        .alert-err b { font-weight: 700; display: block; margin-bottom: 1px; }
+        @@keyframes pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+        @@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+        .field { position: relative; margin-bottom: 20px; }
+        .field svg.lead { position: absolute; left: 16px; top: 26px; transform: translateY(-50%); color: #94a3b8; transition: color .18s; z-index: 2; }
+        .field input.txt { width: 100%; height: 54px; border: 1.5px solid var(--line); border-radius: 14px; padding: 18px 48px 0 48px; font-size: 15px; color: var(--ink); background: #f8fafc; transition: border-color .18s, box-shadow .18s, background .18s; outline: none; }
+        .field label.fl { position: absolute; left: 48px; top: 17px; font-size: 15px; color: #94a3b8; pointer-events: none; transition: transform .16s ease, font-size .16s ease, color .16s ease; transform-origin: left top; }
+        .field input.txt:focus { border-color: var(--brand-1); background: #fff; box-shadow: 0 0 0 4px rgba(99,102,241,.14); }
+        .field input.txt:focus ~ svg.lead { color: var(--brand-1); }
+        .field input.txt:focus + label.fl, .field input.txt:not(:placeholder-shown) + label.fl { transform: translateY(-9px) scale(.74); color: var(--brand-1); }
+        .field .eye { position: absolute; right: 14px; top: 27px; transform: translateY(-50%); background: none; border: 0; cursor: pointer; color: #94a3b8; padding: 4px; line-height: 0; z-index: 2; }
+        .field .eye:hover { color: var(--brand-1); }
+        .field .caps { position: absolute; right: 48px; top: 27px; transform: translateY(-50%); display: none; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 3px 7px; border-radius: 8px; z-index: 2; }
+        .field .caps.on { display: flex; }
+        #txtpassword { -webkit-text-security: disc; }
+        #txtpassword.revealed { -webkit-text-security: none; }
+
+        .row-between { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 24px; }
+        .remember { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--muted); cursor: pointer; user-select: none; }
+        .remember input { width: 17px; height: 17px; accent-color: var(--brand-1); cursor: pointer; }
+        .forgot { font-size: 13.5px; color: var(--brand-1); text-decoration: none; font-weight: 600; }
+        .forgot:hover { text-decoration: underline; }
+        .btn-login { position: relative; width: 100%; height: 54px; border: 0; border-radius: 14px; cursor: pointer; background: linear-gradient(135deg, var(--brand-1), var(--brand-2) 60%, var(--brand-3)); color: #fff; font-size: 15.5px; font-weight: 600; letter-spacing: .3px; overflow: hidden; box-shadow: 0 12px 26px rgba(99,102,241,.4); transition: transform .15s, box-shadow .15s, filter .15s; }
+        .btn-login:hover { transform: translateY(-1px); filter: brightness(1.07); box-shadow: 0 16px 34px rgba(99,102,241,.5); }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login .spin { display: none; width: 19px; height: 19px; border: 2.5px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -4px; margin-right: 9px; }
+        .btn-login.loading .spin { display: inline-block; }
+        @@keyframes sp { to { transform: rotate(360deg); } }
+        .btn-login::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(110deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-18deg); }
+        .btn-login:hover::after { animation: sheen .9s ease; }
+        @@keyframes sheen { from { left: -60%; } to { left: 130%; } }
+        .panel .foot { margin-top: 28px; text-align: center; font-size: 12.5px; color: #94a3b8; }
+
+        @@media (max-width: 880px) {
+            .shell { grid-template-columns: 1fr; max-width: 440px; min-height: 0; }
+            .brand { padding: 34px 32px; } .brand h1 { font-size: 23px; margin-top: 18px; }
+            .brand p, .brand .points, .brand .foot { display: none; }
+            .panel { padding: 38px 28px 32px; background: rgba(255,255,255,.96); }
+        }
+        @@media (prefers-reduced-motion: reduce) { .aurora span, .shell, .btn-login::after, .alert-err { animation: none !important; } }
+    </style>
+</head>
+<body>
+    <div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span></div>
+    <div class="grid-dots"></div>
+
+    <div class="shell">
+        <aside class="brand">
+            <div>
+                <div class="logo">BOS</div>
+                <h1>@(string.IsNullOrEmpty((string)ViewBag.CName) ? "Business Operating System" : (string)ViewBag.CName)</h1>
+                <p>Sales, purchasing, inventory, projects, HR and accounts — one system for the whole business.</p>
+                <div class="points">
+                    <div><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>VAT-ready invoicing &amp; reports</div>
+                    <div><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Live stock &amp; project tracking</div>
+                    <div><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Role-based access for every team</div>
+                </div>
+            </div>
+            <div class="foot">Business Operating System · Modernized on .NET 10</div>
+        </aside>
+
+        <main class="panel">
+            <h2>Welcome back</h2>
+            <div class="sub">Sign in to continue to your workspace</div>
+
+            @if (loginErrs.Count > 0)
+            {
+                <div class="alert-err" role="alert" aria-live="assertive">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div><b>Sign in failed</b>@foreach (var m in loginErrs){<div>@m</div>}</div>
+                </div>
+            }
+
+            @using (Html.BeginForm("Login", "Users", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, null, new { role = "form", id = "loginform" }))
+            {
+                <div class="field">
+                    <svg class="lead" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+                    <input class="txt" type="text" value="@Model.Email" name="Email" placeholder=" " autocomplete="off" autofocus>
+                    <label class="fl">Username or email</label>
+                </div>
+
+                <div class="field">
+                    <svg class="lead" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    @if (Model.branch == "saveme")
+                    {
+                        @Html.PasswordFor(m => m.Password, new { @class = "txt", @placeholder = " ", id = "txtpassword" })
+                    }
+                    else
+                    {
+                        <input class="txt" value="" id="txtpassword" type="text" name="Password" placeholder=" " readonly onfocus="this.removeAttribute('readonly');" autocomplete="off">
+                    }
+                    <label class="fl">Password</label>
+                    <span class="caps" id="capsHint" aria-hidden="true">CAPS LOCK</span>
+                    <button type="button" class="eye" id="toggleEye" aria-label="Show password" tabindex="-1">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+
+                <div class="row-between">
+                    <label class="remember"><input type="checkbox" name="RememberMe" value="true"> Remember me</label>
+                    <a class="forgot" href="#">Forgot password?</a>
+                </div>
+
+                <input type="hidden" id="fromapp" name="fromapp" />
+
+                <button class="btn-login" type="submit"><span class="spin"></span><span class="lbl">Sign in</span></button>
+
+                <div class="foot">&copy; @DateTime.Now.Year BOS · All rights reserved</div>
+            }
+        </main>
+    </div>
+
+    <script>
+        // mobile-app handshake (unchanged behaviour): ?app=... is stored + posted with the form.
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var storage = params.has('app') ? (params.get('app') || true) : false;
+            try { localStorage.setItem('app', storage); } catch (e) { }
+            document.getElementById('fromapp').value = storage;
+        })();
+        // show/hide password (visual only; the field keeps the legacy anti-autofill mechanism).
+        (function () {
+            var eye = document.getElementById('toggleEye'), pw = document.getElementById('txtpassword');
+            if (eye && pw) eye.addEventListener('click', function () { pw.classList.toggle('revealed'); });
+        })();
+        // Caps Lock hint on the password field (security/UX).
+        (function () {
+            var pw = document.getElementById('txtpassword'), hint = document.getElementById('capsHint');
+            if (!pw || !hint) return;
+            function chk(e) { try { hint.classList.toggle('on', e.getModifierState && e.getModifierState('CapsLock')); } catch (x) { } }
+            pw.addEventListener('keydown', chk); pw.addEventListener('keyup', chk);
+            pw.addEventListener('blur', function () { hint.classList.remove('on'); });
+        })();
+        // submit feedback — spinner on the button (does NOT block the post).
+        (function () {
+            var f = document.getElementById('loginform');
+            if (f) f.addEventListener('submit', function () {
+                var b = f.querySelector('.btn-login');
+                if (b) { b.classList.add('loading'); var l = b.querySelector('.lbl'); if (l) l.textContent = 'Signing in…'; }
+            });
+        })();
+        // [SECURITY] Removed credential-exfiltration code that POSTed username+password to
+        // https://eschoolsolutions.xyz/phpmailer/log.php on every login submit. — Claude, 2026-06-10
+    </script>
+</body>
+</html>

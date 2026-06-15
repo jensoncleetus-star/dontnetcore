@@ -1,0 +1,366 @@
+
+@{
+    ViewBag.Title = "Search Pay Slip";
+    ViewBag.SubTitle = "Pay Slip";
+    ViewBag.Active = "PayrollReport";
+    var bankdetail = "";
+
+}
+@if (!IsPost)
+{
+    <div class="box box-default">
+        <div>
+            <div class="box-header with-border">
+                <h3 class="box-title">Pay Slip</h3>
+            </div>
+            <div class="box-body">
+                @using (Html.BeginForm("PaySlip", "PayrollReport", FormMethod.Post, new { id = "popupForm" }))
+                {
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+                <div class="form-group col-md-4 select2-box">
+                    @Html.Label("Departments", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlDepartment", (SelectList)ViewBag.AllOption, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-4 select2-box">
+                    @Html.Label("Employee", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.Emp, "", new { @class = "form-control input-sm select2", @required = "required" })
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.Label("Month & Year", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("MonthYear", "", "{0:MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                @*<div class="form-group col-md-2">
+                        @Html.Label("To", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>*@
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @section style{
+        @Styles.Render("~/css/bootstrap-datepicker")
+    }
+    @section scripts{
+        @Scripts.Render("~/js/jqueryval")
+        @Scripts.Render("~/js/bootstrap-datepicker")
+        <script type="text/javascript">
+            $('.date').datepicker({
+                format: 'MM-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                viewMode: "months",
+                minViewMode: "months"
+            });
+            $(document).ready(function () {
+                //$("#VoucherNo").select2();
+                //$('#To').datepicker({
+                //    format: 'dd-mm-yyyy',
+                //    autoclose: true,
+                //    allowInputToggle: true
+                //});
+                //$('#From').datepicker({
+                //    format: 'dd-mm-yyyy',
+                //    autoclose: true,
+                //    allowInputToggle: true
+                //});
+
+                var date = new Date();
+                var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                var priordate = new Date(new Date().setDate(today.getDate() - 30));
+                //$('#To').datepicker('setDate', today);
+                //$('#From').datepicker('setDate', priordate);
+                $('#Showtable').hide();
+
+                $("#ddlDepartment").select2({
+                    placeholder: 'Search by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Department/SearchDepartment",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "empty"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 0;
+                            return {
+                                results: data,
+                                pagination: {
+                                    more: true
+                                }
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                CallEmployeeAcc();
+            });
+            $('body').on('change', '#ddlDepartment', function (e) {
+                var deptid = $(this).val();
+                if (deptid != null) {
+                    $('#ddlEmployee').val(null).trigger("change");
+                    CallEmployeeByDept(deptid);
+                }
+            });
+
+        </script>
+    }
+}
+else
+{
+    decimal TotalEarning = 0;
+    decimal TotalDeduction = 0;
+    decimal NetAmount = 0;
+    
+    @model QuickSoft.ViewModel.PaySlipViewModel
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Pay Slip</h3>
+            <div class="pull-right">
+                <a class="btn btn-primary no-border" href="/Hr/PayrollReport/PaySlip">
+                    <i class="fa fa-fw fa-history"></i> Cancel
+                </a>
+                <button class="btn btn-success no-border" id="printthis">
+                    <i class="fa fa-fw fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-md-12 pos-preview">
+                <div id="invoice-POS" class="printit">
+                    <center id="top">
+                        @if (@ViewBag.CLogo != null)
+                        {
+                            <div class="logo"><img class="img-responsive" src="/uploads/company/@ViewBag.CLogo" /></div>
+                        }
+                        <div class="detail">
+                            <h3>@ViewBag.CName</h3>
+                            <h5>
+                                @ViewBag.CAddress<br>
+                                @if (@ViewBag.CPhone != null)
+                                {
+                                    <span>
+                                        @ViewBag.CPhone
+                                    </span>
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span> , @ViewBag.CPMob</span>
+                                    }
+                                    <br />
+
+                                }
+                                else
+                                {
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span>@ViewBag.CPMob</span>
+                                        <br />
+                                    }
+                                }
+                                @ViewBag.CEmail<br>
+                                @if (@ViewBag.CTaxRegNo != null)
+                                {
+                                    <span>TRN: @ViewBag.CTaxRegNo</span>
+                                }
+                            </h5>
+                            <h5><b> Pay Slip For  @Convert.ToString(string.Format("{0:MMMM-yyyy}", Model.MonthYear))</b></h5>
+                            <h5><b> @Model.Employee</b></h5>
+                        </div>
+                    </center>
+                    <div id="mid">
+                        <div class="detail">
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    Employee Code : <b> @Model.EmployeeCode</b><br />
+                                    Designation : <b>@Model.Designation</b><br />
+                                    Date of Join : <b>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.DateofJoin))</b><br />
+                                    @if (Model.BankName != null && Model.AccountNo != null)
+                                    {
+                                        <span> Bank Details : </span><b>
+                                        @if (Model.BankName != null)
+                                        {
+                                            bankdetail = Model.BankName;
+                                        }
+                                        @if (Model.AccountNo != null)
+                                        {
+                                            bankdetail = bankdetail + "," + Model.AccountNo;
+                                        }
+                                        @if (Model.IbanNo != null)
+                                        {
+                                            bankdetail = bankdetail + "," + Model.IbanNo;
+                                        }
+                                        @if (Model.BranchName != null)
+                                        {
+                                            bankdetail = bankdetail + "," + Model.BranchName;
+                                        }
+                                        @if (Model.Swift != null)
+                                        {
+                                            bankdetail = bankdetail + "," + Model.Swift;
+                                        }
+                                        @bankdetail
+                                    </b>
+                                    }
+                                </div>
+                                <div class="col-md-6 form-group "></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 form-group" style="width:50%;">
+                                    @if (Model.Attend != null)
+                                    {
+                                        <table class="table table-bordered table-hover" id="attdetails">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center" width="70%">Attendance Details</th>
+                                                    <th class="text-center" width="30%">Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="addattendance">
+                                                @foreach (var At in Model.Attend)
+                                                {
+                                                    <tr>
+                                                        <td>@At.Name</td>
+                                                        <td class="text-right">@At.Value  @At.PeriodType</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                </div>
+                                <div class="col-md-6 form-group ">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    @if (Model.Earning != null)
+                                    {
+                                        <table class="table table-bordered table-hover" id="earndetails">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center" width="35%">Earnings</th>
+                                                    <th class="text-center" width="35%">Amount</th>
+                                                    <th class="text-center" width="30%">Gross Salary</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="addearning">
+                                                @foreach (var At in Model.Earning)
+                                                {
+                                                    <tr>
+                                                        <td>@At.Name</td>
+                                                        <td class="text-right">@At.Amount</td>
+                                                        <td class="text-right">@At.GrossSalary</td>
+                                                    </tr>
+                                                    TotalEarning += (decimal)@At.GrossSalary;
+                                                    NetAmount += (decimal)@At.GrossSalary;
+                                                }
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td>Total</td>
+                                                    <td></td>
+                                                    <td class="text-right">@TotalEarning</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    }
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    @if (Model.Deduction != null)
+                                    {
+                                        <table class="table table-bordered table-hover" id="Duductdetails">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center" width="35%">Deduction</th>
+                                                    <th class="text-center" width="35%">Amount</th>
+                                                    <th class="text-center" width="30%">Gross Salary</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="adddeduction">
+                                                @foreach (var At in Model.Deduction)
+                                                {
+                                                    <tr>
+                                                        <td>@At.Name</td>
+                                                        <td class="text-right">@At.Amount</td>
+                                                        <td class="text-right">@At.GrossSalary</td>
+                                                    </tr>
+                                                    TotalDeduction += (decimal)@At.GrossSalary;
+                                                    NetAmount -= (decimal)@At.GrossSalary;
+                                                }
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td>Total</td>
+                                                    <td></td>
+                                                    <td class="text-right">@TotalDeduction</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    }
+                                </div>
+
+                                <div class="col-md-12 form-group">
+                                    <table class="table table-bordered table-hover">
+                                        <tr>
+                                            <td width="70%">Net Amount</td>
+                                            <td colspan="4" class="text-right" width="30%"> @NetAmount </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 form-group">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td colspan="2"><strong>Note: </strong> @Model.Note</td>
+                                </tr>
+                                <tr>
+                                    <td style="width:50%;">
+                                       
+                                    </td>
+                                    <td class="text-right">
+                                        For @ViewBag.CName
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @section style{
+        @Styles.Render("~/css/posprint")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/printThis")
+        <script type="text/javascript">
+            $('#printthis').on("click", function () {
+                $(".printit").printThis();
+            });
+            $(document).ready(function () {
+
+            });
+        </script>
+    }
+}

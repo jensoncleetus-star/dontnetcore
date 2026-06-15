@@ -1,0 +1,1219 @@
+@{
+    ViewBag.Title = "Item List";
+    ViewBag.SubTitle = "Item";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Item"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+            "if (confirm('Are you sure you want to delete this?')) {$('#payform').submit()};}},";
+    }
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+        /*  .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }*/
+
+        .dropdown-check-list.visible .anchor {
+            color: #0094ff;
+        }
+
+        .dropdown-check-list.visible .items {
+            display: block;
+        }
+
+    .sh-spaan-text-style {
+        font-family: sans-serif;
+    }
+
+    .sh-input-drop {
+        border: 1px solid rgb(0 0 0 / 0.20);
+        padding: 3px;
+    }
+
+    @@media only screen and (max-width: 400px) {
+        .top3 {
+            margin-top: 27px;
+        }
+
+        .adv-search-height {
+            margin-left: 10px !important;
+        }
+
+        .responsive-search {
+            padding: 0px 0px 0px 0px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+            width: 150px !important;
+        }
+
+        .task-name-center {
+            text-align: center !important;
+        }
+
+        .button-left-margin {
+            margin-left: 25%;
+        }
+
+        .drop-align-center {
+            position: relative !important;
+            left: 60px;
+        }
+    }
+
+    @@media only screen and (min-width: 800px) {
+        .top3 {
+            margin-top: 10px;
+        }
+
+        .adv-search-height {
+            top: -10px !important;
+            margin-left: 13px;
+        }
+
+        .responsive-search {
+            padding: 25px 0px 0px 50px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+        }
+    }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+
+        <div class="row">
+            <div class="col-md-10 col-xs-12 task-name-center ">
+                <h3 class="box-title" style="font-size:x-large;">Items</h3>
+            </div>
+            <div class="col-md-2 col-xs-12 pull-right sh-downonSmallScreen" style="padding: 0px; margin: 10px 0px 0px 0px;">
+
+                <div class="row">
+
+                    <div class="col-md-10 col-xs-6 col-xs-offset-3" style="padding:0px; width:150px; ">
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Item"))
+                        {
+
+                            <a class="btn btn-info no-border" href="/Item/create">
+                                <i class="fa fa-plus"></i> &nbsp; Create
+                            </a>
+                        }
+                        @if (@ViewBag.BulkUpload == 0 && (User.IsInRole("Dev") || User.IsInRole("Create Item")))
+                        {
+                            <a class="btn btn-info no-border" href="/Item/BulkUpload">
+                                <i class="fa fa-file-excel-o"></i> Excel Upload
+                            </a>
+                        }
+
+
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-md-2 col-xs-10 " id="taskchecklist" style="padding:0px; margin:auto;">
+                <div id="list1" class="dropdown-check-list drop-align-center" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liitem" />Item</li>
+                        <li><input type="checkbox" id="liitemtype" />Item Type</li>
+                        <li><input type="checkbox" id="lipartnumber" />Part Number</li>
+                        <li><input type="checkbox" id="licategory" />Category</li>
+                        <li><input type="checkbox" id="librand" />Brand</li>
+                        <li><input type="checkbox" id="liunit" />Unit</li>
+                        <li><input type="checkbox" id="lisize" />Size</li>
+                        <li><input type="checkbox" id="licolor" />Color</li>
+                        <li><input type="checkbox" id="litax" />Tax</li>
+                        <li><input type="checkbox" id="lisupplier" />Supplier</li>
+                        <li><input type="checkbox" id="lisupplierref" />Supplier Ref</li>
+                        <li><input type="checkbox" id="listatus" />Active/Inactive</li>
+                        <li><input type="checkbox" id="likeepstock" />Keep Stock</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12 col-xs-12">
+                <div class="box-body search-box adv-search-height" id="advsearchlist">
+                    <div class="search-body responsive-search " style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchitem">
+                                    @Html.Label("Item", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.ItemSrch, new { @class = "form-control select2" })
+                                </div>
+                                @if (@ViewBag.JewCheck == 0)
+                                {
+                                    <div class="form-group col-md-2" id="searchitemtype">
+                                        @Html.Label("ItemType", null, new { @class = "control-label" })
+                                        @Html.DropDownList("ItemType", (SelectList)ViewBag.ItemType, new { @class = "form-control select2" })
+                                    </div>
+                                }
+                                @if (@ViewBag.PartNoCheck == 0)
+                                {
+                                    <div class="form-group col-md-2" id="searchpartno">
+                                        @Html.Label("Part Number", null, new { @class = "control-label" })
+                                        @Html.TextBox("PartNo", "", new { @class = "form-control input-sm" })
+                                    </div>
+                                }
+                                <div class="form-group col-md-2" id="searchcategory">
+                                    @Html.Label("Category", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlCategory", (SelectList)ViewBag.ItemCatg, new { @class = "form-control select2" })
+                                </div>
+
+
+
+                                <div class="form-group col-md-2" id="searchbrand">
+                                    @Html.Label("Brand", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlBrand", (SelectList)ViewBag.ItmBrand, new { @class = "form-control select2" })
+                                </div>
+
+                                <div class="form-group col-md-2" id="searchunit">
+                                    @Html.Label("Unit", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlPUnit", (SelectList)ViewBag.PUnit, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchsize">
+                                    @Html.Label("Size", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlItemSize", (SelectList)ViewBag.ItemSize, "All", new { @class = "form-control input-sm" })
+                                </div>
+
+                                <div class="form-group col-md-2" id="searchcolor">
+                                    @Html.Label("Color", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlColor", (SelectList)ViewBag.ItemColor, "All", new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchtax">
+                                    @Html.Label("Tax", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlTax", (SelectList)ViewBag.ItemTax, "All", new { @class = "form-control input-sm" })
+                                </div>
+
+                                <div class="form-group col-md-2" id="searchsupplier">
+                                    @Html.Label("Supplier", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supp, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchsupplierref">
+                                    @Html.Label("Supplier Ref", null, new { @class = "control-label" })
+                                    @Html.TextBox("SupplierRef", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchstatus">
+                                    @Html.Label("Status", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlStatus", (SelectList)ViewBag.ItStatus, new { @class = "form-control" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchkeepstock">
+                                    @Html.Label("Keep Stock", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlKeepStock", (SelectList)ViewBag.KStock, new { @class = "form-control" })
+                                </div>
+                                <div class="form-group col-md-2 col-6 text-center" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2 col-6 text-center" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class=" col-md-2" id="searchpagelength">
+
+                <span class="sh-spaan-text-style">Show &nbsp;</span>@Html.DropDownList("ddlPagesize", new SelectList(new List<SelectListItem>
+{
+new SelectListItem() {Text = "50 Rows", Value="50"},
+new SelectListItem() {Text = "All Rows", Value="10000000"},
+
+}, "Value", "Text"), new { @class = "sh-input-drop select2" })
+
+            </div>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAllItem", "Item", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <input type="hidden" id="PaNo" value="@ViewBag.PartNoCheck" />
+            <input type="hidden" id="Jewel" value="@ViewBag.JewCheck" />
+            <input type="hidden" id="Scaf" value="@ViewBag.BusinessType" />
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Code</td>
+                        <td data-priority="1">Name</td>
+                        <td data-priority="5">Item Image</td>
+                        <td data-priority="6">Item Type</td>
+                        <td data-priority="7">Part Number</td>
+                        <td data-priority="6">Barcode</td>
+                        <td data-priority="8">Description</td>
+                        <td data-priority="2">Selling Price</td>
+                        <td data-priority="2">Purchase Price</td>
+                        <td data-priority="6">Base Price</td>
+                        <td data-priority="6">MRP</td>
+                        <td data-priority="1">Category</td>
+                        <td data-priority="2">Brand</td>
+                        <td data-priority="4">Color</td>
+                        <td data-priority="2">Tax</td>
+                        <td data-priority="4">Size</td>
+                        <td data-priority="7">Supplier</td>
+                        <td data-priority="7">Supplier Ref</td>
+                        <td data-priority="3">Primary Unit</td>
+                        <td data-priority="7">Secondary Unit</td>
+                        <td data-priority="3">Opening Stock</td>
+                        <td data-priority="7">Weight</td>
+                        <td data-priority="7">CBM</td>
+                        <td data-priority="5">Status</td>
+                        <td data-priority="5">Approvals</td>
+                        <td data-priority="1">Action</td>
+                        <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    }
+
+    <div id="modal-container" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalCreate")
+
+@section scripts{
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+
+        CallRepSupplier();
+        //CallRepSupplier();
+        ItemSearchableinactive();
+
+        jQuery(function ($) {
+
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": false,
+                'pageLength': 50,
+                responsive: true,
+
+                "ajax": {
+                    "url": '/Item/GetItem',
+                    "data": function (data) {
+                        data.Item = $('#ddlItem').val();
+                        data.ItemType = $('#ItemType').val();
+                        data.PartNo = $('#PartNo').val();
+                        data.PUnit = $('#ddlPUnit').val();
+                        data.Brand = $('#ddlBrand').val();
+                        data.Category = $('#ddlCategory').val();
+                        data.ItemSize = $('#ddlItemSize').val();
+                        data.Color = $('#ddlColor').val();
+                        data.Tax = $('#ddlTax').val();
+                        data.ddlSupplier = $('#ddlSupplier').val();
+                        data.SuppRef = $('#SupplierRef').val();
+                        data.Stats = $('#ddlStatus').val();
+                        data.KpStock = $('#ddlKeepStock').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "asc"]],
+                "columnDefs": [{
+                    "targets": [-1, -2, -3],
+                    "orderable": false
+                }],
+                "columns": [
+                     {
+                         "data": "ItemID", "name": "ItemID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "ItemCode", "name": "ItemCode" },
+                    //{ "data": "ItemName", "name": "ItemName" },
+                    {
+                        "data": "ItemName", "data": function (data) {
+                            @{
+                                    var datas = "";
+                                    //if (User.IsInRole("Dev") || User.IsInRole("View Item"))
+                                    //{
+                                    datas = "'<a href=\"/Item/Details/'+ data.ItemID +'\">'+ data.ItemName +'</a>' ";
+                                //}
+                                //else
+                                //{
+                                //    datas = "data.ItemName";
+                                //}
+                            }
+                            return @Html.Raw(datas);
+                        }
+                    },
+                    {
+                        "name": "ItemArabic", "data":function(data) {
+                           return '<img height="100"  class=""   src="/uploads/itemimages/' + data.ItemID + '/' + data.FileName + '"/>';
+
+                        }
+                },
+                    {
+                        "data": "ItemType", "name": "ItemType", "render": function (data) {
+                            if (data == 2) {
+                                return 'Diamond';
+                            }
+                            else if (data == 3) {
+                                return 'Watch';
+                            }
+                            else if (data == 4) {
+                                return 'Object';
+                            }
+                            else {
+                                return 'General';
+                            }
+
+                        }
+                    },
+                    { "data": "PartNumber", "name": "PartNumber" },
+
+                    { "data": "Barcode", "name": "Barcode" },
+                      {
+                          "data": "ItemDescription", "name": "ItemDescription", "render": function (data) {
+                              if (data != null && data.length > 50) {
+                                  return data.substr(0, 50) + '...';
+                              }
+                              else {
+                                  return data;
+                              }
+                          }
+                      },
+                    { "data": "SellingPrice", "name": "SellingPrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "PurchasePrice", "name": "PurchasePrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "BasePrice", "name": "BasePrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "MRP", "name": "MRP", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "Category", "name": "Category" },
+                    { "data": "Brand", "name": "Brand" },
+                    { "data": "Color", "name": "Color" },
+                    { "data": "Tax", "name": "Tax" },
+                    { "data": "Size", "name": "Size" },
+                    { "data": "Supplier", "name": "Supplier" },
+                    { "data": "SupplierRef", "name": "SupplierRef" },
+                    { "data": "PUnit", "name": "PUnit" },
+                    { "data": "SUnit", "name": "SUnit" },
+                    {
+                        "name": "OpeningStock", "data": function (data) {
+                            if (data.KeepStock) {
+                                return data.OpeningStock + " " + (data.PUnit||"");
+                            }
+                            else {
+                                return "";
+                            }
+                        }
+                    },
+                    { "data": "Weight", "name": "Weight" },
+                    { "data": "CBM", "name": "CBM" },
+                      {
+                          "name": "Status", "data": function (data) {
+                              if (data.Status == 1) {
+                                  return '<a href="/Item/ChangeStatus/' + data.ItemID + '/active" class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                              }
+                              else {
+                                  return '<a href="/Item/ChangeStatus/' + data.ItemID + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                              }
+                          }
+                    },
+                       {
+                     "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                         var status = "";
+                         var cls = "";
+                         if (data.app.length > 0 || data.Approval == true ) {
+                             if (data.ApprovalStatus == "0") {
+                                 status = '<span class="badge bg-green">Approved</span>';
+                             }
+                             else if (data.ApprovalStatus == "1") {
+                                 status = '<span class="badge bg-red">Rejected</span>';
+                             }
+                             else if (data.ApprovalStatus == "2") {
+                                 status = '<span class="badge bg-orange">Pending</span>';
+                             }
+                             return '<a  class="Updation"  title="View Status">' + status + ' </a>';
+                         } else { return null; }
+                     }
+                 },
+
+                {
+                    "name": "ItemID", "data": function (data) {
+                        var rest = "";
+
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("View Item"))
+                            {
+                                actData += "<a href=\"/Item/Details/'+ data.ItemID +'\" title=\"View Item\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("Edit Item"))
+                            {
+                                actData += "<a class=\"modal-link-edit\" href=\"/Item/Edit/'+ data.ItemID +'\" title=\"Edit Item\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                actData += "<a class=\" btn-icons modal-create\" href=\"/Item/AddItemRemark/'+ data.ItemID +'\" title=\"Add Remarks\"><i class=\" fa fa-plus\" ></i></a> ";
+                                //actData += "<a class=\" btn-icons Updation\" onclick=\"details(' + data.ItemID + ')\" title=\"View Remarks\"><i class=\" fa fa-history\" ></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete Item"))
+                            {
+                                actData += "<a class=\"modal-delete\" href=\"/Item/Delete/'+ data.ItemID +'\" title=\"Delete Item\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+
+                            actData += "<a class=\"detailss\" href=\"/LogDetails/?TransId='+ data.ItemID +'&TransType='+ 'Item' +'\" title=\"View Item Updation\" target=\"new\"><i class=\"fa fa-lg fa-history\"></i></a> ";
+                            if (User.IsInRole("Dev") || User.IsInRole("View Item Image"))
+                            {
+                                actData += "<a class=\"modal-link-images\" href=\"/Item/ImageAddstr/'+ data.ItemID +'\" title=\"add Item Images\" target=\"blank\"><i class=\"fa fa-lg fa-file-image-o\" ></i></a> ";
+                            }
+                            //if (User.IsInRole("Dev") || User.IsInRole("View Item Document"))
+                            //{
+                            //    actData += "<a class=\"modal-link-document\" href=\"/Item/Document/'+ data.ItemID +'\" title=\"View Item Documents\"><i class=\"fa fa-lg fa-file-pdf-o\" ></i></a> ";
+                            //}
+}
+                        rest = '@Html.Raw(actData)';
+
+                                if (data.Approval == true ) {
+                            @{
+                                actData = "";
+
+                                actData += "<a class=\"modal-edit\"  href=\"/Item/EditStatus/'+ data.ItemID +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+
+                           }
+                               rest += '@Html.Raw(actData)';
+                        }
+                        return rest;
+                    }
+                },
+                 {
+                     "name": "ItemID", "data": function (data) {
+                         var rest = "";
+                         @{
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete Item"))
+                            {
+                                delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.ItemID +'></input>";
+                            }
+                        }
+                         return rest = '@Html.Raw(delchk)';
+                     }
+                 },
+                ],
+                dom: 'Bfrtip',
+               buttons: ['colvis',
+                 {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Items </h4></th></tr>' +
+                        ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                 }, 'copy', 'csv', 'excel',
+                {
+                    extend: 'pdf',//
+                    title: "Items",
+                    footer: true,
+                    orientation: 'landscape',
+
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                    }
+                },
+                    @Html.Raw(deleteBTn)
+               ],
+                "drawCallback": function (settings) {
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $("#sub").hide();
+                    } else {
+                        $("#sub").show();
+                    }
+                }
+
+            });
+
+            var chkcol = '@userRole';
+            if (chkcol == "True") {
+                var column1 = oTable.column(26);
+                column1.visible(true);
+                $('.dt-button.btn-danger').show();
+            }
+            else {
+                var column1 = oTable.column(26);
+              //  column1.visible(false);
+                $('.dt-button.btn-danger').hide();
+            }
+
+            var pno = $('#PaNo').val();
+            if (pno == "inactive") {
+                var column1 = oTable.column(5);
+                column1.visible(false);
+            } else {
+                var column1 = oTable.column(5);
+                column1.visible(true);
+            }
+
+            var Jewel = $('#Jewel').val();
+            if (Jewel == "inactive") {
+                var column1 = oTable.column(4);
+                column1.visible(false);
+            }
+            else {
+                var column1 = oTable.column(4);
+                column1.visible(true);
+            }
+
+            var Scaf = $('#Scaf').val();
+            if (Scaf == "Scaffold") {
+                var column1 = oTable.column(22);
+                var column2 = oTable.column(23);
+                column1.visible(true);
+                column2.visible(true);
+            }
+            else {
+                var column1 = oTable.column(22);
+                var column2 = oTable.column(23);
+                //column1.visible(false);
+                //column2.visible(false);
+            }
+
+            function reload_table() {
+                oTable.clear().draw();
+                oTable.ajax.reload(null, false); //reload datatable ajax
+                isTicked();
+            }
+
+            //select all checkboxes
+            $('body').on('change', '#select_all', function () {
+                $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+            });
+
+            //".checkbox" change
+            $('body').on('change', '.checkbox', function () {
+                //uncheck "select all", if one of the listed checkbox item is unchecked
+                if (false == $(this).prop("checked")) { //if this item is unchecked
+                    $("#select_all").prop('checked', false); //change "select all" checked status to false
+                }
+                isTicked();
+            });
+
+            isTicked();
+
+            /* function for view detail popup */
+            $('#UserTable').on('click', 'a.details', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            });
+            $('div').on('click', '.modal-edit', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-edit');
+            });
+
+            $('#modal-edit').on('submit', '#editform', function (e) {
+                e.preventDefault();
+                var url = $('#editform')[0].action;
+                var data = $('#editform').serialize();
+                createajax(url, data, '#modal-edit');
+                detailsRemind($("#remId").val());
+            });
+            /* chang status */
+            $('.table').on('click', '.modal-change', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-change');
+            });
+
+            $('#modal-change').on('submit', '#changeform', function (e) {
+                e.preventDefault();
+                var url = $('#changeform')[0].action;
+                var data = $('#changeform').serialize();
+                createajax(url, data, '#modal-change');
+                oTable.draw();
+            });
+
+            $('#UserTable').on('click', '.modal-delete', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-delete');
+            });
+
+            /* function for Create popup Item Remarks */
+            $('#UserTable').on('click', '.modal-create', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            });
+
+            $('#modal-delete').on('submit', '#deleteform', function (e) {
+                e.preventDefault();
+                var url = $('#deleteform')[0].action;
+                var data = $('#deleteform').serialize();
+                createajax(url, data, '#modal-delete');
+                oTable.draw();
+            });
+
+            $('.table').on('click', '.text-red', function (e) {
+                $(this).attr('data-target', '#modal-container2');
+                $(this).attr('data-toggle', 'modal');
+            });
+
+            $('.table').on('click', '.text-green', function (e) {
+                $(this).attr('data-target', '#modal-container2');
+                $(this).attr('data-toggle', 'modal');
+            });
+
+            $('div').on('click', '.modal-link-image', function (e) {
+                $(this).attr('data-target', '#modal-container');
+                $(this).attr('data-toggle', 'modal');
+            });
+
+            $('div').on('click', '.modal-link-document', function (e) {
+                $(this).attr('data-target', '#modal-container');
+                $(this).attr('data-toggle', 'modal');
+            });
+
+            $('#modal-container2').on('submit', '#popupFormItem', function (e) {
+                var url = $('#popupFormItem')[0].action;
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: $('#popupFormItem').serialize(),
+                    success: function (data) {
+                        if (data.status) {
+                            $('#modal-container2').modal('hide');
+                            oTable.draw(false);
+                            $('.ajax_response', res_success).text(data.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                        }
+                        fadeAlert();
+                    }
+                })
+                e.preventDefault();
+            })
+
+            $('#modal-delete').on('submit', '#popupFormItemDelete', function (e) {
+                var url = $('#popupFormItemDelete')[0].action;
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: $('#popupFormItemDelete').serialize(),
+                    success: function (data) {
+                        if (data.status) {
+                            $('#modal-delete').modal('hide');
+                            oTable.draw(false);
+                            $('.ajax_response', res_success).text(data.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                        }
+                        fadeAlert();
+                    }
+                })
+                e.preventDefault();
+            })
+
+            $('body').on('click', '.modal-close-btn', function () {
+                $('#modal-container').modal('hide');
+                $('#modal-container').removeData('bs.modal');
+
+                $('#modal-container2').modal('hide');
+                $('#modal-container2').removeData('bs.modal');
+
+                $('#modal-container3').modal('hide');
+                $('#modal-container3').removeData('bs.modal');
+            });
+
+            $('#modal-container').on('hidden.bs.modal', function () {
+                $(this).removeData('bs.modal');
+            });
+
+            $('#modal-container2').on('hidden.bs.modal', function () {
+                $(this).removeData('bs.modal');
+            });
+
+            $('#modal-container3').on('hidden.bs.modal', function () {
+                $(this).removeData('bs.modal');
+            });
+
+            //Button Close
+            $('#srch, .search-box .btn-close').on('click', function (e) {
+                $('#advsearchlist').toggle();
+
+                /*******  To uncheck all the checkboxes in the Select List  ************/
+                var checkboxes = document.querySelectorAll("input[type='checkbox']");
+                checkboxes.forEach(function (Checkbox) {
+                    Checkbox.checked = false;
+                });
+
+                if ($('#srch').hasClass('btn-primary')) {
+
+                    $('#srch').addClass('btn-danger');
+                    $('#srch').removeClass('btn-primary');
+                }
+                else {
+                    if ($('#srch').hasClass('btn-danger')) {
+                        $('#srch').addClass('btn-primary');
+                        $('#srch').removeClass('btn-danger');
+                    }
+
+                    /*******  To clear all the data entered  *********/
+                    $('#ddlItem').val(0).trigger('change');
+                    $('#ItemType').val(0).trigger('change');
+                    $('#PartNo').val("");
+                    $('#ddlPUnit').val(0).trigger('change');
+                    $('#ddlBrand').val(0).trigger('change');
+                    $('#ddlCategory').val(0).trigger('change');
+                    $('#ddlItemSize').val(null).trigger('change');
+                    $('#ddlColor').val(null).trigger('change');
+                    $('#ddlTax').val(null).trigger('change');
+                    $('#ddlSupplier').val(0).trigger('change');
+                    $('#SupplierRef').val("");
+                    $('#ddlKeepStock').val(null);
+                    $('#ddlStatus').val(null);
+                    oTable.draw();
+                }
+            });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+
+         //use this to select rows you want
+         $('#ddlPagesize').on('change', function (e) {
+
+            let pagedroplength = $('#ddlPagesize').val();
+            oTable.page.len(pagedroplength).draw();
+        });
+
+
+        var checkList = document.getElementById('list1');
+        /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+        checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+            if (checkList.classList.contains('visible'))
+                checkList.classList.remove('visible');
+            else
+                checkList.classList.add('visible');
+        }
+
+        /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+        $("ul li input:checkbox").click(function () {
+
+            var _show = 0;
+
+            //Item
+            if ($("#liitem").prop("checked") == true) {
+                $("#searchitem").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlItem').val(0).trigger('change');
+                $("#searchitem").hide();
+                oTable.draw();
+            }
+
+            //Item Type
+            if ($("#liitemtype").prop("checked") == true) {
+                $("#searchitemtype").show();
+                _show = 1;
+            }
+            else {
+                $('#ItemType').val(0).trigger('change');
+                $("#searchitemtype").hide();
+                oTable.draw();
+            }
+
+            //Part No.
+            if ($("#lipartnumber").prop("checked") == true) {
+                $("#searchpartno").show();
+                _show = 1;
+            }
+            else {
+                $('#PartNo').val("");
+                $("#searchpartno").hide();
+                oTable.draw();
+            }
+
+
+            //Category
+            if ($("#licategory").prop("checked") == true) {
+                $("#searchcategory").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlCategory').val(0).trigger('change');
+                $("#searchcategory").hide();
+                oTable.draw();
+            }
+
+            //Brand
+            if ($("#librand").prop("checked") == true) {
+                $("#searchbrand").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlBrand').val(0).trigger('change');
+                $("#searchbrand").hide();
+                oTable.draw();
+            }
+
+            //Unit
+            if ($("#liunit").prop("checked") == true) {
+                $("#searchunit").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlPUnit').val(0).trigger('change');
+                $("#searchunit").hide();
+                oTable.draw();
+            }
+
+            //Size
+            if ($("#lisize").prop("checked") == true) {
+                $("#searchsize").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlItemSize').val(null).trigger('change');
+                $("#searchsize").hide();
+                oTable.draw();
+            }
+
+            //Color
+            if ($("#licolor").prop("checked") == true) {
+                $("#searchcolor").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlColor').val(null).trigger('change');
+                $("#searchcolor").hide();
+                oTable.draw();
+            }
+
+            //Tax
+            if ($("#litax").prop("checked") == true) {
+                $("#searchtax").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlTax').val(null).trigger('change');
+                $("#searchtax").hide();
+                oTable.draw();
+            }
+
+            //Supplier
+            if ($("#lisupplier").prop("checked") == true) {
+                $("#searchsupplier").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlSupplier').val(0).trigger('change');
+                $("#searchsupplier").hide();
+                oTable.draw();
+            }
+
+            //Supplier Ref
+            if ($("#lisupplierref").prop("checked") == true) {
+                $("#searchsupplierref").show();
+                _show = 1;
+            }
+            else {
+                $('#SupplierRef').val("");
+                $("#searchsupplierref").hide();
+                oTable.draw();
+            }
+
+            //Status
+            if ($("#listatus").prop("checked") == true) {
+                $("#searchstatus").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlStatus').val(null);
+                $("#searchstatus").hide();
+                oTable.draw();
+            }
+
+            //Keep Stock
+            if ($("#likeepstock").prop("checked") == true) {
+                $("#searchkeepstock").show();
+                _show = 1;
+            }
+            else {
+                $('#ddlKeepStock').val(null);
+                $("#searchkeepstock").hide();
+                oTable.draw();
+            }
+
+            if (_show == 1) {
+                $('#advsearchlist').show();
+            }
+            else {
+                $('#advsearchlist').hide();
+            }
+        });
+
+       /******* Function to hide dropdown checklist while clicking outside it ********/
+       $(document).on("click", function (event) {
+
+           var element1 = $("#list1");
+
+           if (element1 !== event.target && !element1.has(event.target).length) {
+               checkList.classList.remove('visible');
+           }
+       });
+
+    });
+        function ItemSearchableinactive() {
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Searchinactive",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "All"
+                        };
+                    },
+                    results: function (data) {
+                        return { results: data };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+
+            });
+        }
+     $("#ddlPUnit").select2({
+         placeholder: 'Select Item Unit',
+         minimumInputLength: 0,
+         ajax: {
+             url: "/ItemUnit/SearchUnit",
+             dataType: 'json',
+             delay: 50,
+             data: function (params) {
+                 return {
+                     q: params.term,
+                     page: params.page,
+                     x: "All"
+                 };
+             },
+             processResults: function (data, params) {
+                 params.page = params.page || 1;
+                 return {
+                     results: data
+                 };
+             },
+             cache: true
+         },
+     });
+
+     $("#ddlBrand").select2({
+         placeholder: 'Search Item Brand by Name or Code',
+         minimumInputLength: 0,
+         ajax: {
+             url: "/ItemBrand/SearchBrand",
+             dataType: 'json',
+             delay: 50,
+             data: function (params) {
+                 return {
+                     q: params.term,
+                     page: params.page,
+                     x: "all"
+                 };
+             },
+             processResults: function (data, params) {
+                 params.page = params.page || 1;
+                 return {
+                     results: data
+                 };
+             },
+             cache: true
+         },
+     });
+
+     $("#ddlCategory").select2({
+         placeholder: 'Search Item Category',
+         minimumInputLength: 0,
+         ajax: {
+             url: "/ItemCategory/SearchCategory",
+             dataType: 'json',
+             type: "POST",
+             delay: 50,
+             data: function (params) {
+                 return {
+                     q: params.term,
+                     page: params.page,
+                     x: "All"
+                 };
+             },
+             processResults: function (data, params) {
+                 params.page = params.page || 1;
+
+                 return {
+                     results: data
+                 };
+             },
+             cache: true
+         },
+     });
+
+     $("#ddlColor").select2();
+     $("#ddlTax").select2();
+     //$("#KeepStock").select2();
+     //$("#Status").select2();
+     $("#ddlItemSize").select2();
+
+    </script>
+}
+

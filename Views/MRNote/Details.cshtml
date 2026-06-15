@@ -1,0 +1,154 @@
+@model QuickSoft.ViewModel.MRNoteViewModel
+@{
+    Layout = null;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Material Receive Note Details</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Material Receive Note No :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.BillNo)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date :", null, new { @class = "control-label" })
+                    @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.MRDate))
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Requested By :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.EmployeeName)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Requested Date :", null, new { @class = "control-label" })
+                    @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.RequestedDate))
+                </div>
+                <div class="col-sm-4 form-group">
+                    @Html.Label("Supplier Name :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.SupplierName)
+                </div>
+                <div class="col-sm-4 form-group">
+                    @Html.Label("Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.Type)
+                </div>
+                <div class="col-sm-4 form-group" style="display:none;">
+                    @Html.Label("Hire Order :", null, new { @class = "control-label" })
+                    @{
+                        var hordr = "";
+                        var hdr = "";
+                        foreach (var items in Model.MRNPo)
+                        {
+                            hordr += items.POrder + " ; ";
+                        }
+                        hdr += hordr;
+                    }
+                    @hdr
+                </div>
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-sm-2">
+
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref1")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref1)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref2")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref2)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref3")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref3)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref4")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref4)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref5")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref5)
+                            }
+                        </div>
+                    }
+                }
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Items</h3>
+                        </div>
+                        <div class="box-body">
+                            <table class="table table-bordered table-hover">
+                                <tr class="bg-gray">
+                                    @if (@ViewBag.PartNoCheck == 0)
+                                    {
+                                        <th>Part No</th>
+                                    }
+                                    <th>Item</th>
+                                    <th>Item Unit</th>
+                                    <th>Quantity</th>
+                                    <th>Remarks</th>
+                                </tr>
+                                @foreach (var quot in Model.MRNItem)
+                                {
+                                    var itemnote = "";
+                                    if (@quot.ItemNote != "")
+                                    {
+                                        itemnote = "<br /><small>" + @quot.ItemNote + "</small>";
+                                    }
+                                    if (@quot.bundleitem != null && @quot.bundleitem.Count() > 0)
+                                    {
+                                        var desc = "<br/>[<span class='descr' data-name='itemNote'>";
+                                        foreach (var saleitem in @quot.bundleitem)
+                                        {
+                                            desc += saleitem.ItemCode + " - " + saleitem.ItemName;
+                                            desc += " - " + saleitem.ItemQuantity + " ";
+                                            desc += (saleitem.ItemUnit != null) ? saleitem.ItemUnit : "";
+                                            desc += "<br/>";
+                                        }
+                                        desc += "</span>]";
+                                        itemnote = itemnote + desc;
+                                    }
+                                    <tr>
+                                        @if (@ViewBag.PartNoCheck == 0)
+                                        {
+                                            <td>@quot.PartNumber</td>
+                                        }
+                                        <td>@quot.ItemCode - @quot.ItemName @Html.Raw(itemnote)</td>
+                                        <td>@quot.ItemUnit</td>
+                                        <td>@quot.ItemQuantity</td>
+                                        <td>@quot.Remarks</td>
+                                    </tr>
+                                }
+                            </table>
+                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <strong>Remarks </strong><br />
+                            @Html.Raw(Model.Remarks)
+                        </div>
+                        <div class="form-group">
+                            <strong>Terms & Condition </strong><br />
+                            @Html.Raw(Model.TermsCondition)
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

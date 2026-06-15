@@ -1,0 +1,159 @@
+﻿
+@{
+    ViewBag.Title = "View Notes";
+    ViewBag.SubTitle = "Notes";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Sticky Note</h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create StickyNote"))
+                {*@ 
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border modal-create" href="/StickyNote/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create Notes
+            </a>
+            @*}*@
+        </div>
+    </div>
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="NoteList">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">NO</td>
+                    <td data-priority="2">Note Name</td>
+                    <td data-priority="3">Label Name</td>
+                    <td data-priority="4">Note Content</td>
+                    <td data-priority="5">Created Date</td>
+                    @*<td data-priority="5">Status</td>
+                    <td data-priority="5">Created By</td>*@
+                    <td data-priority="6">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        var oTable = $('#NoteList').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/StickyNote/GetNote',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{ orderable: false, targets: -1 }],
+            "columns": [
+                {
+                    "data": "Id", "name": "Id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "NoteName", "name": "NoteName" },
+                { "data": "LabelName", "name": "LabelName" },
+                { "data": "NoteContent", "name": "NoteContent" },
+                   { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertToDate(data); } },
+                    //{
+                    //    "name": "Status", "data": function (data) {
+                    //        if (data.Status == 0) {
+                    //            return '<i class="badge bg-green" style="font-size: small" >Active</i>';
+                    //        }
+                    //        else {
+                    //            return '<i class="badge bg-red" style="font-size: small" >Inactive</i>';
+                    //        }
+                    //    }
+                    //},
+                    //{ "data": "User", "name": "User" },
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+
+                            @{
+                                //if (User.IsInRole("Dev") || User.IsInRole("View Sticky Notes"))
+                                //{
+                                //actData += "<a class=\"details\" href=\"/StickyNotes/Index/'+ data.NoteId +'\" title=\"View Notes\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                // }
+                                // if (User.IsInRole("Dev") || User.IsInRole("Edit Sticky Notes"))
+                                // {
+                                actData += "<a class=\"modal-edit\" href=\"/StickyNote/Edit/'+ data.Id +'\" title=\"Edit Sticky Note\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                // }
+                                // if (User.IsInRole("Dev") || User.IsInRole("Delete Sticky Notes"))
+                                // {
+                                actData += "<a class=\"modal-delete\" href=\"/StickyNote/Delete/'+ data.Id +'\" title=\"Delete Sticky Note\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                //}
+                                    }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    }
+            ]
+        })
+
+        /* Create function for sticky Notes */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* Edit function for Sticky Notes */
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* Delete Function for Sticky Notes */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+
+
+       
+    </script>
+}
+
+
+
+

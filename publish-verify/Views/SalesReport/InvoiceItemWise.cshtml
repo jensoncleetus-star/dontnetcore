@@ -1,0 +1,423 @@
+@{
+    ViewBag.Title = "Search Invoice Item Wise Sales";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Invoice Item Wise Sales</h3>
+    </div>
+
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("InvoiceWise", "SalesReport", FormMethod.Get))
+            {
+                <div class="form-group col-md-2">
+                    @Html.Label("Customer", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, "", new { @class = "form-control input-sm select2", @required = "required" })
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                </div>
+                if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+                <div class="form-group col-md-2">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("from", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("to", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Item Wise Sale</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="itemname" value="@ViewBag.item" />
+        <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+        <input type="hidden" id="todate" value="@ViewBag.todate" />
+
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Date</td>
+                        <td>Customer</td>
+                        <td>Item</td>
+                        <td>Invoice No</td>
+                        <td>Quantity</td>
+                        <td>Unit Price</td>
+                        <td>Discount</td>
+                        <td>Tax</td>
+                        <td>Total Amount</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            $('#StockReport').hide();
+            $('#to').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#from').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#to').datepicker('setDate', today);
+            $('#from').datepicker('setDate', priordate);
+            //---
+
+            CallRepCustomer();
+            ItemSearchable();
+            CallRepMCUser();
+        });
+
+        function searchData(data) {
+
+            data.item = $('#ddlItem').val();
+            data.customer = $('#ddlCustomer').val();
+            data.fromdate = $('#from').val();
+            data.todate = $('#to').val();
+            data.ddmc = $('#ddlMC').val();
+        }
+
+        function showdatatable() {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "stateSave": true,
+                "bDestroy": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+
+                "pageLength": 5000,
+                "ordering": false,
+                "ajax": {
+                    "url": '/SalesReport/getInvoiceWise',
+                    "data": function (data) {
+                        data = searchData(data);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "ItemID", "name": "ItemID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "data": "Date", "name": "Date",
+                        "render": function (data) {
+                            var date = convertToDate(data);
+                            return date.toString();
+                        }
+                    },
+                    { "data": "Customer", "name": "Customer" },
+                    {
+                        "name": "Item",
+                        "data": function (data) {
+                            return (data.Item + " " + data.Unit)
+                        },
+                    },
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "ItemQuantity", "name": "ItemQuantity" },
+                    { "data": "ItemUnitPrice", "name": "ItemUnitPrice", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "Discount", "name": "Discount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "TaxAmount", "name": "TaxAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "TotalAmount", "name": "TotalAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                ],
+                buttons: [
+                    {
+                        extend: 'print',
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'ItemWise-Sale';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                '<tr><th class="text-center">' + $('#caddress').val() + '<h4>Sales Report (Item Wise)</h4></th></tr>' +
+                                '<tr><th><span class="text-left">Item Name/Code : ' + $('#itemname').val() + '</span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'ItemWise-Sale';
+                        },
+                        message: function () {
+                            var head = '' + $('#caddress').val() + '\n' +
+                                ' Sales Report (Item Wise) \n' +
+                                'Item Name/Code : ' + $('#itemname').val() + '\n' +
+                                'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                        },
+                    },
+                    {
+                        extend: 'pdf',
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'ItemWise-Sale';
+                        },
+                        message: function () {
+                            var head = '' + $('#caddress').val() + '\n' +
+                                ' Sales Report (Item Wise) \n' +
+                                'Item Name/Code : ' + $('#itemname').val() + '\n' +
+                                'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+                            doc.content[1].table.widths = [
+                                '5%',
+                                '10%',
+                                '10%',
+                                '10%',
+                                '10%',
+                                '20%',
+                                '20%',
+                                '15%',
+                                '15%',
+                                '15%'
+                            ]
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+                    },
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                        pageTotal.toFixed(2));
+
+                    // Total over all pages
+                    total = api
+                        .column(9)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(9, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(9).footer()).html(
+                        pageTotal.toFixed(2));
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+            })
+            //for showing the datatable when click the submit button
+
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+                oTable.draw();
+                $('#SReport').show();
+                $('#UserTable').show();
+
+
+
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+    </script>
+}

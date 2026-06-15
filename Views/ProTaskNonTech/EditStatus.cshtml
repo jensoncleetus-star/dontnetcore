@@ -1,0 +1,218 @@
+﻿@using QuickSoft.Models
+@model QuickSoft.ViewModel.ProTaskUpdatViewModel
+@{ 
+    var status = Model.Status;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Update Task </h4>
+</div>
+<div class="modal-body">
+@if (status != TKUpdateStatus.Started) {
+    using (Html.BeginForm("EditStatus", "ProTask", FormMethod.Post, new { role = "form", id = "editform", @class="form-horizontal" }))
+    {
+        <script type="text/javascript">
+                    $('form#popupForm').removeData("validator");
+                    $('form#popupForm').removeData("unobtrusiveValidation");
+                    $.validator.unobtrusive.parse($('form#popupForm'));
+        </script>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.ProTaskId)
+        @Html.HiddenFor(model => model.Lattitude)
+        @Html.HiddenFor(model => model.Longitude)
+        @Html.HiddenFor(model => model.Location)
+
+        <div class="box-body">
+            <div class="form-group">
+                @Html.LabelFor(m => m.Status, new { @class = "control-label col-sm-4" })
+                @*@Html.EnumDropDownListFor(model => model.Status, new { @class = "form-control", @required = "required" })*@
+                <div class="col-sm-8">
+                        @{
+                            var options = "";
+                            var hide = "hidden";
+                            var req = "required";
+                            var common = "<option value='10'>Hold</option><option value='7'>Cancel</option>";
+                            if (status == TKUpdateStatus.Created || status == TKUpdateStatus.Reopen)
+                            {
+                                options = "<option value='0'>Assign</option>" + common;
+                                hide = "";
+                            }
+                            else if (status == TKUpdateStatus.Assigned || status == TKUpdateStatus.Rejected || status == TKUpdateStatus.Reassigned)
+                            {
+                                options = "<option value='8'>Reassign</option>" + common;
+                                hide = "";
+                            }
+                            else if (status == TKUpdateStatus.Accepted)
+                            {
+                                options = common;
+                                req = "";
+                            }
+                            else if (status == TKUpdateStatus.ClosedPending)
+                            {
+                                options = "<option value='8'>Reassign</option><option value='10'>Hold</option>";
+                                hide = "";
+                            }
+                            else if (status == TKUpdateStatus.ClosedCompleted)
+                            {
+                                options = "<option value='8'>Reassign</option><option value='11'>Verified</option>";
+                                hide = "";
+                            }
+                            else if (status == TKUpdateStatus.Canceled || status == TKUpdateStatus.Verified)
+                            {
+                                options = "<option value='12'>Reopen</option>";
+                                req = "";
+                            }
+                            else if (status == TKUpdateStatus.Hold)
+                            {
+                                options = "<option value='8'>Reassign</option><option value='7'>Cancel</option>";
+                                req = "";
+                            }
+
+                        }
+                    <select class="form-control" data-val="true" data-val-required="The Status field is required." id="Status" name="Status" required="required">
+                        @Html.Raw(options)
+                    </select>
+                </div>
+            </div>
+            <div class="assign form-group @hide">
+                @Html.LabelFor(m => m.AssignedTo, new { @class = "control-label col-sm-4" })
+                <div class="col-sm-8">
+                    @if (req == "")
+                    {
+                        @Html.DropDownListFor(m => m.AssignedTo, (SelectList)ViewBag.Employee, "Select User", new { @class = "form-control input-sm select2" })
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.AssignedTo, (SelectList)ViewBag.Employee, "Select User", new { @class = "form-control input-sm select2",@required="required" })
+                    }
+
+                </div>
+            </div>
+            <div class="assign form-group @hide">
+                @Html.LabelFor(m => m.TeamMembers, new { @class = "control-label col-sm-4" })
+                <div class="col-sm-8">
+                    @Html.ListBoxFor(m => m.TeamMembers, (SelectList)ViewBag.Employee, new { @class = "form-control input-sm" })
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.LabelFor(m => m.Remarks, new { @class = "control-label col-sm-4" })
+                <div class="col-sm-8">
+                    @Html.TextAreaFor(m => m.Remarks, new { @class = "form-control input-sm", @placeholder = "Enter Description..", @rows = "5" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" class="btn btn-info col-sm-offset-4" value="Update" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+        <script>
+            $("#AssignedTo").select2({
+                placeholder: 'Search Employee by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#TeamMembers").select2({
+                placeholder: 'Search Employees by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchTeamMember",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            lead: $('#AssignedTo').val()
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            //$('#AssignedTo').on("change", function (e) {
+            //    if ($(this).val() != 0) {
+            //        $("#TeamMembers").prop("disabled", false);
+            //    }
+            //    else {
+            //        $("#TeamMembers").prop("disabled", true);
+            //    }
+            //});
+
+            $('#AssignedTo').on("change", function (e) {
+                var assign = $(this).val();
+                if (assign != 0) {
+                    $.ajax({
+                        url: '/ProTeam/GetProTeamById',
+                        type: "GET",
+                        dataType: "JSON",
+                        data: { assign: assign },
+                        success: function (result) {
+                            if (result != null) {
+                                var values = new Array();
+                                $.each(result, function (j, member) {
+                                    values.push(member.EmployeeId);
+                                });
+                                $('#TeamMembers').val(values).trigger("change");
+                            } else {
+                                $('#TeamMembers').val(null).trigger("change");
+                            }
+                        }
+                    });
+                    $("#TeamMembers").prop("disabled", false);
+                }
+                else {
+                    $("#TeamMembers").prop("disabled", true);
+                }
+            });
+            $('.modal-body').on('change', '#Status', function (e) {                
+                updatetask();
+            })
+            function updatetask() {
+                var dataval = $('#Status').val();
+                if (dataval == 0 || dataval==8) {
+                    $(".assign").show();
+                    $("#AssignedTo").prop('required', true);
+                }
+                else {
+                    $(".assign").hide();
+                    $("#AssignedTo").prop('required', false);
+                }
+            }
+        </script>
+    }
+}
+else{
+    <h3>Sorry You Cannot Update Task, Work started. Please Contact Task Assigned Employee... </h3>
+}
+</div>

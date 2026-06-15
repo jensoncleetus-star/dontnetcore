@@ -1,0 +1,781 @@
+@{
+    ViewBag.Title = "Approval List";
+    ViewBag.SubTitle = "Payments";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Payment"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+            "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+             "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Approval List Payment</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Payment"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/PRApprovals/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liinvoiceno" />Invoice No.</li>
+                        @if (User.IsInRole("Enable Invoice Expense Entry In Voucher"))
+                        {
+                            <li><input type="checkbox" id="lisaleinvoiceno" />SaleInvoice No.</li>
+                        }
+                        <li><input type="checkbox" id="lifromdate" />From Date</li>
+                        <li><input type="checkbox" id="litodate" />To Date</li>
+                        <li><input type="checkbox" id="lipaymenttype" />Payment Type</li>
+                        <li><input type="checkbox" id="lipayfrom" />Pay From</li>
+                        <li><input type="checkbox" id="lipayto" />Pay To</li>
+                        <li><input type="checkbox" id="licreatedby" />Created By</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchinvno">
+                                    @Html.Label("Invoice No", null, new { @class = "control-label" })
+                                    @Html.TextBox("InvoiceNo", "", new { @class = "form-control input-sm" })
+                                </div>
+
+                                <div class="form-group col-md-2" id="searchsaleinvno">
+                                    @Html.Label("SaleInvoice No", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlSaleNo", (SelectList)ViewBag.InvoiceNo, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchfromdate">
+                                    @Html.Label("From Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-md-2" id="searchtodate">
+                                    @Html.Label("To Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2" id="searchpaymenttype">
+                                    @Html.Label("Payment Type", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                                    {
+                                        new SelectListItem() {Text = "All", Value=""},
+                                        new SelectListItem() {Text = "Cash", Value="0"},
+                                        new SelectListItem() {Text = "PDC", Value="1"}
+                                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchpayfrom">
+                                    @Html.Label("Pay From", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlPayFrom", (SelectList)ViewBag.PayFrom, "All", new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchpayto">
+                                    @Html.Label("Pay To", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlPayTo", (SelectList)ViewBag.PayTo, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchcreatdby">
+                                    @Html.Label("Created By", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAllPay", "PaymentApproval", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Voucher No</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="3">Mode of Payment</td>
+                        <td data-priority="4">PDC Date</td>
+                        <td data-priority="5">PayFrom</td>
+                        <td data-priority="4">PayTo</td>
+                        <td data-priority="6">Sub Total</td>
+                        <td data-priority="5">Tax Amount</td>
+                        <td data-priority="5">Discount</td>
+                        <td data-priority="4">Amount</td>
+                        <td data-priority="3">Approval Status</td>
+                        <td data-priority="1">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+    }
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@Html.Partial("../Common/_ModalEdit")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+     var minDate = $("#Start").val();
+     var maxDate = $("#End").val();
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+            $('#ddlPayFrom').select2();
+        });
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "bLengthChange": false,
+            "ajax": {
+                "url": '/PRApprovals/GetPaymentApproval',
+                "data": function (data) {
+                    data.InvoiceNo = $('#InvoiceNo').val();
+                    data.SaleInvoiceNo = $('#ddlSaleNo').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.type = $('#ddlType').val();
+                    data.PayFrom = $('#ddlPayFrom').val();
+                    data.PayTo = $('#ddlPayTo').val();
+                    data.user = $('#ddlCreatedBy').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [10, 11, 12],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "PaymentId", "name": "PaymentId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "VoucherNo", "name": "VoucherNo" },
+                { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                { "data": "modeofpay", "name": "modeofpay" },
+                { "data": "PDCDate", "name": "PDCDate", "render": function (data) { if (data != null) return convertToDate(data); else return ""; } },
+                { "data": "Payer", "name": "PayFrom" },
+                { "data": "Reciever", "name": "PayTo" },
+                { "data": "SubTotal", "name": "SubTotal", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "TaxAmount", "name": "TaxAmount", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "Discount", "name": "Discount", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "Paying", "name": "Paying", render: $.fn.dataTable.render.number(",", ".", 2) },
+
+                {
+                    "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                        var status = "";
+                        var cls = "";
+                        @*if (data.app.length > 0 || (data.Approval == true && '@ViewBag.MLAQuot' == 'active')) {*@
+                             if (data.ApprovalStatus == "0") {
+                                status = '<span class="badge bg-green">Approved</span>';
+                            }
+                            else if (data.ApprovalStatus == "1") {
+                                status = '<span class="badge bg-red">Rejected</span>';
+                            }
+                            else if (data.ApprovalStatus == "2") {
+                                status = '<span class="badge bg-orange">Pending</span>';
+                            }
+                        return '<a  class="Updation" onclick="details(' + data.PaymentId + ')"  title="View Status">' + status + ' </a>';
+                            /* } else { return null; }*/
+                        }
+                    },
+
+
+                  {
+                    "name": "PaymentId", "data": function (data) {
+                        var rest = "";
+                        //if (data.editable == 0) {
+
+                                @{
+                                    //if (User.IsInRole("Dev") || User.IsInRole("View Receipt"))
+                                    {
+                                        actData += "<a class=\"details\" href=\"/PRApprovals/Details/'+ data.PaymentId +'\" title=\"View Payment Entry\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                    }
+
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Payment"))
+                                    {
+                                        actData += "<a href = \"/PRApprovals/Edit/' + data.PaymentId + '\" title=\"Edit Payment\"  target=\"_blank\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                    }
+                                    //if (User.IsInRole("Dev") || User.IsInRole("Delete Receipt"))
+                                    //{
+                                    //    actData += "<a class=\"modal-delete\" href =\"/Receipt/Delete/'+ data.ReceiptId +'\" title=\"Delete Receipt\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                    //}
+                                    //if (User.IsInRole("Dev") || User.IsInRole("Download Receipt"))
+                                    //{
+                                    //    actData += "<a class=\"modal-link-download\" href=\"/Receipt/Download/'+ data.ReceiptId +'\" title=\"Download Receipt\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                                    //}
+                                }
+                            rest = '@Html.Raw(actData)';
+
+                         //if (data.Approval == true ) {
+                             @{
+                                actData = "";
+                                actData = "<a class=\"modal-edit\"  href=\"/PRApprovals/EditStatus/'+ data.PaymentId +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+                            }
+                             rest += '@Html.Raw(actData)';
+                         //}
+
+                        return rest;
+                    }
+                },
+
+
+
+                {
+                    "name": "PaymentId", "data": function (data) {
+                        var rest = "";
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete Payment"))
+                            {
+                                delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.PaymentId +'></input>";
+                            }
+                        }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ],
+            buttons: [
+               'colvis',
+               {
+                   extend: 'print',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Payment';
+                   },
+                   columnDefs: [
+                       { width: 400, targets: 2 }
+                   ],
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   message: function () {
+                       var head = '<table class="tblcompact table table-bordered"><thead>' +
+                       ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Payment</h4></th></tr>';
+                       return head;
+                   },
+                   customize: function (win) {
+                       // $(win.document.body)
+                       //.css('font-size', '10pt')
+                       //.css('padding', '1px');
+                       $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                       $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                           .css('font-size', '10pt')
+                           .css('padding', '5px')
+                           .addClass('compact');
+                       $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                           .css('min-width', '80px');
+                       //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                       //    .css('padding', '0px');
+                       $(win.document.body).append('</td></tr></tbody>')
+
+                   }
+               }, 'copy', 'csv', //'excel',
+               {
+                   extend: 'pdf',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Payment';
+                   },
+                   message: function () {
+                       var head = 'Payment';
+                       return head;
+                   },
+                   pageSize: 'A4',
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   customize: function (doc) {
+                       doc.pageMargins = [10, 10, 10, 10];
+                       doc.defaultStyle.fontSize = 10;
+                       doc.styles.tableHeader.fontSize = 10;
+                       doc.styles.title.fontSize = 12;
+                       // Header font and bg color
+                       doc.styles.tableHeader.fillColor = '#d3d3d3';
+                       doc.styles.tableHeader.color = 'black';
+                       // Remove spaces around page title
+                       doc.content[0].text = doc.content[0].text.trim();
+
+                       doc.styles['td:nth-child(2)'] = {
+                           width: '100%',
+                           'max-width': '100%'
+                       }
+
+                       var objLayout = {};
+                       // Horizontal line thickness
+                       objLayout['hLineWidth'] = function (i) { return .5; };
+                       // Vertikal line thickness
+                       objLayout['vLineWidth'] = function (i) { return .5; };
+                       //// Horizontal line color
+                       //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                       //// Vertical line color
+                       //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                       // Left padding of the cell
+                       objLayout['paddingLeft'] = function (i) { return 4; };
+                       // Right padding of the cell
+                       objLayout['paddingRight'] = function (i) { return 4; };
+                       // Inject the object in the document
+                       doc.content[1].layout = objLayout;
+                       // Footer font and bg color
+                       doc.styles.tableFooter.fillColor = '#d3d3d3';
+                       doc.styles.tableFooter.color = 'black';
+                   }
+               },
+                @Html.Raw(deleteBTn)
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#MyTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            }
+        });
+
+        var chkcol = '@userRole';
+        //if (chkcol == "True") {
+        //    var column1 = oTable.column(12);
+        //    column1.visible(true);
+        //}
+        //else {
+        //    var column1 = oTable.column(12);
+        //    column1.visible(false);
+        //}
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+
+                /*******  To clear all the data entered  *********/
+                $('#InvoiceNo').val("");
+                $('#ddlSaleNo').val(0).trigger("change");
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                $('#ddlType').val("");
+                $('#ddlPayFrom').val(null).trigger("change");
+                $('#ddlPayTo').val(0).trigger("change");
+                $('#ddlCreatedBy').val(null).trigger("change");
+                oTable.draw();
+            }
+        });
+
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('#FromDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        $('#ToDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 30));
+        //$('#ToDate').datepicker('setDate', today);
+        //$('#FromDate').datepicker('setDate', priordate);
+
+        //Pay From
+        $('#ddlPayFrom').select2();
+      function SelectionInvoice(repo) {
+
+          return repo.id;
+
+      }
+      $("#ddlSaleNo").select2({
+          placeholder: 'Search Account By Code or name',
+          minimumInputLength: 0,
+          ajax: {
+              url: "/JournalV/SearchInvoiceNo",
+              dataType: 'json',
+              delay: 50,
+              data: function (params) {
+                  return {
+                      q: params.term,
+                      page: params.page,
+                      x: "All"
+                  };
+              },
+              processResults: function (data, params) {
+                  params.page = params.page || 1;
+                  return {
+                      results: data
+                  };
+              },
+              cache: true
+          },
+       /*templateResult: SelectToGroup,*/
+              templateSelection: SelectionInvoice,
+          });
+
+        //Pay To
+        $("#ddlPayTo").select2({
+            placeholder: 'Search Account By Code or name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Accounts/SearchAccountsPayTo",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        function customertype() {
+            var type = $("#ddlType").val();
+            if (type == 0) {
+                $('#divpaymethod').hide();
+            } else {
+                $('#divpaymethod').show();
+            }
+        }
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+       var checkList = document.getElementById('list1');
+
+       /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+       checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+           if (checkList.classList.contains('visible'))
+               checkList.classList.remove('visible');
+           else
+               checkList.classList.add('visible');
+       }
+
+       /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+       $("ul li input:checkbox").click(function () {
+
+           var _show = 0;
+
+           //Invoice No.
+           if ($("#liinvoiceno").prop("checked") == true) {
+               $("#searchinvno").show();
+               _show = 1;
+           }
+           else {
+               $('#InvoiceNo').val("");
+               $("#searchinvno").hide();
+               oTable.draw();
+           }
+
+           //SaleInvoice No.
+           if ($("#lisaleinvoiceno").prop("checked") == true)
+           {
+               $("#searchsaleinvno").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlSaleNo').val("");
+               $("#searchsaleinvno").hide();
+               oTable.draw();
+           }
+
+           //From Date
+           if ($("#lifromdate").prop("checked") == true) {
+               $("#searchfromdate").show();
+               _show = 1;
+           }
+           else {
+               $("#FromDate").val("");
+               $("#searchfromdate").hide();
+               oTable.draw();
+           }
+
+           //To Date
+           if ($("#litodate").prop("checked") == true) {
+               $("#searchtodate").show();
+               _show = 1;
+           }
+           else {
+               $("#ToDate").val("");
+               $("#searchtodate").hide();
+               oTable.draw();
+           }
+
+           //Payment Type
+           if ($("#lipaymenttype").prop("checked") == true) {
+               $("#searchpaymenttype").show();
+               _show = 1;
+           }
+           else {
+               $("#ddlType").val(null);
+               $("#searchpaymenttype").hide();
+               oTable.draw();
+           }
+
+           //Pay From
+           if ($("#lipayfrom").prop("checked") == true) {
+               $("#searchpayfrom").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlPayFrom').val(null).trigger("change");
+               $("#searchpayfrom").hide();
+               oTable.draw();
+           }
+
+           //Pay To
+           if ($("#lipayto").prop("checked") == true) {
+               $("#searchpayto").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlPayTo').val(0).trigger("change");
+               $("#searchpayto").hide();
+               oTable.draw();
+           }
+
+           //Created By
+           if ($("#licreatedby").prop("checked") == true) {
+               $("#searchcreatdby").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlCreatedBy').val(null).trigger("change");
+               $("#searchcreatdby").hide();
+               oTable.draw();
+           }
+
+           if (_show == 1) {
+               $('#advsearchlist').show();
+           }
+           else {
+               $('#advsearchlist').hide();
+           }
+       });
+
+       /******* Function to hide dropdown checklist while clicking outside it ********/
+       $(document).on("click", function (event) {
+
+           var element1 = $("#list1");
+
+           if (element1 !== event.target && !element1.has(event.target).length) {
+               checkList.classList.remove('visible');
+           }
+       });
+
+    </script>
+}
+

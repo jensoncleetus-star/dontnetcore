@@ -1,0 +1,104 @@
+@model QuickSoft.ViewModel.SerialNoViewModel
+@{
+    ViewBag.Title = "Assign";
+    ViewBag.SubTitle = "Assign Task";
+    ViewBag.Active = "Master";
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+    int ci = 0;
+    int SlNo = 1;
+    
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Task Assign</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("bulkAssign", "ProTaskNonTech", FormMethod.Post, new { id = "createform", autocomplete = "off", @enctype = "multipart/form-data" }))
+    {
+        <div class="row">
+            @*@Html.HiddenFor(m => m.TaskCode)
+                @Html.HiddenFor(m => m.ProjectId)
+                @Html.HiddenFor(m => m.CustomerID)
+                @Html.HiddenFor(m => m.TaskName)
+                @Html.HiddenFor(m => m.TaskType)
+                @Html.HiddenFor(m => m.TaskStatus)*@
+
+            @{
+                if (Model != null && Model.taskUpdatess != null && Model.taskUpdatess.Count > 0)
+                {
+                    foreach (var item in Model.taskUpdatess.ToList())
+                    {
+                        var teamData = ViewData["team" + @ci] as MultiSelectList;
+                        <div class="row">
+                            @Html.HiddenFor(m => m.taskUpdatess[ci].ProTaskId, new { @id = "ItemID" + @ci })
+                            <div class="col-sm-2 form-group">
+                                @Html.Label("Task Code", null, new { @class = "control-label" })
+                                @Html.TextBoxFor(m => m.taskUpdatess[ci].TaskCode, new { @id = "Taskcode" + @ci, @class = "form-control input-sm", @readonly="readonly" })
+                            </div>
+                            <div class="col-sm-2 form-group">
+                                @Html.Label("Task Name", null, new { @class = "control-label" })
+                                @Html.TextBoxFor(m => m.taskUpdatess[ci].TaskName, new { @id = "TaskName" + @ci, @class = "form-control input-sm select2", @readonly = "readonly" })
+                            </div>
+                            <div class="col-sm-2 form-group">
+                                @Html.Label("Customer", null, new { @class = "control-label" })
+                                @Html.TextBoxFor(m => m.taskUpdatess[ci].CustomerName, new { @id = "Customer" + @ci, @class = "form-control input-sm", @readonly = "readonly" })
+                            </div>
+                            <div class="form-group col-md-6">
+                                @Html.Label("Assigned To", null, new { @class = "control-label" })
+                                @Html.ListBoxFor(m => m.taskUpdatess[ci].bulkAssign, teamData, new { @id = "AssignedUsers" + @ci, @class = "form-control select2 AsgnUsers", @name = "AssignedMembers[]", @multiple = "multiple" })
+                            </div>
+
+                        </div>
+                        ci++;
+                        SlNo++;
+                    }
+                }
+            }
+        </div>
+        <div class="row">
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <input type="button" class="btn btn-default" value="close" data-dismiss="modal" id="btnreset" tabindex="20" />
+            </div>
+        </div>
+        <script>
+            $(".AsgnUsers").select2({
+                placeholder: 'Search Employee by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('.AsgnUsers').prop('required', true);
+            $('.AsgnUsers').attr('data-msg-required', "Assigned To field is required");
+
+            $(".ref").select2({
+                tags: true
+            });
+            $(".ref").each(function () {
+                var refval = $(this).attr('Id');
+                $(this).attr('name', refval);
+            });
+        </script>
+    }
+</div>
+

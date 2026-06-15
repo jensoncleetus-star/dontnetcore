@@ -1,0 +1,302 @@
+@model QuickSoft.Models.InvoiceTemplate
+@{
+    ViewBag.Title = "Template Designer";
+    Layout = "~/Views/Shared/_QuickLayout.cshtml";
+    var designJson = string.IsNullOrWhiteSpace(Model.DesignJson) ? "{\"paper\":\"A4\",\"orientation\":\"portrait\",\"elements\":[]}" : Model.DesignJson;
+}
+
+<style>
+    .dz-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:10px 14px; margin-bottom:14px; position:sticky; top:0; z-index:30; box-shadow:0 2px 8px rgba(15,23,42,.05); }
+    .dz-toolbar .name { font-weight:700; font-size:15px; border:1.5px solid #e2e8f0; border-radius:9px; padding:7px 12px; min-width:220px; }
+    .dz-toolbar select { border:1.5px solid #e2e8f0; border-radius:9px; padding:7px 10px; }
+    .dz-toolbar .spacer { flex:1; }
+    .dz-main { display:grid; grid-template-columns:190px 1fr 230px; gap:14px; align-items:start; }
+    .dz-panel { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px; }
+    .dz-panel h4 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:#64748b; font-weight:700; }
+    .dz-add { display:block; width:100%; text-align:left; border:1px solid #e2e8f0; background:#f8fafc; border-radius:9px; padding:9px 11px; margin-bottom:7px; font-size:13px; font-weight:600; color:#334155; cursor:pointer; transition:.12s; }
+    .dz-add:hover { background:#eef2ff; border-color:#c7d2fe; color:#4f46e5; }
+    .dz-add .ic { display:inline-block; width:18px; color:#6366f1; }
+    .dz-canvas-area { background:#eef2f7; border-radius:12px; padding:24px; overflow:auto; min-height:60vh; }
+    .dz-sheet { background:#fff; margin:0 auto; box-shadow:0 4px 24px rgba(15,23,42,.18); position:relative; }
+    .dz-el { position:absolute; box-sizing:border-box; padding:2px 4px; cursor:move; border:1px dashed transparent; overflow:hidden; }
+    .dz-el:hover { border-color:#c7d2fe; }
+    .dz-el.sel { border:1px solid #6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); }
+    .dz-el .rsz { position:absolute; right:-5px; bottom:-5px; width:11px; height:11px; background:#6366f1; border:2px solid #fff; border-radius:50%; cursor:se-resize; }
+    .dz-field { color:#3730a3; background:rgba(99,102,241,.06); border-radius:4px; }
+    .dz-items table, .dz-totals table { width:100%; border-collapse:collapse; font-size:inherit; }
+    .dz-items th, .dz-items td { border:1px solid #cbd5e1; padding:2px 5px; text-align:left; }
+    .dz-items th { background:#eef2ff; color:#3730a3; font-size:.85em; }
+    .dz-totals td { padding:2px 5px; }
+    .dz-totals td.r { text-align:right; }
+    .dz-line { height:0; border-top:2px solid #0f172a; }
+    .dz-props .row2 { margin-bottom:10px; }
+    .dz-props label { display:block; font-size:11px; color:#64748b; font-weight:600; margin-bottom:3px; }
+    .dz-props input, .dz-props select { width:100%; border:1.5px solid #e2e8f0; border-radius:8px; padding:6px 8px; font-size:13px; }
+    .dz-props .inline { display:flex; gap:6px; }
+    .dz-empty { color:#94a3b8; font-size:13px; text-align:center; padding:18px 6px; }
+    .dz-hint { font-size:11.5px; color:#94a3b8; margin-top:10px; line-height:1.5; }
+</style>
+
+<div class="dz-toolbar">
+    <a href="@Url.Action("Index","InvoiceTemplate", new { docType = ViewBag.DocType })" class="btn btn-default"><i class="glyphicon glyphicon-arrow-left"></i></a>
+    <span class="label label-info" style="font-size:11px;">@ViewBag.DocType</span>
+    <input type="hidden" id="tplId" value="@Model.Id" />
+    <input type="text" id="tplName" class="name" value="@Model.Name" placeholder="Template name" />
+    <select id="tplPaper" title="Paper size">
+        <option value="A4">A4</option><option value="A5">A5</option><option value="A3">A3</option>
+        <option value="Letter">Letter</option><option value="Legal">Legal</option>
+    </select>
+    <select id="tplOrient" title="Orientation">
+        <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
+    </select>
+    <div class="spacer"></div>
+    <span id="saveMsg" style="color:#10b981;font-size:12.5px;font-weight:600;"></span>
+    <button id="btnPreview" class="btn btn-default"><i class="glyphicon glyphicon-eye-open"></i> Preview / Print</button>
+    <button id="btnSave" class="btn btn-primary"><i class="glyphicon glyphicon-floppy-disk"></i> Save</button>
+</div>
+
+<div class="dz-main">
+    <div class="dz-panel dz-palette">
+        <h4>Add element</h4>
+        <button class="dz-add" data-add="text"><span class="ic glyphicon glyphicon-text-width"></span> Text</button>
+        <button class="dz-add" data-add="field"><span class="ic glyphicon glyphicon-tag"></span> Field</button>
+        <button class="dz-add" data-add="image"><span class="ic glyphicon glyphicon-picture"></span> Image / Logo</button>
+        <button class="dz-add" data-add="items"><span class="ic glyphicon glyphicon-th-list"></span> Items Table</button>
+        <button class="dz-add" data-add="totals"><span class="ic glyphicon glyphicon-usd"></span> Totals</button>
+        <button class="dz-add" data-add="line"><span class="ic glyphicon glyphicon-minus"></span> Line</button>
+        <div class="dz-hint">Drag elements on the sheet to position them. Click an element to edit it on the right.</div>
+    </div>
+
+    <div class="dz-canvas-area">
+        <div class="dz-sheet" id="sheet"></div>
+    </div>
+
+    <div class="dz-panel dz-props">
+        <h4>Properties</h4>
+        <div id="props"><div class="dz-empty">Select an element to edit its properties.</div></div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var design = @Html.Raw(designJson);
+    if (!design || typeof design !== 'object') design = { paper:'A4', orientation:'portrait', elements:[] };
+    if (!Array.isArray(design.elements)) design.elements = [];
+
+    var DOCTYPE = '@(ViewBag.DocType ?? "Sale")';
+    var COMPANY = ['Company', [['COMPANY_HEADER.Name','Company Name'],['COMPANY_HEADER.Address','Company Address'],['COMPANY_HEADER.TRN','Company TRN'],['COMPANY_HEADER.Phone','Company Phone'],['COMPANY_HEADER.Email','Company Email']]];
+    // per-document-type merge-field catalogues
+    var FIELDSETS = {
+        'Sale': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Customer Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['Invoice', [['INVOICE.Number','Invoice No'],['INVOICE.Date','Invoice Date'],['INVOICE.PONumber','PO Number'],['INVOICE.SalesExecutive','Sales Person'],['INVOICE.PaymentTerms','Payment Terms']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words'],['SUMMARY.OutstandingBalance','Balance']]]]),
+        'Quotation': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Customer Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['Quotation', [['INVOICE.Number','Quotation No'],['INVOICE.Date','Quotation Date'],['INVOICE.PONumber','Ref / PO'],['INVOICE.SalesExecutive','Sales Person'],['INVOICE.PaymentTerms','Validity / Terms']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'Receipt': obj([COMPANY,
+            ['Party', [['PARTY.Name','Received From'],['PARTY.Address','Address'],['PARTY.Phone','Phone']]],
+            ['Receipt', [['RECEIPT.VoucherNo','Voucher No'],['RECEIPT.Date','Date'],['RECEIPT.MOPayment','Mode of Payment'],['RECEIPT.CheckNo','Cheque No'],['RECEIPT.Bank','Bank'],['RECEIPT.Ref1','Reference 1'],['RECEIPT.Ref2','Reference 2']]],
+            ['Totals', [['SUMMARY.GrandTotal','Amount'],['SUMMARY.AmountInWords','Amount In Words'],['SUMMARY.Discount','Discount']]]]),
+        'Payment': obj([COMPANY,
+            ['Party', [['PARTY.Name','Paid To'],['PARTY.Address','Address'],['PARTY.Phone','Phone']]],
+            ['Payment', [['PAYMENT.VoucherNo','Voucher No'],['PAYMENT.Date','Date'],['PAYMENT.MOPayment','Mode of Payment'],['PAYMENT.PDCDate','PDC Date'],['PAYMENT.Remark','Remark'],['PAYMENT.Ref1','Reference 1'],['PAYMENT.Ref2','Reference 2']]],
+            ['Totals', [['SUMMARY.GrandTotal','Amount'],['SUMMARY.AmountInWords','Amount In Words'],['SUMMARY.TaxAmount','Tax'],['SUMMARY.TotalDiscount','Discount']]]]),
+        'Cheque': obj([COMPANY,
+            ['Payee', [['PAYEE.Name','Payee Name'],['PAYEE.BankName','Bank'],['PAYEE.AccountNumber','A/C Number']]],
+            ['Cheque', [['CHEQUE.Amount','Amount (figures)'],['CHEQUE.AmountInWords','Amount In Words'],['CHEQUE.Date','Date'],['CHEQUE.ChequeNumber','Cheque No'],['CHEQUE.VoucherNo','Voucher No']]]]),
+        'SalesOrder': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Customer Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['Order', [['INVOICE.Number','Order No'],['INVOICE.Date','Order Date'],['INVOICE.PONumber','Customer PO'],['INVOICE.SalesExecutive','Sales Person']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'DeliveryNote': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Delivery Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['Delivery', [['INVOICE.Number','Delivery Note No'],['INVOICE.Date','Date'],['INVOICE.PONumber','Ref / PO'],['INVOICE.SalesExecutive','Delivered By']]],
+            ['Totals', [['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'PurchaseOrder': obj([COMPANY,
+            ['Supplier', [['PARTY.Name','Supplier Name'],['PARTY.Address','Supplier Address'],['PARTY.TRN','Supplier TRN'],['PARTY.Phone','Supplier Phone']]],
+            ['Order', [['INVOICE.Number','PO No'],['INVOICE.Date','PO Date'],['INVOICE.PONumber','Reference'],['INVOICE.PaymentTerms','Terms']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'MaterialRequisition': obj([COMPANY,
+            ['Party', [['PARTY.Name','Supplier / Dept'],['PARTY.Address','Address'],['PARTY.Phone','Phone']]],
+            ['Document', [['INVOICE.Number','MR No'],['INVOICE.Date','Date'],['INVOICE.SalesExecutive','Requested By']]]]),
+        'Estimate': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Customer Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['Estimate', [['INVOICE.Number','Estimate No'],['INVOICE.Date','Date'],['INVOICE.PONumber','Ref'],['INVOICE.SalesExecutive','Sales Person']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'ProForma': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Customer Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['ProForma', [['INVOICE.Number','Pro Forma No'],['INVOICE.Date','Date'],['INVOICE.PONumber','PO / Ref'],['INVOICE.SalesExecutive','Sales Person'],['INVOICE.PaymentTerms','Payment Terms']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'CreditNote': obj([COMPANY,
+            ['Customer', [['CUSTOMER.Name','Customer Name'],['CUSTOMER.Address','Customer Address'],['CUSTOMER.TRN','Customer TRN'],['CUSTOMER.Phone','Customer Phone']]],
+            ['Credit Note', [['INVOICE.Number','Credit Note No'],['INVOICE.Date','Date'],['INVOICE.PONumber','Against Invoice']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]]),
+        'PurchaseEntry': obj([COMPANY,
+            ['Supplier', [['PARTY.Name','Supplier Name'],['PARTY.Address','Supplier Address'],['PARTY.TRN','Supplier TRN'],['PARTY.Phone','Supplier Phone']]],
+            ['Purchase', [['INVOICE.Number','Bill No'],['INVOICE.Date','Date'],['INVOICE.PONumber','Supplier Inv / Ref'],['INVOICE.PaymentTerms','Terms']]],
+            ['Totals', [['SUMMARY.SubTotal','Sub Total'],['SUMMARY.TaxAmount','Tax / VAT'],['SUMMARY.TotalDiscount','Discount'],['SUMMARY.GrandTotal','Grand Total'],['SUMMARY.AmountInWords','Amount In Words']]]])
+    };
+    function obj(pairs){ var o={}; pairs.forEach(function(p){ o[p[0]]=p[1]; }); return o; }
+    var FIELDS = FIELDSETS[DOCTYPE] || FIELDSETS.Sale;
+    function fieldLabel(key) { for (var g in FIELDS) { for (var i=0;i<FIELDS[g].length;i++) if (FIELDS[g][i][0]===key) return FIELDS[g][i][1]; } return key; }
+
+    var PAPER = { A4:[794,1123], A5:[559,794], A3:[1123,1587], Letter:[816,1056], Legal:[816,1344] };
+    var sheet = document.getElementById('sheet');
+    var props = document.getElementById('props');
+    var selId = null, uid = Date.now();
+
+    function nextId(){ uid++; return 'e'+uid; }
+    function paperPx(){ var s = PAPER[design.paper] || PAPER.A4; return design.orientation==='landscape' ? [s[1],s[0]] : [s[0],s[1]]; }
+
+    function sizeSheet(){ var p = paperPx(); sheet.style.width = p[0]+'px'; sheet.style.height = p[1]+'px'; }
+
+    function elInner(el){
+        if (el.type==='text')   return '<div>'+ (el.text||'Text') +'</div>';
+        if (el.type==='field')  return '<div class="dz-field">['+ fieldLabel(el.field||'') +']</div>';
+        if (el.type==='image')  return el.src
+            ? '<img src="'+el.src+'" style="width:100%;height:100%;object-fit:contain;pointer-events:none;" />'
+            : '<div style="border:1px dashed #c7d2fe;border-radius:6px;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">'+(el.field==='COMPANY_HEADER.Logo'?'Company Logo':'Image')+'</div>';
+        if (el.type==='line')   return '<div class="dz-line"></div>';
+        if (el.type==='items')  return '<div class="dz-items"><table><thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Amount</th></tr></thead><tbody><tr><td>1</td><td>Sample item</td><td>2</td><td>100.00</td><td>5%</td><td>210.00</td></tr><tr><td>2</td><td>Sample item</td><td>1</td><td>50.00</td><td>5%</td><td>52.50</td></tr></tbody></table></div>';
+        if (el.type==='totals') return '<div class="dz-totals"><table><tr><td>Sub Total</td><td class="r">150.00</td></tr><tr><td>VAT 5%</td><td class="r">7.50</td></tr><tr><td><b>Grand Total</b></td><td class="r"><b>157.50</b></td></tr></table></div>';
+        return '';
+    }
+
+    function render(){
+        sizeSheet();
+        sheet.innerHTML = '';
+        design.elements.forEach(function(el){
+            var d = document.createElement('div');
+            d.className = 'dz-el' + (el.id===selId?' sel':'');
+            d.dataset.id = el.id;
+            d.style.left=(el.x||0)+'px'; d.style.top=(el.y||0)+'px';
+            d.style.width=(el.w||160)+'px';
+            if (el.h) d.style.height=el.h+'px';
+            d.style.fontSize=(el.fontSize||12)+'px';
+            d.style.fontWeight=el.bold?'700':'400';
+            d.style.textAlign=el.align||'left';
+            d.innerHTML = elInner(el) + '<span class="rsz"></span>';
+            sheet.appendChild(d);
+        });
+    }
+
+    // ---- selection + properties ----
+    function selectEl(id){ selId=id; render(); showProps(); }
+    function getEl(id){ return design.elements.filter(function(e){return e.id===id;})[0]; }
+
+    function showProps(){
+        var el = getEl(selId);
+        if (!el){ props.innerHTML='<div class="dz-empty">Select an element to edit its properties.</div>'; return; }
+        var h = '';
+        if (el.type==='text'){ h += row('Text','<input id="p_text" value="'+ esc(el.text||'') +'">'); }
+        if (el.type==='field' || el.type==='image'){
+            var opts = '';
+            if (el.type==='image'){
+                opts += '<option value="COMPANY_HEADER.Logo"'+(el.field==='COMPANY_HEADER.Logo'?' selected':'')+'>Company Logo (auto)</option>';
+                opts += '<option value=""'+(el.field!=='COMPANY_HEADER.Logo'?' selected':'')+'>Custom image</option>';
+            }
+            else { for (var g in FIELDS){ opts += '<optgroup label="'+g+'">'; FIELDS[g].forEach(function(f){ opts += '<option value="'+f[0]+'"'+(el.field===f[0]?' selected':'')+'>'+f[1]+'</option>'; }); opts += '</optgroup>'; } }
+            h += row(el.type==='image'?'Image source':'Bound field','<select id="p_field">'+opts+'</select>');
+            if (el.type==='image'){
+                h += '<div class="row2"><label>Upload image (logo / stamp / sign)</label><input id="p_img" type="file" accept="image/*"><div id="p_imgmsg" style="font-size:11px;color:#64748b;margin-top:4px;">'+(el.src?'Custom image set ✓':'')+'</div></div>';
+            }
+        }
+        if (el.type!=='line' && el.type!=='items' && el.type!=='totals' && el.type!=='image'){
+            h += row('Font size','<input id="p_fs" type="number" value="'+(el.fontSize||12)+'">');
+            h += '<div class="row2"><label>Style</label><div class="inline"><select id="p_bold" style="flex:1"><option value="0"'+(el.bold?'':' selected')+'>Normal</option><option value="1"'+(el.bold?' selected':'')+'>Bold</option></select>'
+               + '<select id="p_align" style="flex:1"><option value="left"'+(el.align==='left'||!el.align?' selected':'')+'>Left</option><option value="center"'+(el.align==='center'?' selected':'')+'>Center</option><option value="right"'+(el.align==='right'?' selected':'')+'>Right</option></select></div></div>';
+        }
+        h += '<button class="btn btn-danger" id="p_del" style="width:100%;margin-top:6px;"><i class="glyphicon glyphicon-trash"></i> Delete element</button>';
+        props.innerHTML = h;
+
+        bind('p_text','input',function(v){ el.text=v; render(); });
+        bind('p_field','change',function(v){ el.field=v; if(el.type==='image' && v==='COMPANY_HEADER.Logo') el.src=''; render(); showProps(); });
+        var imgInput = document.getElementById('p_img');
+        if (imgInput) imgInput.addEventListener('change', function(){
+            var f = this.files && this.files[0]; if(!f) return;
+            var msg = document.getElementById('p_imgmsg'); if(msg) msg.textContent='Uploading...';
+            var fd = new FormData(); fd.append('file', f);
+            jQuery.ajax({ url:'@Url.Action("UploadImage","InvoiceTemplate")', method:'POST', data:fd, processData:false, contentType:false })
+                .done(function(r){ if(r&&r.success){ el.src=r.url; el.field=''; if(msg) msg.textContent='Custom image set ✓'; render(); }
+                    else { alert((r&&r.message)||'Upload failed.'); if(msg) msg.textContent=''; } })
+                .fail(function(){ alert('Upload request failed.'); if(msg) msg.textContent=''; });
+        });
+        bind('p_fs','input',function(v){ el.fontSize=parseInt(v)||12; render(); });
+        bind('p_bold','change',function(v){ el.bold=(v==='1'); render(); });
+        bind('p_align','change',function(v){ el.align=v; render(); });
+        var del = document.getElementById('p_del');
+        if (del) del.onclick = function(){ design.elements = design.elements.filter(function(e){return e.id!==selId;}); selId=null; render(); showProps(); };
+    }
+    function row(lbl, ctrl){ return '<div class="row2"><label>'+lbl+'</label>'+ctrl+'</div>'; }
+    function bind(id,ev,fn){ var e=document.getElementById(id); if(e) e.addEventListener(ev,function(){fn(e.value);}); }
+    function esc(s){ return (s+'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+    // ---- add ----
+    function addEl(type){
+        var el = { id:nextId(), type:type, x:40, y:40, w:type==='items'?700:200, fontSize:12, align:'left' };
+        if (type==='text') el.text='New text';
+        if (type==='field') el.field='CUSTOMER.Name';
+        if (type==='image'){ el.field='COMPANY_HEADER.Logo'; el.w=120; el.h=70; }
+        if (type==='items'){ el.h=160; }
+        if (type==='totals'){ el.w=300; el.h=110; }
+        if (type==='line'){ el.w=700; el.h=2; }
+        design.elements.push(el); selectEl(el.id);
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('.dz-add'), function(b){
+        b.addEventListener('click', function(){ addEl(b.dataset.add); });
+    });
+
+    // ---- drag + resize ----
+    var drag=null;
+    sheet.addEventListener('mousedown', function(e){
+        var elDiv = e.target.closest('.dz-el'); if(!elDiv) { selId=null; render(); showProps(); return; }
+        var el = getEl(elDiv.dataset.id); if(!el) return;
+        selectEl(el.id);
+        var resizing = e.target.classList.contains('rsz');
+        drag = { el:el, resizing:resizing, sx:e.clientX, sy:e.clientY, ox:el.x||0, oy:el.y||0, ow:el.w||160, oh:el.h||40 };
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e){
+        if(!drag) return;
+        var dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+        if (drag.resizing){ drag.el.w=Math.max(30,drag.ow+dx); drag.el.h=Math.max(16,drag.oh+dy); }
+        else { drag.el.x=Math.max(0,drag.ox+dx); drag.el.y=Math.max(0,drag.oy+dy); }
+        render();
+    });
+    document.addEventListener('mouseup', function(){ drag=null; });
+
+    // ---- toolbar ----
+    document.getElementById('tplPaper').value = design.paper || 'A4';
+    document.getElementById('tplOrient').value = design.orientation || 'portrait';
+    document.getElementById('tplPaper').addEventListener('change', function(){ design.paper=this.value; render(); });
+    document.getElementById('tplOrient').addEventListener('change', function(){ design.orientation=this.value; render(); });
+
+    function doSave(cb){
+        var name = document.getElementById('tplName').value.trim();
+        if(!name){ alert('Please enter a template name.'); return; }
+        design.paper = document.getElementById('tplPaper').value;
+        design.orientation = document.getElementById('tplOrient').value;
+        var sBtn=document.getElementById('btnSave'); sBtn.disabled=true;
+        jQuery.post('@Url.Action("Save","InvoiceTemplate")', {
+            id: document.getElementById('tplId').value,
+            name: name, paperSize: design.paper, orientation: design.orientation,
+            docType: DOCTYPE, designJson: JSON.stringify(design)
+        }, function(r){
+            sBtn.disabled=false;
+            if(r && r.success){ document.getElementById('tplId').value=r.id;
+                var m=document.getElementById('saveMsg'); m.textContent='Saved ✓'; setTimeout(function(){m.textContent='';},2500);
+                if(cb) cb(r.id);
+            } else { alert((r&&r.message)||'Save failed.'); }
+        }).fail(function(){ sBtn.disabled=false; alert('Save request failed.'); });
+    }
+    document.getElementById('btnSave').addEventListener('click', function(){ doSave(); });
+    document.getElementById('btnPreview').addEventListener('click', function(){
+        // save first so the preview reflects the current design, then open the printable page
+        doSave(function(id){ window.open('@Url.Action("Render","InvoiceTemplate")/' + id, '_blank'); });
+    });
+
+    render();
+})();
+</script>

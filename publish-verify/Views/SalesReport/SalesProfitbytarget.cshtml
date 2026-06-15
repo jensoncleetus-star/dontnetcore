@@ -1,0 +1,1149 @@
+@{
+    ViewBag.Title = "Search Sales Entry";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+    string actData = "";
+    string curremployee = "";
+}
+<style>
+    .redclass {
+        color: red;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Sales Entry</h3>g
+    </div>
+
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("Salesprofit", "SalesReport", FormMethod.Post, new { id = "popupForm", target = "_new" }))
+            {
+                <div class="form-group col-md-1">
+                    <input type="hidden" id="cname" value="@ViewBag.CName" />
+                    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+                    @Html.Label("Invoice No", null, new { @class = "control-label" })
+                    @Html.TextBox("InvoiceNo", "", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-1">
+                    @Html.Label("Payment Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value=""},
+                            new SelectListItem() {Text = "Credit Sale", Value="0"},
+                            new SelectListItem() {Text = "Cash Sale", Value="1"}
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType", @onchange = "customertype()" })
+                </div>
+                <div class="form-group col-md-2" id="divpaymethod">
+                    @Html.Label("Payment Method", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlPayMethod", (SelectList)ViewBag.PayMethod, "Cash", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-2" id="creditsale">
+                    @Html.Label("Customer", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-2" id="execreditsale">
+                    @Html.Label("Sales Man", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlSalesMan", (SelectList)ViewBag.SalesMan, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-2" id="execreditsale">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExecutive, new { @class = "form-control input-sm select2" })
+                </div>
+                if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+                if (@ViewBag.ProjChk == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Project", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlProject", (SelectList)ViewBag.getProj, "All", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Task", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlProTask", (SelectList)ViewBag.getProTask, "All", new { @class = "form-control input-sm" })
+                    </div>
+                }
+                @*<div class="form-group col-md-4">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlBranch", (SelectList)ViewBag.Branch, new { @class = "form-control input-sm select2" })
+                    </div>*@
+                <div class="form-group col-md-2" id="searchsource" hidden style="margin-bottom:14px;">
+                    @Html.Label("Source", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlsource", (SelectList)ViewBag.Source, "All", new { @class = "form-control" })
+                </div>
+                <div class="form-group col-md-2" id="searchsource" hidden style="margin-bottom:14px;">
+                    @Html.Label("Lead Source", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlsourcelead", (SelectList)ViewBag.Source, "All", new { @class = "form-control" })
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Customer Old/New", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlage", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value="0"},
+                            new SelectListItem() {Text = "New", Value="1"},
+                            new SelectListItem() {Text = "Old", Value="2"}
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType", @onchange = "customertype()" })
+                </div>
+                if (@ViewBag.BusinessType == "Scaffold")
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("SaleType", (SelectList)ViewBag.Type, new { @class = "form-control input-sm", @onchange = "HType();" })
+                    </div>
+
+                    <div id="HireTypeDiv">
+                        <div class="form-group col-sm-2">
+                            @Html.Label("HireType", null, new { @class = "control-label" })
+                            @Html.DropDownList("HireType", (SelectList)ViewBag.HiType, "All", new { id = "ddlHType", @class = "form-control select2" })
+                        </div>
+                        <div class="form-group col-md-2">
+                            @Html.Label("From Date", null, new { @class = "control-label" })
+                            <div class="input-group date">
+                                @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @onchange = "DateSet();" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-2">
+                            @Html.Label("To Date", null, new { @class = "control-label" })
+                            <div class="input-group date">
+                                @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="form-group col-sm-2">
+                    @Html.Label("Location", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddllocations", (SelectList)ViewBag.Local, "All", new { id = "ddllocations", @class = "form-control select2" })
+                </div>
+
+                <div class="form-group col-sm-2">
+                    @Html.Label("technician", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddltechnician", (SelectList)ViewBag.Local, "All", new { id = "ddltechnician", @class = "form-control select2" })
+                </div>
+                <div class="form-group col-md-1">
+                    @Html.Label("Hour Rate", null, new { @class = "control-label" })
+                    @Html.TextBox("perhourcost", "40", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-1">
+                    @Html.Label("Rate Voucher wise", null, new { @class = "control-label" })
+                    @Html.CheckBox("employeehourrate", new { @checked = true })
+                </div>
+                <div class="form-group col-md-1">
+                    @Html.Label("Search", null, new { @class = "control-label" })
+                    @Html.TextBox("Searchtext", "", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-1">
+                    @Html.Label("Cached", null, new { @class = "control-label" })
+                    @Html.CheckBox("cached")
+
+                </div>
+                <div class="form-group col-md-1">
+                    @Html.Label("without stocktransfer", null, new { @class = "control-label" })
+                    @Html.CheckBox("nostocktransfer")
+
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Completed?", null, new { @class = "control-label" })
+                    @Html.DropDownList("completed", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value=""},
+                            new SelectListItem() {Text = "Completed", Value="0"},
+                            new SelectListItem() {Text = "Non Complted", Value="1"}
+                        }, "Value", "Text"), new { @class = "form-control input-sm" })
+                </div>
+                <div class="box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </form>
+
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Sales Entry Report</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="invoiceno" value="@ViewBag.InvoiceNo" />
+        <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+        <input type="hidden" id="todate" value="@ViewBag.todate" />
+        <input type="hidden" id="matcenter" value="@ViewBag.EnableMCcheck" />
+        <input type="hidden" id="Scaffold" value="@ViewBag.BusinessType" />
+
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Invoice No.</td>
+                        <td data-priority="1">Date</td>
+
+                        <td data-priority="1">Customer</td>
+
+                        @*<td data-priority="2">Item Amt</td>*@
+                        <td data-priority="1" class="headeralign">Total Amt</td>
+                        <td data-priority="1" class="headeralign">Paid Amt</td>
+                        <td data-priority="1" class="headeralign">Balance Amt</td>
+                        <td data-priority="1" class="headeralign">Invoice<br />Without <br /> Tax</td>
+                        <td data-priority="1" class="headeralign">Material<br />Cost</td>
+                        @*edited*@
+                        <td data-priority="1" class="headeralign">Expense</td>
+                        <td data-priority="1" class="headeralign">Labour</td>
+                        <td data-priority="1" class="headeralign">Credit Note</td>
+                        <td data-priority="1" class="headeralign">Profit</td>
+                        @*<td data-priority="3">Last Paid Date</td>*@
+                        <td data-priority="1">Sales Executive</td>
+                        <td data-priority="1" id="SaleTy">Sales Man</td>
+                        <td data-priority="1" id="matcol">Material Center</td>
+
+
+                        <td data-priority="1" id="SaleTy">contribution</td>
+                        <td data-priority="1" id="SaleTy">Loss Reason</td>
+                        <td data-priority="1" id="SaleTy">SalesMan Profit</td>
+                        <td data-priority="1" id="SaleTy">WRK/CO. Profit</td>
+                        @*<td>Created By</td>*@
+                        @*<td>Branch</td>*@
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr class="total">
+                        <td>Total:</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td id="achprofit"></td>
+                        <td></td>
+
+
+
+
+
+                    </tr>
+                </tfoot>
+
+            </table>
+         
+            <h2>Total Target : <span id="totaltarget"></span></h2>
+            <h2>Target Percentage Achieved : <span id="targetper"></span>%</h2>
+        </div>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            $("#ddlsource").select2({});
+            $("#ddlsourcelead").select2({});
+            //for hide the data table
+            $('#StockReport').hide();
+            //end
+            $("#divpaymethod").hide();
+            $('#HireTypeDiv').hide();
+            //$("#SaleType").val(1);
+            $('#SaleType option:contains(POS)').remove();
+
+            $("#SaleType").prop('selectedIndex', 0);
+            //customertype();
+            //customertype();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 0));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            //GetProjectWithAll();
+            //GetTaskWithAll();
+
+            ItemSearchable();
+            // Material Center
+            CallRepCustomer();
+            CallRepEmployee();
+            $("#ddlMC").select2({
+                placeholder: 'Search Material Center by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMCUser",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            X: "",
+                            page: params.page,
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlSalesMan,#ddltechnician").select2({
+                placeholder: 'Search by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "empty"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+    $('div').on('click', '.detailsclass', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+        //datepickerInit();
+    });
+        $('#UserTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+    $("#employeehourrate").on("change", function (){
+        if ($(this).prop('checked') == true) {
+            $("#perhourcost").prop("readonly", false);
+
+        }
+        else {
+            $("#perhourcost").prop("readonly", true);
+        }
+    }
+    );
+        function searchData(data) {
+
+            data.seno = $('#InvoiceNo').val();
+            data.customer = $('#ddlCustomer').val();
+            data.SalesExecutive = $('#ddlEmployee').val();
+            data.SalesMan = $('#ddlSalesMan').val();
+            data.fromdate = $('#From').val();
+            data.todates = $('#To').val();
+            data.type = $('#ddlType').val();
+            data.ddMC = $('#ddlMC').val();
+            data.satype = $('#SaleType').val();
+            data.htype = $('#HireType').val();
+            data.hfdate = $('#FromDate').val();
+            data.htdate = $('#ToDate').val();
+            data.project = $('#ddlProject').val();
+            data.task = $('#ddlProTask').val();
+            data.srchtxt = $('#Searchtext').val();
+            data.perhourcost = $('#perhourcost').val();
+            data.source = $('#ddlsource').val();
+            data.sourcelead = $('#ddlsourcelead').val();
+            data.cached = $('#cached').prop("checked");
+            data.nostocktransfer = $("#nostocktransfer").prop("checked");
+            data.employeehourrate = $('#employeehourrate').prop("checked");
+            data.location = $("#ddllocations").val();
+            data.technician = $("#ddltechnician").val();
+            data.cusage = $("#ddlage").val();
+            data.completed = $("#completed").val();
+        }
+        var oTable = "";
+    function showdatatable() {
+        var contributionpercentage = 0;
+        var actualprofit=0;
+         oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": false, // for process server side
+            "filter": false, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            // "bStateSave": true,
+            "stateSave": true,
+            "bDestroy": true,
+            "bLengthChange": false,
+            responsive: true,
+            "paging": true,
+            "pageLength": 5000,
+            "ordering": true,
+
+            "ajax": {
+                "url": '/SalesReport/GetAllSaleprofit',
+                "data": function (data) {
+                    data = searchData(data);
+                },
+                "type": "POST",
+                "datatype": "json",
+
+
+            },
+            "order": [[0, "desc"]],
+            "columns": [
+                {
+                    "data": "SalesEntryId", "name": "SalesEntryId",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                //{ "data": "BillNo", "name": "BillNo" },
+                {
+                    "name": "BillNo", "data": function (data) {
+                              @{
+                                  actData += "'<a href=\"/CreditSale/Edit/'+ data.SalesEntryId +'\" target=\"_new\">'+ data.BillNo +'</a>' ";
+                              }
+                        return @Html.Raw(actData);
+                    }
+                },
+                { "data": "SEDate", "name": "SEDate", "render": function (data) { return convertToDate(data); } },
+
+                {  "name": "Customer",  "data": function (data) {
+                              @{
+                                  var dataz = "";
+                                  if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                                  {
+                                      dataz = "'<a href=\"/Customer/Details/'+ data.CustomerID +'\"  target=\"_new\"  target=\"_new\">'+ data.Customer +'</a>' ";
+                                  }
+                                  else
+                                  {
+                                      dataz = "data.Customer";
+                                  }
+                              }
+                              return @Html.Raw(dataz);
+                      }
+                  },
+                //  { "data": "SEGrandTotal", "name": "SEGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "SEGrandTotal", "name": "SEGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                //{
+                //    "name": "SEGrandTotal", "data": function (result) {
+
+                //        return (result.SEGrandTotal - result.NewExpense);
+
+                //    }, render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+
+                //},
+
+
+
+                //{
+                //    "name": "SEGrandTotal", "data": function (data) {
+                //        var datas = "";
+                //        $.each(data.PaymentExpense, function (i, item) {
+
+                //            if (item.Expense != null) {
+
+                //                datas += data.SEGrandTotal - item.Expense;
+
+                //            }
+                //            else {
+
+                //                datas += data.SEGrandTotal;
+                //            }
+                //        });
+                //        return datas;
+                //    }
+                //},
+
+                { "data": "SEPaidAmount", "name": "SEPaidAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "SEBalanceAmount", "name": "SEBalanceAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "Credit", "name": "Credit", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                //{
+                //    "name": "itemprice", "data": function (result) {
+
+                //        return (result.SEGrandTotal - result.SETaxAmount);
+
+                //    }, render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+
+                //},
+                {
+                    "name": "itemprice", "data": function (result) {
+
+                        return (result.itemprice.itemprice);
+
+                    }, render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+
+                },
+
+                // { "data": "NewExpense", "name": "NewExpense", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                {
+                    "name": "NewExpense", "data": function (result) {
+                        var viewsales = "";
+                        if (result.discountt > 0 || result.roundoffmin > 0 || result.roundoffplus > 0) {
+                            viewsales = '<br><a   class="details" href="/creditsale/details/' + result.SalesEntryId + '">View</a>';
+                        }
+                        if (result.salesrtn > 0) {
+                            return (result.NewExpense + "<br>" + result.NewExpenselink + viewsales);
+                        }
+                        else {
+                            return (result.NewExpense + result.discountt + "<br>" + result.NewExpenselink + viewsales);
+                        }
+
+                    }
+
+                },
+
+
+
+    {
+        "name": "empcoste", "data": function (result) {
+
+            return (result.empcoste);
+
+                    }, render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+
+                },
+                {
+                    "name": "salesrtn", "data": function (result) {
+
+                        return (result.salesrtn + result.salesrtnnote);
+
+                    }, render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+
+                },
+    {
+                    "name": "itemprice", "data": function (result) {
+
+
+
+            var profit = 0;
+            if (result.salesrtn > 0) {
+                if (result.SaleType == 1) {
+                    profit = (result.Credit) - (result.itemprice.itemprice) - (result.NewExpense) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                }
+                else {
+                    profit = ((result.SEGrandTotal - result.itemprice.itemprice) - result.SETaxAmount) - (result.NewExpense ) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                }
+            }
+            else {
+                if (result.SaleType == 1) {
+                    profit = (result.Credit) - (result.itemprice.itemprice) - (result.NewExpense + result.discountt + result.roundoffmin - result.roundoffplus) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                }
+                else {
+                    profit = ((result.SEGrandTotal - result.itemprice.itemprice) - result.SETaxAmount) - (result.NewExpense + result.discountt + result.roundoffmin - result.roundoffplus) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                }
+            }
+actualprofit=profit;
+                        if (result.SalesStatus == 1)
+                            return parseFloat(profit).toFixed(2);
+                        else
+
+                            return parseFloat(profit).toFixed(2);
+                    }
+
+                },
+
+
+
+
+                //  { "data": "lastpaydate", "name": "lastpaydate", "render": function (data) { return convertToDate(data); } },
+                { "data": "EmpName", "name": "EmpName" },
+                { "data": "SalesMan", "name": "SalesMan" },
+                { "data": "MCName", "name": "MCName" },
+                {
+                    "name": "itemprice", "data": function (result) {
+
+
+
+                        var profit = 0;
+                        if (result.salesrtn > 0) {
+                            if (result.SaleType == 1) {
+                                profit = (result.Credit) - (result.itemprice.itemprice) - (result.NewExpense) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                            }
+                            else {
+                                profit = ((result.SEGrandTotal - result.itemprice.itemprice) - result.SETaxAmount) - (result.NewExpense) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                            }
+                        }
+                        else {
+                            if (result.SaleType == 1) {
+                                profit = (result.Credit) - (result.itemprice.itemprice) - (result.NewExpense + result.discountt) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                            }
+                            else {
+                                profit = ((result.SEGrandTotal - result.itemprice.itemprice) - result.SETaxAmount) - (result.NewExpense + result.discountt) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                            }
+                        }
+
+                        var links = "";
+                      
+                        if (result.completed ==null) { 
+                            links += 'Work Status :- <a  style="color:white;background:red"  class="modal-edit" href="/SalesReport/updateworkstatus/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '">Not Completed </a>';
+                    }
+                     else
+                         {
+        links += 'Work Status :-<a  class="modal-edit" href="/SalesReport/updateworkstatus/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '" style="color:white;background:green"> Completed </a>';
+                        }
+                        links += "<br/>";
+                        if (result.contribute == null || result.contribute.contributionpercentage==null) {
+
+                            var totalexpense = 0;
+
+                            if (result.salesrtn > 0) {
+                                totalexpense = result.NewExpense;
+                            }
+                            else {
+                                totalexpense = (result.NewExpense + result.discountt);
+                            }
+                            totalexpense = parseFloat(totalexpense + result.itemprice.itemprice);
+                          
+                            if (result.EmpName == result.SalesMan && totalexpense >= 100) {
+                                links += 'Contribution % : <a   class="modal-edit" href="/SalesReport/updatecontribution/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '" style="color:white;background:green"> 100% </a>';
+                               contributionpercentage = 100;
+                            }
+                            else if (result.EmpName == result.SalesMan && totalexpense < 100) {
+                                links += 'Contribution % : <a   class="modal-edit" href="/SalesReport/updatecontribution/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '" style="color:white;background:green"> 80% </a>';
+                                contributionpercentage = 80;
+
+                            }
+                            else if (result.EmpName != result.SalesMan && totalexpense >= 100) {
+                                links += 'Contribution % : <a   class="modal-edit" href="/SalesReport/updatecontribution/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '" style="color:white;background:green"> 50% </a>';
+                                contributionpercentage = 50;
+                            }
+                            else if (result.EmpName != result.SalesMan && totalexpense < 100) {
+                                links += 'Contribution % : <a   class="modal-edit" href="/SalesReport/updatecontribution/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '" style="color:white;background:green"> 40% </a>';
+                              contributionpercentage = 40;
+                            }
+                        }
+                            else
+        {
+                            links += 'Contribution % : <a   class="modal-edit" href="/SalesReport/updatecontribution/?salesid=' + result.SalesEntryId + '&empid=' + result.SalesPerson + '" style="color:white;background:green"> ' + result.contribute.contributionpercentage+' % </a>';
+                            contributionpercentage = result.contribute.contributionpercentage;
+                        }
+
+                        return links;        
+                        }
+
+
+                },
+                {
+                    "name": "itemprice", "data": function (result) {
+                        return result.itemprice.loss
+                    }
+                }
+                ,
+                
+                          {className:'sum',"name":"itemprice","data":function(result)
+                          {
+                
+  if (result.completed ==null) { 
+    
+    return 0;
+    }
+    else
+  { return  parseFloat(contributionpercentage*actualprofit/100).toFixed(2);
+  }
+  }
+            
+               
+               
+                },
+                     {
+                    "name": "itemprice", "data": function (result) {
+                             if (result.completed != null) {
+                                 var profit = 0;
+                                 if (result.salesrtn > 0) {
+                                     if (result.SaleType == 1) {
+                                         profit = (result.Credit) - (result.itemprice.itemprice) - (result.NewExpense) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                                     }
+                                     else {
+                                         profit = ((result.SEGrandTotal - result.itemprice.itemprice) - result.SETaxAmount) - (result.NewExpense) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                                     }
+                                 }
+                                 else {
+                                     if (result.SaleType == 1) {
+                                         profit = (result.Credit) - (result.itemprice.itemprice) - (result.NewExpense + result.discountt + result.roundoffmin - result.roundoffplus) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                                     }
+                                     else {
+                                         profit = ((result.SEGrandTotal - result.itemprice.itemprice) - result.SETaxAmount) - (result.NewExpense + result.discountt + result.roundoffmin - result.roundoffplus) - (result.empcoste) - (result.salesrtn) - (result.salesrtnnote);
+                                     }
+                                 }
+
+                                 if (result.SalesStatus == 1)
+                                     return parseFloat(profit).toFixed(2);
+                                 else
+
+                                     return parseFloat(profit).toFixed(2);
+                            
+                             }
+                             else {
+                                 return 0;
+                             }
+                                 
+                    }
+                },
+                
+
+               
+                // { "data": "User", "name": "User" },
+                // { "data": "Branch", "name": "Branch" }
+            ],
+            buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Sales-Report';
+                    },
+                    columnDefs: [
+                        { width: 400, targets: 2 }
+                    ],
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Sales Report</h4></th></tr>' +
+                            ' <tr><th><span class="text-left">Invoice No : ' + $('#invoiceno').val() + '</span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                        $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                            .css('min-width', '80px');
+                        //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                        //    .css('padding', '0px');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                //Excel
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Sales-Report';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                            '' + $('#caddress').val() + '\n' +
+                            ' Sales Report \n' +
+                            'Invoice No : ' + $('#invoiceno').val() + '\n' +
+                            'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+               {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Report (Till Date) \n' +
+                                ' Material Center - ' + $("#ddlMC option:selected").text() + ' \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                        customize: function (doc) {
+                         doc.styles['td:nth-child(2)'] = {
+                             width: '150px',
+                             'max-width': '150px'
+                         }
+                           doc.content[1].table.widths =Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+                          doc.content.splice(0, 0, {
+                            margin: [0, 0, 0, 0],
+                            alignment: 'center',
+                         });
+ doc.pageMargins = [10, 10, 10, 10];
+                         doc.defaultStyle.fontSize = 10;
+                         doc.styles.tableHeader.fontSize = 10;
+                         doc.styles.title.fontSize = 12;
+                         // Header font and bg color
+                         doc.styles.tableHeader.fillColor = '#d3d3d3';
+                         doc.styles.tableHeader.color = 'black';
+                         // Remove spaces around page title
+                         doc.content[1].text = doc.content[1].text.trim();
+
+                         //doc.content[1].table.widths = [
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //]
+
+                         var objLayout = {};
+                         // Horizontal line thickness
+                         objLayout['hLineWidth'] = function (i) { return .5; };
+                         // Vertikal line thickness
+                         objLayout['vLineWidth'] = function (i) { return .5; };
+                         //// Horizontal line color
+                         //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                         //// Vertical line color
+                         //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                         // Left padding of the cell
+                         objLayout['paddingLeft'] = function (i) { return 4; };
+                         // Right padding of the cell
+                         objLayout['paddingRight'] = function (i) { return 4; };
+                         // Inject the object in the document
+                         doc.content[1].layout = objLayout;
+                         // Footer font and bg color
+                         doc.styles.tableFooter.fillColor = '#d3d3d3';
+                              }
+
+
+
+
+                    },
+
+            ],
+
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api(), data;
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                            i : 0;
+                };
+
+
+
+
+              
+              
+      
+
+
+
+
+
+
+
+
+
+
+
+          
+                    pageTotal = api
+                .column(19, {
+                    page: 'current'
+                }) // Target the 5th column (index 4) for sum
+                .data()
+                .reduce(function(x, y) {
+                    return intVal(x) + intVal(y);
+                }, 0);
+
+  $(api.column(19).footer()).html(
+           pageTotal.toFixed(2)
+            );
+                    pageTotal = api
+                .column(12, {
+                    page: 'current'
+                }) // Target the 5th column (index 4) for sum
+                .data()
+                .reduce(function(x, y) {
+                    return intVal(x) + intVal(y);
+                }, 0);
+
+  $(api.column(12).footer()).html(
+           pageTotal.toFixed(2)
+            );
+                    // Update footer
+                   
+      
+
+
+
+
+                // Update footer
+          
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+            },
+            initComplete: function (settings, json) {
+                      var totalSum = 0;
+        // Select all cells with the specified class
+        $('.sum').each(function() {
+            // Get the text content of the cell
+            var cellValue = $(this).text();
+            // Convert to a floating-point number and add to totalSum
+            // parseFloat() is used to handle potential non-integer values
+            if($(this).attr('id')!="achprofit")
+            totalSum += parseFloat(cellValue) || 0;
+        });
+      
+  
+//const targetDiv = document.getElementById("achprofit");
+    $("#achprofit").text(totalSum);
+    // Call the function fosr the 'item-price' column
+
+             
+                // Display the sum (e.g., in an element with id="total")
+               // $('#achprofit').html(sum);
+                // Your code here executes after the initial data is fully loaded and drawn
+                json.data.sort(function (a, b) {
+                    return a.SalesPerson - b.SalesPerson; // Use 'b.age - a.age' for descending
+                });
+                const uniqueData = json.data.filter((item, index, self) => {
+                    // Check if this is the first time the 'name' key appears in the array
+                    return index === self.findIndex((t) => {
+                        return t.SalesPerson === item.SalesPerson;
+                    });
+                });
+             
+                const totaltarget = uniqueData.reduce((accumulator, currentValue) => {
+                    // Add the current object's 'quantity' value to the accumulator
+                    return accumulator + currentValue.target;
+                }, 0); // The '0' is the initial value for the accumulator
+                $("#totaltarget").text(totaltarget);
+                var perc = parseFloat((parseFloat($("#achprofit").text()) / totaltarget) * 100).toFixed(2);
+                $("#targetper").text(perc);
+
+            }
+            ,
+            'fnDrawCallback': function () {
+                //copyTotalsToLastRow('UserTable');
+            }
+        });
+        var column1 = oTable.column(4);
+        column1.visible(false);
+        var column2 = oTable.column(5);
+        column2.visible(false);
+        var column3 = oTable.column(6);
+        column3.visible(false);
+        var column4 = oTable.column(8);
+        column4.visible(true);
+         column4 = oTable.column(15);
+        column4.visible(false);
+         column4 = oTable.column(17);
+        column4.visible(false);
+            //for showing the datatable when click the submit button
+
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+                oTable.draw();
+                $('#SReport').show();
+                $('#UserTable').show();
+
+
+
+            });
+        function copyTotalsToLastRow(tableId) {
+            let tableRows = document.getElementById(tableId).rows;
+            let rowCount = tableRows.length;
+            let cellCount = tableRows[0].cells.length;
+            let totalsRowIndex = -1;
+            let totalValues = [];
+            let i;
+            let j;
+
+            for (i = 0; i < rowCount; i++) {
+                if (tableRows[i].className.indexOf('total') !== -1) {
+                    totalsRowIndex = i;
+                    for (j = 0; j < cellCount; j++) {
+                        totalValues[j] = tableRows[i].cells[j].innerText;
+                    }
+                    tableRows[i].classList.remove('total');
+                    break;
+                }
+            }
+
+            if (totalsRowIndex === -1) {
+                return;
+            }
+
+            for (i = totalsRowIndex; i < (rowCount - 1); i++) {
+                for (j = 0; j < cellCount; j++) {
+                    tableRows[i].cells[j].innerText
+                        = tableRows[i + 1].cells[j].innerText;
+                }
+            }
+
+            for (i = 0; i < cellCount; i++) {
+                tableRows[rowCount - 1].cells[i].innerText = totalValues[i];
+            }
+            tableRows[rowCount - 1].classList.add('total');
+
+            for (i = 0; i < rowCount; i++) {
+                $('#' + tableId).DataTable().row(tableRows[i]).invalidate();
+            }
+        }
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+
+            @*$('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/SalesReport/custDetails?idcust=" + data.CustomerId + "&fromdate=@ViewBag.fromdate&todate=@ViewBag.todate";
+                $(location).attr('href', url);
+            });*@
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+
+    </script>
+}

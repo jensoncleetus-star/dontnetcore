@@ -1,0 +1,585 @@
+@model QuickSoft.Models.ItemBundle
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "ItemBundle";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    if (User.IsInRole("Dev") || User.IsInRole("Delete ItemBundle"))
+    {
+        userRole = true;
+    }
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Item Bundle</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create ItemBundle"))
+            {
+                <a class="btn btn-info no-border" href="/ItemBundle/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liitem" />Item</li>
+                        <li><input type="checkbox" id="licategory" />Category</li>
+                        <li><input type="checkbox" id="litax" />Tax</li>
+                        <li><input type="checkbox" id="libundletype" />Bundle Type</li>
+                        <li><input type="checkbox" id="likeepstock" />Keep Stock</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchitem">
+                                    @Html.Label("Item", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.ItemSrch, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchcategory">
+                                    @Html.Label("Category", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlCategory", (SelectList)ViewBag.ItemCatg, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchtax">
+                                    @Html.Label("Tax", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlTax", (SelectList)ViewBag.ItemTax, "All", new { @class = "form-control select2 input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchbundletype">
+                                    @Html.LabelFor(model => model.BundleType, htmlAttributes: new { @class = "control-label" })
+                                    @Html.DropDownList("BundleType", new SelectList(new List<SelectListItem>
+                                    {
+                                        new SelectListItem() {Text = "All", Value="0"},
+                                        new SelectListItem() {Text = "Combo Item", Value="ComboItem"},
+                                        new SelectListItem() {Text = "Grouped Item", Value="GroupedItem"}
+                                    }, "Value", "Text"), new { @class = "form-control select2 input-sm", @id = "BundleType" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchkeepstock">
+                                    @Html.Label("Keep Stock", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlKeepStock", (SelectList)ViewBag.KStock, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAllItem", "ItemBundle", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="ItemTable">
+                <thead>
+                    <tr style="background-color: #d2d6de">
+                        <td data-priority="1">SI No</td>
+                        <td data-priority="1">Item Code</td>
+                        <td data-priority="1">Item Name</td>
+                        <td data-priority="1">Item Category</td>
+                        <td data-priority="2">Bundle Type</td>
+                        <td data-priority="2">Tax</td>
+                        <td data-priority="3">Actual Cost</td>
+                        <td data-priority="4">Actual Price</td>
+                        <td data-priority="5">Selling Price</td>
+                        <td data-priority="5">Created By</td>
+                        <td data-priority="2">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        if (User.IsInRole("Dev") || User.IsInRole("Delete ItemBundle"))
+        {
+            <div class="box-footer text-right col-md-12" id="sub">
+                <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+            </div>
+        }
+    }
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                }
+                else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+
+        var oTable = $('#ItemTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/ItemBundle/GetItemBundle',
+                "data": function (data) {
+                    data.Item = $('#ddlItem').val();
+                    data.Category = $('#ddlCategory').val();
+                    data.btype = $('#BundleType').val();
+                    data.Tax = $('#ddlTax').val();
+                    data.KpStock = $('#ddlKeepStock').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "order": [[1, "desc"]],
+            "columnDefs": [{
+                "targets": [10, 11],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "ItemBundleId", "name": "ItemBundleId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "ItemCode", "name": "ItemCode" },
+                { "data": "ItemName", "name": "ItemName" },
+                { "data": "Category", "name": "Category" },
+                {
+                    "data": "BundleType", "name": "BundleType", "render": function (data, type, row, meta) {
+                        if (data == "ComboItem") {
+                            return "Combo Item"
+                        }
+                        else {
+                            return "Grouped Item"
+                        }
+                    }
+                },
+                { "data": "Tax", "name": "Tax" },
+                { "data": "ActualCost", "name": "ActualCost", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "ActualPrice", "name": "ActualPrice", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "SellingPrice", "name": "SellingPrice", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "UserName", "name": "UserName" },
+                    {
+                        "name": "ItemBundleId", "data": function (data) {
+                            var rest = "";
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("View ItemBundle"))
+                                {
+                                    actData += "<a class=\"details\" href=\"/ItemBundle/Details/'+ data.ItemBundleId +'\" title=\"View ItemBundle\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                }
+                               // if (User.IsInRole("Dev") || User.IsInRole("Edit ItemBundle"))
+                                {
+                                    actData += "<a href=\"/ItemBundle/Edit/'+ data.ItemBundleId +'\" title=\"Edit ItemBundle\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                               // if (User.IsInRole("Dev") || User.IsInRole("Delete ItemBundle"))
+                                {
+                                    actData += "<a class=\"modal-delete\" href=\"/ItemBundle/Delete/'+ data.ItemBundleId +'\" title=\"Delete ItemBundle\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                }
+                            }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    },
+                   {
+                       "name": "ItemBundleId", "data": function (data) {
+                        var rest = "";
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete Purchase Entry"))
+                            {
+                                delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.ItemBundleId +'></input>";
+                            }
+                        }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ], "drawCallback": function (settings) {
+                var table = $('#ItemTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(11);
+            column1.visible(true);
+            $('.dt-button.btn-danger').show();
+        }
+        else {
+            var column1 = oTable.column(11);
+            column1.visible(false);
+            $('.dt-button.btn-danger').hide();
+        }
+
+        /* function for view detail popup */
+        $('#ItemTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#ItemTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        //Category
+        $("#ddlCategory").select2({
+            placeholder: 'Search Item Category',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemCategory/SearchCategory",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //Tax
+        $("#ddlTax").select2();
+
+        //Item
+        $("#ddlItem").select2({
+            placeholder: 'Search Item by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemBundle/Search",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "All"
+                    };
+                },
+                results: function (data) {
+                    return { results: data };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+
+        isTicked();
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+
+            /*******  To clear all the data entered  *********/
+                $('#ddlItem').val(0).trigger("change");
+                $('#ddlCategory').val(0).trigger("change"); 
+                $('#ddlTax').val(null).trigger("change");
+                $('#BundleType').val(0).trigger("change");
+                $('#ddlKeepStock').val(null).trigger("change");
+                oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+      var checkList = document.getElementById('list1');
+      /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+      checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+          if (checkList.classList.contains('visible'))
+              checkList.classList.remove('visible');
+          else
+              checkList.classList.add('visible');
+      }
+
+      /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+      $("ul li input:checkbox").click(function () {
+
+          var _show = 0;
+
+          //Item
+          if ($("#liitem").prop("checked") == true) {
+              $("#searchitem").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlItem').val(0).trigger("change");
+              $("#searchitem").hide();
+              oTable.draw();
+          }
+
+          //Category
+          if ($("#licategory").prop("checked") == true) {
+              $("#searchcategory").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlCategory').val(0).trigger("change");
+              $("#searchcategory").hide();
+              oTable.draw();
+          }
+
+          //Tax
+          if ($("#litax").prop("checked") == true) {
+              $("#searchtax").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlTax').val(null).trigger("change");
+              $("#searchtax").hide();
+              oTable.draw();
+          }
+
+          //Bundle Type
+          if ($("#libundletype").prop("checked") == true) {
+              $("#searchbundletype").show();
+              _show = 1;
+          }
+          else {
+              $('#BundleType').val(0).trigger("change");
+              $("#searchbundletype").hide();
+              oTable.draw();
+          }
+
+          //Keep Stock
+          if ($("#likeepstock").prop("checked") == true) {
+              $("#searchkeepstock").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlKeepStock').val(null).trigger("change");
+              $("#searchkeepstock").hide();
+              oTable.draw();
+          }
+
+          if (_show == 1) {
+              $('#advsearchlist').show();
+          }
+          else {
+              $('#advsearchlist').hide();
+          }
+      });
+
+      /******* Function to hide dropdown checklist while clicking outside it ********/
+      $(document).on("click", function (event) {
+
+          var element1 = $("#list1");
+
+          if (element1 !== event.target && !element1.has(event.target).length) {
+              checkList.classList.remove('visible');
+          }
+      });
+
+    </script>
+}
+
+

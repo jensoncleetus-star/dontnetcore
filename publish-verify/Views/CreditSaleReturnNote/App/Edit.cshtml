@@ -1,0 +1,187 @@
+@model QuickSoft.ViewModel.SalesReturnViewModel
+@{
+    Layout = "~/Views/Shared/_AppLayout.cshtml";
+    ViewBag.Title = "Edit Sales Return";
+    ViewBag.SubTitle = "SalesReturn";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+    string posfun = "";
+}
+
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+
+@using (Html.BeginForm("UpdateSalesReturn", "CreditSaleReturn", FormMethod.Post, new { id = "saleform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Sales Return</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Sales Return List"))
+                {
+                    <a class="btn btn-success no-border" href="/app/salesreturn/index.html">
+                        <i class="fa fa-fw fa-history"></i> Sales Return List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="VoucherType" value="SalesReturn" />
+            <input type="hidden" id="batchcheck" value="@ViewBag.BatchWiseStock" />
+            <div class="row">
+                <div class="col-xs-6 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                </div>
+                <div class="col-xs-6 form-group">
+                    @Html.Label("Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.ReturnType, new { @class = "form-control" })
+                </div>
+                <div class="col-xs-6 form-group " id="srbillno">
+                    @Html.HiddenFor(model => model.CustomerType)
+                    @Html.Label("Invoice No", null, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.SalesEntryId, (SelectList)ViewBag.saleentry, new { id = "ddlSalesEntry", @class = "form-control select2" })
+                </div>
+                <div class="col-xs-6 form-group">
+                    @Html.LabelFor(model => model.SRDate, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.SRDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-xs-6 form-group">
+                    @Html.Label("Sales Type", null, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.SalesType, new SelectList(Model.SalesTypes, "Id", "Name"), new { id = "SalesType", @class = "form-control" })
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-xs-6">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.MaterialCenter, (SelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control select2" })
+                    </div>
+                }
+                <div class="col-xs-6 form-group">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.SRCashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                </div>
+                <div class="col-xs-6 form-group" id="creditsale">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Customr, new { id = "ddlCustomer", @class = "form-control select2", @required = "required" })
+                </div>
+            </div>
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-item" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Items</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                    </table>
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th colspan="2"> Total</th>
+                        </tr>
+                        <tr>
+                            <th> Qty</th>
+                            <td class="text-right">
+                                <label id="ItemQty"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th> SubTotal</th>
+                            <td class="text-right">
+                                <label id="SubTotal"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th> Discount</th>
+                            <td class="text-right">
+                                <label id="ItemDisc"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Tax</th>
+                            <td class="text-right">
+                                <label id="total_tax_amount"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Amount</th>
+                            <td class="text-right">
+                                <label id="total"></label>
+                            </td>
+                        </tr>
+
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                            @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                        </div>
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.SRNote, new { @class = "form-control", @placeholder = "Terms And Conditions", @rows = 4 })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-BS" id="billsundry">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">Bill Sundry</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="addbillsundry"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <div class="form-group col-md-6 no-paddingleft">
+                        </div>
+                        <div class="form-group col-md-6 no-padding">
+                            @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.SRGrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                        </div>
+                        <div class="form-group col-md-6 hidden no-paddingleft" id="amountpaid">
+                            @Html.Label("Return Amount:", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.SReturnAmount, new { htmlAttributes = new { @id = "PaidAmount", @class = "form-control text-right", @value = "0", @placeholder = "0.00" } })
+
+                        </div>
+                        <div class="form-group col-md-6 hidden no-padding" id="amountdue">
+                            @Html.Label("Due :", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.SRDueAmount, new { htmlAttributes = new { @id = "DueAmount", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                            <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                        </div>
+                        <div class="form-group pull-right">
+                            <button type="submit" id="save" class="btn btn-success">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                            </button>
+                            <button type="submit" id="print" class="btn btn-success">
+                                <span class="glyphicon glyphicon-print"></span> Update And Print
+                            </button>
+                            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                            <input type="hidden" value="@ViewBag.POS" id="POS">
+                            <input type="hidden" value="@TimeOut" id="TimeOut">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="batchStock"></div>
+}
+@{
+    @Html.Partial("_POSInvoice1")
+}

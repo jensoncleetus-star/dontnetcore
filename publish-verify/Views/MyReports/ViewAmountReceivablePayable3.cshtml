@@ -1,0 +1,341 @@
+﻿@{
+    ViewBag.Title = "Amount Receivable & Payable";
+    ViewBag.SubTitle = "Amount Receivable & Payable";
+    ViewBag.Active = "Reports";
+    var type = ViewBag.Type == 0 ? "Cr" : "Dr";
+}
+<div class="box box-default" id="RReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Customer Outstanding Sales Executive Wise</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <div class="box-body">
+            <table class="display table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Particulars</td>
+                        <td>Amount</td>
+                        <td>Mobile</td>
+                        <td>Mobile</td>
+                        <td>Sales Person</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+
+                        <th id="total"></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": true,
+                "ajax": {
+                    "url": '/MyReports/GetAmountReceivablePayable3',
+                    "data": {
+                        ddlType: getQueryString1('ddlType'),
+                        pdc: getQueryString1('pdc'),
+                        emp: getQueryString1('emp'),
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columnDefs": [
+                    {
+                        "targets": [ 3 ],
+                        "visible": false,
+                    }],
+                "columns": [
+                     {
+                         "data": "", "name": "",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    {
+                        "name": "particulars", "data": function (data) {
+
+                                 @{
+                                     var urls = "";
+
+                                     urls = "'<a href=\"/Customer/Details/'+ data.CustomerID +'\" target=\"_new\">'+ data.particulars +'</a>' ";
+                                     //urls = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+                        }
+                    },
+                    //{
+                    //    "name":"amount","data":"amount"
+                    //},
+                     {
+                         "name": "amount",
+                        "data": function (result) {
+                            @{
+                                var urls2 = "";
+                                // urls2 = "'<a href=\"/MyReports/Ledger2?particular='+ result.AccountsID +' \" target=\"_new\">'+result.amount+'&nbsp'+result.DrCr+' </a> '";
+                                urls2 = "'<a href=\"/MyReports/Ledger2?particular='+ result.AccountsID +' \" target=\"_new\">'+result.amount+' </a> '";
+                                //urls2 = "'<a href=\"/MyReports/GetLedger/'+ result.AccountsID +'&'+result.todate+'&'+fromdate+' \" target=\"_new\">'+result.Amount+'&nbsp'+result.DrCr+' </a> '";
+
+                            }
+                            return @Html.Raw(urls2);
+                        }
+                     },
+        {
+                        "name":"amount","data":"amount"
+                    },
+                     @*{
+                         "name": "Amount",
+                         "data": function (data) {
+                             if (data.DrCr == '@type') {
+                                 return data.Amount;
+                             } else {
+                                 return data.Amount * -1;
+                             }
+                         }
+                    },*@
+                    {
+                        "name": "Amount", "data": function (data) {
+                            var datas = "";
+                            $.each(data.mobmodal, function (i, item) {
+
+                                    if (datas != "") {
+                                        datas += "<br> ";
+                                    }
+                                    datas += item.Name + '<br>';
+                                    datas += '<a href="tel:' + item.Num + '">' + item.Num + '</a>' + '<br>';
+                                    datas += '<a href="mailto:' + item.emails + '">' + item.emails + '</a>' + '<br>';
+
+                            });
+
+                            return datas;
+                        }
+                    },
+                    {
+                        "name": "Amount", "data": function (data) {
+                            var datas = "";
+                            $.each(data.emp, function (i, item) {
+
+
+                                datas += item.FirstName + '<br>';
+
+                            });
+
+                            return datas;
+                        }
+                    },
+                  /*  { "name": "employee", "data": "employee" },*/
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Amount Receivable & Payable';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                             '<tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Amount Receivable & Payable</h4></th></tr>' +
+                             '<tr><th><span class="text-left"></span><span class="text-right pull-right"></span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Amount Receivable & Payable';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                        '' + $('#caddress').val() + '\n' +
+                        ' Amount Receivable & Payable \n';
+
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+                        {
+                            extend: 'pdf',//
+                            title: "",
+                            footer: true,
+                            filename: function () {
+                                return 'Amount Receivable & Payable';
+                            },
+                            message: function () {
+                                var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Amount Receivable & Payable \n';
+
+                                return head;
+                            },
+                            pageSize: 'A4',
+                            exportOptions: {
+                                columns: ':visible'
+                            },
+                            customize: function (doc) {
+                                doc.pageMargins = [10, 10, 10, 10];
+                                doc.defaultStyle.fontSize = 10;
+                                doc.styles.tableHeader.fontSize = 10;
+                                doc.styles.title.fontSize = 12;
+                                // Header font and bg color
+                                doc.styles.tableHeader.fillColor = '#d3d3d3';
+                                doc.styles.tableHeader.color = 'black';
+                                // Remove spaces around page title
+                                doc.content[0].text = doc.content[0].text.trim();
+
+                                doc.styles['td:nth-child(2)'] = {
+                                    width: '100%',
+                                    'max-width': '100%'
+                                }
+
+                                //doc.content[1].table.widths = [
+                                //'5%',
+                                //'15%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'10%',
+                                //'10%',
+                                //'10%',
+                                //'10%'
+                                //]
+
+                                var objLayout = {};
+                                // Horizontal line thickness
+                                objLayout['hLineWidth'] = function (i) { return .5; };
+                                // Vertikal line thickness
+                                objLayout['vLineWidth'] = function (i) { return .5; };
+                                //// Horizontal line color
+                                //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                                //// Vertical line color
+                                //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                                // Left padding of the cell
+                                objLayout['paddingLeft'] = function (i) { return 4; };
+                                // Right padding of the cell
+                                objLayout['paddingRight'] = function (i) { return 4; };
+                                // Inject the object in the document
+                                doc.content[1].layout = objLayout;
+                                // Footer font and bg color
+                                doc.styles.tableFooter.fillColor = '#d3d3d3';
+                                doc.styles.tableFooter.color = 'black';
+                            }
+
+
+                        },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+                    // Total over all pages
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    //$('#total').html(pageTotal);
+                    //var type = '@type';
+                    $("#total").text(pageTotal.toFixed(2) + " ");
+                    var table = $('#UserTable').DataTable();
+                            if (!table.data().any()) {
+                                $('#UserTable tfoot').hide();
+                            } else {
+                                $('#UserTable tfoot').show();
+                            }
+
+                }
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+
+            $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/MyReports/UnPaidInvoices?particular=" + data.AccountsID + "";
+                $(location).attr('href', url);
+            });
+            @*$('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/MyReports/GetLedger?AccId=" + data.AccountsID +  "&fromdate=@ViewBag.fromdate&todate=@ViewBag.todate" "&AccGroup=" + 0 + "&pdc="+ 0 +;
+                $(location).attr('href', url);
+            });*@
+        });
+
+    </script>
+}

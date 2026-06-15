@@ -1,0 +1,725 @@
+@{
+    ViewBag.Title = "Amount Receivable & Payable";
+    ViewBag.SubTitle = "Amount Receivable & Payable";
+    ViewBag.Active = "Reports";
+    var type = ViewBag.Type == 0 ? "Cr" : "Dr";
+    string actData = "";
+}
+
+<div class="box box-default" id="RReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Customer Outstanding</h3>
+    </div>
+    <br />
+    <form id="search-form">
+        <div class="row">
+            <div class="box-body search-box" id="advsearchlist">
+
+                <div class="search-body col-md-12" style="background:none;">
+                    <div class="form-group col-md-2 ">
+                        @Html.Label("Next Date", null, new { @class = "control-label", @style = "font-weight:bold;" })
+                        <div class="input-group date">
+                            @Html.TextBox("nextdate", "", "{0:dd-MM-yyyy}", new { id = "nextdate", @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2" id="search">
+                        <input type="button" class="btn btn-submit" value="search" onclick="searchform()">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </form>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+        <div class="box-body">
+            <table class="display table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr>
+                        <td colspan="11">Salese Man : @ViewBag.salesman</td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Particulars</td>
+                        <td>Next Date & Time</td>
+
+
+                        <td>Amount</td>
+                        <td>Exp. Amt</td>
+                        <td>Priority</td>
+                        <td>Sales Executive</td>
+                        <td>Invoice</td>
+                        <td>Last Updated</td>
+                        <td>Action</td>
+                        <td></td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+
+
+                        <th id="total"></th>
+                        <th id="expected"></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+
+                        <th></th>
+
+                    </tr>
+                </tfoot>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+<div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4>Remarks</h4>
+            </div>
+            <table class="table table-bordered table-hover" id="contactinfo">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>#</td>
+                        <td>Contact Name</td>
+                        <td>Mobile</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div class="modal-body">
+                <div class="box-body" id="modelview">
+                    <table class="table table-bordered table-hover" id="RemarkInfo">
+                        <thead>
+                            <tr class="bg-gray">
+                                <td>#</td>
+                                <td>Date & Time</td>
+                                <td>Employees</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-container3" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                @*<h4>Terms and Conditions</h4>*@
+            </div>
+            <div class="modal-body">
+                <div class="box-body">
+                    <table class="table table-bordered table-hover" id="Terms">
+                        <thead>
+                            <tr class="bg-gray">
+                                <td style="text-align:center;">Terms and Conditions</td>
+                            </tr>
+                        </thead>
+                        <tbody style="text-align:center;"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@Html.Partial("SOA")
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+
+    @Styles.Render("~/css/bootstrap-timepicker")
+
+
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+<script type="text/javascript">
+        function prntsoa(data,i) {
+            var originalpage = document.body.innerHTML;
+            $("#lblParty").html(data[i].particulars);
+            const today = new Date();
+            const formattedDate = today.toLocaleDateString('en-GB'); // e.g., "03/02/2026"
+            const dd_mm_yyyy = formattedDate.replace(/\//g, '-'); // Replaces all slashes with hyphens
+
+
+            $("#lblDate").html(dd_mm_yyyy);
+            $("#outstanding").html(data[i].Amount);
+            $("#lblParty2").html(data[i].particulars);
+            var printContent = $('#printit').html();
+
+            $('body').html(printContent);
+            window.print();
+            $('body').html(originalpage);
+        }
+        $(document).ready(function () {
+            var date = new Date();
+            date.setDate(date.getDate());
+            $('.date').datepicker({
+                format: 'dd-mm-yyyy',
+
+                autoclose: true,
+                allowInputToggle: true,
+
+            });
+            $('#modal-create').on('submit', '#createForm', function (e) {
+                e.preventDefault();
+                var url = $('#createForm')[0].action;
+                var data = $('#createForm').serialize();
+                createajaxnew(url, data, '#modal-create');
+            });
+
+            function createajaxnew(url, data, modal) {
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: data,
+                    success: function (data) {
+                        if (data.status) {
+                            $(modal).modal('hide');
+                            //$(modal + ' .modal-content').empty();
+                            $(modal + ' .modal-content').html('');
+                            $('.ajax_response', res_success).text(data.message);
+                            $('.AlertDiv').prepend(res_success);
+
+                        }
+                        else {
+                            ////for (var i = 0; i < data.errors.length; i++) {
+                            //    $('.ajax_response', res_danger).text(data.error[0]);
+                            //    $('.AlertDiv').prepend(res_danger);
+                            ////}
+
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                        }
+                        fadeAlert();
+                    }
+                })
+            }
+
+            $('#modal-create').on('submit', '#createForm', function (e) {
+                e.preventDefault();
+                //oTable.draw();
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+
+            $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/MyReports/UnPaidInvoices?particular=" + data.AccountsID + "";
+                $(location).attr('href', url);
+            });
+        });
+
+        /* function for Create popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+    function details2(d) {
+        var CustomerId = d;
+        var oTable4 = $('#Terms').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "paging": false,
+            "sortable": false,
+            "ordering": false,
+            "searching": false,
+            "ajax": {
+                "url": '/MyReports/GetTerms',
+                "type": "POST",
+                "datatype": "json",
+                "data": { CustomerId: CustomerId }
+            },
+
+
+            "columns": [
+
+                { "data": "termsandcondition", "name": "termsandcondition" },
+            ],
+        });
+        oTable4.destroy();
+    }
+        //Function to retrieve Remarks of Customer
+        function details(d) {
+            var CustomerId = d;
+            //List all other remarks from table CustomerRemarks
+            var oTable1 = $('#RemarkInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/MyReports/GetAllRemarks',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { CustomerId: CustomerId }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                    {
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                    { "data": "EmpName", "name": "EmpName" },
+                    { "data": "Remark", "name": "Remark" },
+                ],
+            });
+            var oTable2 = $('#contactinfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/MyReports/GetContactDetails',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { CustomerId: CustomerId }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                    {
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "Name", "name": "Name" },
+                    { "data": "Phone", "name": "Phone" },
+                ],
+            });
+            oTable2.destroy();
+            oTable1.destroy();
+    }
+    //Popup of View Terms and Conditions
+    $('.table').on('click', 'a.Terms', function (e) {
+        e.preventDefault();
+        $(this).attr('data-target', '#modal-container3');
+        $(this).attr('data-toggle', 'modal');
+    });
+        //Popup of View Remarks
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+       // var jsonString[] = new Array();
+        let jsonString = [];
+        var dindex = 0;
+                    var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": true,
+                        //"searching": true,
+                        initComplete: function (settings, json) {
+
+                            $('body', parent.document).contents().find("#amountiframe").attr("height", $('#UserTable').height() + 300);
+                        },
+                "ajax": {
+                    "url": '/MyReports/GetAmountReceivablePayable',
+                    "data": function (data) {
+                        data.ddlType = getQueryString1('ddlType');
+                        data.pdc = getQueryString1('pdc');
+                        data.emp = getQueryString1('emp');
+                        data.ondate = getQueryString1('ondate');
+                        data.nextdate = $("#nextdate").val();
+                        data.exp = getQueryString1('exp');
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                        },
+                        "createdRow": function (row, data, dataIndex) {
+
+
+                        },
+                "destroy": true,
+                "order": [[0, "desc"]],
+                "columnDefs": [
+                    {
+                        "targets": [ 3 ],
+                        "visible": true,
+                    }],
+                "columns": [
+                     {
+                         "data": "", "name": "",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    {
+                        "name": "particulars", "data": function (result) {
+
+                            @{
+                                var urls = "";
+
+                                //urls = "'<a href=\"/MyReports/UnPaidInvoices?particular='+  result.AccountsID +'\" target=\"_new\">'+ result.particulars +'</a>' ";
+                                urls = "'<a href=\"/Customer/Details/'+  result.CustomerID +'\" target=\"_new\">'+ result.particulars +'</a>' ";
+
+                                }
+                            return @Html.Raw(urls);
+                        }
+                    },
+                     {
+                        "name": "nextfolloupdatetime", "data": function (data) {
+                             var temD = "/Date(946670400000)/";
+                             temD = convertToDate(temD);
+                             if (convertToDate(data.nextfolloupdatetime) == temD) {
+                                return " ";
+                             }
+                             else if ("/Date(-62135596800000)/" == data.nextfolloupdatetime)
+                             {
+                                 return " ";
+                             }
+                             else {
+                                return (convertDateTime(data.nextfolloupdatetime));
+                            }
+                        }
+                    },
+
+                    {
+                        "name": "Amount",
+                        "data": function (data) {
+                            return data.Amount + " " + data.DrCr;
+                        }
+                    },
+                    {
+                        "name": "expectedamount",
+                        "data": function (data) {
+                            return data.expectedamount;
+                        }
+                    },
+                    {
+                        "name": "priority",
+                        "data": function (data) {
+                            if (data.priority == 0)
+                                return '';
+                              else if (data.priority == 2)
+                             return '<i class="badge bg-yellow" style="font-size: small" >Medium</i>';
+               else  (data.priority == 3)
+                                return '<i class="badge bg-red" style="font-size: small" >Heigh</i>';
+
+                            }
+
+                    },
+
+                    {
+                        "name": "FirstName",
+                        "data": "FirstName"
+
+                    },
+                    {
+                        "name": "salesexecutive", "data": function (result) {
+
+                            var urlss = "";
+                            urlss = '<table><tr><th>Bill no</th><th>Executive</th><th>Balance</th></tr>';
+
+                            $.each(result.salesexecutive, function (i, item) {
+
+
+
+                                //urls = "'<a href=\"/MyReports/UnPaidInvoices?particular='+  result.AccountsID +'\" target=\"_new\">'+ result.particulars +'</a>' ";
+                                urlss += '<tr><Td><a href=\"/CreditSale/Edit/' + item.SalesEntryId + '\" target=\"_new\">' + item.BillNo +'</a></td> ';
+                                urlss += ' <td> '+item.execu+'</td><td>'+item.balance+'</td></tr>';
+
+                            });
+                            urlss += '</table>';
+                            return urlss;
+                        }
+                    },
+
+                                    {
+                                        "name": "createdDate", "data": function (data) {
+                                            var temD = "/Date(-62135596800000)/";
+                                            temD = convertToDate(temD);
+                                            if (convertToDate(data.createdDate) == temD) {
+                                                return " ";
+                                            } else {
+                                                return (convertToDate(data.createdDate));
+                                            }
+                                        }
+                                    },
+                    {"name": "CustomerID", "data": function (data) {
+                        var rest = "";
+
+                        @{
+                            actData += "<a class=\"btn btn-icons btn-rounded btn-edit modal-create\" href=\"/MyReports/AddCustomerRemark/'+ data.CustomerID +'\" title=\"Add Remarks\"><i class=\" fa fa-plus\" ></i></a> ";
+                            actData += "<a class=\"btn btn-icons btn-rounded btn-remark Updation\" onclick=\"details(' + data.CustomerID + ')\" title=\"View Remarks\"><i class=\" fa fa-eye\" ></i></a> ";
+                            actData += "<a class=\"btn Terms\" onclick=\"details2(' + data.CustomerID + ')\" title=\"View Terms and Conditions\">Terms</a> ";
+                            //actData += "<a class=\"btn \" onclick=\"prntsoa(data)\" title=\"Print soa\">SOA</a> ";
+
+                            }
+
+                        jsonString[dindex] = data;
+
+                         rest = '@Html.Raw(actData)' + '<a class="btn" onclick=prntsoa(jsonString,' + dindex + ') title="Print soa">SOA</a>';
+                        dindex++;
+                        return rest;
+                    }
+                    },
+                    {
+                        "name": "Amount",
+                        "data": function (data) {
+                            if (data.DrCr == "Dr")
+                                return data.Amount;
+                            else
+                                return data.Amount * -1;
+                        }
+                    },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Amount Receivable & Payable';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                             '<tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Amount Receivable & Payable</h4><h4>Sales Man : @ViewBag.salesman</h4></th></tr>' +
+                             '<tr><th><span class="text-left"></span><span class="text-right pull-right"></span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Amount Receivable & Payable';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                        '' + $('#caddress').val() + '\n' +
+                        ' Amount Receivable & Payable \n';
+
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+                        {
+                            extend: 'pdf',//
+                            title: "",
+                            footer: true,
+                            filename: function () {
+                                return 'Amount Receivable & Payable';
+                            },
+                            message: function () {
+                                var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Amount Receivable & Payable \n';
+
+                                return head;
+                            },
+                            pageSize: 'A4',
+                            exportOptions: {
+                                columns: ':visible'
+                            },
+                            customize: function (doc) {
+                                doc.pageMargins = [10, 10, 10, 10];
+                                doc.defaultStyle.fontSize = 10;
+                                doc.styles.tableHeader.fontSize = 10;
+                                doc.styles.title.fontSize = 12;
+                                // Header font and bg color
+                                doc.styles.tableHeader.fillColor = '#d3d3d3';
+                                doc.styles.tableHeader.color = 'black';
+                                // Remove spaces around page title
+                                doc.content[0].text = doc.content[0].text.trim();
+
+                                doc.styles['td:nth-child(2)'] = {
+                                    width: '100%',
+                                    'max-width': '100%'
+                                }
+
+                                //doc.content[1].table.widths = [
+                                //'5%',
+                                //'15%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'10%',
+                                //'10%',
+                                //'10%',
+                                //'10%'
+                                //]
+
+                                var objLayout = {};
+                                // Horizontal line thickness
+                                objLayout['hLineWidth'] = function (i) { return .5; };
+                                // Vertikal line thickness
+                                objLayout['vLineWidth'] = function (i) { return .5; };
+                                //// Horizontal line color
+                                //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                                //// Vertical line color
+                                //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                                // Left padding of the cell
+                                objLayout['paddingLeft'] = function (i) { return 4; };
+                                // Right padding of the cell
+                                objLayout['paddingRight'] = function (i) { return 4; };
+                                // Inject the object in the document
+                                doc.content[1].layout = objLayout;
+                                // Footer font and bg color
+                                doc.styles.tableFooter.fillColor = '#d3d3d3';
+                                doc.styles.tableFooter.color = 'black';
+                            }
+
+
+                        },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+
+                         total = api
+                    .column(4)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                    .column(4, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    var type = '@type';
+                    $("#expected").text(pageTotal.toFixed(2));
+                         total = api
+                    .column(10)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                    .column(10, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    var type = '@type';
+                    $("#total").text(pageTotal.toFixed(2) + " " + type);
+
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+
+            });
+            var column1 = oTable.column(10);
+    column1.visible(false);
+    var column1 = oTable.column(9);
+    column1.visible(true);
+        var column1 = oTable.column(8);
+        column1.visible(true);
+    function searchform() {
+
+        oTable.draw();
+            }
+</script>
+}

@@ -1,0 +1,394 @@
+@model QuickSoft.ViewModel.MtFromPartyViewModel
+@{
+    ViewBag.Title = "Materials Received From Party List";
+    ViewBag.SubTitle = "Materials Received From Party";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    //if (User.IsInRole("Dev") || User.IsInRole("Delete Sales Entry"))
+    //{
+    //    userRole = true;
+    //}
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Materials Issued To Party</h3>
+        <div class="pull-right">
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            @if (User.IsInRole("Dev") || User.IsInRole("Create MtToParty"))
+            {
+                <a class="btn btn-info no-border" href="/MtToParty/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Materials Issued
+                </a>
+            }
+        </div>
+    </div>
+
+
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="form-group col-md-2">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Voucher No:", null, new { @class = "control-label" })
+                    @Html.TextBoxFor(model => model.VoucherNo, new { id = "ddlVoucher", @class = "form-control select2" })
+                </div>
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("Party", null, new { @class = "control-label" })
+                    @*<div class="input-group input-group-sm">*@
+                    @Html.DropDownListFor(model => model.Party, (SelectList)ViewBag.Party, "All", new { id = "ddlParty", @class = "form-control select2" })
+                    @*</div>*@
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(model => model.MC, (SelectList)ViewBag.MCbag, "All", new { id = "ddlMC", @class = "form-control select2" })
+
+                </div>
+                <div class="col-md-12">
+                    <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                    <input type="button" class="btn btn-close" value="Close" />
+                </div>
+            </form>
+        </div>
+    </div>
+        @using (Html.BeginForm("DeleteAll", "MtFromParty", FormMethod.Post, new { id = "MtFromPartyform", role = "form" }))
+        {
+            <div class="box-body">
+                <table class="table table-bordered table-hover" id="SalesTable">
+                    <thead>
+                        <tr class="bg-gray">
+                            <td data-priority="1">S/N</td>
+                            <td data-priority="1">Voucher No</td>
+                            <td data-priority="2">Date</td>
+                            <td data-priority="1">Party</td>
+                            <td data-priority="4">Type</td>
+                            <td data-priority="3">Material Center</td>
+                            <td data-priority="3" class="headeralign">Qunatity</td>
+                            <td data-priority="3" class="headeralign">Total Amount</td>
+                            <td data-priority="5">Created By</td>
+                            <td data-priority="2">Action</td>
+                            <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            if (User.IsInRole("Dev") || User.IsInRole("Delete Sales Entry"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are You Sure Want to Delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }
+        }
+    </div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#advsearch').hide();
+            //var date = new Date();
+            //var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            //var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            //$('#To').datepicker('setDate', today);
+            //$('#From').datepicker('setDate', priordate);
+
+            $("#MtFromType").prop('selectedIndex', 0);
+
+            //$("#ddlParty").select2();
+            //$("#ddlMC").select2();
+
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+
+        var oTable = $('#SalesTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/MtFromParty/GetMaterialReceived',
+                "data": function (data) {
+                    data.Voucher = ($('#ddlVoucher').val());
+                    data.Party = $('#ddlParty').val();
+                    data.fromdate = $('#From').val();
+                    data.todate = $('#To').val();
+                    data.MC = $('#ddlMC').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[1, "desc"]],
+            "columnDefs": [{
+                "targets": [10],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "Id", "name": "Id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "VoucherNo", "name": "VoucherNo" },
+                 {
+                     "data": "Date", "name": "Date",
+                     "render": function (data) {
+                         var date = convertToDate(data);
+                         return date.toString();
+                     }
+                 },
+                { "data": "Party", "name": "Party" },
+                {
+                    "data": "Type", "name": "Type",
+                    "render": function (data) {
+                        return data;
+                    }
+                },
+                { "data": "MC", "name": "MC" },
+
+                { "data": "TotalQuantity", "name": "TotalQuantity", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "TotalAmount", "name": "TotalAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                { "data": "User", "name": "User" },
+
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("View Sales Entry"))
+                                {
+                                    actData += "<a class=\"details\" href=\"/MtFromParty/Details/'+ data.Id +'\" title=\"View Entry\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry"))
+                                {
+                                    actData += "<a href=\"/MtFromParty/Edit/'+ data.Id +'\" title=\"Edit Entry\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete Sales Entry"))
+                                {
+                                    actData += "<a class=\"modal-delete\" href=\"/MtFromParty/Delete/'+ data.Id +'\" title=\"Delete Entry\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                }
+                                //if (User.IsInRole("Dev") || User.IsInRole("Download Sales Entry"))
+                                //{
+                                //    actData += "<a class=\"modal-link-download\" href=\"/MtToParty/Download/'+ data.Id +'\" title=\"Download Sales Entry\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                                //}
+                            }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    },
+                     {
+                         "name": "Id", "data": function (data) {
+                             var rest = "";
+                             @{
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete Sales Entry"))
+                                 {
+                                     delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.Id +'></input>";
+                                 }
+                             }
+                             return rest = '@Html.Raw(delchk)';
+                         }
+                     },
+            ], "drawCallback": function (settings) {
+                var table = $('#SalesTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+
+        });
+        var chkcol = '@userRole';
+        //if (chkcol == "True") {
+        //    var column1 = oTable.column(13);
+        //    column1.visible(true);
+        //} else {
+        //    var column1 = oTable.column(13);
+        //    column1.visible(false);
+        //}
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked(); 
+
+        /* function for view detail popup */
+        $('#SalesTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#MtToPartyform', function (e) {
+            e.preventDefault();
+            var url = $('#MtToPartyform')[0].action;
+            var data = $('#MtToPartyform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#MtToPartyform', function (e) {
+            e.preventDefault();
+            var url = $('#MtToPartyform')[0].action;
+            var data = $('#MtToPartyform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#SalesTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+                //location.reload();
+                $('#ddlVoucher').val("");
+                $('#ddlParty').val(0).trigger("change");
+                $('#From').val(null);
+                $('#To').val(null);
+                $('#ddlMC').val(0).trigger("change");
+                oTable.draw();
+            }
+            $('#MCFrom').select2();
+            $('#MCTo').select2();
+            var minDate = $("#Start").val();
+            var maxDate = $("#End").val();
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                startDate: new Date(minDate),
+                endDate: new Date(maxDate)
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                startDate: new Date(minDate),
+                endDate: new Date(maxDate)
+            });
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            //$('#ToDate').datepicker('setDate', today);
+            //$('#FromDate').datepicker('setDate', priordate);
+
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+    </script>
+}

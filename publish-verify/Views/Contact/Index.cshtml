@@ -1,0 +1,621 @@
+@model QuickSoft.Models.Contact
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Contact";
+    ViewBag.Active = "Utility";
+    string actData = "";
+    bool userRole = false;
+    string delchk = "";
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Contact"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+               "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+                "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style>
+    .dropdown-check-list {
+        display: inline-block;
+    }
+/*    .items li input[type=checkbox]{
+        margin:0.5rem 1rem;
+    }*/
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+          /*  min-width:210px;*/
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 2px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+            }
+
+        .dropdown-check-list.visible .anchor {
+            color: #0094ff;
+        }
+
+        .dropdown-check-list.visible .items {
+            display: block;
+           /* min-width:210px;*/
+        }       
+   
+</style>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Contacts</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Contact"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Contact/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div id = "list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0">Select Fields</span>
+                    <ul class="items" style="position: absolute; z-index: 9999999; background-color: white;">
+                        <li><input type="checkbox" id="liname" class="liname" value="Name" />Name </li>
+                        <li><input type="checkbox" id="ligroup" value="Group" />Group </li>
+                        <li><input type="checkbox" id="limobile" value="Mobile" />Mobile </li>
+                        <li><input type="checkbox" id="liphone" value="Phone" />Phone </li>
+                        <li><input type="checkbox" id="liemail" value="Email" />Email</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchname" hidden>
+                                    @Html.Label("Name", null, new { @class = "control-label" })
+                                    @Html.DropDownList("Name", (SelectList)ViewBag.Contact, "All", new { @class = "form-control,select2" })
+                                    @*@Html.TextBox("Name", "", new { @class = "form-control input-sm" })*@
+                                </div>
+                                @*<div class="form-group col-md-2" id="searchgroup" hidden>
+                                    @Html.Label("Group", null, new { @class = "control-label" })
+                                    @Html.DropDownList("Group", (SelectList)ViewBag.ParentModules, "All", new { @class = "form-control" })
+                                </div>*@
+                                <div class="form-group col-md-2" id="searchgroup" hidden>
+                                    @Html.Label("Group", null, new { @class = "control-label" })
+                                    @Html.DropDownList("Group", (SelectList)ViewBag.ParentModules, new { @class = "form-control input-sm", @name = "ddlType" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchmobno" hidden>
+                                    @Html.Label("Mobile No", null, new { @class = "control-label" })
+                                    @Html.TextBox("Mobile", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchphoneno" hidden>
+                                    @Html.Label("Phone No", null, new { @class = "control-label" })
+                                    @Html.TextBox("Phone", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchemail" hidden>
+                                    @Html.Label("Email", null, new { @class = "control-label" })
+                                    @Html.TextBox("Email", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAll", "Contact", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Name</td>
+                        <td data-priority="2">Group</td>
+                        <td data-priority="2">Address</td>
+                        <td data-priority="4">Phone</td>
+                        <td data-priority="4">Contacts</td>
+                        @*<td data-priority="6">Contacts</td>*@
+                        <td data-priority="6">Email</td>
+                        @*<td data-priority="6">Status</td>*@
+                        <td data-priority="2"> Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete Contact"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+</div>
+@*delete modal*@
+<div id="modal-delete" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content danger">
+        </div>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        var ar = new Array();
+        var va = "";
+        $(document).ready(function () {
+            $('#advsearchlist').hide();             
+            $("#Name").select2();
+           
+            //$('[data-confirm]').click(function (e) {
+            //    if ($('.checkbox:checked').length > 0) {
+            //        if (!confirm(jQuery(this).attr("data-confirm"))) {
+            //            e.preventDefault();
+            //        }
+            //    } else {
+            //        alert("Please Select Rows..!!");
+            //        e.preventDefault();
+            //    }
+            //});
+        });
+
+        $("ul li input:checkbox").click(function () {
+            var _show = 0;
+
+            if ($("#liname").prop("checked") == true) {
+                $("#searchname").show();
+                _show = 1;        
+
+            }
+            else {
+                $("#Name").val("").trigger("change");
+                $("#searchname").hide();
+            //    oTable.draw();
+            }
+
+            if ($("#liphone").prop("checked") == true) {
+                $("#searchphoneno").show();
+                _show = 1;
+            }
+            else {
+                
+                $("#Phone").val("");
+                $("#searchphoneno").hide();
+             //   oTable.draw();
+            }
+
+            if ($("#ligroup").prop("checked") == true) {
+                $("#searchgroup").show();
+                _show = 1;
+            }
+            else {
+                $("#Group").val("5");
+                $("#searchgroup").hide();
+              //  oTable.draw();
+            }
+
+            if ($("#limobile").prop("checked") == true) {
+                $("#searchmobno").show();
+                _show = 1;
+            }
+            else {
+                $("#Mobile").val("");
+                $("#searchmobno").hide();
+               // oTable.draw();
+            }
+
+            if ($("#liemail").prop("checked") == true) {
+                $("#searchemail").show();
+                _show = 1;
+            }
+            else {
+                $("#Email").val("");
+                $("#searchemail").hide();
+              //  oTable.draw();
+            }
+
+            if (_show == 1) {
+                $('#advsearchlist').show();
+            }
+            else {
+                $('#advsearchlist').hide();
+            }
+        });
+
+        function getUnique(array){
+            var uniqueArray = [];
+
+            // Loop through array values
+            for(var value of array){
+                if(uniqueArray.indexOf(value) === -1){
+                    uniqueArray.push(value);
+                }
+            }
+           return uniqueArray;
+        }
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/Contact/getContact',
+                "data": function (data) {
+                    data.Name = $('#Name').val();
+                    data.Email = $('#Email').val();
+                    data.Mobile = $('#Mobile').val();
+                    data.Phone = $('#Phone').val();
+                    data.Group = $('#Group').val() == null ? 987: $('#Group').val();
+                    //data.Values = va;
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [7, 8],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "ContactName", "name": "ContactName" },
+                 { "data": "Group", "name": "Group" },
+                 { "data": "Address", "name": "Address" },
+                 { "data": "Phone", "name": "Phone" },
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null || item.Name != null) {
+                                 if (datas != "") {
+                                     datas += "<br> ";
+                                 }
+                                 datas += item.Num + '<br>';
+                                 datas += item.Name + '<br>';                               
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+                 { "data": "EmailId", "name": "EmailId" },
+                 //{
+                 //    "name": "Status", "data": function (data) {
+                 //        if (data.Status == 1) {
+                 //            return '<a href="/Contact/ContactStatus/' + data.id + '/active " class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                 //        }
+                 //        else {
+                 //            return '<a href="/Contact/ContactStatus/' + data.id + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                 //        }
+                 //    }
+                 //},
+                 //{
+                 //    "data": "id", "name": "id", "render": function (data) {
+                 //        return '<a class="details"  href="/Contact/ViewDetails/' + data + '"  title="View User Details"><i class="fa fa-search-plus" style="font-size: large" ></i></a>&nbsp; ' +
+                 //              '<a href="/Contact/Edit/' + data + '" title="Edit Contact"><i class="fa fa-edit" style="font-size: large"></i></a> ' +
+                 //              '<a class="modal-delete" href="/Contact/delete/' + data + '" title="Delete Contact"><i class="fa fa-trash" style="font-size: large"></i></a>';
+                 //    }
+                 //},
+                  {
+                      "name": "id", "data": function (data) {
+                          var rest = "";
+                          var tmp = "";
+                          @{
+                              if (User.IsInRole("Dev") || User.IsInRole("View Contact"))
+                              {
+                                  //  actData += "<a class=\"details\" href=\"/Contact/ViewDetails/'+ data.id +'\" title=\"View Contact\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                  actData += "<a class=\"btn btn-icons btn-rounded btn-primary\" href=\"/Contact/Edit/'+ data.id +'\" title=\"Edit Contact\"><i class=\"fa fa-pencil\"></i></a> ";
+                                  actData += "<a class=\"btn btn-icons btn-rounded btn-delete\" href=\"javascript:void(0)\" title=\"Delete Contact\" onclick=\"ajaxDelete('+data.id+')\"><i class=\"fa fa-trash\"></i></a> ";
+                              }
+                           }
+                         rest += '@Html.Raw(actData)';
+                          if (data.EdByGroup == 0) {
+                              @{
+                                  //if (User.IsInRole("Dev") || User.IsInRole("View Contact"))
+                                  //{
+                                  //    actData += "<a class=\"details\" href=\"/Contact/ViewDetails/'+ data.id +'\" title=\"View Contact\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                  //}
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit Contact"))
+                                  {
+                                      actData += "<a href=\"/Contact/Edit/'+ data.id +'\" title=\"Edit Contact\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                  }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete Contact"))
+                                  {
+                                      actData += "<a class=\"modal-delete\" href=\"/Contact/Delete/'+ data.id +'\" title=\"Delete Contact\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                              return rest = '@Html.Raw(actData)';
+                          }
+                          return rest;
+                      }
+                  },
+                   {
+                       "name": "id", "data": function (data) {
+                           var rest = "";
+                           @{
+                                       if (User.IsInRole("Dev") || User.IsInRole("Delete Contact"))
+                                       {
+                                           delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                                       }
+                                   }
+                           return rest = '@Html.Raw(delchk)';
+                       }
+                   },
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Suppliers </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Contacts",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+            @Html.Raw(deleteBTn)
+            ],
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+        var chkcol = '@userRole';
+        var column1 = oTable.column(2);
+        column1.visible(false);
+        var column1 = oTable.column(3);
+        column1.visible(false);
+        var column1 = oTable.column(4);
+        column1.visible(false);
+        if (chkcol == "True") {
+            var column1 = oTable.column(8);
+            column1.visible(true);
+            $('.dt-button.btn-danger').show();
+        } else {
+            var column1 = oTable.column(8);
+            column1.visible(false);
+            $('.dt-button.btn-danger').hide();
+        }
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+            Table.draw(false);
+        });
+
+
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            Table.draw(false);
+        });
+
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+            Table.draw(false);
+        });
+
+
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                    //location.reload();
+                }
+
+                $('#Name').val("").trigger("change");
+                $('#Group').val("5");
+                $('#Mobile').val("");
+                $('#Phone').val("");
+                $('#Email').val("");
+               // oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        var checkList = document.getElementById('list1');
+
+        /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+        checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+        
+        if (checkList.classList.contains('visible'))
+        
+           checkList.classList.remove('visible');
+         else
+                checkList.classList.add('visible');                      
+        
+        }           
+    
+        /******* Function to hide dropdown checklist while clicking outside it *******/
+        $(document).on("click", function (event) {
+
+            var element = $("#list1");
+
+            if (element !== event.target && !element.has(event.target).length) {
+                  checkList.classList.remove('visible');
+            }            
+        });                
+
+    </script>
+}

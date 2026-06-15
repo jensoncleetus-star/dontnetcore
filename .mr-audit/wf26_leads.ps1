@@ -1,0 +1,7 @@
+Probe 'Leads-leaddashboard'      'Leads/leaddashboard'      @{} 'GET'
+Probe 'Leads-followups'          'Leads/followups'          @{} 'GET'
+Probe 'Leads-leadsnewdashboard'  'Leads/leadsnewdashboard'  @{fromdate='';todate=''} 'GET'
+Probe 'Leads-accountsdashboard'  'Leads/accountsdashboard'  @{} 'GET'
+Probe 'Leads-customerdashboard'  'Leads/customerdashboard'  @{} 'GET'
+Probe 'Leads-cashdashboard'      'Leads/cashdashboard'      @{fromdate='';todate=''} 'GET'
+Probe 'Leads-dashboard'          'Leads/dashboard'          @{} 'GET'

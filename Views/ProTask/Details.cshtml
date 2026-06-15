@@ -1,0 +1,2241 @@
+@using QuickSoft.Models
+@model QuickSoft.ViewModel.ViewProTaskViewModel
+@{
+    ViewBag.Title = "Task Details";
+    ViewBag.SubTitle = "Task Details";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string actStatus = "";
+    string actEdit = "";
+    string actDelete = "";
+    var Loc = "";
+    Uri uriResult;
+    var count = 0;
+    string sdate = "";
+    string Priority = (Model.Priority == "High") ? "text-danger" : (Model.Priority == "Low") ? "text-info" : "text-warning";
+    if (Model.Location != null || Model.Location != "")
+    {
+        Loc = "<iframe src=\"" + Model.Location + "\" width=\"100%\" height=\"150\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>";
+    }
+}
+<style>
+    .form-actions input[value=Cancel] {
+        position: relative;
+        top: 0px !important;
+    }
+
+    #pullsearch {
+        background-color: dodgerblue;
+        color: white;
+    }
+
+    #tabledraw {
+        background-color: palevioletred;
+        color: white;
+    }
+
+    input[type=button] {
+        position: relative;
+        top: 26px;
+    }
+
+    .input-group .input-group-addon {
+        border-radius: 0px 37px 37px 0px !important;
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+        margin-left: -10px !important;
+    }
+
+    .date {
+        height: 34px !important;
+        margin-bottom: 0px;
+    }
+
+    tfoot {
+        font-weight: bold;
+    }
+
+    .sh-styling {
+        /*box-shadow: 5px 8px 16px 5px rgba(0,0,0,0.3);*/
+        box-shadow: -1px -2px 49px 0px rgba(0,0,0,0.1);
+        border-radius: 5px;
+    }
+
+        .sh-styling:hover {
+            box-shadow: -1px -2px 49px 0px rgba(0,0,0,0.3);
+            transform: scale(1.003);
+            -webkit-transition: 0.5s;
+        }
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+@Html.Partial("servicereportprint")
+<script>
+
+</script>
+<div class="box">
+    <div class="box-header">
+        <h2 class="box-title">@Html.DisplayFor(m => m.TaskCode) : @Html.DisplayFor(m => m.TaskName)</h2>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("ProTask List"))
+            {
+                <a class="btn btn-success no-border" href="/ProTask">
+                    <i class="fa fa-fw fa-history"></i> Task List
+                </a>
+            }
+            @if (User.IsInRole("Dev") || User.IsInRole("My ProTask"))
+            {
+                <a class="btn btn-primary no-border" href="/ProTask/MyTask">
+                    <i class="fa fa-fw fa-history"></i> My Task
+                </a>
+            }
+            @if (User.IsInRole("Dev") || User.IsInRole("Create ProTask"))
+            {
+                <a class="btn btn-info no-border" href="/ProTask/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Task
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <section class="content">
+            <div class="row">
+                <div class="col-md-3 sh-styling">
+                    <div class="box box-primary">
+                        <div class="box-body box-profile">
+                            <h4 class="profile-username text-center">@Html.DisplayFor(m => m.TaskName)</h4>
+                            <p class="text-muted text-center">@Html.DisplayFor(m => m.TaskType)</p>
+                            <h4 class="text-center"><span class="label label-info">@Html.DisplayFor(m => m.TaskStatus)</span></h4>
+                            <p class="text-center @Priority"> @Html.DisplayFor(m => m.Priority) Priority</p>
+                            <ul class="list-group list-group-unbordered">
+                                <li class="list-group-item">
+                                    <b>@Html.DisplayFor(m => m.CustType)</b> : <a href="/Customer/Details/@Model.CustomerId">@Model.CustomerName</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Project</b> : @Html.DisplayFor(m => m.ProjectName)
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Assigned To</b>:
+                                    @foreach (var upd in Model.TaskAssign)
+                                    {
+                                        @upd.Empname
+                                    }
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Created By</b> : <a class="pull-right"> @Html.DisplayFor(m => m.CreatedBy) </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Last Updated </b> : <a class="pull-right"> @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.UpDate)) </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Sales Person</b> : <a class="pull-right"> @Html.DisplayFor(m => m.SalesPersonName)</a>
+                                </li>
+                                @if (Model.FieldMap != null && Model.FieldMap.Count > 0)
+                                {
+                                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                                    {
+                                        var fmap = "";
+                                        if (Model.FieldMap[i].Field == "Ref1")
+                                        {
+                                            fmap = Model.Ref1;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref2")
+                                        {
+                                            fmap = Model.Ref2;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref3")
+                                        {
+                                            fmap = Model.Ref3;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref4")
+                                        {
+                                            fmap = Model.Ref4;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref5")
+                                        {
+                                            fmap = Model.Ref5;
+                                        }
+                                        if (@Model.FieldMap[i].FieldName != null && @fmap != null)
+                                        {
+                                            <li class="list-group-item">
+                                                <b> @Model.FieldMap[i].FieldName : </b> @fmap
+                                            </li>
+                                        }
+                                    }
+                                }
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> Start Date</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.StartDate))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> Start Time</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:hh:mm tt}", Model.StartTime))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> End Date</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.EndDate))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> End Time</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:hh:mm tt}", Model.EndTime))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> Created On</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm tt}", Model.CreatedDate))</a>
+                                </li>
+                                @*<li class="list-group-item">
+                                        <b><i class="fa fa-clock-o"></i> Updated Date</b>
+                                        <a class="pull-right"></a>
+                                    </li>*@
+                                @if (Model.Location != null || Model.Location != "")
+                                {
+                                    <li class="list-group-item">
+                                        <b>Location</b> <a class="pull-right"> @Model.Location </a>
+                                    </li>
+                                }
+                                @if (Model.ProLocation != null || Model.ProLocation != "")
+                                {
+                                    <li class="list-group-item">
+                                        <b>Project Location</b> <a class="pull-right"> @Model.ProLocation </a>
+                                    </li>
+                                }
+                            </ul>
+                            @if (User.IsInRole("Dev") || User.IsInRole("Edit ProTask"))
+                            {
+                                <a class="btn btn-info btn-block" href="/ProTask/Edit/@Model.ProTaskId">
+                                    <i class="fa fa-edit"></i> <b>Edit</b>
+                                </a>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+                <!-- /.col -->
+                <div class="col-md-9">
+                    <div class="nav-tabs-custom">
+                        <ul class="nav nav-tabs">
+                            <li class="active"><a href="#lead" data-toggle="tab">@Html.DisplayFor(m => m.CustType)  Details</a></li>
+                            <li><a href="#attach" data-toggle="tab">Attachments</a></li>
+                            <li><a href="#remarks" data-toggle="tab">Remarks</a></li>
+                            <li><a href="#Items" data-toggle="tab">Service Report & Items</a></li>
+                            <li><a href="#ManHour" data-toggle="tab">Man Hour</a></li>
+                            <li><a href="#reminder" data-toggle="tab">Reminders</a></li>
+                            <li><a href="#custactivity" data-toggle="tab">Customer Activity</a></li>
+                            <li><a href="#leadchart" data-toggle="tab">Activity</a></li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="active tab-pane" id="lead">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <h5 class="box-title"><b>@Html.DisplayFor(m => m.CustType) Name</b> :  @Html.DisplayFor(m => m.CustomerName)</h5>
+                                        <h6><b>@Html.DisplayFor(m => m.CustType)</b> Code : @Html.DisplayFor(m => m.CustomerCode)</h6>
+                                        <h6><b>@Html.DisplayFor(m => m.CustType)</b> TaxRegNo : @Html.DisplayFor(m => m.TaxRegNo)</h6>
+                                        <div class="row">
+                                            <div class="box-body">
+                                                <div class="form-group col-md-4">
+                                                    @Html.Label("Location :", null, new { @class = "control-label" })
+                                                    @Html.DisplayFor(m => m.CustLocation)
+                                                </div>
+                                            </div>
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Contact Details</h4>
+                                            </div>
+                                            <div class="box-body">
+                                                @if (Model != null)
+                                                {
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Address :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Address)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("City  :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.City)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Emirate :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.State)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Country :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Country)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Zip :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Zip)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Phone :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Phone)
+                                                    </div>
+                                                    if (Model.mob.Count() > 0)
+                                                    {
+                                                        bool first = true;
+                                                        var mval = "";
+                                                        <div class="form-group col-md-4">
+                                                            @Html.Label("Mobile :", null, new { @class = "control-label" })
+                                                            @foreach (var upd in Model.mob)
+                                                            {
+                                                                mval += (first == true) ? @upd.Num : "," + @upd.Num;
+                                                                first = false;
+                                                            }
+                                                            @mval
+                                                        </div>
+                                                    }
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Fax :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Fax)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Email Id :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.EmailId)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Reference :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Reference)
+                                                    </div>
+                                                    <div class="form-group col-md-4">
+                                                        @Html.Label("Contact Person :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.ContactPerson)
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="box-body">
+                                                <div class="form-group col-md-12">
+                                                    @Html.Label("Task Details : ", null, new { @class = "control-label" })
+                                                    @Html.Raw(Model.TaskDetails)
+                                                </div>
+                                                <div class="form-group col-md-12">
+                                                    @Html.Label("Note: ", null, new { @class = "control-label" })
+                                                    @Html.Raw(Model.Note)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane" id="attach">
+                                <h4>Documents</h4>
+                                @if (Model.LeadcreateDocuments != null)
+                                {
+                                    if (Model.LeadcreateDocuments.Any())
+                                    {
+                                        <div class="row margin-bottom">
+                                            <div class="fileupload fileupload-new" data-provides="fileupload">
+                                                @foreach (var item in Model.LeadcreateDocuments)
+                                                {
+                                                    var x = item.FileName.Split('.');
+                                                    var extn = x[1];
+                                                    var extnf = "";
+                                                    if (item.FileName.Contains("resize_"))
+                                                    {
+                                                        var filez = item.FileName.Split('_');
+                                                        extnf = filez[1];
+                                                    }
+                                                    else
+                                                    {
+                                                        extnf = item.FileName;
+                                                    }
+
+                                                    if (extn == "JPG" || extn == "jpg" || extn == ".jfif" || extn == "png" || extn == "jpeg")
+                                                    {
+
+                                                        <div class="col-sm-2">
+
+                                                            <div class="ace-thumbnails clearfix">
+                                                                <div class="row">
+                                                                    <div class="col-md-6">
+                                                                        <a href="~/uploads/leaddocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" download>
+                                                                            <img width="100" height="100" alt="@Html.DisplayFor(modelItem => item.FileName)" title="Click to Open" src="~/uploads/leaddocuments/@item.FileName" ID="ImgBtn1" class="img-responsive img-fluid" />
+                                                                        </a>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        @Html.DisplayFor(modelnotes => item.notes)
+                                                                    </div>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="col-sm-2">
+
+                                                            <div class="ace-thumbnails clearfix">
+                                                                <a href="~/uploads/leaddocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" download>
+                                                                    <img width="100" height="100" alt="@Html.DisplayFor(modelItem => item.FileName)" title="Click to Open" src="~/uploads/leadtaskdocuments/docavatar.png" ID="ImgBtn1" class="img-responsive img-fluid" />
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    }
+
+
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                @if (Model.TaskDocuments != null)
+                                {
+                                    if (Model.TaskDocuments.Any())
+                                    {
+                                        var Acount = 0;
+                                        @*<div class="row">
+                                            <div class="fileupload fileupload-new" data-provides="fileupload" style="box-sizing: border-box;">*@
+
+                                        <div class="row">
+                                            @foreach (var item in Model.TaskDocuments)
+                                            {
+                                                Acount++;
+                                                if (item.FileName != "")
+                                                {
+                                                    var x = item.FileName.Split('.');
+                                                    var extn = x[1];
+
+                                                    var extnf = "";
+                                                    if (item.FileName.Contains("resize_"))
+                                                    {
+                                                        var filez = item.FileName.Replace("resize_", "");
+                                                        extnf = filez;// filez[1];
+                                                    }
+                                                    else
+                                                    {
+                                                        extnf = item.FileName;
+                                                    }
+                                                    string secext = "";
+                                                    if (item.FileName.Split('.').Count() > 1)
+                                                    {
+                                                        secext = x[1];
+                                                    }
+                                                    //var filename = x[0].Substring(0, x[0].Length - 20) + "." + extn;
+                                                    if ((extn == "jpg" || extn == "jfif" || extn == "png" || extn == "jpeg") || (secext == "jpg" || secext == "jfif" || secext == "png" || secext == "jpeg" || secext == "PNG" || secext == "JPG"))
+                                                    {
+
+
+                                                        <div class="form-group col-md-2 thumblimit" style="margin-bottom: 76px;">
+                                                            <a href="~/uploads/protaskdocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" data-lightbox='@Html.DisplayFor(modelItem => @item.FileName)'>
+                                                                @{
+                                                                    var profileImg = "/uploads/protaskdocuments/thumb_" + extnf;
+                                                                    var absolutePath = LegacyWeb.MapPath(profileImg);
+
+                                                                    if (System.IO.File.Exists(absolutePath))
+                                                                    {
+                                                                        <img alt="@Html.DisplayFor(modelItem => item.FileName)" title="Click to Open" src="~/uploads/protaskdocuments/thumb_@extnf" ID="ImgBtn1" class="img-responsive img-fluid thumblimit" />
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <img alt="@Html.DisplayFor(modelItem => item.FileName)" title="Click to Open" src="~/uploads/protaskdocuments/@extnf" ID="ImgBtn1" class="img-responsive img-fluid thumblimit" />
+
+                                                                    }
+                                                                }
+                                                            </a>
+
+                                                            <a href="/ProTask/showdescription/@item.TaskDocumentId" ID="ImgBtn1" class="modal-create" style="width:100px;"> @extnf</a>
+                                                            <br />
+                                                            <a href="~/uploads/protaskdocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" download class="btn btn-primary btn-xs" style="width:70px;"> download</a>
+                                                            @if (User.IsInRole("Delete ProTask"))
+                                                            {
+                                                                <a class="modal-delete text-red" href="/ProTask/DeleteImage/@Html.DisplayFor(modelItem => item.TaskDocumentId)" title="Delete Image"><i class="fa fa-lg fa-trash"></i></a>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="form-group col-md-2 thumblimit" style="margin-bottom: 76px;">
+                                                            @if (extn == "pdf")
+                                                            {
+                                                                <span>
+                                                                    <a class="modal-create" href="/ProTask/DocView/@Html.DisplayFor(modelItem => item.TaskDocumentId)" ID="ImgBtn1">
+                                                                        <img width="100" height="100" src="~/uploads/protaskdocuments/docavatar.png" ID="ImgBtn1" class="img-responsive" />
+                                                                    </a>
+                                                                </span>
+                                                            }
+                                                            else if (extn == "ogv" || extn == "M4A" || extn == "FLAC" || extn == "MP3" || extn == "MP4" || extn == "WAV" || extn == "WMA" || extn == "AAC" || extn == "ogg" || extn == "opus" || extn == "mpg" || extn == "mpeg")
+                                                            {
+                                                                <span>
+                                                                    <a class="fa fa-microphone fa-5x docwidthfile">
+                                                                    </a>
+                                                                </span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <img width="100" height="100" src="~/uploads/protaskdocuments/docavatar.png" ID="ImgBtn1" class="img-responsive" />
+                                                            }
+
+                                                            <a href="/ProTask/showdescription/@item.TaskDocumentId" ID="ImgBtn1" class="modal-create" style="width:100px;"> @extnf</a>
+                                                            <br />
+                                                            <a href="~/uploads/protaskdocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" download class="btn btn-primary btn-xs" style="width:70px;"> download</a>
+                                                            @if (User.IsInRole("Delete ProTask"))
+                                                            {
+                                                                <a class="modal-delete text-red" href="/ProTask/DeleteImage/@Html.DisplayFor(modelItem => item.TaskDocumentId)" title="Delete Image"><i class="fa fa-lg fa-trash"></i></a>
+                                                            }
+                                                        </div>
+
+
+                                                    }
+                                                }
+                                            }
+                                        </div>
+
+                                        @*</div>
+                                            </div>*@
+                                    }
+                                    else
+                                    {
+                                        @*<div>
+                                                <h3 class="text-danger">
+                                                    No Attachment Found..!!
+                                                </h3>
+                                            </div>*@
+                                    }
+                                }
+                                <hr />
+
+
+
+
+
+
+
+
+
+
+
+                                <div class="tab-pane" id="docattachment">
+                                    <div class="post">
+                                        <div class="user-block">
+                                            <div class="row">
+                                                <div class="box-header with-border">
+                                                    <h4 class="box-title">Documents</h4>
+                                                    <div class="form-group col-md-12">
+                                                        @*@Html.DisplayFor(m => m.TaskDetails)*@
+                                                    </div>
+                                                </div>
+                                                <div class="box-body">
+                                                    <table class="table table-bordered table-hover" id="docattachmentInfo">
+                                                        <thead>
+                                                            <tr class="bg-gray">
+                                                                <td data-priority="2">#</td>
+                                                                <td data-priority="2">
+                                                                    Created Date
+                                                                </td>
+
+                                                                <td data-priority="2">Document Type</td>
+                                                                <td data-priority="1">Notes</td>
+                                                                <td data-priority="1">Download</td>
+                                                                <td data-priority="1">Delete</td>
+
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+
+
+
+                            </div>
+
+
+                            <div class="tab-pane" id="remarks">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Remarks</h4>
+                                                <div class="form-group col-md-12">
+                                                    @*@Html.DisplayFor(m => m.TaskDetails)*@
+                                                </div>
+                                            </div>
+                                            <div class="box-body">
+                                                <table class="table table-bordered table-hover" id="RemarkInfo">
+                                                    <thead>
+                                                        <tr class="bg-gray">
+                                                            <td data-priority="2">#</td>
+                                                            <td data-priority="2">Time</td>
+                                                            <td data-priority="1">Employee</td>
+                                                            <td data-priority="1">Remark</td>
+                                                            <td data-priority="1">TaskStatus</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <div class="tab-pane" id="Items">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <h4>Print Service Report</h4>
+                                            </div>
+                                            <table class="table table-bordered table-hover" id="service">
+                                                <thead>
+                                                    <tr class="bg-gray">
+                                                        <td data-priority="2">S/N</td>
+                                                        <td data-priority="1">Voucher No</td>
+                                                        <td data-priority="1">Created By</td>
+                                                        <td data-priority="1">Date</td>
+
+                                                        <td data-priority="1">Action</td>
+
+                                                    </tr>
+                                                </thead>
+                                                <tbody></tbody>
+                                            </table>
+
+                                        </div>
+                                        <div class="row">
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Items</h4>
+                                                <div class="form-group col-md-12">
+                                                    @*@Html.DisplayFor(m => m.TaskDetails)*@
+                                                </div>
+                                            </div>
+                                            <div class="box-body">
+                                                <table class="table table-bordered table-hover" id="itemtable">
+                                                    <thead>
+                                                        <tr class="bg-gray">
+                                                            <td data-priority="2">S/N</td>
+                                                            <td data-priority="1">Item</td>
+                                                            <td data-priority="1">Unit</td>
+                                                            <td data-priority="1">Qty</td>
+                                                            <td data-priority="1">Unit Price</td>
+                                                            <td data-priority="1">Total Price</td>
+                                                            <td data-priority="1">Action</td>
+
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                    <tfoot>
+                                                        <tr>
+                                                            <th colspan="5">Total</th>
+                                                            <th colspan="1"></th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <div class="tab-pane" id="ManHour">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Man Hour</h4>
+                                                <div class="form-group col-md-12">
+
+                                                    @*@Html.DisplayFor(m => m.TaskDetails)*@
+                                                    <div class="col-md-3">
+                                                        <div id="list1" class="dropdown-check-list" tabindex="100">
+                                                            <span class="anchor" style="z-index:0;">Select Fields</span>
+                                                            <ul class="items">
+                                                                <li><input type="radio" class="check" name="checks" id="liAll" value="all" /> All</li>
+                                                                <li><input type="radio" class="check" name="checks" id="liDate" value="date" /> Date</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-9" id="advsearchlist1">
+
+                                                        <div class="form-group col-md-3" id="searchDate">
+                                                            @Html.Label("Date", null, new { @class = "control-label" })
+                                                            <div class="input-group date">
+                                                                @Html.TextBox("CreDates", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                                                <div class="input-group-addon">
+                                                                    <i class="fa fa-calendar"></i>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-2" align="center" id="search">
+                                                            <input type="button" id="pullsearch" class="btn btn-submit" onclick="calldata()" value="Submit" />
+                                                        </div>
+                                                        <div class="col-md-2" id="close">
+                                                            <input type="button" id="tabledraw" class="btn btn-close" value="Close" />
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="box-body">
+                                                <table class="table table-bordered table-hover" id="manhourtable">
+                                                    <thead>
+                                                        <tr class="bg-gray">
+                                                            <td data-priority="2">S/N</td>
+                                                            <td data-priority="1">Employee Name</td>
+
+                                                            <td data-priority="1">Start Time</td>
+                                                            <td data-priority="1">End Time</td>
+                                                            <td data-priority="1">Duration</td>
+                                                            <td data-priority="1">Action</td>
+
+
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    </tbody>
+                                                    <tfoot>
+                                                        <tr>
+                                                            <td>Total hours</td>
+                                                            <td></td>
+                                                            <td></td>
+                                                            <td></td>
+                                                            <td><div id="Totalmin"></div> </td>
+                                                            <td></td>
+                                                        </tr>
+                                                    </tfoot>
+
+                                                </table>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane" id="reminder">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Reminders</h4>
+                                                <div class="form-group col-md-12">
+                                                    @*@Html.DisplayFor(m => m.TaskDetails)*@
+                                                </div>
+                                            </div>
+                                            <div class="box-body">
+                                                <table class="table table-bordered table-hover" id="RemindInfo">
+                                                    <thead>
+                                                        <tr class="bg-gray">
+                                                            <td>SI No</td>
+                                                            <td>Type</td>
+                                                            <td>Note</td>
+                                                            <td>Date</td>
+                                                            <td>Created By</td>
+                                                            <td>Status</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            @*timeline*@
+
+                            <div class="tab-pane" id="custactivity">
+                                <div class="col-sm-12">
+                                    <div class="box-header with-border">
+                                    </div>
+                                    <div class="box-body">
+                                        @if (Model.CustTimeLine.Any())
+                                        {
+                                            <ul class="timeline timeline-inverse">
+                                                @foreach (var upd in Model.CustTimeLine)
+                                                {
+                                                    var color = "";
+                                                    var updby = "";
+                                                    if (upd.LogType == "Created")
+                                                    {
+                                                        color = "bg-green";
+                                                        updby = "Created by";
+                                                    }
+                                                    else if (upd.LogType == "Updated")
+                                                    {
+                                                        color = "bg-orange";
+                                                        updby = "Updated by";
+                                                    }
+                                                    else if (upd.LogType == "Remark Added")
+                                                    {
+                                                        color = "bg-teal";
+                                                        updby = "Remark";
+                                                    }
+                                                    else if (upd.LogType == "Assigned")
+                                                    {
+                                                        color = "bg-purple";
+                                                        updby = "Remark";
+                                                    }
+                                                    else if (upd.LogType == "Unassigned")
+                                                    {
+                                                        color = "bg-red";
+                                                        updby = "Remark";
+                                                    }
+                                                    <li class="time-label">
+                                                        <span class="@color">
+                                                            @Convert.ToString(string.Format("{0:dd-MM-yyyy }", upd.Time))
+
+                                                        </span>
+                                                    </li>
+                                                    <li>
+                                                        <i class="fa fa-tasks bg-blue"></i>
+                                                        <div class="timeline-item">
+                                                            <span class="time"><i class="fa fa-clock-o"></i>@Convert.ToString(string.Format("{0:hh:mm tt}", upd.Time))</span>
+                                                            <h3 class="timeline-header"><a>@upd.LogType</a></h3>
+                                                            @if (upd.LogType == "Created")
+                                                            {
+                                                                <h3 class="timeline-header">@upd.Details  </h3>
+                                                            }
+                                                            else if (upd.LogType == "Updated")
+                                                            {
+
+                                                                <h3 class="timeline-header"> @upd.Details</h3>
+                                                            }
+                                                            else if (upd.LogType == "Remark Added")
+                                                            {
+                                                                <h3 class="timeline-header">@upd.Details </h3> @*by @upd.Name*@
+                                                            }
+
+                                                            else if (upd.LogType == "Assigned")
+                                                            {
+                                                                <h3 class="timeline-header">@upd.Details </h3> @*by @upd.Name*@
+                                                            }
+
+                                                            else if (upd.LogType == "Unassigned")
+                                                            {
+                                                                <h3 class="timeline-header">@upd.Details </h3> @*by @upd.Name*@
+                                                            }
+                                                            <div class="timeline-footer">
+                                                                @if (upd.LogType == "Remark Added")
+                                                                {
+                                                                    <span>  Added By : @upd.Name </span>
+                                                                }
+                                                                else if (upd.LogType == "Assigned")
+                                                                {
+                                                                    <span>  Assigned By : @upd.Name </span>
+                                                                }
+                                                                else if (upd.LogType == "Unassigned")
+                                                                {
+                                                                    <span> Un Assigned By : @upd.Name </span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span> @updby : @upd.Name </span>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="tab-pane" id="leadchart">
+                                @if (Model.TaskTimeLine.Any())
+                                {
+                                    DateTime? seldate = null;
+                                    string seldatetime = null;
+                                    <ul class="timeline timeline-inverse">
+                                        @foreach (var upd in Model.TaskTimeLine)
+                                        {
+                                            <!-- timeline time label -->
+                                            var color = "";
+                                            var updby = "";
+                                            if (upd.LogType == "Created")
+                                            {
+                                                color = "bg-green";
+                                                updby = "Created by";
+                                            }
+                                            else if (upd.LogType == "Updated")
+                                            {
+                                                color = "bg-orange";
+                                                updby = "Updated by";
+                                            }
+                                            else if (upd.LogType == "Remark Added")
+                                            {
+                                                color = "bg-teal";
+                                                updby = "Remark";
+                                            }
+                                            else if (upd.LogType == "Image Uploaded")
+                                            {
+                                                color = "bg-purple";
+                                            }
+                                            else if (upd.LogType == "Assigned")
+                                            {
+                                                color = "bg-purple";
+                                                updby = "Remark";
+                                            }
+                                            else if (upd.LogType == "Unassigned")
+                                            {
+                                                color = "bg-red";
+                                                updby = "Remark";
+                                            }
+                                            else if (upd.LogType == "Removed")
+                                            {
+                                                color = "bg-red";
+                                                updby = "Remark";
+                                            }
+                                            if (upd.LogType == "Reminder")
+                                            {
+                                                color = "bg-blue";
+                                                updby = "Status";
+                                            }
+
+                                            var datesss = Convert.ToDateTime(upd.Time).Date;
+                                            if (seldate != datesss)
+                                            {
+                                                <li class="time-label">
+                                                    <span class="@color">
+                                                        @Convert.ToString(string.Format("{0:dd-MM-yyyy }", upd.Time))
+                                                    </span>
+                                                </li>
+                                            }
+
+                                            seldate = Convert.ToDateTime(upd.Time).Date;
+                                            seldatetime = upd.Time.ToString("dd/MM/yyyy HH:MM:ss");
+                                            <li>
+                                                <i class="fa fa-tasks @color"></i>
+                                                <div class="timeline-item">
+                                                    <span class="time"><i class="fa fa-clock-o"></i>@Convert.ToString(string.Format("{0:hh:mm tt}", upd.Time))</span>
+                                                    <h3 class="timeline-header"><a>@upd.LogType</a></h3>
+                                                    @if (upd.LogType == "Remark Added" || upd.LogType == "Image Uploaded")
+                                                    {
+                                                        if (@upd.TStatus != "")
+                                                        {
+                                                            <h3 class="timeline-header">Status : <span> @upd.TStatus  </span></h3>
+                                                        }
+                                                        if (upd.LogType == "Remark Added")
+                                                        {
+                                                            <h4 class="timeline-header"> Remark : <span> @Html.Raw(upd.Details)</span></h4>
+                                                        }
+                                                        if (@upd.RImages.Count != 0)
+                                                        {
+                                                            var ICount = 0;
+
+                                                            <div class="row docwidthfile">
+                                                                @foreach (var item in @upd.RImages)
+                                                                {
+                                                                    ICount++;
+
+
+                                                                    if (@item.FileName != null && @item.FileName != "" && @item.TaskImageId != 0)
+                                                                    {
+                                                                        if (@upd.RImages.Count == 1)
+                                                                        {
+                                                                            <p>Attachments :<span> </span></p>
+                                                                        }
+                                                                        var x = item.FileName.Split('.');
+
+                                                                        var extn = x[1];
+                                                                        var extnf = "";
+                                                                        if (item.FileName.Contains("resize_"))
+                                                                        {
+                                                                            var filez = item.FileName.Split('_');
+                                                                            extnf = filez[1];
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            extnf = item.FileName;
+                                                                        }
+
+                                                                        //var filename = x[0].Substring(0, x[0].Length - 20) + "." + extn;
+
+                                                                        <div class="form-group col-md-2 thumblimit" style="margin-bottom: 76px;">
+                                                                            @if (extn == "jpg" || extn == "jfif" || extn == "png" || extn == "jpeg")
+                                                                            {
+                                                                                <a href="~/uploads/protaskdocuments/@Html.DisplayFor(modelItem => @item.FileName)" ID="ImgBtn1" data-lightbox='@Html.DisplayFor(modelItem => @item.FileName )' )'>
+                                                                                    <img width="100" height="100" alt="@Html.DisplayFor(modelItem => @item.FileName)" title="Click to Open" src="~/uploads/protaskdocuments/thumb_@extnf" ID="ImgBtn1" class="img-responsive img-fluid thumblimit" />
+                                                                                </a>
+                                                                                <a href="/ProTask/showdescription/@item.TaskImageId" ID="ImgBtn1" class="modal-create" style="width:70px;"> Descrip.</a>
+                                                                            }
+                                                                            else if (extn == "ogv" || extn == "M4A" || extn == "FLAC" || extn == "MP3" || extn == "MP4" || extn == "WAV" || extn == "WMA" || extn == "AAC" || extn == "ogg" || extn == "opus" || extn == "mpg" || extn == "mpeg")
+                                                                            {
+                                                                                <span>
+                                                                                    <a class="fa fa-microphone fa-5x">
+                                                                                    </a>
+                                                                                </span>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                if (count == 0)
+                                                                                {
+                                                                                    <p>Attachments :<span> </span></p>
+                                                                                }
+
+                                                                                <div class="form-group col-md-2 thumblimit" style="margin-bottom: 76px;">
+                                                                                    <img width="100" height="100" src="~/uploads/protaskdocuments/docavatar.png" ID="ImgBtn1" class="img-responsive img-fluid thumblimit" />
+                                                                                    <a href="~/uploads/protaskdocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" download class="btn btn-primary btn-xs" style="width:100px;"> download</a>
+                                                                                </div>
+
+                                                                                count++;
+                                                                            }
+                                                                            <a href="~/uploads/protaskdocuments/@Html.DisplayFor(modelItem => item.FileName)" ID="ImgBtn1" download class="btn btn-primary btn-xs" style="width:100px;"> download</a>
+                                                                            <a href="/ProTask/showdescription/@item.TaskImageId" ID="ImgBtn1" class="modal-create" style="width:70px;"> Descrip.</a>
+
+                                                                        </div>
+                                                                    }
+
+                                                                }
+
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+
+                                                        }
+
+                                                    }
+
+                                                    @if (@upd.check != null && @upd.check.Count() > 0)
+                                                    {
+                                                        var ICount = 0;
+                                                        <div class="row timeline-header">
+                                                            <ul class="list-unstyled">
+                                                                @foreach (var item in @upd.check)
+                                                                {
+                                                                    ICount++;
+
+                                                                    if (item.Name != null && item.Name != "")
+                                                                    {
+                                                                        <li>
+                                                                            &nbsp;&nbsp;&nbsp; @Html.CheckBoxFor(modelItem => item.Chck)&nbsp;&nbsp;
+                                                                            @Html.DisplayFor(modelItem => item.Name)
+                                                                        </li>
+
+                                                                        if (item.Note != null)
+                                                                        {
+                                                                            <li>
+                                                                                &emsp;&emsp;&nbsp;
+                                                                                @Html.Label("Note: ")
+                                                                                @Html.DisplayFor(modalItem => item.Note)
+
+                                                                            </li>
+                                                                        }
+                                                                    }
+                                                                }
+                                                            </ul>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+
+                                                    }
+                                                    @*<h3 class="timeline-header"> Remark : @upd.Details </h3>*@
+                                                    @if (upd.LogType == "Created")
+                                                    {
+                                                        var username = "";
+                                                        var delby = "";
+                                                        var asby = "";
+                                                        bool second = true;
+                                                        bool first = true;
+                                                        <h3 class="timeline-header">@upd.Details  </h3>
+                                                        foreach (var tskasign in Model.TaskAssignedVModel)
+                                                        {
+                                                            string newseldate = tskasign.Time.ToString("dd/MM/yyyy HH:MM:ss");
+                                                            if (newseldate == seldatetime)
+                                                            {
+                                                                username = tskasign.Name;
+                                                                if (tskasign.LogType == "Removed")
+                                                                {
+                                                                    delby += (first == true) ? tskasign.Details : " , " + tskasign.Details;
+                                                                    first = false;
+                                                                }
+                                                                else
+                                                                {
+                                                                    asby += (second == true) ? tskasign.Details : " , " + tskasign.Details;
+                                                                    second = false;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        if (@asby != "")
+                                                        {
+                                                            <h3 class="timeline-header"><span class="text-green"> @username</span> Assigned To <span class="text-green">@asby</span></h3>
+                                                        }
+                                                        if (@delby != "")
+                                                        {
+                                                            <h3 class="timeline-header"><span class="text-red"> @username</span> Removed <span class="text-red">@delby</span></h3>
+                                                        }
+                                                    }
+                                                    @if (upd.LogType == "Reminder")
+                                                    {
+                                                        <h3 class="timeline-header">@upd.Details  </h3>
+                                                    }
+                                                    else if (upd.LogType == "Updated")
+                                                    {
+                                                        var username = "";
+                                                        var delby = "";
+                                                        var asby = "";
+                                                        bool second = true;
+                                                        bool first = true;
+                                                        <h3 class="timeline-header"> @upd.Details</h3>
+                                                        foreach (var tskasign in Model.TaskAssignedVModel)
+                                                        {
+                                                            string newseldate = tskasign.Time.ToString("dd/MM/yyyy HH:MM:ss");
+                                                            if (newseldate == seldatetime)
+                                                            {
+                                                                username = tskasign.Name;
+                                                                if (tskasign.LogType == "Removed")
+                                                                {
+                                                                    delby += (first == true) ? tskasign.Details : " , " + tskasign.Details;
+                                                                    first = false;
+                                                                }
+                                                                else
+                                                                {
+                                                                    asby += (second == true) ? tskasign.Details : " , " + tskasign.Details;
+                                                                    second = false;
+                                                                }
+                                                            }
+                                                        }
+                                                        if (@asby != "")
+                                                        {
+                                                            <h3 class="timeline-header"><span class="text-green"> @username</span> Assigned To <span class="text-green">@asby</span></h3>
+                                                        }
+                                                        if (@delby != "")
+                                                        {
+                                                            <h3 class="timeline-header"><span class="text-red"> @username</span> Removed <span class="text-red">@delby</span></h3>
+                                                        }
+                                                    }
+                                                    else if (upd.LogType == "Remark Added")
+                                                    {
+                                                        var username = "";
+                                                        var delby = "";
+                                                        var asby = "";
+                                                        bool second = true;
+                                                        bool first = true;
+                                                        foreach (var tskasign in Model.TaskAssignedVModel)
+                                                        {
+                                                            string newseldate = tskasign.Time.ToString("dd/MM/yyyy HH:MM:ss");
+                                                            if (newseldate == seldatetime)
+                                                            {
+                                                                username = tskasign.Name;
+                                                                if (tskasign.LogType == "Removed")
+                                                                {
+                                                                    delby += (first == true) ? tskasign.Details : " , " + tskasign.Details;
+                                                                    first = false;
+                                                                }
+                                                                else
+                                                                {
+                                                                    asby += (second == true) ? tskasign.Details : " , " + tskasign.Details;
+                                                                    second = false;
+                                                                }
+
+                                                            }
+                                                        }
+
+                                                        if (@asby != "")
+                                                        {
+                                                            <h3 class="timeline-header"><span class="text-green"> @username</span> Assigned To <span class="text-green">@asby</span></h3>
+                                                        }
+                                                        if (@delby != "")
+                                                        {
+                                                            <h3 class="timeline-header"><span class="text-red"> @username</span> Removed <span class="text-red">@delby</span></h3>
+                                                        }
+
+                                                    }
+
+                                                    @*else if (upd.LogType == "Assigned")
+                                                        {
+                                                            <h3 class="timeline-header">@upd.Details </h3>
+                                                        }*@
+
+                                                    else if (upd.LogType == "Unassigned")
+                                                    {
+                                                        <h3 class="timeline-header">@upd.Details </h3> @*by @upd.Name*@
+                                                    }
+                                                    else if (upd.LogType == "Removed")
+                                                    {
+                                                        <h3 class="timeline-header">@upd.Details </h3> @*by @upd.Name*@
+                                                    }
+                                                    <div class="timeline-footer">
+                                                        @if (upd.LogType == "Remark Added")
+                                                        {
+                                                            <p>Added By : <span> @upd.Name</span></p>
+                                                        }
+                                                        else if (upd.LogType == "Image Uploaded")
+                                                        {
+                                                            <span> Added By : @upd.Name </span>
+                                                        }
+                                                        @*else if (upd.LogType == "Assigned")
+                                                            {
+                                                                <span>  Assigned By : @upd.Name </span>
+                                                            }
+                                                            else if (upd.LogType == "Unassigned")
+                                                            {
+                                                                <span> Un Assigned By : @upd.Name </span>
+                                                            }*@
+                                                        else if (upd.LogType != "Assigned" && upd.LogType != "Removed")
+                                                        {
+                                                            <span> @updby : @upd.Name </span>
+                                                        }
+
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+
+
+                        </div>
+                        <!-- /.tab-content -->
+                    </div>
+                    <!-- /.nav-tabs-custom -->
+                </div>
+                <!-- /.col -->
+            </div>
+            <!-- /.row -->
+
+        </section>
+    </div>
+</div>
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/lightbox")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/lightbox")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#advsearchlist1').hide();
+
+        });
+
+
+        $(document).ready(function () {
+
+
+
+            var ID = getQueryString('');
+            var pTable = $('#RemarkInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/ProTask/GetAllRemarks',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { TaskId: ID }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                     { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                  { "data": "empnae", "name": "empnae" },
+                  { "data": "Remark", "name": "Remark" },
+                  { "data": "Status", "name": "Status" },
+                ],
+            });
+            pTable.destroy();
+
+            var serviceTable = $('#service').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/ProTask/getservicereport',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { protaskid : ID }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                    {
+                        "data": "servicereportid", "name": "servicereportid",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+
+                    { "name": "servicereportid", "data": "servicereportid" },
+                    { "data": "createdby", "name": "createdby" },
+                    {
+                        "name": "starttime", "data": function (data) {
+
+                            return convertToDate(data.starttime);
+
+                        }
+                    },
+
+                    {
+                        "name": "servicereportid", "data": function (data) {
+                            var rest = "";
+
+                            @{
+
+                                actData = "";
+
+                                actData += "<a  href=\"javascript:void(0)\" title=\"Print \" onclick=printreport('+data.servicereportid+')><i class=\"fa fa-lg fa-print\" ></i></a> ";
+
+                                if (User.IsInRole("Enable Delete Item Option In Task Details"))
+                                {
+
+
+
+                                    actData += "<a class=\"modal-delete\" href=\"/ProTask/deleteservicerepot/'+ data.servicereportid +'\" title=\"Delete \" onclick=\" return confirm(\"Are you Sure Want to Delete?\")\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+
+                                }
+
+}
+                            rest += '@Html.Raw(actData)';
+                            if (data.deleteoption == "1") {
+                                rest = "";
+                            @{
+
+                                actData = "";
+
+                                actData += "<a  href=\"javascript:void(0)\" title=\"Print \" onclick=printreport('+data.servicereportid+')><i class=\"fa fa-lg fa-print\" ></i></a> ";
+
+
+
+
+
+                                    actData += "<a class=\"modal-delete\" href=\"/ProTask/deleteservicerepot/'+ data.servicereportid +'\" title=\"Delete \" onclick=\" return confirm(\"Are you Sure Want to Delete?\")\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+
+
+
+}
+                            }
+                            if (data.editoption == "1") {
+                                @{
+
+                                    actData += "<a  href=\"/ProTask/EditService/'+data.servicereportid+'\" title=\"Edit \" ><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+
+                            return rest;
+                        }
+                    },
+                ],
+            });
+            serviceTable.destroy()
+            var docTable = $('#docattachmentInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/ProTask/GetAllDocuments',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { TaskId: ID }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                    {
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                    { "data": "docname", "name": "docname" },
+                    { "data": "Notes", "name": "Notes" },
+                    {
+                        "name": "download", "data": function (data) {
+                            var rest = '';
+                             @{
+                     actData = "<a class=\"details\" href=\"/uploads/protaskdocuments/'+ data.filename +'\" title=\"download\" target=\"_blank\"><i class=\"fa-lg fa fa-download\"  ></i></a> ";
+                              }
+                            var rest2 = '@Html.Raw(actData)'
+
+                            return rest2;
+                        }
+                    },
+                      {
+                        "name": "download", "data": function (data) {
+                            var rest = '';
+                             @{
+                     actData = "<a class=\"modal-delete\" href=\"/ProTask/DeleteDocument/'+ data.id +'\" title=\"Delete\" ><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                              }
+                            var rest2 = '@Html.Raw(actData)'
+                              @{
+                                  actData = "";
+                              }
+                              return rest2;
+
+                        }
+                    },
+
+                ],
+            });
+            docTable.destroy();
+
+
+            var itable = $('#itemtable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+                responsive: true,
+                "ajax": {
+                    "url": '/ItemTask/Gettaskitems',
+                    "data": function (data) {
+                        data.protaskid = ID;
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "columnDefs": [{
+                    "targets": [5],
+                    "orderable": false
+                }],
+                "columns": [
+                    {
+                        "data": "fieldmcid", "name": "fieldmcid",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "ItemName", "name": "ItemName" },
+                    { "data": "unit", "name": "unit" },
+                    //{ "data": "qty", "name": "qty" },
+     {
+         "name": "qty", "data": function (data) {
+             var temp3;
+             if (data.crntUnit == data.primaryUnit) {
+                 temp3 = data.qty;// + " " + data.PriUnitName;
+             }
+             else if (data.crntUnit == data.secondaryUnit) {
+                 temp3 = data.qty;// + " " + data.SubUnitName;
+             }
+             else {
+                 temp3 = data.qty;
+             }
+             return temp3;
+         }
+     },
+                    //{ "data": "UnitPrice", "name": "UnitPrice" },
+    {
+        "name": "UnitPrice", "data": function (data) {
+            var temp;
+            if (data.crntUnit == data.primaryUnit) {
+                temp = data.UnitPrice;
+            }
+            else if (data.crntUnit == data.secondaryUnit) {
+                temp = (data.UnitPrice / data.ConFactor);
+            }
+            else {
+                temp = data.UnitPrice;
+            }
+             temp = data.UnitPrice;
+            return temp;
+        }, render: $.fn.dataTable.render.number(",", ".", 2),
+    },
+                    {
+
+
+                        "name": "login duration", "data": function (data) {
+                            var temp2;
+                            if (data.crntUnit == data.primaryUnit) {
+                                temp2 = data.UnitPrice;
+                            }
+                            else if (data.crntUnit == data.secondaryUnit) {
+                                temp2 = parseFloat((data.UnitPrice / data.ConFactor)).toFixed(2);
+
+                            }
+                            else {
+                                temp2 = data.UnitPrice;
+                            }
+                              temp2 = data.UnitPrice;
+                            var total = temp2 * data.qty;
+                            return total;
+                        },render: $.fn.dataTable.render.number(",", ".", 2),
+                    },
+                    {
+                        "name": "fieldmcid", "data": function (data) {
+                            var rest = "";
+
+                            @{
+                                if (User.IsInRole("Enable Delete Item Option In Task Details"))
+                                {
+
+                                    actData = "";
+
+                                    actData += "<a class=\"modal-delete\" href=\"/ItemTask/Deletenew/'+ data.ItemId +'?protraskid='+data.protaskid+'\" title=\"Delete \"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+
+                                }
+}
+                            return rest = '@Html.Raw(actData)';
+
+                        }
+                    },
+
+                ],
+                dom: 'Bfrtip',
+                buttons: ['colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Lead Level</h4></th></tr>' +
+                            ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', 'excel',
+                    {
+                        extend: 'pdf',//
+                        title: "Lead Level",
+                        footer: true,
+                        orientation: 'landscape',
+
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                        }
+                    },
+                    @*@Html.Raw(deleteBTn)*@
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[50, 100, 100000], [50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+
+                    var table = $('#itemtable').DataTable();
+                    if (!table.data().any()) {
+                        $('#itemtable tfoot').hide();
+                    } else {
+                        $('#itemtable tfoot').show();
+                    }
+                },
+                //"drawCallback": function (settings) {
+                //    var table = $('#UserTable').DataTable();
+                //    if (!table.data().any()) {
+                //        $("#sub").hide();
+                //    } else {
+                //        $("#sub").show();
+                //    }
+                //},
+
+            });
+
+            // itable.destroy();
+
+
+
+
+            var oTablee = $('#manhourtable').DataTable({
+
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                //"sortable": true,
+                "ordering": true,
+                "searching": false,
+                responsive: true,
+                "bLengthChange": false,
+
+                "ajax": {
+                    "url": '/ProTask/Getmanhour',
+                    "data": function (data) {
+                        data.protaskid = ID;
+                        data.stDate = $('#CreDates').val();
+                        temp2 = 0;
+                        temp = 0;
+                        m = 0;
+                        i = 0;
+                    },
+
+                        "type": "POST",
+                        "datatype": "json"
+
+                    },
+                "order": [[0, "desc"]],
+
+                    "autoWidth": false,
+                "columnDefs":[{"className":"dt-center","targets":"_all"}],
+                    "columns": [
+
+                        {
+                            "width": "10%",
+                            "data": "Id", "name": "Id",
+                            "render": function (data, type, row, meta) {
+                                totalminutes = 0;
+
+
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        {
+                            "width": "30%",
+                            "data": "empname", "name": "empname"
+                        },
+                        {
+                            "data": "starttime", "name": "starttime", "render": function (data) {
+                                if(data == null) {
+                                    return "Date Not Available";
+                                }
+                                else {
+                                    return convertDateTimeYMD2(data,"YYYY-MM-DD HH:mm");
+                                }
+                            }
+                        },
+                        {
+                            "data": "endtime", "name": "endtime", "render": function (data) {
+                                if (data == null) {
+                                    return "";
+                                }
+                                else {
+                                    return convertDateTimeYMD2(data, "YYYY-MM-DD HH:mm");
+                                }
+                            }
+                        },
+                        {
+                            "name": "login duration", "data": function (data) {
+                                if (1==2) {
+                                    return '<i class="badge bg-green" style="font-size: small" >logged in</i>';
+                                }
+                                else {
+                                    var totalRecords = $("#manhourtable").DataTable().page.info().recordsTotal;
+                                    var logdate = convertDateTimeYMD(data.starttime);
+                                    var Expdate = convertDateTimeYMD(data.endtime);
+                                    /*Expdate = Date.parse(Expdate);*/
+                                    /*today = Date.parse(today);*/
+                                    var convertedexpdate = Date.parse(Expdate);
+                                    var convertedlogdate = Date.parse(logdate);
+                                    var dif = convertedexpdate - convertedlogdate
+                                    if (temp2 < totalRecords) {
+
+                                        //i += dif;
+
+                                        temp2++
+                                    }
+                                    if (dif < 0) {
+
+                                    }
+                                    var milliseconds = Math.floor((dif % 1000) / 100),
+                                    seconds = Math.floor((dif / 1000) % 60),
+                                    minutes = Math.floor((dif / (1000 * 60)) % 60),
+                                    hours = Math.floor((dif / (1000 * 60 * 60)) % 12);
+                                    hours = data.hours;//(hours < 10) ? "0" + hours : hours;
+                                    minutes = data.minute;// ? "0" + minutes : minutes;
+                                    seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+                                    i = i + data.hours;
+                                    m = m + data.minute;
+                                    //alert("hi" + totalminutes + "ho" + temp)
+                                    //var millisecondss = Math.floor((i % 1000) / 100);
+                                    //secondss = Math.floor((i / 1000) % 60);
+                                    //minutess = Math.floor((i / (1000 * 60)) % 60);
+                                    //hourss = Math.floor((i / (1000 * 60 * 60) % 12));
+                                    //hourss = (hourss < 10) ? "0" + hourss : hourss;
+                                    //minutess = (minutess < 10) ? "0" + minutess : minutess;
+                                    //secondss = (secondss < 10) ? "0" + secondss : secondss;
+                                    document.getElementById("Totalmin").innerHTML = i + Math.trunc(m/60)+ " Hours : " + m%60 + " Minutes";
+
+
+                                    }
+
+
+                                    return hours + " Hours  :  " + minutes + " Minutes";
+                                    //return msToTime(dif);
+
+                            }
+                        },
+                         {
+                             "name": "fieldmcid", "data": function (data) {
+                                 var rest = "";
+
+                                 @{
+                                     if (User.IsInRole("Enable Delete Item Option In Task Details"))
+                                     {
+
+
+
+
+                                         // actData= "<a class=\"modal-create\" href=\"/ProTask/editmanhour/'+ data.empdetailid +'\" title=\"Edit \"><i class=\"fa fa-pencil\" ></i></a> ";
+                                         // actData+= "<a class=\"modal-delete\" href=\"/ProTask/Deletemanhour/'+ data.Id +'\" title=\"Delete \"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                     }
+                                     actData = "";
+}
+                                 return rest = '@Html.Raw(actData)';
+                             }
+                         },
+                ],
+            buttons: [
+               'colvis',
+               {
+                   extend: 'print',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Man Hour';
+                   },
+                   columnDefs: [
+                       { width: 400, targets: 2 }
+                   ],
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   message: function () {
+                       var head = '<table class="tblcompact table table-bordered"><thead>' +
+                       ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Man Hour</h4></th></tr>';
+                       return head;
+                   },
+                   customize: function (win) {
+                       // $(win.document.body)
+                       //.css('font-size', '10pt')
+                       //.css('padding', '1px');
+                       $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                       $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                           .css('font-size', '10pt')
+                           .css('padding', '5px')
+                           .addClass('compact');
+                       $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                           .css('min-width', '80px');
+                       //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                       //    .css('padding', '0px');
+                       $(win.document.body).append('</td></tr></tbody>')
+                   }
+               }, 'copy', 'csv', //'excel',
+               {
+                   extend: 'pdf',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Man Hour';
+                   },
+                   message: function () {
+                       var head = 'Man Hour';
+                       return head;
+                   },
+                   pageSize: 'A4',
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   customize: function (doc) {
+                       doc.pageMargins = [10, 10, 10, 10];
+                       doc.defaultStyle.fontSize = 10;
+                       doc.styles.tableHeader.fontSize = 10;
+                       doc.styles.title.fontSize = 12;
+                       // Header font and bg color
+                       doc.styles.tableHeader.fillColor = '#d3d3d3';
+                       doc.styles.tableHeader.color = 'black';
+                       // Remove spaces around page title
+                       doc.content[0].text = doc.content[0].text.trim();
+
+                       doc.styles['td:nth-child(2)'] = {
+                           width: '100%',
+                           'max-width': '100%'
+                       }
+
+                       var objLayout = {};
+                       // Horizontal line thickness
+                       objLayout['hLineWidth'] = function (i) { return .5; };
+                       // Vertikal line thickness
+                       objLayout['vLineWidth'] = function (i) { return .5; };
+                       //// Horizontal line color
+                       //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                       //// Vertical line color
+                       //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                       // Left padding of the cell
+                       objLayout['paddingLeft'] = function (i) { return 4; };
+                       // Right padding of the cell
+                       objLayout['paddingRight'] = function (i) { return 4; };
+                       // Inject the object in the document
+                       doc.content[1].layout = objLayout;
+                       // Footer font and bg color
+                       doc.styles.tableFooter.fillColor = '#d3d3d3';
+                       doc.styles.tableFooter.color = 'black';
+                   }
+               },
+
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#PoTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            }
+
+
+
+            });
+                //oTablee.destroy();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            var oTable = $('#RemindInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/Reminder/GetReminderbyId',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { types: "Task", refd: ID }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                     {
+                         "data": "ReminderId", "name": "ReminderId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                  { "data": "Type", "name": "Type" },
+                  { "data": "Note", "name": "Note" },
+                  { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertDateTime(data); } else { return "" } } },
+                  { "data": "CreatedBy", "name": "CreatedBy" },
+                  {
+                      "name": "validity", "data": function (data) {
+                          if (data.validity == "Expired") {
+                              return '<i class="badge bg-red" style="font-size: small" >Expired</i>';
+                          }
+                          else {
+                              return '<i class="badge bg-orange" style="font-size: small" >Upcoming</i></a>';
+                          }
+                      }
+                  },
+                ],
+            });
+            oTable.destroy();
+        });
+
+        /* function for delete popup */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            //location.reload();
+        });
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+            window.location.reload();
+        });
+        $('#modal-create,#modal-edit').on('shown.bs.modal', function (e) {
+            $('.date').datepicker({
+
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            $(".timepicker").timepicker({
+                showInputs: true,
+                defaultTime: false,
+                format: 'dd-mm-yyyy'
+            });
+        });
+        var checkList = document.getElementById('list1');
+        /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+        checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+            if (checkList.classList.contains('visible'))
+                checkList.classList.remove('visible');
+            else
+                checkList.classList.add('visible');
+        }
+        $(document).on("click", function (event) {
+
+            var element1 = $("#list1");
+
+            if (element1 !== event.target && !element1.has(event.target).length) {
+                checkList.classList.remove('visible');
+            }
+        });
+        $('.check').change(function () {
+            if ($(this).val() == 'date') {
+                $("#advsearchlist1").show();
+                var datetd = new Date();
+                datetd.setDate(datetd.getDate());
+
+                $('#CreDates').datepicker({
+                    endDate: datetd,
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+
+                var date = new Date();
+                var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                $('#CreDates').datepicker('setDate', today);
+            }
+            else {
+                $('#CreDates').val(null);
+                $("#advsearchlist1").hide();
+                $('#manhourtable').DataTable().draw();
+            }
+        });
+        //$('#pullsearch').on('click', function (e) {
+
+        //    oTablee.draw();
+
+        //});
+        function calldata() {
+            $('#manhourtable').DataTable().draw();
+            document.getElementById("Totalmin").innerHTML ="00 Hours : 00 Minutes";
+
+
+        }
+
+        $('#tabledraw').on('click', function (e) {
+            $('#CreDates').val(null);
+            $('#manhourtable').DataTable().draw();
+            $("#advsearchlist1").hide();
+            $('.check').prop('checked', false);
+        });
+
+        function printreport(serviceid) {
+            var ID = getQueryString('');
+            $.ajax({
+
+                dataType: 'json',
+                type: "POST",
+
+                cache: true,
+                url: "/ProTask/printservicereport",
+
+                data: {srid:serviceid},
+                beforeSend: function () {
+                    //               $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+
+                        printservicereport(e);
+
+                  //      window.location.href = "/ProTask/Details/" + ID;
+
+                }
+            });
+
+
+    }
+    function convertDateTimeYMD2(data, format) {
+        format = typeof format !== 'undefined' ? format : "YYYY-MM-DD hh:mm";
+        var dtStart = new Date(parseInt(data.substr(6)));
+        var dtStartWrapper = moment(dtStart);
+        var am_pm = dtStart.getHours() >= 12 ? "PM" : "AM";
+        var time = dtStartWrapper.format(format);// + " " + am_pm;
+        return time;
+    }
+        function printservicereport(e) {
+            var originalpage = document.body.innerHTML;
+
+            $("#zeal").hide();
+            $("#lblBillNo").text(e.prdata.servicereportid);
+            $("#lblDate").text(convertToDate(e.prdata.date));
+            $("#lblCustomer").text(e.prdata.CustomerName);
+            $("#lblContact").text();
+            $("#lbladdress").text(e.prdata.Addres);
+            $("#lblContactNumber").text();
+            $("#lblemployee").text(e.prdata.Salesperson);
+            $("#lbljobstatus").text(e.prdata.StatusName);
+            $("#lblRemarks").html(e.prdata.remark);
+            $("#lblstarttime").text(convertDateTimeYMD(e.prdata.starttime));
+            $("#lblendtime").text(convertDateTimeYMD(e.prdata.endtime));
+            var assto = "";
+            $.each(e.prdata.AssignedTo, function (i, data) {
+                assto = assto + " , " + data.FirstName + " " + data.LastName;
+            });
+            var str = "";
+            var grandtotal = 0;
+            $.each(e.prdata.itemsused, function (i, data) {
+                str += "<tr>";
+                str += "<td>" + parseFloat(i + 1) + "</td>";
+                str += "<td>" + data.MCName + "</td>";
+                str += "<td>" + data.ItemCode + "</td>";
+                str += "<td>" + data.ItemName + "</td>";
+                str += "<td>" + data.qty + "</td>";
+                str += "<td>" + data.ItemUnitName + "</td>";
+                //str += "<td>" + parseFloat(data.SellingPrice).toFixed(2) + "</td>";
+                //str += "<td>" + parseFloat(data.SellingPrice * data.qty).toFixed(2) + "</td>";
+                str += "</tr>";
+                grandtotal = grandtotal + parseFloat(data.SellingPrice * data.qty);
+            });
+            $("#itemused tbody").html(str);
+            $("#totalamount").html(parseFloat(grandtotal).toFixed(2));
+
+
+            $("#lbltechnicians").text(assto);
+            var jobtype = "";
+            if (e.prdata.jobtypes == "0")
+                jobtype = "AMC";
+            else if (e.prdata.jobtypes == "1") {
+                jobtype = "Under Warrenty";
+            }
+            else if (e.prdata.jobtypes == "2") {
+                jobtype = "Paid Job";
+            }
+
+            $("#lbljobtype").text(jobtype);
+            var paytype = "";
+            if (e.prdata.paytype == "0" && jobtype != "Under Warrenty")
+                paytype = "CASH";
+            else if (e.prdata.paytype == "1") {
+                paytype = "CHEQUE";
+            }
+            else if (e.prdata.paytype == "2") {
+                paytype = "PENDING";
+            }
+            else if (e.prdata.paytype == "3") {
+                paytype = "BANK";
+            }
+            $("#lblpaytype").text(paytype);
+            if (jobtype != "Under Warrenty")
+                $("#lblamountrecieved").text(parseFloat(e.prdata.amount).toFixed(2));
+            else
+                $("#lblamountrecieved").text("");
+            $("#lblcheckno").text(e.prdata.chequenumber);
+            $("#lblbank").text(e.prdata.bankname);
+            var printContent = $('#printit').html();
+            $('title').html("Service Report - " + e.serviceid);
+            $('body').html(printContent);
+
+            window.print();
+
+        }
+
+
+
+    </script>
+}

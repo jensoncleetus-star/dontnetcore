@@ -1,0 +1,761 @@
+@model QuickSoft.Models.FileDocument
+@{
+    ViewBag.Title = "File Documents";
+    ViewBag.SubTitle = "File Documents";
+    ViewBag.Active = "Utility";
+    string actData = "";
+    string actImg = "";
+    string delchk = "";
+    string deleteBTn = "";
+
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Delete FileDocument"))
+    {
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+               "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+                "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style type="text/css">
+    .yellowclass {
+        color: tomato;
+    }
+
+    .redclass {
+        color: red;
+    }
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+<div id="modal-container3" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4>Remarks</h4>
+            </div>
+            <div class="modal-body">
+                <div class="box-body" id="modelview">
+                    <table class="table table-bordered table-hover" id="RemarkInfo">
+                        <thead>
+                            <tr class="bg-gray">
+                                <td>#</td>
+                                <td>Date & Time</td>
+                                <td>Employees</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@*@Html.Partial("_Modules")*@
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">View All Documents</h3>
+        @if (User.IsInRole("Dev") || User.IsInRole("Create FileDocument"))
+        {
+
+        }
+
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="lidocName" />Document Name</li>
+                        <li><input type="checkbox" id="lidoctype" />Document type</li>
+                        <li><input type="checkbox" id="liexpirydate" />Expiry Date</li>
+                        <li><input type="checkbox" id="lireminderdate" />Reminder Date</li>
+                        <li><input type="checkbox" id="licreateddate" />Created Date</li>
+                        <li><input type="checkbox" id="licreatedby" />Created By</li>
+                        @*<li><input type="checkbox" id="listatus" />Status</li>*@
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlistt">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-3" id="searchName">
+                                    @Html.Label("Document Name", null, new { @class = "control-label" })
+                                    @Html.TextBox("ddlName", "", new { @class = "form-control input-sm " })
+                                </div>
+                                <div class="form-group col-md-3" id="searchtype">
+                                    @Html.Label("documenttype", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddltype", (SelectList)ViewBag.typ, "All", new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-3" id="searchexpirydate">
+                                    @Html.Label("Expiry Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("ExpDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3" id="searchreminderdate">
+                                    @Html.Label("Reminder Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("RemDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3" id="searchcreateddate">
+                                    @Html.Label("Created Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("CreDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3" id="searchcreatedby">
+                                    @Html.Label("Created By", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-3" id="searchstatus">
+                                    @Html.Label("Status", null, new { @class = "control-label" })
+                                    @Html.DropDownList("Status", (SelectList)ViewBag.ItStatus, new { @class = "form-control" })
+                                </div>
+                                <div class="col-md-4 col-xs-12 form-group" id="openclose">
+                                    @Html.Label("Open/Close", null, new { @class = "control-label" })
+
+                                    @Html.DropDownList("openclosed", (IEnumerable<SelectListItem>)ViewBag.OpnCls, new { @class = "form-control" })
+                                    @*@Html.DropDownListFor(model => model.OpenClose, (SelectList)ViewBag.OpnCls, new { @class = "form-control" })*@
+                                </div>
+
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="DocumentList">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">Sl No.</td>
+                    <td data-priority="1">Document Name</td>
+                    <td data-priority="1">Document Type</td>
+                    <td data-priority="1">Document Note</td>
+                    <td data-priority="1">Reminder Date</td>
+                    <td data-priority="1">Expiry Date</td>
+                    <td data-priority="1">Created Date</td>
+                    <td data-priority="1">Created By</td>
+                    <td data-priority="1">Status</td>
+                    <td data-priority="1">Last Updated</td>
+                    <td data-priority="1">Actions</td>
+                    <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    @*@if (User.IsInRole("Dev") || User.IsInRole("Delete Supplier"))
+        {
+        <div class="box-footer text-right col-md-12" id="sub">
+            <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+        </div>
+        }*@
+</div>
+
+@*@{var Model = "modal-lg";}*@
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section Scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    <script type="text/javascript">
+        $('div').on('click', 'a.ViewUpdates', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container3');
+            $(this).attr('data-toggle', 'modal');
+        });
+        function detailsRemark(AmcId) {
+            var RequisitionId = AmcId;
+
+            //List all other remarks from table CustomerRemarks
+            var oTable1 = $('#RemarkInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/FileDocument/GetAllRemarksadded',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { RequisitionId: AmcId }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                    {
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                    { "data": "EmpName", "name": "EmpName" },
+                    { "data": "Remarks", "name": "Remarks" },
+                ],
+            });
+
+            oTable1.destroy();
+
+        }
+        $(document).ready(function () {
+            $('#advsearchlistt').hide();
+            $("#openclosed").show();
+            $("#lidocName").click();
+        });
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        var oTable = $('#DocumentList').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "createdRow": function (row, data, dataIndex) {
+                if (data.color == 2) {
+                    $(row).addClass('yellowclass');
+                }
+                else if (data.color == 3) {
+                    $(row).addClass('redclass');
+                }
+                else {
+                    $(row).addClass('blackclass');
+                }
+
+
+            },
+            "ajax": {
+                "url": '/FileDocument/GetmyFileDocuments',
+                "data": function (data) {
+                    data.openclose = $("#openclosed").val();
+                    data.documentName = $('#ddlName').val();
+                    data.documenttype = $('#ddltype').val();
+                    data.document = $('#ddlDoc').val();
+                    data.expdate = $('#ExpDate').val();
+                    data.reminder = $('#RemDate').val();
+                    data.credate = $('#CreDate').val();
+                    data.status = $('#Status').val();
+                    data.user = $('#ddlCreatedBy').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [0, "desc"],
+            //"columnDefs": [{ orderable: false, targets: -1 }],
+            "columnDefs": [{
+                "targets": [10,11],
+                "orderable": false
+            }],
+            "columns": [
+                 {
+                     "data": "color", "name": "color",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+                { "data": "DocumentName", "name": "DocumentName" },
+                { "data": "documenttype", "name": "documenttype" },
+
+                { "data": "Note", "name": "Note" },
+
+                {
+                    "data": "ReminderDate", "name": "ReminderDate",
+                    "render": function (data) {
+                        if (data == null) {
+                            return "";
+                        }
+                        else {
+                            return  convertToDate(data) ;
+                            }
+                    }
+                },
+
+                    {
+                        "data": "ExpiryDate", "name": "ExpiryDate",
+                        "render": function (data) {
+                            if (data == null) {
+                                return "Date Not Available";
+                            }
+                            else {
+                                return convertToDate(data);
+                            }
+                        }
+                },
+
+                    { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertToDate(data); } },
+
+                    { "data": "user", "name": "user" },
+
+                     {
+                         "name": "Status", "data": function (data) {
+                             if (data.ExpiryDate == null) {
+                                 return '<i class="badge bg-green" style="font-size: small" >Active</i>';
+                             }
+                             else {
+                                 var t = new Date();
+                                 var month = t.getMonth() + 1;
+                                 var day = t.getDate();
+                                 var year = t.getFullYear(); ``
+                                 var today = (month < 10 ? '0' : '') + month + '-' +
+                                     (day < 10 ? '0' : '') + day + '-' +
+                                     (year < 13 ? '0' : '') + year;
+                                 //t.getFullYear();
+                                 var Expdate = convertToDateYMD(data.ExpiryDate);
+                                 today = Date.parse(today);
+                                 Expdate = Date.parse(Expdate);
+                                 if (Expdate > today) {
+                                     return '<i class="badge bg-green" style="font-size: small" >Active</i>';
+
+
+                                 }
+                                 else {
+                                     return '<i class="badge bg-red" style="font-size: small" >Expired</i>';
+                                 }
+
+                             }
+                         }
+                     },
+                {
+                    "name": "ldate", "data": function (data) {
+                        var result = "";
+                        if (data.ldate != null) {
+                            result = LastUpdatedIn(data.ldate);
+                        }
+                        return (result);
+                    }
+                },
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit FileDocument"))
+                                {
+                                    actData += "<a class=\"modal-edit\" href=\"/FileDocument/Edit/'+ data.Id +'\" title=\"Edit Document Details\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete FileDocument"))
+                                {
+                                    actData += "<a class=\"modal-delete\" href=\"/FileDocument/Delete/'+ data.Id +'\" title=\"Delete Document\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Download FileDocument"))
+                                {
+                                    actData += "<a class=\"modal-creates\" href=\"/FileDocument/Download/'+ data.Id +'\" title=\"Delete Document\"><i class=\"fa fa-lg fa-download\" ></i></a> ";
+                                }
+                                actData += "<a class=\"btn btn-icons btn-rounded btn-edit modal-create\" href=\"/FileDocument/AddAmcRemark/'+ data.Id +'\" title=\"Add Remarks\"><i class=\" fa fa-plus\" ></i></a> ";
+                                actData += "<a class=\"btn btn-icons btn-rounded btn-remark ViewUpdates\" onclick=\"detailsRemark(' + data.Id + ')\" title=\"View Remarks\"><i class=\" fa fa-eye\" ></i></a> ";
+
+                            }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    },
+                      {
+                          "name": "id", "data": function (data) {
+                              var rest = "";
+                              @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete FileDocument"))
+                                  {
+                                      delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.Id +'></input>";
+                                  }
+                              }
+                              return rest = '@Html.Raw(delchk)';
+                          }
+                      },
+            ], dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Suppliers </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+            {
+                extend: 'pdf',//
+                title: "File Documents",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+
+            @Html.Raw(deleteBTn)
+            ],
+        })
+
+         //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlistt').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+                /*******  To clear all the data entered  *********/
+                //$('#ddlDoc').val(0);
+                $('#ddlName').val(null);
+                $('#ExpDate').val(null);
+                $('#RemDate').val(null);
+                $('#CreDate').val(null);
+                $('#Status').val(null);
+                $('#ddlCreatedBy').val(null);
+                $('#ddltype').val(null);
+                oTable.draw();
+            }
+        });
+
+        $('#ExpDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        $('#CreDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#RemDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 30));
+        //$('#ToDate').datepicker('setDate', today);
+        //$('#FromDate').datepicker('setDate', priordate);
+
+        /* function for view detail popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createForm', function (e) {
+            e.preventDefault();
+            var url = $('#createForm')[0].action;
+            var data = $('#createForm').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('#UserTable').on('click', 'a.modal-image', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+        $('#UserTable').on('click', 'a.modal-image', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+        /* Delete Function for File Document */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+        $('div').on('click', '.modal-creates', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+        isTicked();
+
+        var checkList = document.getElementById('list1');
+       /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+       checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+           if (checkList.classList.contains('visible'))
+               checkList.classList.remove('visible');
+           else
+               checkList.classList.add('visible');
+       }
+
+       /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+       $("ul li input:checkbox").click(function () {
+
+           var _show = 0;
+           //docname
+           if ($("#lidocName").prop("checked") == true) {
+               $("#searchName").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlName').val(null).trigger("change");
+               $("#searchName").hide();
+
+           }
+           //Expiry Date
+           if ($("#liexpirydate").prop("checked") == true) {
+               $("#searchexpirydate").show();
+               _show = 1;
+           }
+           else {
+               $("#ExpDate").val(null);
+               $("#searchexpirydate").hide();
+
+           }
+           if ($("#lireminderdate").prop("checked") == true) {
+               $("#searchreminderdate").show();
+               _show = 1;
+           }
+           else {
+               $("#RemDate").val(null);
+               $("#searchreminderdate").hide();
+
+           }
+
+           //Created Date
+           if ($("#licreateddate").prop("checked") == true) {
+               $("#searchcreateddate").show();
+               _show = 1;
+           }
+           else {
+               $("#CreDate").val(null);
+               $("#searchcreateddate").hide();
+
+           }
+           //docname
+           if ($("#lidoctype").prop("checked") == true) {
+               $("#searchtype").show();
+               _show = 1;
+           }
+           else {
+               $('#ddltype').val(null).trigger("change");
+               $("#searchtype").hide();
+
+           }
+           //Created By
+           if ($("#licreatedby").prop("checked") == true) {
+               $("#searchcreatedby").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlCreatedBy').val(null).trigger("change");
+               $("#searchcreatedby").hide();
+
+           }
+
+           //Status
+           if ($("#listatus").prop("checked") == true) {
+               $("#searchstatus").show();
+               _show = 1;
+           }
+           else {
+               $('#Status').val(null).trigger("change");
+               $("#searchstatus").hide();
+
+           }
+
+           if (_show == 1) {
+               $('#advsearchlistt').show();
+           }
+           else {
+               $('#advsearchlistt').hide();
+           }
+       });
+
+       /******* Function to hide dropdown checklist while clicking outside it ********/
+       $(document).on("click", function (event) {
+
+           var element1 = $("#list1");
+
+           if (element1 !== event.target && !element1.has(event.target).length) {
+               checkList.classList.remove('visible');
+           }
+       });
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+    </script>
+}
+

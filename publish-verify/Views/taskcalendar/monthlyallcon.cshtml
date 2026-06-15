@@ -1,0 +1,376 @@
+@using QuickSoft.Models
+@model QuickSoft.Models.employeetimesheetlist
+
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Time Sheet</h3>
+    </div>
+
+    <div class="box-body">
+
+        @using (Html.BeginForm("monthlyallcon", "taskcalendar", FormMethod.Post, new { id = "popupForm", target = "_new" }))
+        {
+            <div class="form-group col-md-2">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group  col-md-2">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2" id="DDlItemwise">
+                @Html.Label("Employee", null, new { @class = "control-label" })
+
+                @Html.DropDownList("Employee", (SelectList)ViewBag.driver, new { id = "ddldriver", @class = "form-control select2", tabindex = 8, onchange = "calltask()" })
+
+            </div>
+            <div class="form-group col-md-2" id="DDlItemwise" style="display:none">
+                @Html.Label("Without Total Time", null, new { @class = "control-label" })
+
+                @Html.CheckBox("chktotal");
+
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+
+        }
+
+    </div>
+</div>
+
+
+
+@if (Model != null)
+{
+
+
+    if (Model.et.Any())
+    {
+        double totalovertime = 0;
+        double totalhourtotal = 0;
+        string empname = "";
+        double totalabsand = 0;
+        double toalmedical = 0;
+        double totaldayoff = 0;
+        double totalhalfday = 0;
+        double totalleave = 0;
+        double totalworkingdays = 0;
+        double totalholidys = 0;
+        decimal va = 0;
+        long totalshow = ViewBag.withtotal;
+        string negative = "";
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    @{
+                        var emppname = Model.et.FirstOrDefault().EmployeeName;
+                        var header = Model.et.Where(o => o.EmployeeName == emppname).ToList();
+                                        <tr>
+                                            <td><strong>Employee Name</strong></td>
+                                            @foreach (var c in header)
+                                            {
+                                                <td><strong>@c.attdate.Value.Day</strong></td>
+                                            }
+                                            <td><strong>Total Working Days</strong></td>
+                                            <td><strong>Total Absence</strong></td>
+                                            <td><strong>Total Medical</strong></td>
+                                            <td><strong>Total DayOff</strong></td>
+                                            <td><strong>Total Leave</strong></td>
+                                            <td><strong>Total Half</strong></td>
+                                            <td><strong>Total Total Holidyas</strong></td>
+                                        </tr>
+                    }
+
+                </thead>
+                <tbody>
+
+
+                    <tr>
+                        <td><strong></strong></td>
+                        @foreach (var c in header)
+                        {
+                            <td><strong></strong></td>
+                        }
+                        <td><strong></strong></td>
+                        <td><strong></strong></td>
+                        <td><strong></strong></td>
+                        <td><strong></strong></td>
+                        <td><strong></strong></td>
+                        <td><strong></strong></td>
+                        <td><strong></strong></td>
+                        @foreach (var item in Model.et)
+                        {
+
+                            if (empname != item.EmployeeName)
+                            {
+                                if (empname != "")
+                                {
+                                    <td>
+                                        @totalworkingdays
+                                    </td>
+                                    <td>
+                                        @totalabsand
+                                    </td>
+                                    <td>
+                                        @toalmedical
+                                    </td>
+                                    <td>
+                                        @totaldayoff
+                                    </td>
+                                    <td>
+                                        @totalleave
+                                    </td>
+                                    <td>
+                                        @totalhalfday
+                                    </td>
+                                    <td>
+                                        @totalholidys
+                                    </td>
+                                    totalabsand = 0;
+                                    totalworkingdays = 0;
+                                    totalholidys = 0;
+                                    toalmedical = 0;
+                                    totaldayoff = 0;
+                                    totalhalfday = 0;
+                                    totalleave = 0;
+
+                                }
+
+                                totalhourtotal = 0;
+                                totalovertime = 0;
+
+                                @Html.Raw("</tr><tr>");
+                                <td>@item.EmployeeName</td>
+                                empname = item.EmployeeName;
+
+                            }
+                            <td>
+                                @if (item.leavestatus != null && item.leavestatus == 1)
+                                {
+                                    @Html.Raw("<span style='color:green;font-weight:bold'>M<a/>");
+                                    toalmedical++;
+                                }
+                                else if (item.leavestatus != null && item.leavestatus == 2)
+                                {
+                                    @Html.Raw("<span style='color:green;font-weight:bold'>O<a/>");
+                                    totaldayoff++;
+
+                                }
+                                else if (item.leavestatus != null && item.leavestatus == 3)
+                                {
+                                    @Html.Raw("<span style='color:green;font-weight:bold'>L<a/>");
+                                    totalleave++;
+
+                                }
+                                else if (item.leavestatus != null && item.leavestatus == 4)
+                                {
+                                    @Html.Raw("<span style='color:green;font-weight:bold'>Hf<a/>");
+                                    totalhalfday++;
+
+                                }
+                                else
+                                {
+                                    if (item.servocedatefrom == null)
+                                    {
+                                        if (item.attdate.Value.DayOfWeek == DayOfWeek.Sunday || (item.attdate.Value.Day == 1 && item.attdate.Value.Month == 1))
+                                        {
+                                            @Html.Raw("<span style='color:blue;font-weight:bold'>H<a/>");
+                                            totalholidys++;
+                                        }
+                                        else
+                                        {
+                                            @Html.Raw("<span style='color:red;font-weight:bold'>A<a/>");
+                                            totalabsand++;
+                                        }
+
+                                    }
+                                    else
+                                    {
+
+
+
+
+
+                                        @Html.Raw("<span style='color:green;font-weight:bold'>P<a/>");
+                                        totalworkingdays++;
+
+
+
+                                    }
+                                }
+                            </td>
+
+                            totalhourtotal = totalhourtotal + (double)item.totlhour;
+                            totalovertime = totalovertime + (double)item.totalminute;
+                        }
+
+
+                        <td>
+                            @totalworkingdays
+                        </td>
+                        <td>
+                            @totalabsand
+                        </td>
+                        <td>
+                            @toalmedical
+                        </td>
+                        <td>
+                            @totaldayoff
+                        </td>
+                        <td>
+                            @totalleave
+                        </td>
+                        <td>
+                            @totalhalfday
+                        </td>
+                        <td>
+                            @totalholidys
+                        </td>
+                    </tr>
+
+
+                </tbody>
+
+
+            </table>
+
+
+        </div>
+    }
+}
+@*<div class="box box-default" id="StockReport">
+        <div class="box-header with-border">
+            <h3 class="box-title">View Time Sheet</h3>
+        </div>
+        <div class="box-body">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="invoiceno" value="@ViewBag.InvoiceNo" />
+
+            <input type="hidden" id="matcenter" value="@ViewBag.EnableMCcheck" />
+            <input type="hidden" id="Scaffold" value="@ViewBag.BusinessType" />
+            <div class="box-body">
+                <table class="display table table-bordered" id="UserTable">
+                    <thead>
+                        <tr class="bg-gray">
+                            <td data-priority="2">S/N</td>
+                            <td data-priority="1">Employee Name</td>
+                            <td data-priority="2">Date From</td>
+
+                            <td data-priority="2">Date To</td>
+                            <td data-priority="2">Duration</td>
+
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+
+
+                    <tfoot>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div id="Totalmin"></div> </td>
+
+                        </tr>
+                    </tfoot>
+
+
+                </table>
+            </div>
+        </div>
+    </div>*@
+<script>
+
+    var temp2 = 0;
+    var i = 0;
+    var m = 0;
+    function calldata() {
+        // $('#UserTable').DataTable().draw();
+        //document.getElementById("Totalmin").innerHTML = "00 Hours : 00 Minutes";
+
+
+    }
+
+
+    var flag = 0;
+    $('#search-form').on('submit', function (e) {
+
+    });
+
+
+    function reload_table() {
+        oTable.clear().draw();
+        oTable.ajax.reload(null, false);
+    }
+</script>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+
+    <script type="text/javascript">
+                    $('#To').datepicker({
+                        format: 'dd-mm-yyyy',
+                        autoclose: true,
+                        allowInputToggle: true
+                    });
+                    $('#From').datepicker({
+                        format: 'dd-mm-yyyy',
+                        autoclose: true,
+                        allowIngputToggle: true
+                    });
+                    $(document).ready(function () {
+
+                        $("#ddldriver").select2({});
+                        var date = new Date();
+                        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                        var priordate = new Date(new Date().setDate(today.getDate()));
+                        $('#To').datepicker('setDate', today);
+                        if ('@ViewBag.fromdate'=='')
+                            $('#From').datepicker('setDate', priordate);
+                        else
+                            $('#From').datepicker('setDate', '@ViewBag.fromdate');
+                           if ('@ViewBag.todate'=='')
+                            $('#To').datepicker('setDate', priordate);
+                        else
+                            $('#To').datepicker('setDate','@ViewBag.todate');
+                        $('.date').datepicker({
+                            format: 'dd-mm-yyyy',
+                            autoclose: true,
+                            allowInputToggle: true
+                        });
+                    });
+                    var oTable = $('#UserTable').DataTable({
+                        "processing": true, // for show progress bar
+                        "serverSide": false, // for process server side
+                        "filter": false, // this is for disable filter (search box)
+                        "orderMulti": false, // for disable multiple column at once
+                        "bLengthChange": false,
+                        "paging": false,
+                        "deferLoading": 0,
+                        "ordering": false,
+                        //"order": [[0, "asc"]],
+
+                        sDom: "lBfr<'datatable-scroll't>ip"
+                    });
+    </script>
+}

@@ -1,0 +1,158 @@
+@model QuickSoft.Models.vehiclemasterviewmodel
+@{
+    int cnt = 0;
+}
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Create Vehicle</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "VehicleMaster", FormMethod.Post, new { id = "editform" }))
+    {
+        <script type="text/javascript">
+            $('form#popupFormSize').removeData("validator");
+            $('form#popupFormSize').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#popupFormSize'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(m => m.vehicleid);
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Vehicle Name", null, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VechicleName, new { htmlAttributes = new { @class = "form-control", autofocus = "autofocus", @placeholder = " ", @required = "required" } })
+
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Registration Number", null, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.RegistrationNumber, new { htmlAttributes = new { @class = "form-control", autofocus = "autofocus", @placeholder = " ", @required = "required" } })
+
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Per KM Rate", null, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.openingkelometer, new { htmlAttributes = new { @step = ".01", @type = "number", @class = "form-control", autofocus = "autofocus", @placeholder = " ", @required = "required" } })
+
+                </div>
+            </div>
+        </div>
+        <div class="row" style="display:none">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Current KM", null, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.currentkelometer, new { htmlAttributes = new { @type = "number", @class = "form-control", autofocus = "autofocus" } })
+
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.remarks, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.TextAreaFor(model => model.remarks, new { @class = "form-control", autofocus = "autofocus", @style = "width:100%" })
+
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="form-group col-md-12">
+                <input type="button" class="btn btn-info  pull-left" value="Add Reminders(+)" id="btnAddDocu" onclick="AddDocs()" />
+            </div>
+        </div>
+
+        <div id="documents">
+
+            @foreach (var item in (List<QuickSoft.Models.CustomerDocumentViewModel>)ViewBag.cuslists)
+            {
+                List<QuickSoft.Models.DocumentType> doclist = ViewBag.DocList;
+
+            <div class="row" id="docrow@(cnt)">
+
+
+                <div class="form-group col-md-4">
+                    <label class="control-label">Type Of Service</label>
+                    <input id="Type" class="form-control" name="vehilereminder[@(cnt)].note" type="text" value="@item.note" placeholder="Type of service">
+                </div>
+                <div class="form-group col-md-4">
+                    <label class="control-label">Kilometer</label>
+                    <input class="form-control" name="vehilereminder[@(cnt)].km" placeholder="km" type="text" value="@item.km">
+                </div>
+                @*<input class="form-control" name="CustomerDocumentViewModel[@(cnt)].DoucumentType" placeholder="Document Type" type="text" value="@item.">*@
+
+                <div class="form-group col-md-4">
+                    <label class="control-label">Reminder</label>
+                    <input class="form-control date" name="vehilereminder[@(cnt)].reminderdate" placeholder="reminderdae" type="text" value="@item.reminderdate">
+                </div>
+                <a href="javascript:void(0);" class="remove_button"><i style="color:red;" onclick="removeDoc(this)" class="fa fa-trash" aria-hidden="true"></i></a>
+
+            </div>
+
+                   
+
+                cnt++;
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" value="Submit" class="btn btn-info col-sm-offset-4" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+
+
+<script>
+        var docCount = @cnt;
+        function AddDocs() {
+
+            var html = '<div class="row">' +
+                '<div class="form-group col-md-4 ">' +
+
+                '<input class="form-control" name="vehilereminder[' + docCount + '].note" placeholder="Note"  type="text" value="" type="number">' +
+                '</div><div class="form-group col-md-4">' +
+                ' <input type="text" class="form-control" id = "DocumentTypeID" name = "vehilereminder[' + docCount + '].km"  placeholder="Kilometer" tabindex = "30" /> ' +
+
+                '</div><div class="form-group col-md-4">' +
+                '<input class="form-control date" name="vehilereminder[' + docCount + '].reminderdate" placeholder="Reminder Date"  type="text" value="">' +
+                '</div>'+
+                '<a href="javascript:void(0);" class="remove_button"><i style="color:red;" onclick="removeDoc(this)" class="fa fa-trash" aria-hidden="true"></i></a></div>';
+
+            $(html).appendTo($("#documents"));
+            docCount++;
+
+            $('.date').datepicker({
+
+            });
+        }
+    $(document).ready(function () {
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+    });
+    function removeDoc(_this) {
+        var val = $(_this).parent().parent().find('#docrow').val();
+        $(_this).parent().parent().remove();
+  
+    }
+
+
+
+
+</script>

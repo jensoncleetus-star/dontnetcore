@@ -1,0 +1,156 @@
+﻿@{
+    ViewBag.Title = "Task Status";
+    ViewBag.SubTitle = "Task Status";
+    ViewBag.Active = "Master";
+    string actData = "";
+}
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Task Status</h3>
+            <p class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create TaskStatus"))
+            {
+                <a href="/TaskStatus/Create" class="btn btn-info modal-create">
+                <i class="glyphicon glyphicon-plus"></i> Add New</a>
+            }
+            </p>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr style="background-color: #d2d6de">
+                        <td>SI No</td>
+                        <td>Name</td>
+                        <td>Created By</td>
+                        <td>Departments</td>
+                        <td>Designations</td>
+                        <td>Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+@Scripts.Render("~/js/jqueryval")
+<script type="text/javascript">
+    
+    var oTable = $('#UserTable').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": true, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "bStateSave": true,
+        "ajax": {
+            "url": '/TaskStatus/GetTaskStatus',
+            "type": "POST",
+            "datatype": "json"
+
+        },
+        "order": [[1, "desc"]],
+        "columnDefs": [{
+            "targets": [5],
+            "orderable": false
+        }],
+        "columns": [
+                 {
+                     "data": "TaskStatusId", "name": "TaskStatusId",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+             { "data": "StatusName", "name": "StatusName" },
+             { "data": "UserName", "name": "UserName" },
+              {
+                  "name": "Depts", "data": function (data) {
+                      var datas = "";
+                      $.each(data.Depts, function (i, item) {
+                          if (datas != "") {
+                              datas += ", ";
+                          }
+                          datas += item.DeptName;
+                      })
+                      return datas;
+                  }
+              },
+               {
+                   "name": "Desgn", "data": function (data) {
+                       var datas = "";
+                       $.each(data.Desgn, function (i, item) {
+                           if (datas != "") {
+                               datas += ", ";
+                           }
+                           datas += item.DesgnName;
+                       })
+                       return datas;
+                   }
+               },
+             {
+                 "name": "TaskStatusId", "data": function (data) {
+                     var rest = "";
+                     @{
+                         if (User.IsInRole("Dev") || User.IsInRole("Edit TaskStatus"))
+                         {
+                             actData += "<a class=\"modal-edit btn btn-icons btn-rounded btn-edit\" href=\"/TaskStatus/Edit/'+ data.TaskStatusId +'\" title=\"Edit Task Status\"><i class=\"fa fa-pencil\" ></i></a> ";
+                         }
+                         if (User.IsInRole("Dev") || User.IsInRole("Delete TaskStatus"))
+                         {
+                             actData += "<a class=\"modal-delete btn btn-icons btn-rounded btn-delete\" href=\"/TaskStatus/Delete/'+ data.TaskStatusId +'\" title=\"Delete Task Status\"><i class=\"fa fa-trash\" ></i></a> ";
+                         }
+                    }
+                     return rest = '@Html.Raw(actData)';
+                 }
+             },
+        ]
+    });
+
+
+    /* function for Create popup */
+
+    $('div').on('click', '.modal-create', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+    $('#modal-create').on('submit', '#pstatform', function (e) {
+        e.preventDefault();
+        var url = $('#pstatform')[0].action;
+        var data = $('#pstatform').serialize();
+        createajax(url, data, '#modal-create');
+    });
+
+
+    /* function for Edit popup */
+
+    $('#UserTable').on('click', '.modal-edit', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-edit');
+        //  createajax(url, data, '#modal-edit');
+    });
+    $('#modal-edit').on('submit', '#editform', function (e) {
+        e.preventDefault();
+        var url = $('#editform')[0].action;
+        var data = $('#editform').serialize();
+        createajax(url, data, '#modal-edit');
+    });
+
+    /* function for delete popup */
+    $('#UserTable').on('click', '.modal-delete', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-delete');
+    });
+    $('#modal-delete').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-delete');
+    });
+
+
+</script>
+}

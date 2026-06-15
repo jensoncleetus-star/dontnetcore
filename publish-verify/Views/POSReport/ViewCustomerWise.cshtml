@@ -1,0 +1,318 @@
+﻿
+
+@{
+    ViewBag.Title = "View Customer Wise Sale";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default" id="SReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="custname" value="@ViewBag.custName" />
+    <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+    <input type="hidden" id="todate" value="@ViewBag.todate" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Customer Wise Sale</h3>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td>SI No</td>
+                    <td>Customer</td>
+                    <td>TRN</td>
+                    <td class="headeralign">Sale Amt.</td>
+                    <td class="headeralign">Return Amt.</td>
+                    <td class="headeralign">Nett Sale Amt.</td>
+                    <td class="headeralign">No. of Vch.(Sale)</td>
+                    <td class="headeralign">No. of Vch.(Sale Return)</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <th>Total:</th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+               // "bStateSave": true,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": false,
+                "ajax": {
+                    "url": '/POSReport/GetCustomerWise',
+                    "data": { customer: getQueryString1('cust'),fromdate: getParameterByName('from'), todate: getParameterByName('to') },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                     {
+                         "data": "CustomerID", "name": "CustomerID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "Customer", "name": "Customer" },
+                    { "data": "TRN", "name": "TRN" },
+                    { "data": "SaletotAmt", "name": "SaletotAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "RetuntotAmt", "name": "RetuntotAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    {
+                        "name": "NettSaleAmt",
+                        "data": function (data) {
+                            $('#cusname').val(data.customer);
+                            $('#custrn').val(data.TRN);
+                            return ((data.SaletotAmt - data.RetuntotAmt).toFixed(2))
+                        }, "sClass": "numberright"
+                    },
+                    { "data": "NoOfVchSale", "name": "NoOfVchSale", "sClass": "numberright" },
+                    { "data": "NoOfVchReturn", "name": "NoOfVchReturn", "sClass": "numberright" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'CustomerWise-Sale';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Sales Report(Customer Wise)</h4></th></tr>' +
+                        ' <tr><th><span class="text-left">Customer: ' + $('#custname').val() + '</span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    }, customize: function (win) {
+                        // $(win.document.body).find('thead').prepend('<div class="header-print">' + $('#custrn').val() + '</div>');
+
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'CustomerWise-Sale';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Customer : ' + $('#custname').val() + '\n' +
+                         ' Sales Report (Customer Wise) \n' +
+                         'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                    },
+                }, {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'CustomerWise-Sale';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Customer : ' + $('#custname').val() + '\n' +
+                         ' Sales Report (Customer Wise) \n' +
+                         'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5,6, 7]
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                        doc.content[1].table.widths = [
+                        '10%',
+                        '15%',
+                        '10%',
+                        '12%',
+                        '15%',
+                        '12%',
+                        '10%',
+                        '15%'
+                        ]
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+
+
+                },
+
+                ],sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+                    // Total over all pages
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(4)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(4, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(4).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    // Total over all pages
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+            });
+
+            var type = $('#custname').val();
+            if (type != 'All') {
+                var column1 = oTable.column(1);
+                column1.visible(false);
+                var column2 = oTable.column(2);
+                column2.visible(false);
+            } else {
+                var column1 = oTable.column(1);
+                column1.visible(true);
+                var column2 = oTable.column(2);
+                column2.visible(true);
+            }
+
+
+
+            //$('#search-form').on('submit', function (e) {
+            //    e.preventDefault();
+            //    oTable.draw();
+            //    $('#SReport').show();
+            //});
+        });
+    </script>
+}

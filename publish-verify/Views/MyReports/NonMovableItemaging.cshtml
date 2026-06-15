@@ -1,0 +1,610 @@
+
+@{
+    ViewBag.Title = "Stock Aging Report";
+    ViewBag.SubTitle = "Non Movable Items";
+    ViewBag.Active = "Reports";
+}
+<style>
+    .datepicker {
+        border-radius: 0px !important;
+        /*height:30px!important;*/
+    }
+
+    .input-sm {
+        height: 30px !important;
+    }
+
+    .fa-calendar {
+        margin-left: -5px !important;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Non Movable Items</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("GetNonMovableItemsaging", "MyReports", FormMethod.Post, new { id = "popupForm", target = "_new" }))
+            {
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+
+                <div class="row">
+                    @*<div class="form-group col-md-2 col-xs-6">
+            @Html.Label("Period", null, new { @class = "control-label" })
+            @Html.DropDownList("ddlPeriod", (IEnumerable<SelectListItem>)ViewBag.Period, new { @class = "form-control input-sm select2" })
+        </div>*@
+                    <div class="form-group col-md-3" id="creditsale">
+                        <label class="control-label">Supplier</label>
+                        @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control input-sm select2" })
+                    </div>
+
+                    <div class="form-group col-md-3 col-xs-6">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm select2" })
+                    </div>
+
+                    <div class="form-group col-md-3" id="creditsale">
+                        @Html.Label("Item Brand", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItemBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-3" id="creditsale">
+                        @Html.Label("Item Category", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItemCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-3" id="creditsale">
+                        @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                        @*@Html.ListBox("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2", @multiple = "multiple", @name = "ddlItem[]", @required = "required" })*@
+                        @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Search", null, new { @class = "control-label" })
+                        @Html.TextBox("Searchtext", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-3" id="creditsale">
+                        @Html.Label("Aging", null, new { @class = "control-label" })
+                        @*@Html.ListBox("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2", @multiple = "multiple", @name = "ddlItem[]", @required = "required" })*@
+                        @Html.DropDownList("ddlage", new SelectList(new List<SelectListItem>
+                               {
+                                new SelectListItem() {Text = "1 Month", Value="1"},
+                               new SelectListItem() {Text = "2 Month", Value="2"},
+                                new SelectListItem() {Text = "3 Month", Value="3"},
+                                 new SelectListItem() {Text = "4 Month", Value="4"},
+                                  new SelectListItem() {Text = "5 Month", Value="5"},
+                                   new SelectListItem() {Text = "6 Month", Value="6"},
+                               }, "Value", "Text"), new { @class = "form-control input-sm", @name = "Emiratee" })
+
+                    </div>
+                </div>
+
+                <div class="row box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+
+
+
+    <div class="box-body">
+        <table class="display table table-bordered" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="2">S/N</td>
+                    <td data-priority="4">Item code</td>
+                    <td data-priority="6">Item Name</td>
+                    <td data-priority="6">Purchase Price</td>
+
+                    <td data-priority="4" id="tabletitleage">Stock 1 Month Before</td>
+                    <td data-priority="6" id="tabletitleageprice">Stock Value 1 Month Before</td>
+                    <td data-priority="4">Sales Qty After</td>
+                    <td data-priority="6">Sale Value</td>
+                    <td data-priority="4"> Current Stock</td>
+                    <td data-priority="4"> Current Stock Value</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+</tfoot>
+        </table>
+    </div>
+
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+ 
+        var date = new Date();
+
+        $(document).ready(function () {
+            ItemSearchable();
+            CallRepSupplier();
+            $("#ddlItemBrand").select2({
+                placeholder: 'Search Item Brand',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemBrand/SearchBrand",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlItemCategory").select2({
+                placeholder: 'Search Item Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemCategory/SearchCategory",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            /*datatable still hided before clicking the submit button*/
+            $("#StockReport").hide()
+
+            //Item DropDown
+
+
+
+
+            //for set default date
+
+
+
+        });
+
+        //To Hide The Divisions According To Type
+        $('body').on('change', '#ddlType', function (e) {
+            var type = $(this).val();
+            if (type == 1) {
+                $('#todate').hide();
+                $('#ageday').show();
+            }
+            if (type == 0) {
+                $('#todate').show();
+                $('#ageday').hide();
+            }
+        });
+
+        function SearchData(data) {
+            data.ddmc = $('#ddlMC').val();
+            
+            data.brand = $('#ddlItemBrand').val();
+            data.category = $('#ddlItemCategory').val();
+            data.item = $('#ddlItem').val();
+            data.aging = $('#ddlage').val();
+            data.srchtxt = $('#Searchtext').val();
+            data.supplier = $('#ddlSupplier').val();
+        }
+
+        function showdatatable() {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter"    : true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                 //"bStateSave": true,
+                "sortable": true,
+                "stateSave" : false,
+                "bDestroy"  : true,
+                "bLengthChange": true,
+                responsive  : true,
+                "paging"    : true,
+                "pageLength": 50,
+                "filter":false,
+                "ordering": true,
+                "ajax": {
+                    "url": '/MyReports/GetNonMovableItemsaging',
+                    /* calling the function for capturing the datas*/
+                    "data": function (data) {
+                        data = SearchData(data);
+                    },
+                    /*end*/
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columnDefs": [
+                     { "className": "dt-center", "targets": "_all" }
+                ],
+
+                "columns": [
+                    {
+                        "width": "5%",
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "width": "10%",
+                        "data": "ItemCode", "name": "ItemCode"
+                    },
+                    {
+                        "width": "20%",
+                        "data": "ItemName", "name": "ItemName"
+                    },
+                    {
+                        "width": "10%",
+                        "data": "PurchasePrice", "name": "PurchasePrice"
+                    },
+                    {
+                        "width": "10%",
+                        "data": "purchasestock", "name": "purchasestock"
+                    },
+                    {
+                        "width": "10%",
+                        "name": "purchasestock", "data": function (data) {
+                            return parseFloat(data.PurchasePrice * data.purchasestock).toFixed(2);
+                        }
+                    },
+                    {
+                        "width": "10%",
+                        "data": "salesstock", "name": "salesstock"
+                    },
+                    {
+                        "width": "10%",
+                        "name": "purchasestock", "data": function (data) {
+                            return parseFloat(data.PurchasePrice * data.salesstock).toFixed(2);
+                        }
+                    },
+                    {
+                        "width": "10%",
+                        "name": "currentstock", "data":"currentstock"
+                    },
+                    {
+                        "width": "10%",
+                        "name": "purchasestock", "data": function (data) {
+                            return parseFloat(data.PurchasePrice * data.currentstock).toFixed(2);
+                        }
+                    },
+
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Item Serial Number Expiry - Report';
+                        },
+                        columnDefs: [
+                            { width: 400, targets: 2 }
+                        ],
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Item Serial Number Expiry - Report</h4></th></tr>' +
+                                ' <tr><th><span class="text-left">Serial No : ' + $('#BatchNo').val() + '</span><span class="text-left"></span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                            $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                                .css('min-width', '80px');
+                            //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                            //    .css('padding', '0px');
+                            $(win.document.body).append('</td></tr></tbody>')
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    //Excel
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Item Serial Number Expiry - Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                'Item Serial Number Expiry \n' +
+                                'Serial No : ' + $('#BatchNo').val() + '\n'
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Item Serial Number Expiry - Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                'Item Serial Number Expiry Report\n' +
+                                'Serial No : ' + $('#BatchNo').val() + '\n'
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+
+                        }
+                    }
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[50, 100, 100000], [50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    // Total over all pages
+               
+
+                    // Update footer
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    total = api
+                        .column(7)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(7, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(7).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    total = api
+                        .column(9)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(9, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(9).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+            });
+            var txt = $("#ddlage option:selected").text();
+            $("#tabletitleage").html("Stock " + txt + " Before");
+            $("#tabletitleageprice").html("Stock Value " + txt + " Before");
+            //for showing the datatable when click the submit button
+            $('#search-form').on('submit', function (e) {
+           
+                e.preventDefault();
+               
+                var txt = $("#ddlage option:selected").text();
+                $("#tabletitleage").html("Stock " + txt + " Before");
+                $("#tabletitleageprice").html("Stock Value " + txt + " Before");
+                oTable.draw();
+                $('#StockReport').show();
+                $('#UserTable').show();
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+        //$('body').on('change', '#ddlMC', function (e) {
+        //    var mcval = $(this).val();
+        //    searchItem();
+        //});
+        $(document).ready(function () {
+            var txt = $("#ddlage option:selected").text();
+            $("#tabletitleage").html("Stock " + txt + " Before");
+            $("#tabletitleageprice").html("Stock Value " + txt + " Before");
+            $("#ddlMC").select2({
+                placeholder: 'Select Material Center',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MyReports/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+    </script>
+}

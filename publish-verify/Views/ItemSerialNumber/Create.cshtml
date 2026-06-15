@@ -1,0 +1,143 @@
+﻿@model QuickSoft.Models.ItemSerialNumberView
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Create Item Serial Number</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Create", "ItemSerialNumber", FormMethod.Post, new { id = "createform",autocomplete="off" }))
+    {
+        <script type="text/javascript">
+
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.itemid, htmlAttributes: new { @class = "control-label" })
+                
+                    @Html.DropDownListFor(model => model.itemid, (SelectList)ViewBag.ddlItem, new { @class = "form-control input-sm", @required = "required", id = "ddlItem" })
+                   
+              
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-2">Enter qty</div>
+                <div class="col-md-2"><input type="text" id="qty" value="" /></div>
+                <div class="col-md-2">Enter Expiry Date</div>
+                <div class="col-md-2">
+
+                    <div class="input-group date">
+                        <input type="text" id="expirydate" value="" />
+
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2"><input type="button" class="btn btn-info col-sm-offset-4"  name="fill" value="Fill" onclick="fillcontrol()" /></div>
+            </div>
+            <div class="row">
+                <div class="form-group input_fields_wrap2">
+
+                </div>
+
+            </div>
+
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" value="Submit" class="btn btn-info col-sm-offset-4" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section style{
+
+    @Styles.Render("~/css/bootstrap-datepicker")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/jqueryval")
+
+
+    <script>
+        function loadexisting(obj) {
+            var itemid = $(obj).val();
+            window.location = "/ItemSerialNumber/Create/?itemid=" + itemid;
+        }
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+90d'
+        });
+        $(document).ready(function () {
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+
+        });
+        function fillcontrol() {
+            var dt = $("#expirydate").val();
+            var noqty = $("#qty").val();
+            var wrapper2 = $(".input_fields_wrap2"); //Fields wrapper
+            for (var rowno = 0; rowno < noqty; rowno++) {
+
+
+                $(wrapper2).append('<div class="row" style="margin-top: 1rem;">' +
+                    '<div class="col-md-9">' +
+                    '<label class="control-label">Serial Number</label>' +
+                    '<div class="input-group">' +
+                    '<input type="text" name="serialnoobjs[' + rowno + '].serialno" class="form-control" >' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-2">' +
+                    '<label class="control-label">Expiry Date</label>' +
+                    '<div class="input-group">' +
+                    '<input type="text" name="serialnoobjs[' + rowno + '].expirydate" value="' + dt + '" class="form-control datepicker" >' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-1">' +
+                    '<a href="javascript:void(0);" class="remove_button"><i style="color:red;margin-top: 1.5rem;" class="fa fa-trash" aria-hidden="true"></i></a></div></div>');
+                $(wrapper2).on('click', '.remove_button', function (e) {
+                    e.preventDefault();
+
+                    $(this).parent('div').parent('div').remove(); //Remove field html
+                    x--; //Decrement field counter
+                });
+            }
+        }
+
+
+
+    </script>
+}

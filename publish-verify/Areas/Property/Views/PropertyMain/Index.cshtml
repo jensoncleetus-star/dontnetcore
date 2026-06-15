@@ -1,0 +1,443 @@
+@model QuickSoft.Models.PropertyMain
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Property";
+    ViewBag.Active = "Payroll";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    // if (User.IsInRole("Dev") || User.IsInRole("Delete Broker"))
+    // {
+    userRole = true;
+    deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+         "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+          "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    // }
+
+}
+
+<style>
+    .search-body {
+        background-color: rgb(255,250,250) !important;
+        border-radius: 8px;
+    }
+    .search-box{
+        z-index:0;
+    }
+    @@media only screen and (max-width: 400px) {
+        .animate_class_name {
+            margin-top: 435px;
+        }
+    }
+    @@media only screen and (min-width: 800px) {
+        .animate_class_name {
+            margin-top: 175px;
+        }
+    }
+
+</style>
+
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Property </h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create Payhead"))
+                {*@
+            @*<i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>*@
+            <a class="btn btn-info no-border" href="/Property/PropertyMain/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create
+            </a>
+            @*}*@
+        </div>
+    </div>
+
+
+    <div class="box-body search-box">
+        <a class="btn btn-primary srch" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+        <input type="hidden" id="remId" />
+        <div class="search-body  col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-2 col-xs-12 select2-box hidden">
+                        @Html.Label("Feature", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlFeature", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2 col-xs-12 select2-box">
+                        @Html.Label("Property", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlProperty", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2 col-xs-12 select2-box">
+                        @Html.Label("Landlord", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlLandlord", (SelectList)ViewBag.Cust, new { @class = "form-control input-sm select2" })
+                  
+                    </div>
+                    <div class="form-group col-md-2 col-xs-12 select2-box">
+                        @Html.Label("Property Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlPropertyType", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2 col-xs-12">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2 col-xs-12">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                  
+
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close btn-remove-class" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAll", "PropertyMain", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body" id="sh-margin-top">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">#</td>
+                        <td data-priority="2">Code</td>
+                        <td data-priority="2">Name</td>
+                        <td data-priority="5">Property Type</td>
+                        <td data-priority="5">Feature</td>
+                        <td data-priority="5">Date</td>
+                        <td data-priority="2">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+    }
+</div>
+
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/property")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(document).ready(function () {
+            $('#comp').hide();
+            GetLandlordAll();
+            $('#advsearch').hide();
+            GetDocumentType(1);
+            GetProperty(1);
+            GetFeature(1);
+            GetPropertyType(1);
+            GetLandlordAll();
+        });
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/PropertyMain/GetProperty',
+                "type": "POST",
+                "data": function (data) {
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.Feature = $('#ddlFeature').val();
+                    data.Property = $('#ddlProperty').val();
+                    data.PropertyType = $('#ddlPropertyType').val();
+                    data.Landlord = $('#ddlLandlord').val();
+                },
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [6, 7],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Code", "name": "Code" },
+
+               {
+                   "name": "Name", "data": function (data) {
+
+
+     
+                       @{
+                               var datas = "";
+                               datas = "'<a href=\"/Property/PropertyReports/PropertyConsolidated2/?ddlProperty='+ data.id +'\">'+ data.Name +'</a>' ";
+                               //if (User.IsInRole("Dev") || User.IsInRole("View Landlord"))
+                               //{
+                                //   datas = "'<a href=\"/Landlord/Details/'+ data.id +'\">'+ data.LandlordName +'</a>' ";
+                               //}
+                              // else
+                               //{
+                               //    datas = "data.LandlordName";
+                               //}
+                           }
+                       return @Html.Raw(datas);
+                   }
+               },
+
+        { "data": "Property", "name": "PropertyType" },
+
+        {
+            "name": "Feature", "data": function (data) {
+                var datas = "";
+                $.each(data.feature, function (i, item) {
+                    if (datas != "") {
+                        datas += ", ";
+                    }
+                    datas += item.Feature
+                })
+                return datas;
+            }
+        },
+         {
+             "data": "Date", "name": "Date",
+             "render": function (data) {
+                 var date = convertToDate(data);
+                 return date.toString();
+             }
+         },
+        {
+            "name": "id", "data": function (data) {
+                var rest = "";
+                @{
+
+                    actData += "<a class=\"details\" href=\"/Property/PropertyMain/ViewDetails/'+ data.id +'\" title=\"View Property \"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+
+
+                    actData += "<a href=\"/Property/PropertyMain/Edit/'+ data.id +'\" title=\"Edit Property\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+
+                    actData += "<a class=\"modal-delete\" href=\"/Property/PropertyMain/Delete/'+ data.id +'\" title=\"Delete Property\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+
+
+                    actData += "<a href=\"/Property/Unit/Create/'+ data.id +'\" title=\"Create Unit regarding Property \"><i class=\"fa fa-lg fa-arrows\"></i></a> ";
+
+                 }
+                return rest = '@Html.Raw(actData)';
+            }
+        },
+        {
+            "name": "id", "data": function (data) {
+                var rest = "";
+                @{
+                    //    if (User.IsInRole("Dev") || User.IsInRole("Delete Broker"))
+                    //   {
+                    delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                    //   }
+                }
+                return rest = '@Html.Raw(delchk)';
+            }
+        },
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Broker </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Broker",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+
+
+            },
+            @Html.Raw(deleteBTn)
+            ],
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+    $(".srch").click(function () {
+        //$('#sh-margin-top').addClass('animate_class_name');
+        $('#sh-margin-top').toggleClass('animate_class_name');
+    });
+    $(".btn-remove-class").click(function () {
+        $('#sh-margin-top').removeClass('animate_class_name');
+    });
+    
+  
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+    $('#srch, .search-box .btn-close').on('click', function (e) {
+      //  $(".sh-margin-top").css('margin-top', '170px');
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+                //location.reload();
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                $('#ddlFeature').val('').trigger('change');
+                $('#ddlProperty').val('').trigger('change');
+                $('#ddlLandlord').val('').trigger('change');
+                $('#ddlPropertyType').val('').trigger('change');
+                oTable.draw();
+            }
+            $('#Date').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+            });
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+</script>
+}

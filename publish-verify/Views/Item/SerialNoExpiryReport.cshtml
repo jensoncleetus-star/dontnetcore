@@ -1,0 +1,372 @@
+@{
+    ViewBag.Title = "Serial No. Expiry Report";
+    ViewBag.SubTitle = "Serial No. Expiry Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Serial No.</h3>
+    </div>
+
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("SerialNoExpiryReport", "Item", FormMethod.Post, new { id = "popupForm", target = "_new" }))
+            {
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+                <div class="row">
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("Item", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItem", (SelectList)ViewBag.DropDowns, new { @class = "form-control input-sm" })
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("Serial No", null, new { @class = "control-label" })
+                        @Html.TextBox("BatchNo", "", new { @class = "form-control input-sm" })
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                            {
+                                new SelectListItem() {Text = "Date Wise", Value="0"},
+                                new SelectListItem() {Text = "No. of Days", Value="1"}
+                            }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+                    </div>
+
+                </div>
+                <div class="row">
+                    <div class="form-group col-md-4" id="ageday">
+                        @Html.Label("Days", null, new { @class = "control-label" })
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownList("AgeDays", (SelectList)ViewBag.AgeType, new { @class = "form-control input-sm select2" })
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-flat">Days</button>
+                            </span>
+                        </div>
+                    </div>                  
+
+                    <div class="form-group col-md-4" id="todate">
+                        @Html.Label("As On Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Serial No. Expiry Report</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Serial No.</td>
+                        <td data-priority="1">Manufacture Date</td>
+                        <td data-priority="2">Expiry Date</td>
+                        <td data-priority="3">Item Name</td>
+                        <td data-priority="3">Invoice No.</td>
+                        <td data-priority="3">Customer Name</td>
+                        <td data-priority="3">Status</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            /*datatable still hided before clicking the submit button*/
+            $("#StockReport").hide()
+
+            //Item DropDown
+            ItemSearchable();
+
+            $('#ageday').hide();    
+
+            //for set default date
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });           
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            $('#ToDate').datepicker('setDate', today);
+        });
+
+        //To Hide The Divisions According To Type
+        $('body').on('change', '#ddlType', function (e) {
+            var type = $(this).val();
+            if (type == 1) {
+                $('#todate').hide();
+                $('#ageday').show();
+            }
+            if (type == 0) {
+                $('#todate').show();
+                $('#ageday').hide();
+            }
+        });
+
+        function SearchData(data) {
+            data.BatchNo    =   $('#BatchNo').val();
+            data.Item       =   $('#ddlItem').val();
+            data.AsOnDate   =   $('#ToDate').val();
+            data.AgeDays    =   $('#AgeDays').val();
+            data.ddlType    =   $('#ddlType').val();
+        }
+
+        function showdatatable() {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter"    : true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "stateSave" : false,
+                "bDestroy"  : true,
+                "bLengthChange": false,
+                responsive  : true,
+                "paging"    : true,
+                "pageLength": 50,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Item/GetAllSerialNosExpiry',
+                    /* calling the function for capturing the datas*/
+                    "data": function (data) {
+                        data = SearchData(data);
+                    },
+                    /*end*/
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "ID", "name": "ID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "BatchNo", "name": "BatchNo" },
+                    {
+                        "data": "MFG", "name": "MFG", "render": function (data) {
+                            if (data != null)
+                                return convertToDate(data);
+                            else
+                                return "";
+                        }
+                    },
+                    {
+                        "data": "EXP", "name": "EXP", "render": function (data) {
+                            if (data != null)
+                                return convertToDate(data);
+                            else
+                                return "";
+                        }
+                    },
+                    { "data": "ItemName", "name": "ItemName" },
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "CustomerName", "name": "CustomerName" },
+                    { "data": "Status", "name": "Status" }
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Item Serial Number Expiry - Report';
+                        },
+                        columnDefs: [
+                            { width: 400, targets: 2 }
+                        ],
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Item Serial Number Expiry - Report</h4></th></tr>' +
+                                ' <tr><th><span class="text-left">Serial No : ' + $('#BatchNo').val() + '</span><span class="text-left"></span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                            $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                                .css('min-width', '80px');
+                            //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                            //    .css('padding', '0px');
+                            $(win.document.body).append('</td></tr></tbody>')
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    //Excel
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Item Serial Number Expiry - Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                'Item Serial Number Expiry \n' +
+                                'Serial No : ' + $('#BatchNo').val() + '\n'
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Item Serial Number Expiry - Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                'Item Serial Number Expiry Report\n' +
+                                'Serial No : ' + $('#BatchNo').val() + '\n'
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+
+                        }
+                    }
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            });
+
+            //for showing the datatable when click the submit button
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#StockReport').show();
+                $('#UserTable').show();
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+    </script>
+}

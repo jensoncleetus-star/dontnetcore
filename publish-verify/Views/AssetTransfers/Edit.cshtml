@@ -1,0 +1,627 @@
+@model QuickSoft.ViewModel.AssetTransferViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Edit AssetTransfers";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+}
+@if (User.IsInRole("Dev") )
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("Edit", "AssetTransfers", FormMethod.Post, new { id = "Editform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit AssetTransfers <label id="AlertEditable" class="text-red"></label></h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") )
+                    {
+                        <a class="btn bg-black no-border" href="/AssetTransfers/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") )
+                    {
+                        <a class="btn bg-black no-border" href="/AssetTransfers/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") )
+                    {
+                        <a class="btn bg-black no-border" href="/AssetTransfers/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+
+                @if (User.IsInRole("Dev") )
+                {
+                    <a class="btn btn-success no-border" href="/AssetTransfers/Index">
+                        <i class="fa fa-fw fa-history"></i>List
+                    </a>
+                }
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="SelApprovedBy" />
+            <input type="hidden" id="VoucherType" value="StockTransfer" />
+
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Invoice No", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev"))
+                    {
+                        @Html.EditorFor(model => model.InvoiceNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    }
+                    else
+                    {
+                        @Html.EditorFor(model => model.InvoiceNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                    }
+                    @Html.HiddenFor(Model => Model.InvoiceNo)
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("AssetEntry Date", null, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(model => model.AssetEntryDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+
+               
+
+
+
+
+                
+            </div>
+
+
+
+            <div class="row">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Item <i class="text-danger">*</i></th>
+                                <th class="text-center">Barcode</th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Qty <i class="text-danger">*</i></th>
+                                <th class="text-center">Price <i class="text-danger">*</i></th>
+                                <th class="text-center">Total Price</th>
+                                <th class="text-center">Depreciation%<i class="text-danger">*</i></th>
+                                <th class="text-center">Asset Accounts<i class="text-danger">*</i></th>
+                                <th class="text-center">Depreciation Accounts<i class="text-danger">*</i></th>
+
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td> <b>Total</b> </td>
+                                <td class="text-left"> <label id="ToItemCount"></label> </td>
+                                <td></td>
+                                <td></td>
+                                <td class="text-right"> <label id="ToItemQnt"></label> </td>
+                                <td class="text-right">
+                                    <label id="ToItemPrice"></label>
+                                </td>
+                                <td class="text-right"> <label id="ToItemAmount"></label> </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="row">
+                @*<div class="col-sm-3"></div>*@
+
+
+
+
+            </div>
+
+            <div class="col-md-6"></div>
+            <div class="row">
+                <div class="col-md-6">
+
+                    <div class="form-group col-md-6 no-paddingleft">
+                    </div>
+                    @*<div class="form-group no-padding text-right">
+                        <div class="checkbox-inline">
+                            <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                            <label class="control-label" for="hideheader">Hide Header In Print</label>
+                        </div>
+                    </div>*@
+                    <div class="form-group pull-right">
+                        <button type="submit" id="save" class="btn btn-success">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        @*<button type="submit" id="print" class="btn btn-success">
+                            <span class="glyphicon glyphicon-print"></span> Update And Print
+                        </button>*@
+                        @if (@ViewBag.CheckMail == 0)
+                        {
+                            <button type="submit" id="sendmail" class="btn btn-success">
+                                <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                            </button>
+                        }
+                        <button type="button" class="btn btn-warning" onclick="@(" window.location.href='/AssetTransfers/Index' ");">Cancel</button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModeItemCreate")
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+   @Styles.Render("~/css/wysihtml5")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/partymaterials")
+    @Scripts.Render("~/js/num2words")
+   @Scripts.Render("~/js/wysihtml5")
+
+    <script src="~/Content/js/assetfrominventory.js"></script>
+
+
+    <script type="text/javascript">
+
+        var getQueryString = function (field, url) {
+            var href = url ? url : window.location.href;
+            var id = href.substring(href.lastIndexOf('/') + 1);
+            return id ? id : null;
+        }
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(document).ready(function () {
+
+
+            searchItem();
+
+            //$("#ddlMCFrom").select2({
+            //    placeholder: 'Search Material Centre by Name or Code',
+            //    minimumInputLength: 0,
+            //    ajax: {
+            //        url: "/MC/SearchMC",
+            //        dataType: 'json',
+            //        delay: 50,
+            //        data: function (params) {
+            //            return {
+            //                q: params.term,
+            //                page: params.page,
+            //                x: ""
+            //            };
+            //        },
+            //        processResults: function (data, params) {
+            //            params.page = params.page || 1;
+            //            return {
+            //                results: data
+            //            };
+            //        },
+            //        cache: true
+            //    },
+            //});
+
+
+            $("#SelApprovedBy").val($("#ddlApprovedBy").val());
+            var EntryID = getQueryString('');
+
+            if (EntryID != null) {
+                $.ajax({
+                    url: '/AssetTransfers/GetSTItems',
+                    dataType: 'json',
+                    data: { EntryID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each(data, function (i, item) {
+
+                            addrow('addinvoiceItem', 'foredit', item.Barcode, item.UnitId, item.Quantity, item.Price, item.Amount, item.DepreciationPercentage, item.AssetAccountId, item.DepreciationAccountId, item.ItemID, item.AssetName, item.ItemWithCode, item.Name, item.PrintName, item.ItemUnitName, item.ItemNote, item);
+                            var j = i + 1;
+                            $("#unit_name_" + j).val(item.UnitId);
+                        });
+                        addrow('addinvoiceItem', 'sales', "0", "0", "0.00", "", "", "", "", "", "", "", "", "", "", "","","" );
+                    }
+                });
+
+                //$.ajax({
+                //    url: '/StockTransfer/GetSTBillSundry',
+                //    dataType: 'json',
+                //    data: { EntryID: EntryID },
+                //    cache: true,
+                //    success: function (data) {
+                //        $.each(data, function (i, bs) {
+                //            addbillsundry('addbillsundry', 'sales', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
+                //        });
+                //        addbillsundry('addbillsundry', 'sales', '0.00', '', '0.00', '');
+                //        grandtotalcalculation();
+                //    }
+                //});
+
+            }
+            CallApprovedBy();
+            $("#SelApprovedBy").val($("#ddlApprovedBy").val());
+
+            chkEditEditable("@ViewBag.ChkApp");
+
+            var stkval = $("#StockType").val();
+
+
+        });
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+
+
+        $('#Editform').on('submit', function (e) {
+            e.preventDefault();
+            
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                var warnmsg =@ViewBag.WarnMsg;
+                if (warnmsg == 0) {
+                    var WMsg = confirm("Do you want to Save..?");
+                    if (WMsg == true) {
+                        SaveFunction(fnval);
+                    } else {
+                    }
+                } else {
+                    SaveFunction(fnval);
+                }
+            
+        });
+
+
+
+        function SaveFunction(fnval) {
+
+            if ($("#Editform").valid()) {
+
+                var EntryID = getQueryString('');
+                var Voucher = $('#InvoiceNo').val();
+                var Date = $('#AssetEntryDate').val();
+
+
+                var TotItemCount = $('#ToItemCount').text();
+
+                var TotItemQuantity = $('#ToItemQnt').text();
+
+                var TotPrice = $('#ToItemPrice').text();
+
+                var TotItemAmount = $('#ToItemAmount').text();
+
+                var TotAmount = $('#GrandTotal').val();
+
+
+
+
+
+
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+
+                //var HTMLtblbs = {
+                //    getData: function (table) {
+                //        var bsData = [];
+                //        table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                //            var cols = {};
+                //            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                //                itid = $(this).attr('data-name').split(' ')[0];
+                //                itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                //                cols[itid] = itval;
+
+                //            });
+                //            bsData.push(cols);
+                //        });
+                //        return bsData;
+                //    }
+                //}
+               // var bsData = HTMLtblbs.getData($('#billsundry'));
+                var salesEntry = [ Voucher, Date,  TotItemCount,
+                    TotItemQuantity, TotPrice, TotItemAmount, TotAmount, EntryID,
+                    ]
+
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+
+                var parameters = {};
+                parameters.array = data;
+
+                parameters.mtdata = salesEntry;
+                parameters.action = fnval;
+
+               // parameters.bsmodel = { 'sebsundrys': bsData }
+
+                if (fnval == "save") {
+                    submitForm(fnval, parameters);
+
+                } else if (fnval == "print") {
+                    submitForm(fnval, parameters);
+                } else if (fnval == "sendmail") {
+                    if ($('#custEmailId').val() != "") {
+                        submitForm(fnval, parameters);
+                    } else {
+                        $('.ajax_response', res_danger).text("Party Email Address Not Found..!!");
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            }
+        }
+
+        function submitForm(fnval, parameters) {
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/AssetTransfers/Edit",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        if (fnval == "print") {
+                            PrintStockTransferInvoice(e,"_Invoice") ;
+                        }
+                        else {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        // window.location.href = '@Url.Action("Index", "AssetTransfers")';
+                        setTimeout(function () { window.location.href = '/AssetTransfers/Index'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+                    } else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+        AddItemPopUp();
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+        //function checkbranch() {
+        //    var to = $("#ddlMCFrom").val();
+        //    var from = $("#ddlMCTo").val();
+        //    //alert(to);
+        //    if(to!=null && from !=null){
+        //        if (to == from) {
+        //            alert("Material Centers are same please select differnet Centres");
+        //            $("#ddlMCTo").val(null).trigger("change");
+        //        }
+        //    }
+        //}
+        function PrintStockTransferInvoice(e,type)
+        {
+
+            $("#lblCName").text(e.cdetails.CName);
+            $("#lblVoucherNo").text(e.summary.VoucherNo);
+            $("#lblDate").text(convertToDate(e.summary.AssetEntryDate));
+            $("#lblCreatedBy").text(e.summary.CreatedBy);
+
+            $("#lblRemark").text(e.summary.Remark);
+            // bindPOSItem(e);
+            var itemsData = bindPOSItem(e);
+            $('#itemtable').append(itemsData);
+            $("#lblAmount").text(parseFloat(e.summary.ItemSubTotal).toFixed(2));
+            $("#lblGrandTotal").text(parseFloat(e.summary.GrandTotal).toFixed(2));
+
+            if (e.summary.ComHeadCheck == 0) {
+                $("#ComHeadCheck").hide();
+            }
+            else {
+                $("#ComHeadCheck").show();
+            }
+
+            if (e.fmapp!=null) {
+                $.each(e.fmapp, function (i, mapp) {
+
+                    if (mapp.Field == "Ref1") {
+                        $("#IblRef1").text(mapp.FieldName);
+                        $("#IblRef1Val").text(e.summary.Ref1);
+                        $("#divRef1").show();
+                    }
+                    if (mapp.Field == "Ref2") {
+                        $("#IblRef2").text(mapp.FieldName);
+                        $("#IblRef2Val").text(e.summary.Ref2);
+                        $("#divRef2").show();
+                    }
+                    if (mapp.Field == "Ref3") {
+                        $("#IblRef3").text(mapp.FieldName);
+                        $("#IblRef3Val").text(e.summary.Ref3);
+                        $("#divRef3").show();
+                    }
+                    if (mapp.Field == "Ref4") {
+                        $("#IblRef4").text(mapp.FieldName);
+                        $("#IblRef4Val").text(e.summary.Ref4);
+                        $("#divRef4").show();
+                    }
+                    if (mapp.Field == "Ref5") {
+                        $("#IblRef5").text(mapp.FieldName);
+                        $("#IblRef5Val").text(e.summary.Ref5);
+                        $("#divRef5").show();
+                    }
+                });
+            }
+
+            var grt = parseFloat(e.summary.GrandTotal).toFixed(2);
+            var word = conNumber(grt);
+            //word = word.substring(0, word.lastIndexOf(" "));
+            var str = "";
+            $.each(e.billsundry, function (i, billsundry) {
+                str += "<tr class='text-right'>";
+                str += '<td colspan="4"><h5><strong>' +billsundry.BillSundry+'<strong></h5></td>';
+                str += '<td colspan="3"><h5>'+parseFloat(billsundry.BsAmount).toFixed(2)+'</h5></td>';
+                str += '</tr>';
+            });
+            str += '<tr class="text-right"><td><h4><strong>' + word +' Only</strong></h4></td><td colspan="3"><h3><strong>Grand Total</strong></h3></td>'+
+            '<td colspan="2" ><h3>'+parseFloat(e.summary.GrandTotal).toFixed(2)+ '</h3></td></tr>';
+
+            if ($('#hideheader').prop('checked') == true) {
+                $('#ComHeadCheck').hide();
+                $('#ComfootCheck').hide();
+                //$(".invoice.print").css("margin-top", "100px");
+                $("#comHeader").css("margin-top", "100px");
+            }
+            else {
+                $('#ComHeadCheck').show();
+                $('#ComfootCheck').show();
+            }
+
+            $('#posfoot').append(str);
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printit').html();
+            $('body').html(printContent);
+            var titlename = "_invoice - " + e.summary.CreatedBy + " - " + e.summary.VoucherNo;
+            $('title').html(titlename);
+            window.print();
+        }
+
+        function bindPOSItem(e) {
+            var total = parseFloat(0);
+            var TQunty = parseFloat(0);
+            var Tprice= parseFloat(0);
+            var count = 1;
+            var Quantity = parseFloat(0);
+            var str = "";
+            var PartNoSts = 1;
+            var PartNo=""
+            $('#PartNo').hide();
+
+            $.each(e.item, function (i, item) {
+                //var str="";
+                var subtot = parseFloat(item.ItemTotalAmount.toFixed(2));
+                total += subtot;
+                var Quantity = parseFloat(item.ItemQuantity.toFixed(2));
+                TQunty += Quantity;
+                var Price = parseFloat(item.Price.toFixed(2));
+                Tprice += Price ;
+                var unit = (item.ItemUnit != null) ? item.ItemUnit : "";
+                PartNo = (item.PartNumber != null && item.PartNumber != "") ? item.PartNumber : "";
+                str += '<tr>';
+                str +='<td>' + count +'</td>'
+                if(item.PNoStatus == 0)
+                {
+                    PartNoSts = 0
+                    $('#PartNo').show();
+                    str += '<td>' + PartNo +'</td>'
+                }
+
+                str += '<td>' + item.ItemCode + "-" + item.ItemName + '</td>';
+                str+= '<td>' + unit +'</td>';
+                str += '<td class="text-right">' + parseFloat(item.ItemQuantity).toFixed (2)+ '</td>';
+                str += '<td class="text-right">' + parseFloat(item.Price).toFixed(2) + '</td>';
+                str += '<td class="text-right">' + parseFloat(item.ItemTotalAmount).toFixed(2) + '</td>';
+                str += '</tr>';
+                count++;
+            });
+            $("#lblTotalAmount").text(parseFloat(total).toFixed(2));
+            //bind footer for totalQuantity ToatalPrice and Amount
+            var Row ="";
+            Row += '<tr class="border-top">';
+            Row += '<td><h5><strong>' + "Total" + '</h5></strong></td>';
+            if(PartNoSts == 0)
+            {
+                var PartNo = (PartNo != null && PartNo!= "") ? PartNo : "";
+                Row += '<td><h5><strong>' + PartNo + '</h5></strong></td>';
+            }
+            Row += '<td>' + "" + '</td>';
+            Row += '<td>' + "" + '</td>';
+
+            Row += '<td class="text-right"><h5><strong>' + parseFloat(TQunty).toFixed(2) + '</h5></strong></td>';
+            Row += '<td class="text-right"><h5><strong>' + parseFloat(Tprice).toFixed(2) + '</h5></strong></td>';
+            Row += '<td class="text-right"><h5><strong>' + parseFloat(total).toFixed(2)+ '</h5></strong></td>';
+            Row +='</tr>';
+
+            $('#posfootR').append(Row);
+
+            return str;
+        }
+        $('body').on('change', '#StockType', function (e) {
+            var stkval = $(this).val();
+            if(stkval == "1"){
+
+                var fdate=$("#FDate").val();
+                var cdate=$("#CDate").val();
+                if(fdate!=""){
+                    $('#Date').val(fdate);
+                }else{
+                    $('#Date').val(cdate);
+                }
+            }else{
+
+                var cdate=$("#CDate").val();
+                $('#Date').val(cdate);
+            }
+        });
+    </script>
+}

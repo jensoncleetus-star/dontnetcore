@@ -1,0 +1,104 @@
+﻿@model QuickSoft.Models.AppModules
+@{
+    ViewBag.Title = "Modules List";
+    ViewBag.SubTitle = "Modules";
+    ViewBag.Active = "Modules";
+
+}
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Modules</h3>
+            <div class="pull-right">
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/modules/create">
+                    <i class="glyphicon glyphicon-plus"></i> Create module
+                </a>
+            </div>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="2">Name</td>
+                        <td data-priority="2">Link</td>
+                        <td data-priority="3">Parent Module </td>
+                        <td data-priority="4">Description</td>
+                        <td data-priority="6"> Status</td>
+                        <td data-priority="5"> Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            
+        </div>
+    </div>
+@Html.Partial("../Common/_ModalDelete")
+        @section scripts{
+            <script type="text/javascript">
+                var oTable = $('#MyTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "pageLength": 50,
+                    responsive: false,
+                    "ajax": {
+                        "url": '/modules/getdata',
+                        "type": "POST",
+                        "datatype": "json"
+                    },
+                    "columns": [
+                             {
+                                 "data": "ModulesID", "name": "ModulesID",
+                                 "render": function (data, type, row, meta) {
+                                     return meta.row + meta.settings._iDisplayStart + 1;
+                                 }
+                             },
+                         { "data": "Name", "name": "Name" },
+                         { "data": "Link", "name": "Link" },
+                         { "data": "ParentName", "name": "ParentName" },
+                         {
+                             "data": "Description", "name": "Description", "render": function (data) {
+                                 if (data != null && data.length > 50) {
+                                     return data.substr(0, 50) + '...';
+                                 }
+                                 else {
+                                     return data;
+                                 }
+                             }
+                         },
+                         {
+                             "data": "Status", "name": "Status", "render": function (data) {
+                                 if (data == 1) {
+                                     return '<label class="text-red" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></label>';
+                                 }
+                                 else {
+                                     return '<label class="text-green" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></label>';
+                                 }
+                             }
+                         },
+                         {
+                             "data": "ModulesID", "name": "ModulesID", "render": function (data) {
+                                 return '<a href="/modules/edit/' + data + '" title="Edit Module"><i class="fa fa-edit" style="font-size: large"></i></a> ' +
+                                       '<a class="modal-delete" href="/modules/delete/' + data + '" title="Delete Module"><i class="fa fa-trash" style="font-size: large"></i></a>';
+                             }
+                         },
+                    ]
+                });
+
+                /* function for delete popup */
+                $('#MyTable').on('click', '.modal-delete', function (e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href');
+                    modalshow(url, '#modal-delete');
+                });
+                $('#modal-delete').on('submit', '#deleteform', function (e) {
+                    e.preventDefault();
+                    var url = $('#deleteform')[0].action;
+                    var data = $('#deleteform').serialize();
+                    createajax(url, data, '#modal-delete');
+                });
+            </script>
+        }

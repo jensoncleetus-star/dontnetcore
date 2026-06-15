@@ -1,0 +1,252 @@
+
+@{
+    ViewBag.Title = "Search Sales Entry";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Sales Entry</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("Index", "POSReport", FormMethod.Post, new { id = "popupForm" }))
+        {
+            <div class="form-group col-md-2">
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+                @Html.Label("Invoice No", null, new { @class = "control-label" })
+                @Html.TextBox("InvoiceNo", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Customer Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "All", Value=""},
+                        new SelectListItem() {Text = "Credit Sale", Value="0"},
+                        new SelectListItem() {Text = "Cash Sale", Value="1"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+            </div>
+            <div class="form-group col-md-2" id="creditsale">
+                @Html.Label("Customer", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-2" id="cashsale">
+                @Html.Label("Customer Name", null, new { @class = "control-label" })
+                @Html.TextBox("CustomerName", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Cashier", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCashier", (SelectList)ViewBag.Cashier, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Staff", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlWaiter", (SelectList)ViewBag.Wait, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Payment Method", null, new { @class = "control-label" })
+                @Html.DropDownList("payMethod", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "All", Value="All"},
+                        new SelectListItem() {Text = "Cash", Value="Cash"},
+                        new SelectListItem() {Text = "Card", Value="Card"},
+                        new SelectListItem() {Text = "Credit", Value="Credit"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm",@id= "payMethod", @name = "payMethod" })
+            </div>
+            <div class="form-group col-md-2" id="divpaymode">
+                @Html.Label("Pay Mode", null, new { @class = "control-label" })
+                @Html.DropDownList("PayMode", (SelectList)ViewBag.PaymentMode,"All", new { @id = "PayMode", @class = "form-control input-sm" })
+            </div>
+                <div class="box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+                }
+            </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            paychange();
+            $('#cashsale').hide();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#cashsale').hide();
+            $("#ddlCustomer").select2({
+                placeholder: 'Search Customer by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchCustomer",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+            $("#ddlWaiter").select2({
+                placeholder: 'Search Waiter by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#ddlCashier").select2({
+                placeholder: 'Search Cashier by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Users/SearchUser",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#ddlBranch").select2({
+                placeholder: 'Search Branch by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Branch/SearchBranch",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+        $('body').on('change', '#ddlType', function (e) {
+            var custtype = $('#ddlType').val();
+            if (custtype == 1) {
+                $('#creditsale').hide();
+                $('#cashsale').show();
+                // $('#ddlCustomer').prop('required', true);
+            }
+            if (custtype == 0) {
+                $('#cashsale').hide();
+                $('#creditsale').show();
+                // $('#ddlCustomer').prop('required', false);
+            }
+        });
+
+        $('body').on('change', '#payMethod', function (e) {
+            paychange();
+        });
+        function paychange() {
+            var type = $('#payMethod').val();
+            if (type == "Card") {
+                $('#divpaymode').show();
+            } else {
+                $('#divpaymode').hide();
+            }
+        }
+    </script>
+}

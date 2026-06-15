@@ -1,0 +1,614 @@
+﻿@model QuickSoft.ViewModel.AMCViewModel
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = " List";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+
+    string refreshBTn = "{text: 'Refresh', className: 'btn-primary', action: function(e, dt, node, config) {" +
+              " $('#PerdcDtlTable').DataTable().ajax.reload();" +
+               " }},";
+}
+
+<style type="text/css">
+    .modal-lg {
+        width: 90%;
+    }
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+
+    .box-header .pull-right {
+        margin-top: -22px;
+    }
+
+    .col-md-3 {
+        float: none;
+        display: inline-block;
+    }
+
+    @@media only screen and (max-width: 400px) {
+        .top3 {
+            margin-top: 27px;
+        }
+
+        .adv-search-height {
+            margin-left: 10px !important;
+        }
+
+        .responsive-search {
+            padding: 0px 0px 0px 0px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+            width: 150px !important;
+        }
+
+        .task-name-center {
+            text-align: center !important;
+        }
+    }
+
+    @@media only screen and (min-width: 800px) {
+        .top3 {
+            margin-top: 10px;
+        }
+
+        .adv-search-height {
+            top: -8px !important;
+            margin-left: 13px;
+        }
+
+        .responsive-search {
+            padding: 20px 0px 0px 50px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+        }
+
+        .btn-h-change {
+            margin: 0px !important;
+        }
+
+        .btn-up {
+            margin-top: 0px !important;
+        }
+    }
+</style>
+
+<div class="box box-info">
+
+    <div class="box-header with-border">
+
+        <h3 class="box-title">List SOP</h3>
+        <div class="pull-right">
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+
+            <a class="btn btn-info no-border" href="/operationprocedure/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create
+            </a>
+
+
+
+
+        </div>S
+        <div class="row">
+
+
+
+
+            <div class="col-md-10 col-xs-2 text-right top3">
+                &nbsp;
+            </div>
+            <div class="col-md-12">
+                <div class="box-body search-box adv-search-height" id="advsearchlist">
+
+                    <div class="search-body col-md-12 responsive-search" style="background:none;">
+
+                        <form id="search-form">
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    @using (Html.BeginForm("DeleteAll", "operationprocedure", FormMethod.Post, new { id = "AMCPeriodicMaintenance", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="PerdcDtlTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1" width="60%">Title</td>
+
+                        <td data-priority="1">Assigned To</td>
+                        <td data-priority="1" width="10%">Last Updated</td>
+                        <td data-priority="1">Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    }
+
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Remarks</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="box-body Remarks" id="modelview">
+                        <table class="table table-bordered table-hover RemarkInfo" id="RemarkInfo">
+                            <thead>
+                                <tr class="bg-gray">
+                                    <td>#</td>
+                                    <td>Date & Times</td>
+                                    <td>Employee</td>
+                                    <td>Remark</td>
+                                    <td>Status</td>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@{var vModel = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @vModel)
+@Html.Partial("../Reminder/Index")
+@Html.Partial("../Common/_ModalDelete")
+@Html.Partial("../Common/_ModalEdit")
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+
+<script type="text/javascript">
+
+        $('#advsearchlist').hide();
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+
+        //DropDown Amc No.
+        $("#ddlAmcNo").select2({
+            placeholder: 'Search Amc No.',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/AMC/SearchAmcNo",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x:"All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+
+
+        /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+
+        //Retrieving data from table for display
+         var oTable = $('#PerdcDtlTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "pageLength": 50000,
+                    responsive: true,
+                    "bLengthChange": false,
+                    "ajax": {
+                        "url": '/operationprocedure/GetmyDetails',
+                        "data": function (data) {
+                            //data.AmcId = $('#ddlAmcNo').val();
+                            //data.PDate = $('#PeriodicDate').val();
+                        },
+                        "type": "POST",
+                        "datatype": "json",
+                    },
+
+                    "columns": [
+                        {
+                            "data": "sopid", "name": "sopid",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        { "data": "title", "name": "title" },
+
+
+                        {
+                            "name": "AssignedTo", "data": function (data) {
+                                var datas = "";
+                                $.each(data.AssignedTo, function (i, item) {
+                                    if (datas != "") {
+                                        datas += ", ";
+                                    }
+                                    datas += item.FirstName + " " + item.LastName;
+                                })
+                                return datas;
+                            }
+                        },
+                        {
+                            "name": "ldate", "data": function (data) {
+                                var result = "";
+                                if (data.ldate != null) {
+                                    result = LastUpdatedIn(data.ldate);
+                                }
+                                return (result);
+                            }
+                        },
+                        {
+                            "name": "sopid", "data": function (data) {
+                                var rest = "";
+                                if (1==1 ) {
+
+@{
+                               var actDataa = "";
+        actDataa= "<a class=\"modal-create\" href=\"/operationprocedure/EditStatus/'+ data.sopid +'\" title=\"approve sop\"><i class=\"fa fa-lg fa-refresh\"></i></a> ";
+    }
+                                     rest += '@Html.Raw(actDataa)';
+                                }
+                            @{
+    actData += "<a class=\"modal-create\" href=\"/operationprocedure/ViewNote/'+ data.sopid +'\" title=\"View Note\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+
+
+    if (User.IsInRole("Edit SOP"))
+    {
+        actData += "<a class=\"\" href=\"/operationprocedure/Edit/'+ data.sopid +'\" title=\"View Note\"><i class=\"fa fa-lg fa-edit\"></i></a> ";
+    }
+}
+                                return rest += '@Html.Raw(actData)';
+                            }
+                        },
+                    ],
+
+                   buttons: [
+                     'colvis',
+                     {
+                       extend: 'print',//
+                       title: "",
+                       footer: true,
+                       filename: function () {
+                           return 'Periodic Maintenance';
+                       },
+                       columnDefs: [
+                           { width: 400, targets: 2 }
+                       ],
+                       exportOptions: {
+                           columns: ':visible'
+                       },
+                       message: function () {
+                           var head = '<table class="tblcompact table table-bordered"><thead>' +
+                           ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Periodic Maintenance</h4></th></tr>';
+                           return head;
+                       },
+                       customize: function (win) {
+                           // $(win.document.body)
+                           //.css('font-size', '10pt')
+                           //.css('padding', '1px');
+                           $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                           $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                               .css('font-size', '10pt')
+                               .css('padding', '5px')
+                               .addClass('compact');
+                           $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                               .css('min-width', '80px');
+                           //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                           //    .css('padding', '0px');
+                           $(win.document.body).append('</td></tr></tbody>')
+
+                       }
+                   }, 'copy', 'csv', //'excel',
+                   {
+                       extend: 'pdf',//
+                       title: "",
+                       footer: true,
+                       filename: function () {
+                           return 'Periodic Maintenance';
+                       },
+                       message: function () {
+                           var head = 'Periodic Maintenance';
+                           return head;
+                       },
+                       pageSize: 'A4',
+                       exportOptions: {
+                           columns: ':visible'
+                       },
+                       customize: function (doc) {
+                           doc.pageMargins = [10, 10, 10, 10];
+                           doc.defaultStyle.fontSize = 10;
+                           doc.styles.tableHeader.fontSize = 10;
+                           doc.styles.title.fontSize = 12;
+                           // Header font and bg color
+                           doc.styles.tableHeader.fillColor = '#d3d3d3';
+                           doc.styles.tableHeader.color = 'black';
+                           // Remove spaces around page title
+                           doc.content[0].text = doc.content[0].text.trim();
+
+                           doc.styles['td:nth-child(2)'] = {
+                               width: '100%',
+                               'max-width': '100%'
+                           }
+
+                           var objLayout = {};
+                           // Horizontal line thickness
+                           objLayout['hLineWidth'] = function (i) { return .5; };
+                           // Vertikal line thickness
+                           objLayout['vLineWidth'] = function (i) { return .5; };
+                           //// Horizontal line color
+                           //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                           //// Vertical line color
+                           //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                           // Left padding of the cell
+                           objLayout['paddingLeft'] = function (i) { return 4; };
+                           // Right padding of the cell
+                           objLayout['paddingRight'] = function (i) { return 4; };
+                           // Inject the object in the document
+                           doc.content[1].layout = objLayout;
+                           // Footer font and bg color
+                           doc.styles.tableFooter.fillColor = '#d3d3d3';
+                           doc.styles.tableFooter.color = 'black';
+                       }
+                    },@Html.Raw(refreshBTn)
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "drawCallback": function (settings) {
+                }
+
+
+         });
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+
+                /*******  To clear all the data entered  *********/
+                $('#ddlAmcNo').val(0).trigger("change");
+                $('#PeriodicDate').val("");
+                oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            Table.draw(false);
+        });
+    $('#modal-create').on('submit', '#editform', function (e) {
+        e.preventDefault();
+        var url = $('#editform')[0].action;
+        var data = $('#editform').serialize();
+        createajax(url, data, '#modal-create');
+        Table.draw(false);
+    });
+
+        //Pop up For Add Status
+        $('.table').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshowhtml(url, '#modal-create');
+        });
+        function modalshowhtml(url, modalid) {
+            $.ajax({
+                type: "GET",
+                dataType: "html",
+                url: url,
+                success: function (msg) {
+                    $(modalid + " .modal-content").html(msg);
+                    $(modalid).modal("show");
+                }
+            });
+        }
+        //Pop up for View Status Updation
+        $('div').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        //To Close the Remark Info Table
+         $('.RemarkInfo').on('click', '.modal-close-btn', function () {
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        });
+
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+    function detailsRemark(PeriodicDtlId) {
+
+        var oTable1 = $('#RemarkInfo').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "paging": false,
+            "sortable": true,
+            "ordering": true,
+            "searching": true,
+            "ajax": {
+                "url": '/AMCPeriodicMaintenance/GetAllStatusUpdates',
+                "type": "POST",
+                "datatype": "json",
+                "data": { PeriodicDtlId: PeriodicDtlId }
+            },
+            "order": [[0, "desc"]],
+
+            "columns": [
+                {
+                    "data": "RemarkId", "name": "RemarkId",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                { "data": "EmpName", "name": "EmpName" },
+                { "data": "Remark", "name": "Remark" },
+                { "data": "Status", "name": "Status" },
+            ],
+        });
+        oTable1.destroy();
+    }
+
+</script>
+}
+
+
+
+
+

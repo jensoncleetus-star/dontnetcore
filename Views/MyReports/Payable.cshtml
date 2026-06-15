@@ -1,0 +1,446 @@
+@{
+    ViewBag.Title = "Outstanding";
+    ViewBag.SubTitle = "Outstanding Payable";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Outstanding Payable</h3>
+    </div>
+    <div class="box-body">        
+        @using (Html.BeginForm("Payable", "MyReports", FormMethod.Post, new { id = "PayableForm" }))
+        {
+            <div class="form-group col-md-4">
+                @Html.Label("Select Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCSType", (SelectList)ViewBag.CSType, new { @class = "form-control input-sm select2" })
+            </div>
+
+            <div class="form-group col-md-4" id="SupDiv">
+                @Html.Label("Supplier", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.ListSup, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4" id="CusDiv">
+                @Html.Label("Customer", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.ListCust, new { @class = "form-control input-sm select2" })
+            </div>
+                <div class="form-group col-md-4">
+                    @Html.Label("Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Date Wise", Value="0"},
+                        new SelectListItem() {Text = "Ageing wise", Value="1"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+                </div>
+                <div class="form-group col-md-4" id="fdate">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-4" id="todate">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-4" id="ageday">
+                    @Html.Label("Days ", null, new { @class = "control-label" })
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownList("AgeDays", (SelectList)ViewBag.Agetype, new { @class = "form-control input-sm select2" })  
+                    @*    @Html.Editor("AgeDays", new { htmlAttributes = new { @class = "form-control", @Value = "30" } })*@                     
+                        @*<input type="text" class="form-control input-sm" value="30" id="AgeDays" />*@
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-flat">Days</button>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+        }
+    </div>
+</div>
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        $("#ddlCSType").select2();
+
+        $('body').on('change', '#ddlType', function (e) {
+            var type = $(this).val();
+            if (type == 1) {
+                $('#From').val("");
+                $('#To').val("");
+                $('#fdate').hide();
+                $('#todate').hide();                
+                $('#ageday').show();
+            }
+            if (type == 0) {
+                $('#fdate').show();
+                $('#todate').show();               
+                $('#AgeDays').val(null);
+                $('#ageday').hide();
+            }
+        });
+
+
+        $(document).ready(function () {
+
+            CSChange();
+            $('#AgeDays').select2();
+
+            $('#PReport').hide();
+            $('#ageday').hide();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+        });
+
+        CallRepSupplier();
+        CallRepCustomer();
+        CallRepMCUser();
+
+        $('body').on('change', '#ddlCSType', function (e) {
+            CSChange();
+        });
+
+        function CSChange() {
+            var cst = $('#ddlCSType').val();
+            if (cst == "Sup") {
+                $('#SupDiv').show();
+                $('#CusDiv').hide();
+                $('#ddlCustomer').val(0);
+                $('#ddlSupplier').val(0);
+            }
+            else if (cst == "Cus") {
+                $('#CusDiv').show();
+                $('#SupDiv').hide();
+                $('#ddlSupplier').val(0);
+                $('#ddlCustomer').val(0);
+            }
+            else {
+                $('#SupDiv').hide();
+                $('#CusDiv').hide();
+                $('#UserTable').hide()
+            }
+        }
+    </script>
+}
+
+
+
+@*<div class="box box-default" id="PReport">
+        <div class="box-header with-border">
+            <h3 class="box-title">Outstanding Payable</h3>
+        </div>
+        <div class="box-body">
+            <div class="box-body">
+                <table class="table table-bordered" id="UserTable">
+                    <thead>
+                        <tr>
+                            <td>S/N</td>
+                            <td>Invoice No</td>
+                            <td>Date</td>
+                            <td>Supplier</td>
+                            <td class="headeralign">Amount</td>
+                            <td>Days</td>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th colspan="3"></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+            //jQuery(function ($) {
+            //    var oTable = $('#UserTable').DataTable({
+            //        "processing": true, // for show progress bar
+            //        "serverSide": true, // for process server side
+            //        "filter": false, // this is for disable filter (search box)
+            //        "orderMulti": false, // for disable multiple column at once
+            //        // "bStateSave": true,
+            //        "bLengthChange": false,
+            //        "paging": true,
+            //        "pageLength": 5000,
+            //        "deferLoading": 0,
+            //        "ordering": false,
+            //        Responsive: true,
+            //        "ajax": {
+            //            "url": '/MyReports/GetPayable',
+            //            "data": function (data) {
+            //                data.CSType = $('#ddlCSType').val();
+            //                data.Sups = $('#ddlSupplier').val();
+            //                data.Cuss = $('#ddlCustomer').val();
+            //                data.fromdate = $('#From').val();
+            //                data.todate = $('#To').val();
+            //                data.agedays = $('#AgeDays').val();
+            //                data.type = $('#ddlType').val();
+            //            },
+            //            "type": "POST",
+            //            "datatype": "json"
+
+            //        },
+            //        "order": [[0, "desc"]],
+            //        "columns": [
+            //             {
+            //                 "data": "", "name": "",
+            //                 "render": function (data, type, row, meta) {
+            //                     return meta.row + meta.settings._iDisplayStart + 1;
+            //                 }
+            //             },
+            //          { "data": "Invoice", "name": "Invoice" },
+            //          { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+            //          { "data": "Name", "name": "Name" },
+            //          { "data": "Amount", "name": "Amount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+            //          { "data": "Days", "name": "Days" }
+            //        ],
+            //        buttons: [
+            //        {
+            //            extend: 'print',//
+            //            title: "",
+            //            footer: true,
+            //            filename: function () {
+            //                return 'Payable Outstanding-Report';
+            //            },
+            //            exportOptions: {
+            //                columns: [0, 1, 2, 3, 4]
+            //            },
+            //            message: function () {
+            //                var head = '<table class="tblcompact table table-bordered"><thead>' +
+            //                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Payable Outstanding </h4></th></tr>' +
+            //                ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+            //                return head;
+            //            },
+            //            customize: function (win) {
+            //                // $(win.document.body)
+            //                //.css('font-size', '10pt')
+            //                //.css('padding', '1px');
+            //                $(win.document.body).find('table, th,tr, td ')
+            //                   // .css('border', 'inherit')
+            //                    .css('font-size', '10pt')
+            //                    .css('padding', '5px')
+            //                    .addClass('compact');
+            //                $(win.document.body).append('</td></tr></tbody>')
+
+            //            }
+            //        }, 'copy', 'csv', //'excel',
+            //        {
+            //            extend: 'excel',//
+            //            title: "",
+            //            footer: true,
+            //            filename: function () {
+            //                return 'Payable Outstanding-Report';
+            //            },
+            //            message: function () {
+            //                var head = '' + $('#cname').val() + '\n' +
+            //                 '' + $('#caddress').val() + '\n' +
+            //                 ' Payable Outstanding \n' +
+            //                // 'Account Name : ' + $('#ddlAccountName').text() + '\n' +
+            //                 'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+            //                return head;
+            //            },
+            //            pageSize: 'A4',
+            //            exportOptions: {
+            //                columns: [0, 1, 2, 3, 4]
+            //            },
+            //        },
+            //        {
+            //            extend: 'pdf',//
+            //            title: "",
+            //            footer: true,
+            //            filename: function () {
+            //                return 'Payable Outstanding-Report';
+            //            },
+            //            message: function () {
+            //                var head = '' + $('#cname').val() + '\n' +
+            //                 '' + $('#caddress').val() + '\n' +
+            //                 ' Payable Outstanding \n' +
+            //                // 'Account Name : ' + $('#ddlAccountName').text() + '\n' +
+            //                 'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+            //                return head;
+            //            },
+            //            pageSize: 'A4',
+            //            exportOptions: {
+            //                columns: [0, 1, 2, 3, 4]
+            //            },
+            //            customize: function (doc) {
+            //                doc.pageMargins = [10, 10, 10, 10];
+            //                doc.defaultStyle.fontSize = 10;
+            //                doc.styles.tableHeader.fontSize = 10;
+            //                doc.styles.title.fontSize = 12;
+            //                // Header font and bg color
+            //                doc.styles.tableHeader.fillColor = '#d3d3d3';
+            //                doc.styles.tableHeader.color = 'black';
+            //                // Remove spaces around page title
+            //                doc.content[0].text = doc.content[0].text.trim();
+
+            //                doc.content[1].table.widths = [
+            //               '15%',
+            //               '18%',
+            //               '18%',
+            //               '25%',
+            //               '20%',
+            //                ]
+            //                var objLayout = {};
+            //                // Horizontal line thickness
+            //                objLayout['hLineWidth'] = function (i) { return .5; };
+            //                // Vertikal line thickness
+            //                objLayout['vLineWidth'] = function (i) { return .5; };
+            //                //// Horizontal line color
+            //                //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+            //                //// Vertical line color
+            //                //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+            //                // Left padding of the cell
+            //                objLayout['paddingLeft'] = function (i) { return 4; };
+            //                // Right padding of the cell
+            //                objLayout['paddingRight'] = function (i) { return 4; };
+            //                // Inject the object in the document
+            //                doc.content[1].layout = objLayout;
+            //                // Footer font and bg color
+            //                doc.styles.tableFooter.fillColor = '#d3d3d3';
+            //                doc.styles.tableFooter.color = 'black';
+            //            }
+            //        },
+
+            //        ],
+
+
+            //        sDom: "lBfr<'datatable-scroll't>ip",
+            //        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            //        "footerCallback": function (row, data, start, end, display) {
+            //            var api = this.api(), data;
+
+            //            // Remove the formatting to get integer data for summation
+            //            var intVal = function (i) {
+            //                return typeof i === 'string' ?
+            //                    i.replace(/[\$,]/g, '') * 1 :
+            //                    typeof i === 'number' ?
+            //                    i : 0;
+            //            };
+
+            //            // Total over all pages
+            //            total = api
+            //                .column(4)
+            //                .data()
+            //                .reduce(function (a, b) {
+            //                    return intVal(a) + intVal(b);
+            //                }, 0);
+
+            //            // Total over this page
+            //            pageTotal = api
+            //                .column(4, { page: 'current' })
+            //                .data()
+            //                .reduce(function (a, b) {
+            //                    return intVal(a) + intVal(b);
+            //                }, 0);
+
+
+            //            $(api.column(4).footer()).html(
+            //                 pageTotal.toFixed(2)
+            //                //'$' + pageTotal + ' ( $' + total + ' total)'
+            //            );
+
+            //            var table = $('#UserTable').DataTable();
+            //            if (!table.data().any()) {
+            //                $('#UserTable tfoot').hide();
+            //            } else {
+            //                $('#UserTable tfoot').show();
+            //            }
+            //        }
+            //    });
+
+            //    $('#search-form').on('submit', function (e) {
+            //        e.preventDefault();
+            //        oTable.draw();
+            //        $('#PReport').show();
+            //        var type = $('#ddlType').find(":selected").text();
+            //        if (type != 'Ageing wise') {
+            //            var column = oTable.column(5);
+            //            column.visible(false);
+            //        } else {
+            //            var column = oTable.column(5);
+            //            column.visible(true);
+            //        }
+
+            //        //var vname = $('#ddlCSType').val();
+            //        //    alert(vname);
+            //        //    if ($('#ddlCSType').val() == "Sup") {
+            //        //        $(oTable.column(3).header()).text('Supplier');
+            //        //    }
+            //        //    else if ($('#ddlCSType').val() == "Cus") {
+            //        //        $(oTable.column(3).header()).text('Customer');
+            //        //    }
+            //    });
+            //});
+            //function reload_table() {
+            //    oTable.clear().draw();
+            //    oTable.ajax.reload(null, false);
+            //}
+
+
+            //$('body').on('change', '#ddlCSType', function (e) {
+            //    CSChange();
+            //});
+
+            //function CSChange() {
+            //    var cst = $('#ddlCSType').val();
+            //    if (cst == "Sup") {
+            //        $('#SupDiv').show();
+            //        $('#CusDiv').hide();
+            //        $('#ddlCustomer').val(0);
+            //        $('#ddlSupplier').val(0);
+            //    }
+            //    else if (cst == "Cus") {
+            //        $('#CusDiv').show();
+            //        $('#SupDiv').hide();
+            //        $('#ddlSupplier').val(0);
+            //        $('#ddlCustomer').val(0);
+            //    }
+            //    else {
+            //        $('#SupDiv').hide();
+            //        $('#CusDiv').hide();
+            //        $('#UserTable').hide()
+            //    }
+            //}
+*@

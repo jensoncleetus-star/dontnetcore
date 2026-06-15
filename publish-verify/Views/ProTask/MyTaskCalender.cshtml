@@ -1,0 +1,229 @@
+﻿@model QuickSoft.ViewModel.ProTaskViewModel
+@{
+    ViewBag.Title = "My Tasks";
+    ViewBag.SubTitle = "My Tasks";
+    ViewBag.Active = "Task";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">My Tasks</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create ProTask"))
+            {
+                <a class="btn btn-info no-border" href="/ProTask/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Task
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="box box-default">
+            <div class="box-body no-padding">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-aqua">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Task Update History</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-hover" id="UserTableInfo">
+                        <thead>
+                            <tr class="bg-aqua">
+                                <td>Process</td>
+                                <td>Updated By</td>
+                                <td>Time</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/fullcalendar")
+}
+@section scripts{
+    @Scripts.Render("~/js/fullcalendar")
+    <script type="text/javascript">
+        $(function () {
+            /* initialize the calendar
+             -----------------------------------------------------------------*/
+            //Date for the calendar events (dummy data)
+            var date = new Date();
+            var d = date.getDate(),
+                m = date.getMonth(),
+                y = date.getFullYear();
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay,listWeek'
+                },
+                buttonText: {
+                    today: 'today',
+                    month: 'month',
+                    week: 'week',
+                    day: 'day',
+                    list:'Week list'
+                },
+                events: "/ProTask/GetDailyTask/",
+                eventAfterRender: function (event, element, view) {
+                    if (event.title == "Created") {
+                        element.css('background-color', '#7fdbff');
+                        element.css('border-color', '#7fdbff')
+                    } else if (event.title == "Accepted") {
+                        element.css('background-color', '#0074d9');
+                        element.css('border-color', '#0074d9')
+                    } else if (event.title == "Rejected") {
+                        element.css('background-color', '#2fc555');
+                        element.css('border-color', '#2fc555')
+                    } else if (event.title == "Assigned") {
+                        element.css('background-color', '#39cccc');
+                        element.css('border-color', '#39cccc')
+                    } else if (event.title == "ClosedPending") {
+                        element.css('background-color', '#ff851b');
+                        element.css('border-color', '#ff851b')
+                    } else if (event.title == "Started") {
+                        element.css('background-color', '#2ecc40');
+                        element.css('border-color', '#2ecc40')
+                    } else if (event.title == "InProgress") {
+                        element.css('background-color', '#ffdc00');
+                        element.css('border-color', '#ffdc00')
+                    } else if (event.title == "ClosedCompleted") {
+                        element.css('background-color', '#111');
+                        element.css('border-color', '#111')
+                    } else if (event.title == "Canceled") {
+                        element.css('background-color', '#ff4136');
+                        element.css('border-color', '#ff4136')
+                    } else if (event.title == "Hold") {
+                        element.css('background-color', '#01ff70');
+                        element.css('border-color', '#01ff70')
+                    } else if (event.title == "Verified") {
+                        element.css('background-color', '#001f3f');
+                        element.css('border-color', '#001f3f')
+                    } else if (event.title == "Reopen") {
+                        element.css('background-color', '#b10dc9');
+                        element.css('border-color', '#b10dc9')
+                    } else if (event.title == "Reassigned") {
+                        element.css('background-color', '#85144b');
+                        element.css('border-color', '#85144b')
+                    }
+                },
+                eventRender: function (event, element) {
+                    var status = "";
+                    if ((event.title == "Assigned" || event.title == "Reassigned" || event.title == "Started" || event.title == "Accepted") && event.Access != "No") {
+                        if (event.checkstatus) {
+                            status = '<a href=\"/ProTask/EditMyStatus/' + event.id + '\" title=\"Edit Status\" data-id="' + event.id + '" class="editstatus fa fa-lg fa-refresh"></a>';
+                        }
+                    }
+                    var view = '<a onclick="details(' + event.id + ')"  title=\"View Status\" class="viewstatus fa fa-lg fa-search-plus"></a>';
+                    element.find('.fc-time').append(" : " + event.description + status +" "+ view);
+                },
+                editable: false,
+
+            });
+        });
+
+        ///* function for view detail popup */
+        //$(document).on('click', '.viewapp', function (e) {
+        //    e.preventDefault();
+        //    var url = $(this).attr('href');
+        //    modalshow(url, '#modal-create');
+        //})
+        //$('#modal-create').on('submit', '#createform', function (e) {
+        //    e.preventDefault();
+        //    var url = $('#createform')[0].action;
+        //    var data = $('#createform').serialize();
+        //    createajax(url, data, '#modal-create');
+        //});
+
+        ///* function for delete popup */
+        //$(document).on('click', '.deleteapp', function (e) {
+        //    e.preventDefault();
+        //    var url = $(this).attr('href');
+        //    modalshow(url, '#modal-delete');
+        //});
+        //$('#modal-delete').on('submit', '#deleteform', function (e) {
+        //    e.preventDefault();
+        //    var url = $('#deleteform')[0].action;
+        //    var data = $('#deleteform').serialize();
+        //    createajax(url, data, '#modal-delete');
+        //   //refresh
+        //    $('#calendar').fullCalendar('refetchEvents');
+        //});
+
+        $(document).on('click', '.viewstatus', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('.table').on('click', '.modal-close-btn', function () {
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        });
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        $(document).on('click', '.editstatus', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            //refresh
+            $('#calendar').fullCalendar('refetchEvents');
+        });
+
+        function details(d) {
+            var TaskId = d;
+            var oTable = $('#UserTableInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "ajax": {
+                    "url": '/ProTask/GetAllTaskUpdation',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { TasKID: TaskId }
+                },
+                "columns": [
+                        {
+                            "name": "TaskStatus", "data": function (data) {
+                                var datas = data.TaskStatus;
+                                if (data.TaskStatus == "Assigned" || data.TaskStatus == "Reassigned") {
+                                    datas += " to " + data.Assigned;
+                                }
+                                return datas;
+                            }
+                        },
+                      { "data": "User", "name": "User" },
+                      //{ "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertToDate(data); } },
+                      { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertDateTime(data); } },
+                      { "data": "Remarks", "name": "Remarks" },
+                ],
+                searching: false
+            });
+            oTable.destroy();
+        }
+
+    </script>
+}

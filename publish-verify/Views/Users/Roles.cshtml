@@ -1,0 +1,149 @@
+﻿@model QuickSoft.ViewModel.UserViewModel
+@{
+    ViewBag.Title = "View Roles";
+    ViewBag.SubTitle = "Master";
+    ViewBag.Active = "Roles";
+
+}
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">View Roles</h3>
+            <p class="pull-right">
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a href="/Users/RolesCreate" class="btn btn-info modal-link-create"><i class="glyphicon glyphicon-plus"></i> Add New</a>
+            </p>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">Role Name</td>
+                        <td data-priority="3">Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+<div id="modal-container" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+        @section Scripts {
+            <script type="text/javascript">
+                $(document).ready(function () {
+                    var oTable = $('#MyTable').DataTable({
+                        "processing": true, // for show progress bar
+                        "serverSide": true, // for process server side
+                        "filter": true, // this is for disable filter (search box)
+                        "orderMulti": false, // for disable multiple column at once
+                        "bStateSave": true,
+                        responsive: false,
+                        "ajax": {
+                            "url": '/Users/GetRoles',
+                            "type": "POST",
+                            "datatype": "json"
+
+                        },
+                        "columns": [
+                            { "data": "Name", "name": "Name" },
+                            {
+                                "data": "Id", "name": "Id", "render": function (data) {
+                                    return '<a class="modal-link-edit" href="/Users/RolesEdit/' + data + '" title="Click To Edit Roles"><i class="fa fa-edit" style="font-size: large" ></i></a> ' +
+                                        '<a class="modal-link-delete" href="/Users/RolesDelete/' + data + '" title="Click To Delete Roles"><i class="fa fa-trash" style="font-size: large"></i></a> ';
+                                }
+                            }
+                        ]
+                    })
+
+                    $('div').on('click', '.modal-link-create', function (e) {
+                        $(this).attr('data-target', '#modal-container');
+                        $(this).attr('data-toggle', 'modal');
+                    });
+
+                    $('.table').on('click', '.modal-link-edit', function (e) {
+                        $(this).attr('data-target', '#modal-container');
+                        $(this).attr('data-toggle', 'modal');
+                    });
+
+                    $('.table').on('click', '.modal-link-delete', function (e) {
+                        $(this).attr('data-target', '#modal-container');
+                        $(this).attr('data-toggle', 'modal');
+                    });
+
+                    //$('.table').on('click', '.modal-link-edit', function (e) {
+                    //    e.preventDefault();
+                    //    var url = $(this).attr('href');
+                    //    modalpop(url, "#modal-container");
+                    //});
+                    //$('div').on('click', '.modal-link-create', function (e) {
+                    //    e.preventDefault();
+                    //    var url = $(this).attr('href');
+                    //    modalpop(url, "#modal-container");
+                    //});
+                    $('#modal-container').on('submit', '#popupFormRoles', function (e) {
+                        var url = $('#popupFormRoles')[0].action;
+                        $.ajax({
+                            type: "POST",
+                            url: url,
+                            data: $('#popupFormRoles').serialize(),
+                            success: function (data) {
+                                if (data.status) {
+                                    $('#modal-container').modal('hide');
+                                    //oTable.ajax.reload();
+                                    oTable.draw(false);
+                                    $('.ajax_response', res_success).text(data.message);
+                                    $('.AlertDiv').prepend(res_success);
+                                }
+                                else {
+                                    $('.ajax_response', res_danger).text(data.message);
+                                    $('.AlertDiv').prepend(res_danger);
+                                }
+                                fadeAlert();
+                            }
+                        })
+
+                        e.preventDefault();
+                    })
+                    $('#modal-container').on('submit', '#popupFormRolesDelete', function (e) {
+                        var url = $('#popupFormRolesDelete')[0].action;
+                        $.ajax({
+                            type: "POST",
+                            url: url,
+                            data: $('#popupFormRolesDelete').serialize(),
+                            success: function (data) {
+                                if (data.status) {
+                                    $('#modal-container').modal('hide');
+                                    //oTable.ajax.reload();
+                                    oTable.draw(false);
+                                    $('.ajax_response', res_success).text(data.message);
+                                    $('.AlertDiv').prepend(res_success);
+                                }
+                                else {
+                                    $('.ajax_response', res_danger).text(data.message);
+                                    $('.AlertDiv').prepend(res_danger);
+                                }
+                                fadeAlert();
+                            }
+                        })
+
+                        e.preventDefault();
+                    })
+
+                   
+
+                    $('body').on('click', '.modal-close-btn', function () {
+                        $('#modal-container').modal('hide');
+                        $('#modal-container').removeData('bs.modal');
+                    });
+
+                    //clear modal cache, so that new content can be loaded;
+                    $('#modal-container').on('hidden.bs.modal', function () {
+                        $(this).removeData('bs.modal');
+                    });
+                });
+            </script>
+        }
+

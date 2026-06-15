@@ -1,0 +1,82 @@
+@{
+    ViewBag.Title = "Check Acm Status";
+    ViewBag.SubTitle = "Check Acm Status";
+    ViewBag.Active = "Acm";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">AMC Stauts</h3>
+
+    </div>
+    <div class="box-body search-box">
+        <div class="row">
+            <div class="form-group col-md-12">
+                @Html.Label("Customer", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Cust, "--SELECT--", new { @class = "form-control dlCustomer" })
+            </div>
+            
+        </div>
+        <div class="row">
+            <div class="form-group col-md-12">
+                Amc Status : <span id="amcstatus"></span>
+            </div>
+        </div>
+    </div>
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        
+        $(document).ready(function () {
+
+            $("#ddlCustomer").select2({
+                placeholder: 'Search Customer by Name or Code',
+                minimumInputLength: 0,
+                dropdownAutoWidth: true,
+                ajax: {
+                    url: "/Customer/SearchCustomerwithmobile",
+                    dataType: 'json',
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        $('body').on('change', '#ddlCustomer', function (e) {
+            var CustId = $('#ddlCustomer').val();
+            if (CustId != null && CustId != 0) {
+
+                //Calling function to retrieve PMaintenance details based on AmcID
+                $.ajax({
+                    url: '/Amc/isvalidamc',
+                  
+                    data: { CustId: CustId },
+            
+                    success: function (data) {
+                        $("#amcstatus").html(data);
+                    }
+
+                });
+            }
+            });
+        
+    </script>
+    }
+    

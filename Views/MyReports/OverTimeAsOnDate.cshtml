@@ -1,0 +1,450 @@
+@{
+    ViewBag.Title = "Over Time";
+    ViewBag.SubTitle = "Over time Reports";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Over Time For Employees</h3>
+    </div>
+
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="EmployeeName" />
+            
+            <div class="form-group col-md-12" id="EmployeeType" style="display:none;">
+                <input type="radio" id="r1" name="rate" value="TotalTime" checked="checked"> Total Time
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="radio" id="r2" name="rate" value="TaskAssigned"> Task Assigned Time
+            </div>            
+
+            <div class="row">              
+
+                <div class="form-group col-md-4 ">
+                    @Html.Label("Employee", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlEmployees", (SelectList)ViewBag.Employees, new { @class = "form-control input-sm select2" })
+                </div>
+
+                <div class="form-group col-md-4">
+                    @Html.Label("Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group col-md-3">
+                    @Html.Label("Working Hours Cut-Off", null, new { @class = "control-label" })
+                    <div class="input-group input-group-sm">
+                        @Html.TextBox("CutOff", "", new { @class = "form-control input-sm" })
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-flat">Hours</button>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="box box-default" id="SReport">
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered" id="UserTable" style="width:100%">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>SI No</td>
+                        <td>Employee Name</td>
+                        <td>Total Hours Worked</td>
+                        <td>Over Time</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            $('#SReport').hide();
+
+            //For Setting Initial Value in Cut-Off
+            $("#CutOff").val(10);    
+            
+            //For Setting Date
+            var datetd = new Date();
+            datetd.setDate(datetd.getDate());
+            $('#From').datepicker({
+                endDate: datetd,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('.date').datepicker({
+                endDate: datetd,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            $('#From').datepicker('setDate', today);
+
+            //DropDown Employee
+            $("#ddlEmployees").select2({
+                placeholder: 'Search Employee by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                         return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        var CutOff = $("#CutOff").val();         
+
+        jQuery(function ($) {
+
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+                "ordering": false,
+                "ajax": {
+                    "url": '/MyReports/GetEmployeeDetails',
+                    "data": function (data) {
+                        data.EmployeeId = $('#ddlEmployees').val();
+                        data.From       = $('#From').val();
+                        data.CutOff     = $('#CutOff').val();
+                        data.Type       = $("input[type='radio'][name='rate']:checked").val();                        
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "EmployeeId", "name": "EmployeeId",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+
+                    { "data": "EmployeeName", "name": "EmployeeName" },
+
+                    //Total Hour Worked
+                    {
+                        "name": "EmployeeId", "data": function (data) {
+
+                            var HoursSum = 0, MinSum = 0, SecSum = 0;
+                            var HoursWorked = 0;
+
+                            $.each(data.Tasks, function (i, item) {
+
+                                //If logged out(work completed)
+                                if (item.endtime != null) {
+
+                                    var StartDate = convertDateTimeYMD(item.starttime);
+                                    var LogOutDate = convertDateTimeYMD(item.endtime);
+
+                                    var ConLogOutDate = Date.parse(LogOutDate);
+                                    var ConStartDate  = Date.parse(StartDate);
+                                    var Diff          = ConLogOutDate - ConStartDate;
+
+                                    //Function to Covert to Time
+                                    function msToTime(duration) {
+                                        var milliseconds = Math.floor((duration % 1000) / 100),
+                                            seconds = Math.floor((duration / 1000) % 60),
+                                            minutes = Math.floor((duration / (1000 * 60)) % 60),
+                                            hours   = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+                                        hours   = (hours < 10) ? "0" + hours : hours;
+                                        minutes = (minutes < 10) ? "0" + minutes : minutes;
+                                        seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+                                        HoursSum += Number(hours);
+                                        MinSum   += Number(minutes);
+                                        SecSum   += Number(seconds);
+
+                                        //Convert to Hours after reaching 60 mints
+                                        if (MinSum >= 60) {
+                                            HoursSum = HoursSum + 1;
+                                            MinSum = MinSum - 60;
+                                        }
+
+                                        return HoursSum + " Hours  :  " + MinSum + " Minutes";
+                                    }
+
+                                    //Calling function 'msToTime' to Covert To Time
+                                    HoursWorked = msToTime(Diff);
+                                }
+                            });
+
+                            return HoursWorked;
+                        }
+                    },
+
+                    //Over Time
+                    {
+                        "name": "EmployeeId", "data": function (data) {
+
+                            var OverTime = 0, HoursSum = 0, MinSum = 0, SecSum = 0;
+                            var OverWorked = 0;
+                            var CutOff = $('#CutOff').val();
+                            $.each(data.Tasks, function (i, item) {                                
+
+                                 //If logged out(work completed)
+                                if (item.endtime != null) {
+
+                                    var StartDate = convertDateTimeYMD(item.starttime);
+                                    var LogOutDate = convertDateTimeYMD(item.endtime);
+
+                                    var ConLogOutDate = Date.parse(LogOutDate);
+                                    var ConStartDate = Date.parse(StartDate);
+
+                                    var Diff  = ConLogOutDate - ConStartDate;
+
+                                    //Function to Covert to Time
+                                    function msToTime(duration) {
+                                        var milliseconds = Math.floor((duration % 1000) / 100),
+                                            seconds = Math.floor((duration / 1000) % 60),
+                                            minutes = Math.floor((duration / (1000 * 60)) % 60),
+                                            hours   = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+                                        hours   = (hours < 10) ? "0" + hours : hours;
+                                        minutes = (minutes < 10) ? "0" + minutes : minutes;
+                                        seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+                                        HoursSum += Number(hours);
+                                        MinSum   += Number(minutes);
+                                        SecSum   += Number(seconds);
+
+                                        //Convert to Hours after reaching 60 mints
+                                        if (MinSum >= 60) {
+                                            HoursSum = HoursSum + 1;
+                                            MinSum = MinSum - 60;
+                                        }
+
+                                        //OverTime Calculating with CutOff
+                                        if (HoursSum > CutOff)
+                                            OverTime = HoursSum - CutOff;
+                                        else if (HoursSum < CutOff)
+                                            OverTime = -1;
+                                        else
+                                            OverTime = 0;
+                                        
+                                        //Pattern for displaying
+                                        if (OverTime == 0 && MinSum >0)
+                                            return 0 + MinSum + " Minutes";
+                                        else if ((OverTime == 0 && MinSum == 0) || OverTime < 0)
+                                            return 0 ;
+                                        else if (OverTime > 0 && MinSum == 0)
+                                            return OverTime + " Hours"
+                                        else
+                                            return OverTime + " Hours  :  " + MinSum + " Minutes";
+                                    }
+                                   
+                                    //Calling function 'msToTime' to Covert To Time
+                                    OverWorked = msToTime(Diff);
+                                }
+                            });
+
+                            return OverWorked;
+                        }
+                    },
+
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Employees';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                '<tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Employees Report</h4></th></tr>' +
+                                '<tr><th><span class="text-left">Employee : ' + $('#EmployeeName').val() + '</span><span class="text-right pull-right"> As On :  ' + $('#From').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Employees';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Employees \n' +
+                                'Employee : ' + $('#EmployeeName').val() + '\n' +
+                                'From :  ' + $('#From').val() + '';
+                            return head;
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Employees';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Employees \n' +
+                                'Employee : ' + $('#EmployeeName').val() + '\n' +
+                                'As On :  ' + $('#From').val();
+                            return head;
+                        },
+
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+                    },
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+            });
+
+            $('#search-form').on('submit', function (e) {
+
+                var CutOff = $('#CutOff').val();
+
+                if (CutOff != "") {
+
+                    e.preventDefault();
+                    var data = $('#ddlEmployees').select2('data')
+                    $("#EmployeeName").val(data[0].text);
+                    oTable.draw();
+                    $('#SReport').show();
+                }
+                else {
+                    e.preventDefault();
+                }
+
+            });
+        });
+
+    </script>
+}

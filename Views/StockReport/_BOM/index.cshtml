@@ -1,0 +1,458 @@
+﻿@{
+    var url = Model;
+    var file = "";
+    var chk = "";
+    if (url == "'/StockReport/GetStock'")
+    {
+        //chk = "'deferLoading': 0,";
+        file = "Stock Report (Till Date)";
+    }
+    if (url == "'/StockReport/GetOnDate'")
+    {
+        //chk = "'deferLoading': 0,";
+        file = "Stock Report (As On Date)";
+    }
+    if (url == "'/StockReport/GetCategoryWise'")
+    {
+        file = "Stock Report (Category Wise)";
+    }
+    if (url == "'/StockReport/GetBrandWise'")
+    {
+        file = "Stock Report (Brand Wise)";
+    }
+    if (url == "'/StockReport/GetItemWise'")
+    {
+        file = "Stock Report (Item Wise)";
+    }
+}
+<style>
+    table.dataTable.row-border tbody tr:first-child th, table.dataTable.row-border tbody tr:first-child td, table.dataTable.display tbody tr:first-child th, table.dataTable.display tbody tr td 
+    {
+        /*text-align:center;*/
+    }
+    table.dataTable.row-border tbody tr:first-child th, table.dataTable.row-border tbody tr:first-child td, table.dataTable.display tbody tr:first-child th, table.dataTable.display  tr th {
+        /*text-align: center;*/
+    }
+</style>
+<table class="display table table-bordered table-hover" id="UserTable">
+    <thead>
+        <tr class="bg-gray">
+            <td data-priority="1" class="text-left">S/N</td>
+            <td data-priority="1" class="text-left">Item</td>
+            <td data-priority="5" class="text-right">Primary Stock</td>
+            <td data-priority="5" class="text-right">Primary Unit</td>
+            <td data-priority="5" class="text-right">Secondary Stock</td>
+            <td data-priority="2" class="text-right">Secondary Unit</td>
+            <td data-priority="2" class="text-right">Cost</td>
+            <td data-priority="2" class="text-right">Stock Value</td>
+            <td data-priority="5" class="text-right">Sale Price</td>
+            <td data-priority="2" class="text-right">Sale Value</td>
+        </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+        <tr>
+            <th>Total:</th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+    </tfoot>
+</table>
+<script type="text/javascript">
+    function dtTable() {
+        oTable = $('#UserTable').DataTable({
+            "processing": true,// for show progress bar
+            "serverSide": false, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            // "bStateSave": true,
+            // disable default ajax loading
+            @Html.Raw(chk)
+            "bLengthChange": false,
+            "paging": true,
+            "responsive": true,
+            "pageLength": 5000,
+            "ordering": true,
+            "columnDefs": [{
+                "targets": [0],
+                "sClass": "numberleft"
+            }],
+            "ajax": {
+                "url": @Html.Raw(Model),
+                "data": function (data) {
+                    data=searchData(data);
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columns": [
+                 {
+                     "data": "ItemID", "name": "ItemID",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     },"sClass": "numberleft"
+                 },
+                {
+                    "name": "ItemName", "data": function (data) {
+                        return data.ItemCode + " - " + data.ItemName;
+                    }
+                },
+                //{
+                //    "name": "OpeningStock", "data": function (data) {
+                //        return data.OpeningStock + " " + data.PriUnit
+                //    },"sClass": "numberright"
+                //},
+                //{
+                //    "name": "stockIn", "data": function (data) {
+                //        var stockIn;
+                //        var primary = (data.stockIn / data.ConFactor);
+                //        if (data.stockIn % data.ConFactor == 0) {
+                //            stockIn = (data.stockIn / data.ConFactor) + " " + data.PriUnit;
+                //        }
+                //        else {
+                //            var p = parseInt(((data.stockIn / data.ConFactor) * 100) / 100);
+                //            //var prim = (Math.floor((data.stockIn / data.ConFactor) * 100) / 100).toFixed(0);
+                //            var sub = (data.stockIn % data.ConFactor).toFixed(0);
+                //            stockIn = p + " " + data.PriUnit + ", " + sub + " " + data.SubUnit
+                //        }
+                //        return '<label>' + stockIn + '</label>';
+                //    },"sClass": "numberright"
+                //},
+                //{
+                //    "name": "stockout", "data": function (data) {
+                //        var stockout;
+                //        var primary = (data.stockout / data.ConFactor);
+                //        if (data.stockout % data.ConFactor == 0) {
+                //            stockout = (data.stockout / data.ConFactor) + " " + data.PriUnit;
+                //        }
+                //        else {
+                //            var p = parseInt(((data.stockout / data.ConFactor) * 100) / 100);
+                //            //var prim = (Math.floor((data.stockout / data.ConFactor) * 100) / 100).toFixed(0);
+                //            var sub = (data.stockout % data.ConFactor).toFixed(0);
+                //            stockout = p + " " + data.PriUnit + ", " + sub + " " + data.SubUnit
+                //        }
+                //        return '<label>' + stockout + '</label>';
+                //    },"sClass": "numberright"
+                //},
+                {
+                    "name": "PrimaryStock", "data": function (data) {
+                        
+                            return (data.total / data.ConFactor)
+                        
+                    },render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+                },
+                {
+                    "name": "PriUnit", "data": "PriUnit","sClass": "numberright"
+                },
+                {
+                    "name": "SecondaryStock", "data": function (data) {
+                        return (data.total)
+                    },render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+                },
+                {
+                    "name": "SubUnit", "data": "SubUnit","sClass": "numberright"
+                },
+                //{
+                //    "data": function (data) {
+                //        var total;
+                //        var primary = (data.total / data.ConFactor);
+                //        if (data.total % data.ConFactor == 0) {
+                //            total = (data.total / data.ConFactor) + " " + data.PriUnit;
+                //        }
+                //        else {
+                //            var p = parseInt(((data.total / data.ConFactor) * 100) / 100);
+                //            //var prim = (Math.floor((data.total / data.ConFactor) * 100) / 100).toFixed(0);
+                //            var sub = (data.total % data.ConFactor).toFixed(0);
+                //            total = p + " " + data.PriUnit + ", " + sub + " " + data.SubUnit
+                //        }
+                //        if (primary <= data.MinStock) {
+                //            return '<font color="red"><label>' + total + '</label></font>';
+                //        } else {
+                //            return '<label>' + total + '</label>';
+                //        }
+                //    },"sClass": "numberright"
+                //},
+                 // { "data": "cost", "name": "cost", render: $.fn.dataTable.render.number(",", ".", 2) },
+                 { "name": "cost","data": function (data) {
+                         if ((data.MC == 0 || data.MC == null)|| data.stcost==null) {
+                             return data.cost.toFixed(2);
+                         }
+                         else{
+                             return data.stcost.toFixed(2);
+                         }
+                 },"sClass": "numberright"
+                 },
+                 {
+                     "data": function (data) {
+                         var cost = 0;
+                         if (data.MC == 0 || data.MC == null|| data.stcost==null) {
+                             cost = data.cost;
+                         }
+                         else{
+                             cost = data.stcost;
+                         }
+                         if (data.stockable == true) {
+                             var total = (data.total / data.ConFactor) * parseFloat(cost);
+                             return total.toFixed(2);
+                         }
+                         else
+                             return "";
+                     },"sClass": "numberright"
+                 },
+                //{
+                //    "data": function (data) {
+                //        if (data.stockable == true) {
+                //            var total = (data.total / data.ConFactor) * data.cost;
+                //            return total.toFixed(2);
+                //        }
+                //        else
+                //            return "";
+                //    }
+                //},
+                { "data": "price", "name": "price", render: $.fn.dataTable.render.number(",", ".", 2),"sClass": "numberright" },
+                  {
+                      "data": function (data) {
+                          if (data.stockable == true) {
+                              var total = (data.total / data.ConFactor) * data.price;
+                              return total.toFixed(2);
+                          }
+                          else
+                              return "";
+                      },"sClass": "numberright"
+                  },
+            ],
+            buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+          {
+              extend: 'print',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return '@file';
+              },
+              message: function () {
+                  var head = '<table class="tblcompact table table-bordered"><thead>' +
+                  ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>@file</h4></th></tr>' +
+                  ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                  return head;
+              },
+              customize: function (win) {
+                  // $(win.document.body)
+                  //.css('font-size', '10pt')
+                  //.css('padding', '1px');
+                  $(win.document.body).find('table, th,tr, td ')
+                     // .css('border', 'inherit')
+                      .css('font-size', '10pt')
+                      .css('padding', '5px')
+                      .addClass('compact');
+                  $(win.document.body).append('</td></tr></tbody>')
+
+              }
+          }, 'copy', 'csv', //'excel',
+          {
+              extend: 'excel',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return '@file';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' @file \n';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: [0, 1, 2, 3, 4, 5, 6, 7,8,9]
+              },
+          },
+          {
+              extend: 'pdf',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return '@file';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' @file \n';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: [0, 1, 2, 3, 4, 5, 6, 7,8,9]
+              },
+              customize: function (doc) {
+                  doc.pageMargins = [10, 10, 10, 10];
+                  doc.defaultStyle.fontSize = 10;
+                  doc.styles.tableHeader.fontSize = 10;
+                  doc.styles.title.fontSize = 12;
+                  // Header font and bg color
+                  doc.styles.tableHeader.fillColor = '#d3d3d3';
+                  doc.styles.tableHeader.color = 'black';
+                  // Remove spaces around page title
+                  doc.content[0].text = doc.content[0].text.trim();
+
+                  //doc.styles['td:nth-child(2)'] = {
+                  //    width: '100%',
+                  //    'max-width': '100%'
+                  //}
+
+                  doc.content[1].table.widths = [
+                  '7%',
+                  '15%',
+                  '10%',
+                  '10%',
+                  '10%',
+                  '10%',
+                  '10%',
+                  '10%',
+                  '9%',
+                  '9%'
+                  ]
+
+
+                  var objLayout = {};
+                  // Horizontal line thickness
+                  objLayout['hLineWidth'] = function (i) { return .5; };
+                  // Vertikal line thickness
+                  objLayout['vLineWidth'] = function (i) { return .5; };
+                  //// Horizontal line color
+                  //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                  //// Vertical line color
+                  //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                  // Left padding of the cell
+                  objLayout['paddingLeft'] = function (i) { return 4; };
+                  // Right padding of the cell
+                  objLayout['paddingRight'] = function (i) { return 4; };
+                  // Inject the object in the document
+                  doc.content[1].layout = objLayout;
+                  // Footer font and bg color
+                  doc.styles.tableFooter.fillColor = '#d3d3d3';
+                  doc.styles.tableFooter.color = 'black';
+              }
+
+
+          },
+
+            ],
+
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api(), data;
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                        i : 0;
+                };
+                // Total over all pages
+                total = api
+                    .column(2)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+                // Total over this page
+                pageTotal = api
+                    .column(2, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                // Update footer
+                $(api.column(2).footer()).html(
+                     pageTotal.toFixed(2)
+                    //'$' + pageTotal + ' ( $' + total + ' total)'
+                );
+                // Total over all pages
+                total = api
+                    .column(4)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+                // Total over this page
+                pageTotal = api
+                    .column(4, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                // Update footer
+                $(api.column(4).footer()).html(
+                     pageTotal.toFixed(2)
+                    //'$' + pageTotal + ' ( $' + total + ' total)'
+                );
+                
+
+                // Total over all pages
+                total = api
+                    .column(6)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+
+                // Total over this page
+                pageTotal = api
+                    .column(6, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                // Update footer
+                $(api.column(6).footer()).html(
+                     pageTotal.toFixed(2)
+                    //'$' + pageTotal + ' ( $' + total + ' total)'
+                );
+
+                // Total over all pages
+                total = api
+                    .column(7)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                // Total over this page
+                pageTotal = api
+                    .column(7, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                // Update footer
+                $(api.column(7).footer()).html(
+                     pageTotal.toFixed(2)
+                    //'$' + pageTotal + ' ( $' + total + ' total)'
+                );
+
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $('#UserTable tfoot').hide();
+                } else {
+                    $('#UserTable tfoot').show();
+                }
+
+            }
+        });
+
+    }
+</script>

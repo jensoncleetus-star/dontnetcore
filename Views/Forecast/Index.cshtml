@@ -1,0 +1,1289 @@
+@{
+    ViewBag.Title = "Forecast";
+    ViewBag.SubTitle = "Forecast";
+    ViewBag.Active = "Reports";
+    var url = Model;
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Item Forecast</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="datefrom" name="datefrom">
+            <input type="hidden" id="dateto" name="dateto">
+            @*<div class="form-group col-md-4">
+                    <label class="control-label"><input type="checkbox" value="true" name="stockable" id="stockable" />  Include non-stockable Items</label>
+                </div>*@
+            <div class="row">
+                <div class="form-group col-md-2 col-xs-6">
+                    @Html.Label("Categories", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCategories", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2 ", @required = "required" })
+                </div>
+                <div class="col-md-2 col-xs-6">
+                    @Html.Label("Item", null, new { @class = "control-label col-md-4" })
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @required = "required", @class = "form-control input-sm" })
+                </div>
+                <div class="clearfix visible-xs-block "></div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    @*<div class="form-group col-md-2 col-xs-6">
+                            @Html.Label("Material Center", null, new { @class = "control-label" })
+                            @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                        </div>*@
+                    <div class="form-group col-md-4">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @*@Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm", @multiple = "multiple", @name = "ddlMC[]" })*@
+                        @Html.ListBox("ddlMC", (MultiSelectList)ViewBag.mc, new { @class = "form-control input-sm" })
+                    </div>
+                }
+                <div class="form-group col-md-2 col-xs-6" style="display:none;">
+                    @Html.Label("Period", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlPeriod", (IEnumerable<SelectListItem>)ViewBag.Period, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2 col-xs-6">
+                    @Html.Label("Brand Name", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlBrand", (IEnumerable<SelectListItem>)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group col-md-2 col-xs-6" id="creditPurchaseReturn">
+                    @Html.Label("Invoice count Greater", null, new { @class = "control-label" })
+                    @Html.TextBox("invoicecount", "0", new { @type = "number", @class = "form-control input-sm" })
+
+                </div>
+                <div class="form-group col-md-2 col-xs-6" id="creditPurchaseReturn">
+                    @Html.Label("Supplier", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Search", null, new { @class = "control-label" })
+                    @Html.TextBox("Searchtext", "", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-2 col-xs-6">
+                    @Html.Label(" ", null, new { @class = "control-label" })
+                    <label class="form-control input-sm"><input type="checkbox" value="true" name="zerostockitem" id="ddlZeroMovement" checked />  Hide Zero Movement Stock</label>
+                </div>
+                <div class="form-group col-md-2 col-xs-6">
+                    @Html.Label(" ", null, new { @class = "control-label" })
+                    <label class="form-control input-sm"><input type="checkbox" value="true" name="zeroforcastitem" id="ddlZeroforecast" checked />  Hide Zero Forecast Stock</label>
+                </div>
+            </div>
+            <div class="form-group col-md-12 lblpadding">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="itemname" value="@ViewBag.ItemName" />
+        <input type="hidden" id="PoNo" value="@ViewBag.PartNoCheck" />
+        <input type="hidden" id="mcname" value="@ViewBag.MCSName" />
+
+        <div class="box-body">
+            <h3 id="otables1"></h3>
+            <table class="display table table-bordered table-hover" id="UserTable1">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td>Supplier Name</td>
+                        <td>Item Code</td>
+                        <td>Item Name</td>
+                        <td>Unit Price</td>
+                        <td>Net Movement Qty</td>
+                        <td>Current Stock Qty</td>
+                        <td>1month Forecast Qty</td>
+                        <td>Last 1month Movement</td>
+
+
+                        <td>Invoice Count</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                @*<tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+                        </tr>
+                    </tfoot>*@
+            </table>
+            <h3 id="otables2"></h3>
+            <table class="display table table-bordered table-hover" id="UserTable2">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td>Supplier Name</td>
+                        <td>Item Code</td>
+                        <td>Item Name</td>
+                        <td>Unit Price</td>
+                        <td>Net Movement Qty</td>
+                        <td>Current Stock Qty</td>
+                        <td>1month Forecast Qty</td>
+                        <td>Last 1month Movement</td>
+
+
+                        <td>Invoice Count</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                @*<tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+                        </tr>
+                    </tfoot>*@
+            </table>
+            <h3 id="otables3"></h3>
+            <table class="display table table-bordered table-hover" id="UserTable3">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td>Supplier Name</td>
+                        <td>Item Code</td>
+                        <td>Item Name</td>
+                        <td>Unit Price</td>
+                        <td>Net Movement Qty</td>
+                        <td>Current Stock Qty</td>
+                        <td>1month Forecast Qty</td>
+                        <td>Last 1month Movement</td>
+
+
+                        <td>Invoice Count</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                @*<tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+                        </tr>
+                    </tfoot>*@
+            </table>
+            <h3 id="otables4"></h3>
+            <table class="display table table-bordered table-hover" id="UserTable4">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td>Supplier Name</td>
+                        <td>Item Code</td>
+                        <td>Item Name</td>
+                        <td>Unit Price</td>
+                        <td>Net Movement Qty</td>
+                        <td>Current Stock Qty</td>
+                        <td>1month Forecast Qty</td>
+                        <td>Last 1month Movement</td>
+
+
+                        <td>Invoice Count</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                @*<tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+                        </tr>
+                    </tfoot>*@
+            </table>
+
+            <h3 id="otablesall">Merged(mussafa,abudabi,alain,china)</h3>
+            <table class="display table table-bordered table-hover" id="UserTableall">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td>Supplier Name</td>
+                        <td>Item Code</td>
+                        <td>Item Name</td>
+                        <td>Unit Price</td>
+                        <td>Net Movement Qty</td>
+                        <td>Current Stock Qty</td>
+                        <td>1month Forecast Qty</td>
+                        <td>Last 1month Movement</td>
+
+
+                        <td>Invoice Count</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                @*<tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+                        </tr>
+                    </tfoot>*@
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('#datefrom').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#dateto').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $("#ddlCategories").select2({
+            placeholder: 'Search Categories',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Forecast/CategorySearch",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        //For Supplier list
+        CallRepSupplier2();
+
+        $("#ddlBrand").select2({
+            placeholder: 'Search Brand',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Forecast/BrandSearch",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+    $(document).ready(function () {
+        $('#StockReport').hide();
+        $('#To').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#From').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 30));
+        $('#To').datepicker('setDate', today);
+        $('#From').datepicker('setDate', priordate);
+       /* ItemSearchable();*/
+        CallRepMCUser();
+
+        $("#ddlItem").select2({
+            placeholder: 'Search Item by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Item/Search",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "Select Item"
+                    };
+                },
+                results: function (data) {
+                    return { results: data };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+
+        });
+    });
+
+    function searchData(data,mc) {
+       // data.stockable = $('input[name="stockable"]').prop('checked');
+        data.zerostockitem = $('input[name="zerostockitem"]').prop('checked');
+        data.zeroforcastitem = $('input[name="zeroforcastitem"]').prop('checked'); 
+        data.itemid = $("#ddlItem").val();
+        data.categories = $("#ddlCategories").val();
+        data.brandId = $("#ddlBrand").val();
+        data.supplier = $("#ddlSupplier").val();
+       // data.supplierwise = $('input[name="supplierwise"]').prop('checked');
+        var today = new Date()
+        var priorDate = new Date().setDate(today.getDate() -(30))
+        var strdate = new Date(priorDate)
+        var date1 = strdate.toLocaleDateString('en-GB')
+
+        data.datefrom = $("#From").val();
+        //-------------------------------------------------------
+        //------------------current date------------------------
+        var nowDate = new Date();
+        var date2 = nowDate.getDate() + '-' + (nowDate.getMonth() + 1) + '-' + nowDate.getFullYear();
+        data.dateto = $("#To").val();
+        //-------------------------------------------------------
+        data.ddmc =mc;
+        data.srchtxt = $('#Searchtext').val();
+        data.invoicecount = $("#invoicecount").val();
+    }
+
+    function showdatatable(mc,i) {
+
+        var itemid = $("#ddlItem").val();
+        var datefrom = $("#From").val();
+        var dateto = $("#To").val();
+        var ddmc = mc;
+
+        var ddsupplier = $("#ddlSupplier").val();
+       function  myCustomFunction()
+        {
+            if ($('input[name="zeroforcastitem"]').prop('checked') == true) {
+                oTable1
+                    .rows(function (idx, data, node) {
+                        // data is an array for the row; check the value in the target column
+                        return data[7] === 0;
+                    })
+                    .remove()
+                    .draw();
+            }
+        }
+           var  oTable1 = $('#UserTable'+i).DataTable({
+                "processing": true, // for show progress bar,
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                //"deferLoading": 0, // disable default ajax loading
+                "bLengthChange": false,
+                "paging": true,
+              "bDestroy": true,
+                "pageLength": 5000,
+                "ordering": true,
+                "columnDefs": [{
+                    "targets": [4],
+                    "sClass": "numberright"
+               }],
+               "createdRow": function (row, data, dataIndex) {
+                   if ($('input[name="zeroforcastitem"]').prop('checked') == true) {
+                       if (data.currstock < 0) {
+                           var currentStock = 0;
+                       }
+                       else {
+                           var currentStock = data.currstock;
+                       }
+                       var moment = Math.abs(1 * data.onemonth);
+                       if (currentStock > moment) {
+                           var purchaseqty = 0;
+                       }
+
+                       else {
+                           var balacestock = currentStock - (moment);
+
+                           if (balacestock > moment) {
+                               var purchaseqty = 0;
+                           }
+                           else if (balacestock < 0) {
+                               var Revbalancestock = (moment - currentStock);
+
+                               if (Revbalancestock == moment) {
+                                   purchaseqty = Revbalancestock;
+
+
+                               }
+                               else if (Revbalancestock < moment) {
+
+                                   purchaseqty = moment - (moment - Revbalancestock);
+
+                               }
+                           }
+                           else {
+                               if (balacestock > 0) {
+                                   if (balacestock > moment) {
+                                       var purchaseqty = 0;
+                                   }
+                                   else {
+                                       var purchaseqty = moment - (moment - balacestock);
+                                   }
+                               }
+                               else {
+                                   var purchaseqty = moment;
+                               }
+                           }
+                       }
+
+                       if (purchaseqty == 0) {
+                           oTable1.rows($(row)).remove().draw();
+                       }
+
+                   }
+
+
+               },
+                "ajax": {
+                    "url": '/Forecast/GetStock2',
+                    "data": function (data) {
+                        data = searchData(data,mc);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": "IItemID", "name": "IItemID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "suppliername", "name": "suppliername" },
+                    { "data": "IItemCode", "name": "IItemCode" },
+                    {
+                        "name": "IItemName", "data": function (data) {
+
+                              @{
+                    var urls = "";
+
+                    urls = "'<a href=\"#\" >'+  data.IItemCode+' '+data.IItemName +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+
+
+
+                        }
+                    },
+                    { "data": "IPurchasePrice", "name": "IPurchasePrice" },
+                     { "data": "netvalue", "name": "netvalue", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    {
+                        "data": "currstock", "name": "currstock",
+                        "render": function (data) {
+                            if (data < 0) {
+                                return "0";
+                            }
+                            else {
+                                return data;
+                            }
+                        }
+                    },
+
+                    {
+                        "name": "1monthForecastqty", "data": function (data) {
+                            if (data.currstock < 0) {
+                                var currentStock = 0;
+                            }
+                            else {
+                                var currentStock = data.currstock;
+                            }
+                            var moment = Math.abs(1 * data.onemonth);
+                            if (currentStock > moment) {
+                                var purchaseqty = 0;
+                            }
+
+                            else {
+                                var balacestock = currentStock - (moment);
+
+                                if (balacestock > moment) {
+                                    var purchaseqty = 0;
+                                }
+                                else if (balacestock < 0) {
+                                    var Revbalancestock = (moment - currentStock);
+
+                                    if (Revbalancestock == moment) {
+                                        purchaseqty = Revbalancestock;
+
+
+                                    }
+                                    else if (Revbalancestock < moment) {
+
+                                        purchaseqty = moment - (moment - Revbalancestock);
+
+                                    }
+                                }
+                                else {
+                                    if (balacestock > 0) {
+                                        if (balacestock > moment) {
+                                            var purchaseqty = 0;
+                                        }
+                                        else {
+                                            var purchaseqty = moment - (moment - balacestock);
+                                        }
+                                    }
+                                    else {
+                                        var purchaseqty = moment;
+                                    }
+                                }
+                            }
+                            const format = (num, decimals) => num.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            });
+                            if (purchaseqty == undefined) {
+                                return "0";
+                            }
+                            else {
+                                return format(parseFloat(purchaseqty).toFixed(2));
+                            }
+
+
+                        }
+                    },
+                    { "data": "onemonth", "name": "onemonth", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                      { "data": "invoicecount", "name": "invoicecount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+
+                           ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock Movement</h4></th></tr>' +
+                                ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            //doc.styles['td:nth-child(2)'] = {
+                            //    width: '100%',
+                            //    'max-width': '100%'
+                            //}
+
+                            doc.content[1].table.widths = [
+                                '8%',
+                                '25%',
+                                '10%',
+                                '14%',
+                                '14%',
+                                '14%',
+                                '14%'
+                            ]
+
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+
+
+                    },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 :
+
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(2)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(2, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(2).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    //// Total over all pages
+                    //total = api
+                    //    .column(8)
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //    .column(8, { page: 'current' })
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Update footer
+                    //$(api.column(8).footer()).html(
+                    //     pageTotal.toFixed(2)
+                    //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+               },
+               initComplete: function (settings, json) {
+                   // Your function code goes here
+                   myCustomFunction();
+                   console.log('DataTables has finished its initialisation.');
+               }
+           });
+
+}
+
+    function showtableall() {
+
+        var itemid = $("#ddlItem").val();
+        var datefrom = $("#From").val();
+        var dateto = $("#To").val();
+        var ddmc = 20085;
+  
+        var ddsupplier = $("#ddlSupplier").val();
+        var oTable1 = $('#UserTableall').DataTable({
+            "processing": true, // for show progress bar,
+            "serverSide": false, // for process server side
+            "filter": false, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            // "bStateSave": true,
+            //"deferLoading": 0, // disable default ajax loading
+            "bLengthChange": false,
+            "paging": true,
+            "bDestroy": true,
+            "pageLength": 5000,
+            "ordering": true,
+            "columnDefs": [{
+                "targets": [4],
+                "sClass": "numberright"
+            }],
+            "createdRow": function (row, data, dataIndex) {
+                if ($('input[name="zeroforcastitem"]').prop('checked') == true)
+                   {
+                       if (data.currstock < 0) {
+                           var currentStock = 0;
+                       }
+                       else {
+                           var currentStock = data.currstock;
+                       }
+                       var moment = Math.abs(1 * data.onemonth);
+                       if (currentStock > moment) {
+                           var purchaseqty = 0;
+                       }
+
+                       else {
+                           var balacestock = currentStock - (moment);
+
+                           if (balacestock > moment) {
+                               var purchaseqty = 0;
+                           }
+                           else if (balacestock < 0) {
+                               var Revbalancestock = (moment - currentStock);
+
+                               if (Revbalancestock == moment) {
+                                   purchaseqty = Revbalancestock;
+
+
+                               }
+                               else if (Revbalancestock < moment) {
+
+                                   purchaseqty = moment - (moment - Revbalancestock);
+
+                               }
+                           }
+                           else {
+                               if (balacestock > 0) {
+                                   if (balacestock > moment) {
+                                       var purchaseqty = 0;
+                                   }
+                                   else {
+                                       var purchaseqty = moment - (moment - balacestock);
+                                   }
+                               }
+                               else {
+                                   var purchaseqty = moment;
+                               }
+                           }
+                       }
+
+                       if (purchaseqty == 0) {
+                           oTable1.rows($(row)).remove().draw();
+                       }
+
+                   }
+
+                   
+               },
+                "ajax": {
+                    "url": '/Forecast/GetStock2all',
+                    "data": function (data) {
+                        data = searchData(data, 20085);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": "IItemID", "name": "IItemID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "suppliername", "name": "suppliername" },
+                    { "data": "IItemCode", "name": "IItemCode" },
+                    {
+                        "name": "IItemName", "data": function (data) {
+
+                              @{
+                    var urlss = "";
+
+                    urlss = "'<a href=\"#\" >'+  data.IItemCode+' '+data.IItemName +'</a>' ";
+                               }
+                            return @Html.Raw(urlss);
+
+
+
+                        }
+                    },
+                    { "data": "IPurchasePrice", "name": "IPurchasePrice" },
+                     { "data": "netvalue", "name": "netvalue", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    {
+                        "data": "currstock", "name": "currstock",
+                        "render": function (data) {
+                            if (data < 0) {
+                                return "0";
+                            }
+                            else {
+                                return data;
+                            }
+                        }
+                    },
+
+                    {
+                        "name": "1monthForecastqty", "data": function (data) {
+                            if (data.currstock < 0) {
+                                var currentStock = 0;
+                            }
+                            else {
+                                var currentStock = data.currstock;
+                            }
+                            var moment = Math.abs(1 * data.onemonth);
+                            if (currentStock > moment) {
+                                var purchaseqty = 0;
+                            }
+
+                            else {
+                                var balacestock = currentStock - (moment);
+
+                                if (balacestock > moment) {
+                                    var purchaseqty = 0;
+                                }
+                                else if (balacestock < 0) {
+                                    var Revbalancestock = (moment - currentStock);
+
+                                    if (Revbalancestock == moment) {
+                                        purchaseqty = Revbalancestock;
+
+
+                                    }
+                                    else if (Revbalancestock < moment) {
+
+                                        purchaseqty = moment - (moment - Revbalancestock);
+
+                                    }
+                                }
+                                else {
+                                    if (balacestock > 0) {
+                                        if (balacestock > moment) {
+                                            var purchaseqty = 0;
+                                        }
+                                        else {
+                                            var purchaseqty = moment - (moment - balacestock);
+                                        }
+                                    }
+                                    else {
+                                        var purchaseqty = moment;
+                                    }
+                                }
+                            }
+                            const format = (num, decimals) => num.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            });
+                            if (purchaseqty == undefined) {
+                                return "0";
+                            }
+                            else {
+                                return format(parseFloat(purchaseqty).toFixed(2));
+                            }
+
+
+                        }
+                    },
+                    { "data": "onemonth", "name": "onemonth", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                      { "data": "invoicecount", "name": "invoicecount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+
+                           ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock Movement</h4></th></tr>' +
+                                ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            //doc.styles['td:nth-child(2)'] = {
+                            //    width: '100%',
+                            //    'max-width': '100%'
+                            //}
+
+                            doc.content[1].table.widths = [
+                                '8%',
+                                '25%',
+                                '10%',
+                                '14%',
+                                '14%',
+                                '14%',
+                                '14%'
+                            ]
+
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+
+
+                    },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 :
+
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(2)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(2, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(2).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    //// Total over all pages
+                    //total = api
+                    //    .column(8)
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //    .column(8, { page: 'current' })
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Update footer
+                    //$(api.column(8).footer()).html(
+                    //     pageTotal.toFixed(2)
+                    //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+             
+
+           });
+
+
+     
+        }
+    var flag = 0;
+        var diffTime = 0;
+        var diffDays = 0;
+    $('#search-form').on('submit', function (e) {
+
+        e.preventDefault();
+        const date1 = new Date($("#From").val());
+        const date2 = new Date($("#To").val());
+         diffTime = Math.abs(date2 - date1);
+        var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const array = $("#ddlMC").val();
+        if (flag == 0) {
+
+            $(array).each(function (i, value) {
+
+                $("#otables" + (i + 1)).html($('#ddlMC option:selected').eq(i).text());
+                showdatatable(value,i+1);
+            });
+            flag = 1
+        }
+        else {
+
+
+            $(array).each(function (i, value) {
+                $("#otables" + (i + 1)).html($('#ddlMC option:selected').eq(i).text());
+                $('#UserTable' + (i + 1)).DataTable().destroy();
+                showdatatable(value, i + 1);
+            });
+            //oTable.draw();
+        }
+        showtableall();
+            $('#StockReport').show();
+        });
+
+    function reload_table() {
+        oTable.clear().draw();
+        oTable.ajax.reload(null, false);
+    }
+
+    $('#UserTable tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected');
+        }
+        else {
+            oTable.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            $(this).addClass('dataTables_row');
+        }
+    });
+    </script>
+}

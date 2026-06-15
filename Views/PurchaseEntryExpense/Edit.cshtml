@@ -1,0 +1,1691 @@
+@model QuickSoft.ViewModel.PurchaseEntryViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Edit Purchase Entry ";
+    ViewBag.Active = "Transactions";
+    Model.ConvertionRate = Convert.ToDecimal(Model.DConvertionRate);
+    var jewschk = ViewBag.JewCheck;
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+    string posfun = "";
+
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+<script>
+    actualcount = 1;
+</script>
+<style>
+    input[name="dltcheck"] {
+        visibility: hidden !important;
+    }
+
+    .date {
+        height: 34px !important;
+    }
+</style>
+<div id="myModal" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <a class="close" data-dismiss="modal">×</a>
+        <h3>Notice</h3>
+    </div>
+    <div class="modal-body">
+        <div class="modal-content" style="padding:50px;font-size:15px;">
+            <p style="color:red;font-size:18px;">Already Approved Enry .Do you want to  change?</p>
+            <p style="font-size:17px;">
+                Approval Required if 'update'  purchase entry.other wise stock not reflected.
+                Inform store incharge to approve after your updation
+            </p>
+
+        </div>
+    </div>
+</div>
+
+
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("UpdatePurchase", "PurchaseEntry", FormMethod.Post, new { id = "purchaseform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Purchase Entry <label id="AlertEditable" class="text-red"></label></h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Entry"))
+                    {
+                        <a class="btn bg-black no-border" href="/PurchaseEntryExpense/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Entry"))
+                    {
+                        <a class="btn bg-black no-border" href="/PurchaseEntryExpense/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                    {
+                        <a class="btn bg-black no-border" href="/PurchaseEntryExpense/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Purchase List"))
+                {
+                    <a class="btn btn-success no-border" href="/PurchaseEntryExpense">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+                <a class="btn bg-black no-border" style="display:none;" href="javascript:void(0)" onclick="pullsales()">
+                    Pull Sales
+                </a>
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+    <div class="box-body">
+        <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+        <input type="hidden" id="SuperUserEdit" value="@ViewBag.SuperUserEditvalue" />
+        <input type="hidden" id="procheck" value="@ViewBag.ProjChk" />
+        <input type="hidden" id="SelApprovedBy" />
+        <input type="hidden" id="VoucherType" value="Purchase" />
+        <input type="hidden" id="LastSale" value="active" />
+        <input type="hidden" id="LastPurchase" value="active" />
+        <input type="hidden" id="LastSaleCount" value="" />
+        <input type="hidden" id="LastPurchaseCount" value="" />
+        <input type="hidden" id="batchcheck" value="@ViewBag.BatchWiseStock" />
+
+        <input type="hidden" id="rackcheck" value="@ViewBag.RackWiseStock" />
+        <div class="row">
+            @if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.PurchaseHireType, new { @class = "form-control", @onchange = "HType();", @required = "required", data_msg_required = "The Purchase Hire type field is required" })
+                </div>
+            }
+            <div class="col-sm-2 form-group ">
+                @Html.Label("Invoice No", null, new { @class = "control-label" }) *
+                @if (User.IsInRole("Dev") || User.IsInRole("Invoice Edit Permission"))
+                {
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                }
+                else
+                {
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                }
+                @Html.HiddenFor(model => model.PENo)
+            </div>
+            <div class="col-sm-2 form-group col-xs-12">
+                @Html.Label("Reference No", null, new { @class = "control-label" }) *
+                @Html.EditorFor(model => model.ReferenceNo, new { htmlAttributes = new { @class = "form-control" } })
+
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.LabelFor(model => model.PEDate, htmlAttributes: new { @class = "control-label" })*
+                <div class="input-group date">
+                    <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                    @Html.TextBoxFor(m => m.PEDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                </div>
+            </div>
+            @if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-2">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.MaterialCenter, (SelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control select2", @onchange = "getAprovalby()" })
+                </div>
+            }
+            <div class="col-sm-2 form-group">
+                @Html.Label("Purchase Type", null, new { @class = "control-label" }) *
+                @Html.DropDownListFor(m => m.PurchaseType, new SelectList(Model.PurchaseTypes, "Id", "Name"), new { id = "PurchaseType", @class = "form-control" })
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                {
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.PECashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    @Html.DropDownListFor(m => m.PECashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                }
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.Label("Payment Type", null, new { @class = "control-label" }) *
+                @Html.EnumDropDownListFor(model => model.SupplierType, new { @class = "form-control" })
+            </div>
+            @*<div class="clearfix"></div>*@
+            <div class="col-sm-2 form-group">
+                @Html.Label("Supplier Name", null, new { @class = "control-label" }) *
+                @if (User.IsInRole("Dev") || User.IsInRole("Create Supplier"))
+                {
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Supp, new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetSupplierMail()" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/Supplier/AddSupplier" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Supp, new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetSupplierMail()" })
+                }
+            </div>
+            <div class="col-md-2 col-xs-12 form-group">
+                @Html.Label("Email Address", null, new { @class = "control-label" })
+                @Html.TextBoxFor(m => m.suppEmailId, new { @class = "form-control" })
+            </div>
+            <div class="col-md-2 col-xs-12 form-group">
+                @Html.Label("Purchase Status", null, new { @class = "control-label" })
+                @Html.DropDownList("PurchaseStatus", (IEnumerable<SelectListItem>)ViewBag.PurchaseStatus, new { @class = "form-control" })
+            </div>
+            <div class="col-md-2 col-xs-12 form-group">
+                @Html.LabelFor(m => m.requestpayment, new { @class = "control-label" })
+                @Html.CheckBoxFor(Model => Model.requestpayment, new { @class = "checkbox" })
+            </div>
+
+            @if (@ViewBag.BranchCheck == 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Branch", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                </div>
+            }
+            @if (@ViewBag.EnableCurrency == 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.Currency, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.Currency, (SelectList)ViewBag.CurrencyVal, new { id = "ddlCurrency", @class = "form-control select2" })
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.ConvertionRate, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.ConvertionRate, new { htmlAttributes = new { @class = "form-control", @onchange = "FCCalculation();" } })
+                </div>
+            }
+            @if (@ViewBag.MLAPEntry == 0 && @ViewBag.StockTrnsfrUpdate == 0)
+            {
+                <div class="form-group col-sm-2" style="pointer-events: none;">
+                    @Html.Label("Approved By", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlApprovedBy", (MultiSelectList)ViewBag.ApproveBy, new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                </div>
+            }
+            else if (@ViewBag.MLAPEntry == 0 && @ViewBag.StockTrnsfrUpdate != 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Approved By", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlApprovedBy", (MultiSelectList)ViewBag.ApproveBy, new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                </div>
+            }
+            @if (Model.convertBill != null && Model.convertBill != "")
+            {
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.convertFrom, Model.convertFrom, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.convertBill, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                </div>
+            }
+            @if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div id="HireType">
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.CrossHireType, new { @class = "control-label" }) *
+                        @Html.DropDownListFor(m => m.CrossHireType, (SelectList)ViewBag.HiType, new { id = "ddlHType", @class = "form-control select2", @required = "required", data_msg_required = "The Hire type field is required" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" }) *
+                        <div class="input-group date">
+                            @Html.TextBoxFor(m => m.FromDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @onchange = "DateSet();", @required = "required", data_msg_required = "The Start Date field is required" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" }) *
+                        <div class="input-group date">
+                            @Html.TextBoxFor(m => m.ToDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required", data_msg_required = "The End Date field is required" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @Html.HiddenFor(model => model.PurchaseHireType, new { @class = "form-control hidden" })
+            }
+            <div class="clearfix"></div>
+        </div>
+        <div class="row">
+            @if (Model.FieldMap.Count > 0)
+            {
+                for (int i = 0; i < Model.FieldMap.Count; i++)
+                {
+
+                    var fmap = "";
+                    if (Model.FieldMap[i].Field == "Ref1")
+                    {
+                        fmap = Model.Ref1;
+                    }
+                    if (Model.FieldMap[i].Field == "Ref2")
+                    {
+                        fmap = Model.Ref2;
+                    }
+                    if (Model.FieldMap[i].Field == "Ref3")
+                    {
+                        fmap = Model.Ref3;
+                    }
+                    if (Model.FieldMap[i].Field == "Ref4")
+                    {
+                        fmap = Model.Ref4;
+                    }
+                    if (Model.FieldMap[i].Field == "Ref5")
+                    {
+                        fmap = Model.Ref5;
+                    }
+
+                    <div class="form-group col-md-2 col-xs-6 hide1">
+                        <label class="control-label temp2" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+
+                        @if (Model.FieldMap[i].Type == "Dropdown")
+                        {
+                            if (Model.FieldMap[i].Field == "Ref1")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef1, new { @id = "Ref1", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref2")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef2, new { @id = "Ref2", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref3")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef3, new { @id = "Ref3", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref4")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef4, new { @id = "Ref4", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref5")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef5, new { @id = "Ref5", @class = "form-control input-sm select2 ref" })
+                            }
+
+                        }
+                        else
+                        {
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="@fmap">
+                        }
+
+                    </div>
+
+                }
+            }
+        </div>
+        <div>
+
+            @if (@ViewBag.DisPercheck == 0)
+            {
+                <div class="row">
+                    <div class="form-group col-md-8"></div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.DisPercent, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.DisPercent, new { htmlAttributes = new { id = "DisPercent", @class = "form-control" } })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.DiscAmount, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.DiscAmount, new { htmlAttributes = new { @class = "form-control" } })
+                    </div>
+                </div>
+            }
+        <div class="row">
+            <div class="col-md-6">
+                @*<div class="form-group">
+                <a id="add_invoice_item" class="btn btn-info" name="add-invoice-item" onclick="addInputField('addinvoiceItem','purchase','','0.00','0.00','0','');">
+                    <i class="glyphicon glyphicon-plus"></i> Add New Item
+                </a>
+            </div>*@
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                </div>
+                <div class="form-group">
+                    @Html.TextAreaFor(model => model.PENote, new { @class = "form-control", @placeholder = "Terms And Conditions", @rows = 4 })
+                </div>
+                @if (@ViewBag.PrintLayout == 0)
+                {
+                    <div class="form-group col-sm-5">
+                        @Html.Label("Print Layout", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.PrintLayout, (SelectList)ViewBag.printlay, new { id = "ddlPrintlayout", @class = "form-control select2" })
+                    </div>
+                }
+            </div>
+           
+            <div class="col-md-6">
+                <div class="row">
+                    <div class="col-md-12">
+                        Taxable Amount  <input type="text" id="totaltxt" value="@Model.PETotal" onchange="updatetotal(this)" />
+                    </div>
+                    <label id="total" style="display:none;" >0.00</label>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="billsundry">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Bill Sundry</th>
+                                <th class="text-center">Value</th>
+                                <th class="text-center">Type</th>
+                                <th class="text-center">Amount</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbillsundry"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">
+                @if (@ViewBag.EnableCurrency == 0)
+                {
+                    <div class="form-group col-md-6 no-padding">
+                        <div class="form-group col-md-6 no-padding">
+                            @Html.Label("FC :", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.FCTotal, new { htmlAttributes = new { @id = "FCTotal", @class = "form-control text-right", @readonly = "readonly" } })
+                        </div>
+                    </div>
+                }
+                @*<div class="form-group col-md-6 no-paddingleft">
+                @Html.Label("Discount :", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.PEDiscount, new { htmlAttributes = new { @id = "Discount", @onkeyup = "discount_change();", @class = "form-control text-right", @value = "0.00" } })
+            </div>*@
+                <div class="form-group col-md-6 no-paddingleft"></div>
+                <div class="form-group col-md-6 no-padding">
+                    @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.PEGrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                </div>
+                <div class="form-group col-md-6 hidden no-paddingleft" id="amountpaid">
+                    @Html.Label("Paid Amount:", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.PEPaidAmount, new { htmlAttributes = new { @id = "PaidAmount", @onkeyup = "paidamount_change();", @class = "form-control text-right", @value = "0", @placeholder = "0.00" } })
+
+                </div>
+                <div class="form-group col-md-6 hidden no-padding" id="amountdue">
+                    @Html.Label("Due :", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.PEDueAmount, new { htmlAttributes = new { @id = "DueAmount", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                    <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                </div>
+                <div class="form-group col-md-12">
+                    @Html.Label("Documents", null, new { @class = "control-label" })
+                    <div class="file-loading">
+                        <input id="input-24" name="input24[]" type="file" multiple>
+                    </div>
+                    @foreach (var arr in @ViewBag.image)
+                    {
+                        check = "\"/uploads/purchaseentrydocument/" + arr.FileName + "\"";
+                        strImage += check + ',';
+
+                        partialconfig += "{ key:" + arr.qutid + " }" + ',';
+
+                    }
+
+                </div>
+                <div class="form-group no-padding text-right">
+                    <div class="checkbox-inline">
+                        <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                        <label class="control-label" for="hideheader">Hide Header In Print</label>
+                    </div>
+                </div>
+                <div class="form-group pull-right">
+                    <button type="submit" id="save" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+                    <button type="submit" id="print" class="btn btn-success">
+                        <span class="glyphicon glyphicon-print"></span> Update And Print
+                    </button>
+                    @if (@ViewBag.CheckMail == 0)
+                    {
+                        <button type="submit" id="sendmail" class="btn btn-success">
+                            <span class="glyphicon glyphicon-envelope"></span> Update And Mail
+                        </button>
+                    }
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/PurchaseEntryExpense/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+    <div id="cont" class="hidden">
+        <svg id="barcode"></svg>
+    </div>
+
+    <span class="hidden" id="cname">@ViewBag.CName</span>
+    <div id="RackStock"></div>
+    <div id="batchStock"></div>
+    <div id="LastSalePur"></div>
+}
+
+
+@{
+    var Modelv = "modal-lg";
+    if (@ViewBag.ItemPriceInPurchase == 0)
+    {
+        @Html.Partial("../Common/_ItemPriceUpdater")
+    }
+}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("_printBarcode")
+
+@if (ViewBag.POS == 0 && ViewBag.BusinessType == "DeliveryManagement")
+{
+    posfun = "PrintPOSInvoice(e, \"POSInvoice1\");";
+    @Html.Action("POSInvoice", "InvoiceLayout", new { type = "Purchase" })
+}
+else
+{
+    posfun = "PrintInvoice(e, \"sales\",\"inactive\",\"PurchaseEntry\");";
+    @*@Html.Partial("_Invoice")*@
+    @Html.Action("invoice", "InvoiceLayout", new { type = "Purchase" })
+}
+
+
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+    @if (!(ViewBag.POS == 0 && ViewBag.BusinessType == "DeliveryManagement"))
+    {
+        @Styles.Render("~/css/print")
+    }
+}
+@section scripts{
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/printThis")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+<script src="~/Content/js/saleinvoice.js?a=2ss"></script>
+<script type="text/javascript">
+         @{
+           var discount = "";
+           if (!User.IsInRole("Delete Purchase Entry"))
+
+           {
+               discount = "1";
+           }
+
+       }
+         readonlydiscount ='@Html.Raw(discount)';
+
+        function pullsales() {
+            var billno = prompt("Enter BIll No");
+            var purid = getQueryString('')
+            window.location = "/PurchaseEntryExpense/editpull/?billno=" + billno + "&purid=" + purid;
+        }
+        var ItemPriceInPurchase = '@ViewBag.ItemPriceInPurchase';//active
+
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+     function getAprovalby() {
+            if ('@ViewBag.StockTrnsfrUpdate' == "active") {
+                var from = $("#ddlMC").val();
+
+
+            $.ajax({
+                url: '/StockTransfer/GetApprovalby',
+                dataType: 'json',
+                data: { mc: from },
+                cache: true,
+                success: function (data) {
+                    //$("#ddlApprovedBy").multiselect('refresh');//.multiselect('refresh');
+                    $("#ddlApprovedBy").val("");
+                    $("#ddlApprovedBy").removeClass("select2");
+                    var values = new Array();
+                    $.each(data, function (i, item) {
+                        values.push(item.ID);
+                        //  $('#ddlApprovedBy option[value=' + item.ID + ']').attr('selected', true);
+
+
+                    });
+                    $('#ddlApprovedBy').val(values).trigger("change");
+                    $("#ddlApprovedBy").select2({
+                        placeholder: 'Search User',
+                        minimumInputLength: 0,
+                        ajax: {
+                            url: "/Employee/SearchEmployeeUser2",
+                            dataType: 'json',
+                            delay: 50,
+                            data: function (params) {
+                                return {
+                                    q: params.term,
+                                    page: params.page
+                                };
+                            },
+                            processResults: function (data, params) {
+                                params.page = params.page || 1;
+                                return {
+                                    results: data
+                                };
+                            },
+                            cache: true
+                        },
+                    });
+                    //var tempCust = $("#ddlCustomer2").val();
+
+                    //$('#addinvoiceItem').html('');
+                    //$.each(data, function (i, item) {
+                    //    addrow('addinvoiceItem', 'foredit', item.Unit, item.Quantity, item.Price, item.Amount, item.Item, item.ItemName, item.ItemWithCode, item.ItemNote, item, item.ConFactor);
+                    //    var j = i + 1;
+                    //    $("#unit_name_" + j).val(item.Unit);
+                    //});
+                    //addrow('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
+                }
+            });
+        }
+    }
+    function updatetotal(obj) {
+        $("#total").text($(obj).val());
+        grandtotalcalculation();
+    }
+    $(document).ready(function () {
+
+
+
+        $("#totaltxt").trigger("change");
+        var pullfrom = getQueryString1("billno");
+        if (pullfrom != "" && pullfrom!=null) {
+
+            $.ajax({
+                url: '/PurchaseEntryExpense/GetSalesEntrys',
+                dataType: 'json',
+                data: { billno: pullfrom },
+                cache: true,
+                success: function (data) {
+                    $('#addinvoiceItem').html('');
+                    $.each($.parseJSON(data), function (i, item) {
+                        addrow('addinvoiceItem', 'quot', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                    });
+                    addrow('addinvoiceItem', 'quot', "", "0.00", "0.00", "0");
+                }
+            });
+        }
+
+
+
+
+
+        $("#disncountcalc").on("click", function () {
+            amount = prompt("Enter amount");
+            subtotalorg = $("#SubTotal").text();
+            var subtotal = $(".subtotal");
+
+            $.each(subtotal, function (i, item) {
+                $("#sub_total_" + (i + 1)).val($("#sub_total_" + (i + 1)).val() - parseFloat(((item.value / subtotalorg) * amount)).toFixed(5));
+                $("#price_item_" + (i + 1)).val(parseFloat($("#sub_total_" + (i + 1)).val() / $("#total_qntt_" + (i + 1)).val()).toFixed(5));
+            });
+            CalculatetblItemListSum();
+            bspcalculate();
+            grandtotalcalculation();
+            paidamountcalculation();
+            DiscAmt();
+            DiscPer();
+           });
+
+            $("#input-24").fileinput({
+            initialPreview: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: false,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'pdf',
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+            deleteUrl: "/PurchaseEntryExpense/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+
+
+
+
+
+            $("#GrandTotal").val("");
+            searchItem();
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            GetBranch();
+
+            var currency = $('#ddlCurrency').val();
+            CurrencyConvertRate(currency);
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            CallSupplier();
+            CallEmployee();
+            CallMCUser()
+            CallApprovedBy();
+            HType();
+        $("#SelApprovedBy").val($("#ddlApprovedBy").val());
+
+
+        if ('@ViewBag.StockTrnsfrUpdate' == "inactive") {
+            var temURL = '/PurchaseEntryExpense/GetPEItems';
+            } else if ('@ViewBag.itemAproval' == 1) {
+            var temURL = '/PurchaseEntryExpense/GetPEItems2';
+            } else {
+            var temURL = '/PurchaseEntryExpense/GetPEItems';
+
+            }
+        var PurchaseEntryID = getQueryString('');
+        if (PurchaseEntryID == "" || PurchaseEntryID == null) {
+            PurchaseEntryID = getQueryString1("purid");
+        }
+            if (PurchaseEntryID != null) {
+                $.ajax({
+                    url: temURL,
+                    dataType: 'json',
+                    data: { PurchaseEntryID: PurchaseEntryID },
+                    cache: true,
+                    success: function (data) {
+
+                        $.each($.parseJSON(data), function (i, item) {
+
+                            addrow('addinvoiceItem', 'purchase', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item, item.ConFactor);
+                            actualcount = i;
+                        });
+                        addrow('addinvoiceItem', 'purchase', '', '0.00', '0.00', '0');
+                          if ('@ViewBag.itemAproval' == 0) {
+           // $('#myModal').modal('show');
+        }
+                    }
+                });
+
+                $.ajax({
+                    url: '/PurchaseEntryExpense/GetPEBillSundry',
+                    dataType: 'json',
+                    data: { PurchaseEntryID: PurchaseEntryID },
+                    cache: true,
+                    success: function (data) {
+                        $.each(data, function (i, bs) {
+                            addbillsundry('addbillsundry', 'purchase', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
+                        });
+                        addbillsundry('addbillsundry', 'purchase', '0.00', '', '0.00', '');
+                        grandtotalcalculation();
+                    }
+                });
+            }
+
+            //chkEditEditable("@ViewBag.ChkApp");
+        chkEditEditablenew("@ViewBag.editdays");
+
+        function chkEditEditablenew(chkapp) {
+            if (chkapp == "False") {
+                $("#save").css('display', "none");
+                $("#sendmail").css('display', "none");
+                $("#AlertEditable").text("- Not Editable");
+                $("#print").css('display', "none");
+            }
+        }
+            $('#PurchaseHireType').select2();
+            $('#ddlHType').select2();
+            //$('#HireType').hide();
+            if ('@ViewBag.BusinessType' == "Scaffold") {
+                $('#PurchaseHireType').select2();
+            }
+
+            if ($('#PurchaseHireType').val() == 1 && '@ViewBag.DefMc' != null && '@ViewBag.DefMc' != 0) {
+                @*var MCDefid = '@ViewBag.DefMc';
+                $("#ddlMC").val(MCDefid).change();*@
+                $('#ddlMC').attr("disabled", true);
+            }
+            else {
+                @*var MCDefid = '@ViewBag.LastMc';
+                $("#ddlMC").val(MCDefid).change();*@
+                $('#ddlMC').attr("disabled", false);
+            }
+            $('#PurchaseHireType').attr('disabled', true);
+
+
+        });
+
+
+        $('body').on('change', '#PurchaseType', function (e) {
+            var type = $(this).val();
+            ptypechange(type);
+            //vatvoucher
+            VatVoucherWisePurchase();
+            bspcalculate();
+        });
+        $('body').on('change', '#ddlCurrency', function (e) {
+            var currency = $(this).val();
+            CurrencyConvertRate(currency);
+        });
+
+        $('body').on('change', '#ddlMC', function (e) {
+            var mcval = $(this).val();
+            searchItem();
+        });
+
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        function ptypechange(type) {
+            if (type != null) {
+                if (type == 2) {
+                    var TaxP = 0;
+                    var tbody = $("#normalinvoice tbody");
+                    if (tbody.children().length > 0) {
+                        tbody.children("tr").each(function () {
+                            var rowid = $(this).attr("id");
+                            var item = $("#" + rowid + " .item_name").val();
+                            var subtot = $("#" + rowid + " .subtotal").val();
+                            if (item != null) {
+                                $("#" + rowid + " .tax_percentage").val(0);
+                                $("#" + rowid + " .tot_tax").val(0);
+                                $("#" + rowid + " .tax").val("0.00" + " (" + 0 + "%)");
+                                $("#" + rowid + " .total_price").val(subtot);
+                            }
+                        });
+                        CalculatetblItemListSum();
+                        grandtotalcalculation();
+                        paidamountcalculation();
+                    }
+                } else {
+
+                    var tbody = $("#normalinvoice tbody");
+                    if (tbody.children().length > 0) {
+                        tbody.children("tr").each(function () {
+                            var rowid = $(this).attr("id");
+                            var item = $("#" + rowid + " .item_name").val();
+                            if (item != null) {
+                                $.ajax({
+                                    url: '/Item/GetItem',
+                                    type: "GET",
+                                    dataType: "JSON",
+                                    data: { itemID: item },
+                                    success: function (result) {
+                                        $("#" + rowid + " .tax_percentage").val(result.Tax.toFixed(2));
+
+                                        var quantity = $("#" + rowid + " .quty").val();
+                                        var rate = $("#" + rowid + " .totrate").val();
+                                        var subtotal = quantity * rate;
+                                        $("#" + rowid + " .subtotal").val(subtotal.toFixed(2));
+
+                                        var itemdiscount = $("#" + rowid + " .item_discount").val();
+                                        subtotal = subtotal - itemdiscount;
+
+                                        var taxAmount = subtotal * (result.Tax / 100);
+                                        var Total = subtotal + taxAmount;
+
+                                        $("#" + rowid + " .tot_tax").val(taxAmount.toFixed(2));
+                                        $("#" + rowid + " .tax").val(taxAmount.toFixed(2) + " (" + result.Tax + "%)");
+                                        $("#" + rowid + " .total_price").val(Total.toFixed(2));
+
+
+                                        CalculatetblItemListSum();
+                                        grandtotalcalculation();
+                                        paidamountcalculation();
+                                    }
+                                });
+                            }
+
+
+                        });
+
+
+                    }
+                }
+
+
+            }
+        }
+
+
+        //cancel button for price updater
+        $('#modal-itempriceupdater').on('hidden.bs.modal', function () {
+            var fnval = $("#fnvalp").val();
+            submitForm(fnval);
+        });
+        // update button for price updator
+        $('#modal-itempriceupdater').on('submit', '#PriceUpdater', function (e) {
+            e.preventDefault();
+            var url = $('#PriceUpdater')[0].action;
+            var data = $('#PriceUpdater').serialize() +"&actualcount=";
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: data,
+                success: function (data) {
+                    if (data.status) {
+                        var fnval = $("#fnvalp").val();
+                        submitForm(fnval);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            });
+        });
+
+
+        $('#purchaseform').on('submit', function (e) {
+
+            e.preventDefault();
+            //check if exists VAT in Bill-Sundry
+            var vatexist = 0;
+            $("#addbillsundry tr").each(function (e) {
+                var type = parseFloat($(this).find('.bsname').val());
+                if (type == "4") { vatexist++; } else { vatexist = vatexist; }
+            });
+            var stype = $("#PurchaseType").val();
+            if (stype == 3 && vatexist == 0)//
+            {
+                alert("Please Select VAT in Bill-Sundry..!!");
+            } else {
+            if ($("#purchaseform").valid()) {
+                var CSEmail = $('#custEmailId').val();
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                if (fnval == "sendmail" && CSEmail == "") {
+                    $('.ajax_response', res_danger).text("Customer Email Address Not Found..!!");
+                    $('.AlertDiv').prepend(res_danger);
+                }
+                else {
+                    if (ItemPriceInPurchase == "active") {
+                        submitForm(fnval);
+                    }
+                    else {
+                        submitForm(fnval);
+                    }
+                }
+            }
+        }
+        });
+
+        function GeneratePriceTablenew(fnval) {
+            $("#fnvalp").val(fnval);
+            var cols = [];
+            var purprice = [];
+            var unitpri = [];
+            $("#normalinvoice").find('tr').not(':first, .item_').each(function (rowIndex, r) {
+                var iiD = $(this).find('select.item_name').val();
+
+                var pupr = $(this).find('input.totrate').val();
+                var units = $(this).find('select.units').val();
+                if (pupr > 0) {
+                    if (typeof iiD !== "undefined") {
+                        cols.push(iiD);
+                        purprice.push(pupr);
+                        unitpri.push(units);
+                    }
+                }
+
+            });
+            var items = cols.filter(function (itm, i, cols) {
+                return i == cols.indexOf(itm);
+            });
+            $.ajax({
+                url: '/Item/ItemDetails',
+                dataType: 'json',
+                type: "POST",
+                data: { items: items, purprices: purprice, unitpri: unitpri },
+                cache: true,
+                success: function (data) {
+                    var ittable = "";
+                    var promises = [];
+                    //  $.when(
+                    var count = -1;
+                    $.each(data.data, function (i, item) {
+                        var ipp = 0;
+                        var PricingStrategy = item.PricingStrategy;
+                        ipp = purprice[i];
+                        ippprev = item.PurchasePrice;
+                        pprice = data.pri[i][0];
+                        sprice = data.pri[i][1]
+                        if (item.SellingPrice == "0") {
+                            item.SellingPrice = ipp;
+                            item.cashprice = ipp;
+                            item.creditprice = ipp;
+                        }
+                        //promises.push($.ajax({
+                        //    url: '/PurchaseEntryExpense/GetPricePurchase',
+                        //    type: "GET",
+                        //    dataType: "JSON",
+                        //    data: { itemid: item.ItemID, purchaseprice: ipp },
+                        //    success: function (pricedata) {
+                        if (PricingStrategy == true) {
+                            ittable = "<tr><td>" + (i + 1) + "</td>" +
+                                "<td>" + item.ItemCode + "-" + item.ItemName + "<input type='hidden' data-name='ItemId' name='Addon[" + i + "].ItemId' class='iitemid' value='" + item.ItemID + "'/> </td>" +
+                                "<td><input type='number' step=any data-name='SellingPrice' name='Addon[" + i + "].SellingPrice' id='SellingPrice_" + i + "' value='" + sprice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required ' readonly/>" + "</td>" +
+                                "<td><input type='number' step=any data-name='cashprice' name='Addon[" + i + "].cashprice' id='cashprice" + i + "' value='" + item.cashprice + "'  class='cashprice" + i + " form-control text-right cashprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+                                "<td><input type='number' step=any data-name='creditprice' name='Addon[" + i + "].creditprice' id='creditprice" + i + "' value='" + item.creditprice + "'  class='creditprice" + i + " form-control text-right creditprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+
+                                "<td><input type='number' step=any data-name='PurchasePrice' name='Addon[" + i + "].PurchasePrice' id='PurchasePrice_" + i + "' value='" + pprice + "'  class='PurchasePrice_" + i + " form-control text-right pprice' data-msg-required='Purchase Price is Required' readonly/>" + "</td>" +
+                                "<td><input type='number' step=any data-name='BasePrice' name='Addon[" + i + "].BasePrice' id='BasePrice_" + i + "' value='" + item.BasePrice + "'  class='BasePrice_" + i + " form-control text-right bprice' data-msg-required='Base Price is Required' readonly/>" + "</td>" +
+                                "<td><input type='number' step=any data-name='MRP' name='Addon[" + i + "].MRP' id='MRP_" + i + "' value='" + item.MRP + "'  class='MRP_" + i + " form-control text-right mprice' data-msg-required='MRP is Required' readonly/>" + "</td></tr>";
+
+                        }
+                        else {
+                            ittable = "<tr><td>" + (i + 1) + "</td>" +
+                                "<td>" + item.ItemCode + "-" + item.ItemName + "<input type='hidden' data-name='ItemId' name='Addon[" + i + "].ItemId' class='iitemid' value='" + item.ItemID + "'/> </td>" +
+                                "<td><input type='number' step=any data-name='SellingPrice' name='Addon[" + i + "].SellingPrice' id='SellingPrice_" + i + "' value='" + item.SellingPrice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required'/>" + "</td>" +
+                                "<td><input type='number' step=any data-name='cashprice' name='Addon[" + i + "].cashprice' id='cashprice" + i + "' value='" + item.cashprice + "'  class='cashprice" + i + " form-control text-right creditprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+                                "<td><input type='number' step=any data-name='creditprice' name='Addon[" + i + "].creditprice' id='creditprice" + i + "' value='" + item.creditprice + "'  class='creditprice" + i + " form-control text-right creditprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+
+                                "<td><input type='number' step=any data-name='PurchasePrice' name='Addon[" + i + "].PurchasePrice' id='PurchasePrice_" + i + "' value='" + ipp + "'  class='PurchasePrice_" + i + " form-control text-right pprice' data-msg-required='Purchase Price is Required'/>" + "</td>" +
+
+                                "<td><input type='number' step=any data-name='BasePrice' name='Addon[" + i + "].BasePrice' id='BasePrice_" + i + "' value='" + item.BasePrice + "'  class='BasePrice_" + i + " form-control text-right bprice' data-msg-required='Base Price is Required'/>" + "</td>" +
+                                "<td><input type='number' step=any data-name='MRP' name='Addon[" + i + "].MRP' id='MRP_" + i + "' value='" + item.MRP + "'  class='MRP_" + i + " form-control text-right mprice' data-msg-required='MRP is Required'/>" + "</td></tr>";
+
+                        }
+                        $("#itempriceupdaters").append(ittable);
+
+
+                        count = i;
+
+                        //}))
+
+                    });
+                    var actualcount = $("#addinvoiceItem tr").length - 2;
+                    if (actualcount < 0)
+                        actualcount = 0;
+                    if (count != actualcount) {
+                        alert("miss match items.check duplication or inactive item in purchase list");
+                        $("#itempriceupdaters").html("");
+                    }
+                    //).done(function () {
+                    //    $("#modal-itempriceupdater").modal({ show: true, backdrop: "static" });
+                    //});
+
+                    Promise.all(promises)
+                        .then(responseList => {
+                            $("#modal-itempriceupdater").modal({ show: true, backdrop: "static" });
+                        })
+
+                }
+            });
+        }
+
+
+        function submitForm(fnval, parameters) {
+
+            var PurchaseEntryID = getQueryString1("purid");
+
+            if (PurchaseEntryID == "" || PurchaseEntryID == null) {
+                PurchaseEntryID = getQueryString('');
+            }
+
+            var BillNo = $('#BillNo').val();
+            var ReferenceNo = $('#ReferenceNo').val();
+            var SupplierID = $('#ddlSupplier').val();
+            var EmployeeID = $('#ddlEmployee').val();
+            var PEDate = $('#PEDate').val();
+
+            //pending
+            var PEItems = 0;
+            var PEItemQuantity = 0;
+            var PESubTotal = 0;
+            var PETax = 0;
+
+            var TotalTax = $('#total').text();
+            var Discount = 0;
+            var GrandTotal = $('#GrandTotal').val();
+            var PaidAmount = $('#PaidAmount').val();
+            var PENote = $('#PENote').val();
+            var SuppType = $('#SupplierType').val();
+            var suppEmail = $('#suppEmailId').val();
+            var PurchaseType = $('#PurchaseType').val();
+            var Remarks = $('#Remarks').val();
+            var MaterialCenter = $('#ddlMC').val();
+            var Branch = $('#ddlBranch').val();
+            var Currency = $('#ddlCurrency').val();
+            var Purchassestatus = $("#PurchaseStatus").val();
+            var ConvertRate = $('#ConvertionRate').val();
+            var FCTotal = $('#FCTotal').val() || $('#GrandTotal').val();
+
+            var ApprovedBy = $('#SelApprovedBy').val();
+            var requestedforpayment = $('#requestpayment').prop("checked");
+
+            var Ref1 = "";
+            var Ref2 = "";
+            var Ref3 = "";
+            var Ref4 = "";
+            var Ref5 = "";
+            if ('@Model.FieldMap.Count' > 0) {
+                Ref1 = $('#Ref1').val();
+                Ref2 = $('#Ref2').val();
+                Ref3 = $('#Ref3').val();
+                Ref4 = $('#Ref4').val();
+                Ref5 = $('#Ref5').val();
+            }
+
+            var PurchaseHireType = $('#PurchaseHireType').val();
+            var Start = $('#FromDate').val();
+            var End = $('#ToDate').val();
+            var CrossHireType = $('#ddlHType').val();
+            var Layout = $('#ddlPrintlayout').val();
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+
+                            cols.push($(this).val());
+
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+            var HTMLtblbs = {
+                getData: function (table) {
+                    var bsData = [];
+                    table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            cols[itid] = itval;
+
+                            //cols.push({ name: itid, index: itval });
+                        });
+                        bsData.push(cols);
+                    });
+                    return bsData;
+                }
+            }
+            var bsData = HTMLtblbs.getData($('#billsundry'));
+            // batch stock
+            var HTMLtblbst = {
+                getData: function (table) {
+                    var bstData = [];
+                    var order = 0;
+                    var lastOne = 0;
+                    table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            if (itid == "order") {
+                                if (order == 0) {
+                                    order = 1;
+                                    lastOne = itval;
+                                }
+                                if (lastOne != itval) {
+                                    order++;
+                                    lastOne = itval;
+                                }
+                                itval = order;
+                            }
+                            cols[itid] = itval;
+                        });
+                        //if (!jQuery.isEmptyObject(cols) && cols.BatchNo != "") {
+                        //    bstData.push(cols);
+                        //}
+                        if (!jQuery.isEmptyObject(cols) && cols.StockIn != 0) {
+                            bstData.push(cols);
+                        }
+                    });
+                    return bstData;
+                }
+            }
+            var bstdata = HTMLtblbst.getData($('.batchtbl'));
+            var HTMLtblbs = {
+                getData: function (table) {
+                    var bsData = [];
+                    table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            cols[itid] = itval;
+
+                            //cols.push({ name: itid, index: itval });
+                        });
+                        if (!jQuery.isEmptyObject(cols) && cols.StockOut != 0) {
+                            bsData.push(cols);
+                        }
+                     //   bsData.push(cols);
+                    });
+                    return bsData;
+                }
+            }
+            var bsrackData = HTMLtblbs.getData($('.racktbl'));
+
+            var purchaseEntry = [SupplierID, EmployeeID, PEDate, PEItems,
+                PEItemQuantity, TotalTax, Discount, GrandTotal, PESubTotal,
+                PETax, PaidAmount, PurchaseEntryID, BillNo, PENote, fnval,
+                SuppType, suppEmail, PurchaseType, Remarks, MaterialCenter, Branch, Currency, ConvertRate, FCTotal, ApprovedBy,
+                Ref1, Ref2, Ref3, Ref4, Ref5, PurchaseHireType, Start, End, CrossHireType, Layout, Purchassestatus, ReferenceNo, requestedforpayment]
+
+            var data = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.array = data;
+            parameters.purchasedata = purchaseEntry;
+            parameters.bsmodel = { 'pebsundrys': bsData };
+            parameters.bstmodel = bstdata;
+            parameters.bsrackData = bsrackData;
+            $.ajax({
+                async: true,
+                cache: false,
+
+                type: "POST",
+                url: '/PurchaseEntryExpense/validdate',
+
+                data: { fdate: $("#PEDate").val() },
+                success: function (result) {
+
+                    if (result == "False") {
+
+
+                        if ($("#SuperUserEdit").val() == "active") {
+
+                            $.ajax({
+                                url: '/CreditSale/getotp/?salesEntryId=0&purpose=Purchase&fdate=' + $("#PEDate").val() + '&mcpass=' + $("#ddlMC").val(),
+                                type: "GET",
+                                contentType: false, // Not to set any content header
+                                processData: false, // Not to process data
+                                async: true,
+                                success: function (e) {
+                                    if (e.status == true) {
+                                        var otp = prompt("Enter otp");
+                                        //if (e.status == true) {
+                                        //    if (e.otp == prompt("Enter otp")) {
+                                        //        setTimeout(function () { window.location.href = '/CreditSale/Edit/' + SalesEntryId; }, '5000');//{ location.reload(); }, 'TimeOut');
+                                        //    }
+                                        //    else {
+                                        //        alert("Invalid otp");
+                                        //    }
+                                        //}
+                                        //else {
+                                        //    alert("Your Superviser edit days over");
+                                        //}
+                                        $.ajax({
+                                            url: '/CreditSale/confirmotp/?salesEntryId=0&otp=' + otp + '&purpose=Purchase&fdate=' + $("#PEDate").val(),
+                                            type: "GET",
+                                            contentType: false, // Not to set any content header
+                                            processData: false, // Not to process data
+
+                                            success: function (e) {
+                                                if (e.status == true) {
+$.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/PurchaseEntryExpense/UpdatePurchase",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                     if (e.status == true) {
+
+
+
+                        var fileUpload = $("#input-24").get(0);
+                        var files = fileUpload.files;
+
+                        // Create FormData object
+                        var fileData = new FormData();
+
+                        // Looping over all files and add it to FormData object
+                        for (var i = 0; i < files.length; i++) {
+                            fileData.append(files[i].name, files[i]);
+                        }
+
+
+                        fileData.append('id', e.purid);
+
+
+
+
+                        $.ajax({
+                            url: '/PurchaseEntryExpense/UploadFiles',
+                            type: "POST",
+                            contentType: false, // Not to set any content header
+                            processData: false, // Not to process data
+                            data: fileData,
+                            success: function (result) {
+
+
+                                if (fnval == "print") {
+                            @Html.Raw(posfun)
+                                }
+                                else {
+                                    $('.ajax_response', res_success).text(e.message);
+                                    $('.AlertDiv').prepend(res_success);
+                                }
+                                if (e.barcode == 0 && '@jewschk' != 'active') {
+                                    var r = confirm("Do you want to print Barcode ?");
+                                    if (r == true) {
+                                        // PrintBarcode(e);
+                                        bindbarcode();
+                                    }
+
+
+                                }
+                                 else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                        setTimeout(function () { window.location.href = '/PurchaseEntryExpense/Create'; }, '@TimeOut');
+                                    }
+
+
+                                else {
+                                    $('.ajax_response', res_danger).text(e.message);
+                                    $('.AlertDiv').prepend(res_danger);
+                                    $("button").prop('disabled', false); // enable button
+                                }
+
+                            }
+
+
+                        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                     }
+                        else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                        setTimeout(function () { window.location.href = '/PurchaseEntryExpense/Create'; }, '@TimeOut');
+                                    }
+
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+
+                                                }
+                                                else {
+                                                    alert(e.message);
+                                                }
+                                            }
+                                        });
+                                    }
+                                    else {
+
+                                        alert("You can't Edit this contact supervisor");
+
+
+                                    }
+                                }
+
+
+                            });
+                        }
+                        else {
+                            alert("contact superviser");
+                        }
+                    }
+
+                    else {
+
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/PurchaseEntryExpense/UpdatePurchase",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                     if (e.status == true) {
+
+
+
+                        var fileUpload = $("#input-24").get(0);
+                        var files = fileUpload.files;
+
+                        // Create FormData object
+                        var fileData = new FormData();
+
+                        // Looping over all files and add it to FormData object
+                        for (var i = 0; i < files.length; i++) {
+                            fileData.append(files[i].name, files[i]);
+                        }
+
+
+                        fileData.append('id', e.purid);
+
+
+
+
+                        $.ajax({
+                            url: '/PurchaseEntryExpense/UploadFiles',
+                            type: "POST",
+                            contentType: false, // Not to set any content header
+                            processData: false, // Not to process data
+                            data: fileData,
+                            success: function (result) {
+
+
+                                if (fnval == "print") {
+                            @Html.Raw(posfun)
+                                }
+                                else {
+                                    $('.ajax_response', res_success).text(e.message);
+                                    $('.AlertDiv').prepend(res_success);
+                                }
+                                if (e.barcode == 0 && '@jewschk' != 'active') {
+                                    var r = confirm("Do you want to print Barcode ?");
+                                    if (r == true) {
+                                        // PrintBarcode(e);
+                                        bindbarcode();
+                                    }
+
+
+                                    if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                        setTimeout(function () { window.location.href = '/PurchaseEntryExpense/Create'; }, '@TimeOut');
+                                    }
+                                }
+                           else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                        setTimeout(function () { window.location.href = '/PurchaseEntryExpense/Create'; }, '@TimeOut');
+                                    }
+
+
+                                else {
+                                    $('.ajax_response', res_danger).text(e.message);
+                                    $('.AlertDiv').prepend(res_danger);
+                                    $("button").prop('disabled', false); // enable button
+                                }
+
+                            }
+
+
+                        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                     }
+                        else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                        setTimeout(function () { window.location.href = '/PurchaseEntryExpense/Create'; }, '@TimeOut');
+                                    }
+
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+                    }
+
+                }
+            });
+
+        }
+        function PrintBarcode(e) {
+            //var count = e.item.PCount;
+            var CName = $("#cname").text();
+            var table = "";
+            $.each(e.item, function (i, item) {
+                if (item.Barcode != null) {
+                    printSticker('barcode', item.Barcode);
+                    var image = $("#cont").html();
+                    if (image != 'undefined') {
+                        var str = '<h4>' + CName + '</h4><div>' + image + '</div><p style="margin-top: -12px;line-height: 7px;position: relative;">DHS    ' + item.ItemPrice + '<br>' + item.ItemName + '</p>';
+                        var count = item.ItemQuantity;
+                        var i = 0;
+                        while (i < count) {
+                            table += "<tr><td> " + str + "</td></tr>";
+                            i++;
+                        }
+                    }
+                }
+            });
+            $('#bartable').append(table);
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printBarcode').html();
+            $('body').html(printContent);
+            $('title').html("Barcode Print");
+            window.print();
+
+        }
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        AddItemPopUp();
+
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+
+        function HType() {
+            var Type = $('#PurchaseHireType').val();
+
+
+            var method;
+            if (Type == 1) {
+                $('#HireType').show();
+                method = "Hire";
+                $("#ddlMC").prop('selectedIndex', 4);
+            }
+            else {
+                $('#HireType').hide();
+                method = "Purchase";
+            }
+                STypeForMC(Type);
+            //saletypechange(Type, method);
+
+
+            //hirerate
+            var Stype = (($('#PurchaseHireType').val()) == 1) ? "Purchase" : "Hire";
+
+
+        }
+
+        function STypeForMC(Type) {
+            var mc = $('#ddlMC').val();
+            if (Type == 1 && '@ViewBag.DefMc' != null && '@ViewBag.DefMc' != 0) {
+                var MCDefid = '@ViewBag.DefMc';
+                $("#ddlMC").val(2).change();
+                $('#ddlMC').attr("disabled", true);
+            }
+            else if (Type == 0 && '@ViewBag.DefMc' != null && '@ViewBag.DefMc' != 0) {
+                //if ($("#ddlMC").find('option[value="3"]').text() == 'Sale') {
+                    $("#ddlMC").val(1).change();
+                    $('#ddlMC').attr("disabled", false);
+                //}
+            }
+            else {
+                var MCDefid = '@ViewBag.LastMc';
+                $("#ddlMC").val(mc).change();
+                $('#ddlMC').attr("disabled", false);
+            }
+        }
+
+        //On change of Discount Percentage
+        $('body').on('change', '#DisPercent', function (e) {
+            var DiscVal = $(this).val();
+            if (DiscVal == "") {
+                $("#DisPercent").val("0.00");
+            }
+            DiscAmt();
+        });
+
+        // change disc amount
+        $('body').on('change', '#DiscAmount', function (e) {
+            var DiscVal = $(this).val();
+            if (DiscVal == "") {
+                $("#DiscAmount").val("0.00");
+            }
+            DiscPer();
+        });
+</script>
+}

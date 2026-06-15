@@ -1,0 +1,136 @@
+﻿@model QuickSoft.ViewModel.ProTaskViewModel
+@{
+    ViewBag.Title = "Task List";
+    ViewBag.SubTitle = "Task List";
+    ViewBag.Active = "Task";
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+@using (Html.BeginForm("Image2", "ProTask", FormMethod.Post, new { id = "imgform", role = "form", enctype = "multipart/form-data" }))
+{
+<div class="box box-info">
+    @*<div class="file-loading">
+        <input id="input-24" name="input-b1" type="file" class="file" multiple>
+    </div>*@
+    <div class="file-loading">
+        <input id="input-24" name="input24[]" type="file" multiple>
+    </div>
+</div>
+    foreach (var arr in @ViewBag.image)
+    {
+        //check = "/uploads/taskimages/1/" + arr.FileName + "";
+        //check = "\"/uploads/taskimages/1/" + arr.FileName + "\"";
+        check = "\"/uploads/taskimages/" + arr.FileName+"\"";
+        strImage += check + ',';
+        partialconfig += "{ key:"+ arr.TaskImageId + "}" + ',';
+
+    }
+}
+@section style{
+    @Styles.Render("~/css/fileinput")
+    @Styles.Render("~/css/lightbox")
+    @Styles.Render("~/css/fileinput-rtl")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/fileinput")
+    @Scripts.Render("~/js/lightbox")
+    @Scripts.Render("~/js/fileinputjs")
+    @Scripts.Render("~/js/sortable")
+    @Scripts.Render("~/js/purify")
+<script type="text/javascript">
+
+    $("#input-24").fileinput({
+        uploadUrl: "/ProTask/ImageAdd/1",
+        uploadAsync: false,
+        overwriteInitial: false,
+        initialPreview: [@Html.Raw(strImage)
+        ],
+        initialPreviewAsData: true, 
+        initialPreviewFileType: 'image',
+        allowedFileExtensions: ["jpg", "jfif", "png"],
+        initialPreviewConfig: [
+           @partialconfig
+        ],
+        deleteUrl: "/ProTask/ImageDelete",
+    }).on('filesorted', function (e, params) {
+        console.log('File sorted params', params);
+    }).on('fileuploaded', function (e, params) {
+        console.log('File uploaded params', params);
+    }).on('filebeforedelete', function () {
+        var aborted = !window.confirm('Are you sure you want to delete this file?');
+        if (aborted) {
+            //window.alert('File deletion was aborted!');
+        };
+        return aborted;
+    }).on('filedeleted', function () {
+        setTimeout(function () {
+            //window.alert('File deletion was successful!');
+        }, 900);
+    });
+    //  });
+
+
+
+
+    //$("#input-24").fileinput({
+    //    uploadUrl: "/uploads/taskimages/",
+    //    uploadAsync: false,
+    //    showCaption: false,
+    //    minFileCount: 1,
+    //    overwriteInitial: false,
+    //    initialPreview: [get_files()],
+    //    initialPreviewConfig: [
+    //        { caption: "People-1.jpg", width: "120px", url: "~/uploads/taskimages/2", key: 1 }
+    //    ],
+    //    uploadExtraData: {
+    //        event_id: $('#eventId').val()
+    //    }
+    //});
+
+    //function get_files() {
+    //    var taskId = 1;
+    //    $.ajax({
+    //        url: '/ProTask/GetTaskImage',
+    //        async: false,
+    //        dataType: 'json',
+    //        data: { taskId: taskId },
+    //        success: function (data) {
+    //            var ret = '';
+    //            $.each(data, function (key, val) {
+    //                var preview = "\"/uploads/taskimages/" + val.ProTaskId + "/" + val.FileName+"\"";
+    //                ret += preview + ',';
+    //            });
+    //            alert(ret);
+    //            return ret;
+    //        }
+    //    });
+    //}
+
+
+    //$('#imgform').on('submit', function (e) {
+    //    e.preventDefault();
+    //    var files = $("#input-24").get(0).files;
+    //    var fileData = new FormData();
+    //    for (var i = 0; i < files.length; i++) {
+    //        fileData.append("input-24", files[i]);
+    //    }
+    //    $.ajax({
+    //        type: "POST",
+    //        url: "/ProTask/Image2",
+    //        dataType: "json",
+    //        contentType: false, // Not to set any content header
+    //        processData: false, // Not to process data
+    //        data: fileData,
+    //        success: function (result, status, xhr) {
+    //            alert(result);
+    //        },
+    //        error: function (xhr, status, error) {
+    //            alert(status);
+    //        }
+    //    });
+
+    //});
+    </script>
+}

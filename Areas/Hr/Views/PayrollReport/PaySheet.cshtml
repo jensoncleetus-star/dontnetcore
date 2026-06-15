@@ -1,0 +1,283 @@
+@{
+    ViewBag.Title = "Search Pay Sheet";
+    ViewBag.SubTitle = "PaySheet";
+    ViewBag.Active = "PayrollReport";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Pay Sheet</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-4 select2-box">
+                @Html.Label("Departments", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlDepartment", (SelectList)ViewBag.AllOption, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4 select2-box">
+                @Html.Label("Employee", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.AllOption, new { @class = "form-control input-sm select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Month & Year", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("MonthYear", "", "{0:MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="QReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Pay Sheet</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered" id="UserTable" style="width:100%">
+                <thead>
+                    <tr class="bg-gray">
+                        <th class="text-center">Department</th>
+                        <th class="text-center">Employee</th>
+                        <th class="text-center">Employee Code</th>
+                        <th class="text-center">Designation</th>
+
+                        <th class="text-center">Absent</th>
+                        <th class="text-center">OverTime</th>
+                        <th class="text-center">Present</th>
+                        <th class="text-center">Basic</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'MM-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            viewMode: "months",
+            minViewMode: "months"
+        })
+        $(document).ready(function () {
+            //for set default date
+            $('#MonthYear').datepicker({
+                format: 'MM-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                viewMode: "months",
+                minViewMode: "months"
+            });
+
+            $('#QReport').hide();
+            $("#ddlDepartment").select2({
+                placeholder: 'Search by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Department/SearchDepartment",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+            CallEmployeeAccAll();
+        });
+
+        jQuery(function ($) {
+
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                "ajax": {
+                    "url": '/PayrollReport/GetPaySheet',
+                    "data": function (data) {
+                        data.empl = $('#ddlEmployee').val();
+                        data.monthyear = $('#MonthYear').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    { "data": "Department", "name": "Department" },
+                    { "data": "Employee", "name": "Employee" },
+                    { "data": "EmpCode", "name": "EmpCode" },
+                    { "data": "Designation", "name": "Designation" },
+                     {
+                         "name": "Absent", "sClass": "numberright", "data": function (data) {
+                             return datas = data.Absent + " " + data.AbsentType;
+                         }
+                     },
+                     {
+                         "name": "OverTime", "sClass": "numberright", "data": function (data) {
+                             return datas = data.OverTime + " " + data.OverTimeType;
+                         }
+                     },
+                     {
+                         "name": "Present", "sClass": "numberright", "data": function (data) {
+                             return datas = data.Present + " " + data.PresentType;
+                         }
+                     },
+                    { "data": "Basic", "name": "Basic", "sClass": "numberright" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+              {
+                  extend: 'print',//
+                  title: "",
+                  footer: true,
+                  message: '<table class="tblcompact table table-bordered"><thead>' +
+                      ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Pay Sheet</h4></th></tr>' +
+                      ' <tr><th><span class="text-left"></span><span class="text-right pull-right"></span></th></tr></thead><tbody><tr><td>',
+                  customize: function (win) {
+                      // $(win.document.body)
+                      //.css('font-size', '10pt')
+                      //.css('padding', '1px');
+                      $(win.document.body).find('table, th,tr, td ')
+                         // .css('border', 'inherit')
+                          .css('font-size', '10pt')
+                          .css('padding', '5px')
+                          .addClass('compact');
+                      $(win.document.body).append('</td></tr></tbody>')
+
+                  }
+              }, 'copy', 'csv', 'excel',
+              {
+                  extend: 'pdf',//
+                  title: "",
+                  footer: true,
+                  message:
+                      '' + $('#cname').val() + '\n' +
+                      '' + $('#caddress').val() + '\n' +
+                      ' Pay Sheet \n' +
+                      'Month Year :  ' + $('#MonthYear').val()
+                  ,
+                  pageSize: 'A4',
+                  exportOptions: {
+                      columns: [0, 1, 2, 3, 4, 5, 6, 7]
+                  },
+                  customize: function (doc) {
+                      doc.pageMargins = [10, 10, 10, 10];
+                      doc.defaultStyle.fontSize = 10;
+                      doc.styles.tableHeader.fontSize = 10;
+                      doc.styles.title.fontSize = 12;
+                      // Remove spaces around page title
+                      doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                      doc.content[1].table.widths = [
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%'
+                      ]
+
+                      var objLayout = {};
+                      // Horizontal line thickness
+                      objLayout['hLineWidth'] = function (i) { return .5; };
+                      // Vertikal line thickness
+                      objLayout['vLineWidth'] = function (i) { return .5; };
+                      //// Horizontal line color
+                      //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                      //// Vertical line color
+                      //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                      // Left padding of the cell
+                      objLayout['paddingLeft'] = function (i) { return 4; };
+                      // Right padding of the cell
+                      objLayout['paddingRight'] = function (i) { return 4; };
+                      // Inject the object in the document
+                      doc.content[1].layout = objLayout;
+                  }
+
+
+              },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#QReport').show();
+            });
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+
+        $('body').on('change', '#ddlDepartment', function (e) {
+            var deptid = $(this).val();
+            if (deptid != null) {
+                $('#ddlEmployee').val(null).trigger("change");
+                CallEmployeeByDept(deptid);
+            }
+        });
+    </script>
+}

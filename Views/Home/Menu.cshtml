@@ -1,0 +1,123 @@
+﻿@using CustomHtml
+@using QuickSoft.Models
+@using QuickSoft.ViewModel
+@model QuickSoft.ViewModel.MenuViewModel
+<style>
+   section.sidebar {
+        background: @ViewBag.MenuColor !important;
+    }
+    .sidebar-menu {
+        height: 60px;
+        overflow: scroll !important;
+    }
+    .skin-blue .sidebar-menu > li > .treeview-menu {
+        background: @ViewBag.MenuColor !important;
+        position: fixed;
+        transform-box: fill-box;
+    }
+
+  .skin-blue .sidebar-menu > li.active > a, .skin-blue .sidebar-menu > li:hover > a {
+        color: #fff !important;
+        background: @ViewBag.MenuOverColor !important;
+        border-left-color: #0168fa !important;
+        border: 0;
+        border-bottom: 2px solid @ViewBag.MenuColor
+    }
+</style>
+
+<!-- Left side column. contains the logo and sidebar -->
+<aside class="main-sidebarr">
+    <!-- sidebar: style can be found in sidebar.less -->
+    <section class="sidebar">
+        <!-- Sidebar user panel -->
+        @{
+            var image = (Session["Image"] != null) ? Session["Image"] : "default.jpg";
+        }
+        <div class="user-panel">
+            <div class="pull-left image">
+                <img src="~/uploads/profile/@image" class="img-rounded" />
+            </div>
+            <div class="pull-left info">
+                <p>@ViewBag.User.ToUpper() </p>
+                <a href="#"><i class="fa fa-circle text-success"></i>Profile</a>
+            </div>
+        </div>
+        <!-- sidebar menu: : style can be found in sidebar.less -->
+        @{ sideMenu(Model); }
+
+    </section>
+</aside>
+
+
+@{ void sideMenu(MenuViewModel module, long parent = 0)
+{
+    MenuViewModel sub = new MenuViewModel();
+    sub.Menu = module.Menu;
+    var submodule = sub.Menu;
+    string menuchecked = "";
+    var classn = "";
+    var data = ViewBag.Active;
+
+    if (parent == 0)
+    {
+        classn = "class=sidebar-menu data-widget=tree slimScrollBar";
+    }
+    else
+    {
+        classn = "class=treeview-menu slimScrollBar";
+    }
+    <ul @classn>
+        @if (parent == 0)
+        {
+            var active = CustHtml.CheckActive(ViewBag.Active, "Dashboard", "class");
+            <li @active>
+                <a href="@Url.Action("Index", "Home")">
+                    <i class="fa fa-dashboard"></i> <span>Dashboard</span>
+                </a>
+            </li>
+        }
+        @foreach (var menus in module.Menu)
+        {
+            menuchecked = (data == menus.Name) ? "active" : "";
+            if (menus.Parent == parent && menus.Status == Status.active)
+            {
+                if (menus.IsParent == choice.Yes)
+                {
+                    if (menus.Link != "#")
+                    {
+                        <li @menuchecked>
+                            <a href="@menus.Link">
+                                <i class="fa @menus.iconClass"></i> <span>@menus.viewName</span>
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="treeview @menuchecked">
+                            <a href="#">
+                                <i class="fa @menus.iconClass"></i>
+                                <span>@menus.viewName</span>
+                                <span class="pull-right-container">
+                                    <i class="fa fa-angle-left pull-right"></i>
+                                </span>
+                            </a>
+                            @{ sideMenu(sub, menus.ModulesID); }
+                        </li>
+                    }
+                }
+                else
+                {
+                    <li @menuchecked>
+                        <a href="@menus.Link">
+                            <i class="fa @menus.iconClass"></i> <span>@menus.viewName</span>
+                        </a>
+                    </li>
+                }
+            }
+        }
+        @if (parent == 0)
+        {
+            <li><a onClick="logoff(); return false;" href="@Url.Action("LogOff", "Users")"><i class="fa fa-sign-out"></i> <span>Log Off</span></a></li>
+        }
+    </ul>
+} }

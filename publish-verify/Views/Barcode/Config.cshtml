@@ -1,0 +1,236 @@
+﻿@{
+    ViewBag.Title = "Barcode Configuration";
+    ViewBag.SubTitle = "Config";
+    ViewBag.Active = "Settings";
+}
+
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Config Barcode Label</h3>
+    </div>
+    <div class="box-body">
+        <form class="form-horizontal">
+            <div class="form-group">
+                <label class="control-label col-md-3">Company Name Size</label>
+                <div class="col-sm-4">
+                    <input type="hidden" name="id[0]" value="1" />
+                    <input type="hidden" name="Section[0]" value="Barcode-Config" />
+                    <input type="hidden" name="Field[0]" value="company-font" />
+                    <input type="text" placeholder="font-size" class="form-control input-sm" name="Value[0]" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-3">Label Size</label>
+                <div class="col-sm-4">
+                    <input type="hidden" name="id[1]" value="2" />
+                    <input type="hidden" name="Section[1]" value="Barcode-Config" />
+                    <input type="hidden" name="Field[1]" value="width" />
+                    <input type="text" placeholder="Width" class="form-control input-sm" name="Value[1]" />
+                </div>
+                <div class="col-sm-4">
+                    <input type="hidden" name="id[2]" value="3" />
+                    <input type="hidden" name="Section[2]" value="Barcode-Config" />
+                    <input type="hidden" name="Field[2]" value="height" />
+                    <input type="text" placeholder="Height" class="form-control input-sm" name="Value[2]" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-3">Page Break After</label>
+                <div class="col-sm-4">
+                    <input type="hidden" name="id[3]" value="4" />
+                    <input type="hidden" name="Section[3]" value="Barcode-Config" />
+                    <input type="hidden" name="Field[3]" value="page-break-after" />
+                    <select class="form-control input-sm" name="Value[3]">
+                        <option value="">Reset</option>
+                        <option value="auto">Auto</option>
+                        <option value="always">Always</option>
+                        <option value="avoid">Avoid</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                        <option value="initial">Initial</option>
+                        <option value="inherit">Inherit</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-3">Barcode Css</label>
+                <div class="col-sm-4">
+                    <input type="hidden" name="id[4]" value="5" />
+                    <input type="hidden" name="Section[4]" value="Barcode-Config" />
+                    <input type="hidden" name="Field[4]" value="barcode-css" />
+                    <textarea class="form-control input-sm" name="Value[4]"></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-3">Item Size</label>
+                <div class="col-sm-4">
+                    <input type="hidden" name="id[5]" value="6" />
+                    <input type="hidden" name="Section[5]" value="Barcode-Config" />
+                    <input type="hidden" name="Field[5]" value="item-font" />
+                    <input type="text" placeholder="font-size" class="form-control input-sm" name="Value[5]" />
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="button" class="btn btn-info col-sm-offset-5" value="Submit" id="Submit" />
+                <input type="button" class="btn btn-default" value="Reset" id="btnreset" />
+            </div>
+            <div id="cont" class="hidden">
+                <svg id="barcode"></svg>
+            </div>
+        </form>
+    </div>
+</div>
+@Html.Partial("_printBarcode")
+@section style{
+
+}
+
+@section Scripts {
+    @Scripts.Render("~/js/JsBarcode")
+    <script type="text/javascript">
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+
+                    $("#barcodetable tr").remove();
+                    if (data.Barcode != null) {
+
+                        //add unit
+                        var newOption = $('<option></option>');
+                        if ((data.PriUnit != data.SubUnit) && data.SubUnitId != null) {
+                            newOption.val(data.ItemUnitID).html(data.PriUnit);
+                            var newOption1 = $('<option></option>');
+                            newOption1.val(data.SubUnitId).html(data.SubUnit);
+                            if (data.ItemUnit) {
+                                if (data.ItemUnit == data.ItemUnitID)
+                                    newOption.attr("selected", "selected");
+                                if (data.ItemUnit == c.SubUnitId)
+                                    newOption1.attr("selected", "selected");
+                            }
+                            $('#Unit').html('');
+                            $('#Unit').append(newOption);
+                            $('#Unit').append(newOption1);
+
+                        } else {
+                            $('#Unit').html('');
+                            newOption.val(data.ItemUnitID).html(data.PriUnit);
+                            $('#Unit').append(newOption);
+                            $("#UnitName").val(data.PriUnit);
+                        }
+
+                        //set price and cfactor
+                        $("#Cfactor").val(data.ConFactor);
+
+                        $("[id$=bcvalue]").val(data.Barcode);
+                        $("[id$=itmname]").val(data.ItemName);
+                        $("[id$=itmprice]").val(data.SellingPrice);
+                        printSticker('barcode', data.Barcode);
+                        showbarcode();
+                        $("#brdiv").show();
+
+                    } else {
+                        alert("Barcode Not Found");
+                        $('#ddlItem').select2('close');
+                        $("#ddlItem").val(null).trigger("change");
+                        $('#Unit').empty();
+                        $("#brdiv").hide();
+                    }
+                }
+            });
+        });
+        
+        $(document).ready(function () {
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+        $("#Submit").click(function () {
+            var item = $('#ddlItem').val();
+            if (item != "") {
+
+                bindbarcode();
+
+                var originalpage = document.body.innerHTML;
+                var printContent = $('#printBarcode').html();
+                $('body').html(printContent);
+                $('title').html("Barcode Print");
+                window.print();
+                window.location.href = '@Url.Action("Index", "Barcode")';
+            }
+        });
+        function bindbarcode() {
+            var rows = parseInt($('#labelRows').val());
+            rows = (rows > 0) ? rows : 1;
+
+            var itemName = $('#itmname').val();
+            var cfactor = $('#Cfactor').val();
+
+            var itemPrice = $('#itmprice').val();
+            if ($("#Unit").prop('selectedIndex') == 0) {
+                itemPrice = itemPrice;
+            } else {
+
+                itemPrice = (itemPrice / cfactor);
+            }
+
+
+            var CName = $('#cname').val();
+            var image = $('#cont').html();
+            var table = "";
+            var str = '<h4>' + CName + '</h4><div>' + image + '</div><p style="margin-top: -12px;line-height: 10px;position: relative;">' + itemName + '<br> DHS    ' + itemPrice + '</p>';
+            var i = 0;
+            while (i < rows) {
+                var items = 1;
+                table += "<tr><td> " + str + "</td></tr>";
+                i++;
+            }
+            $('#bartable').append(table);
+        }
+        function showbarcode() {
+            var itemName = $('#itmname').val();
+            var cfactor = $('#Cfactor').val();
+
+            var itemPrice = $('#itmprice').val();
+            if ($("#Unit").prop('selectedIndex') == 0) {
+                itemPrice = itemPrice;
+            } else {
+
+                itemPrice = (itemPrice / cfactor);
+            }
+
+            var CName = $('#cname').val();
+            var image = $('#cont').html();
+            var table = "";
+            var str = '<h4>' + CName + '</h4><div>' + image + '</div><p style="margin-top: -12px;line-height: 10px;position: relative;">' + itemName + '<br> DHS    ' + itemPrice + '</p>';
+            table = "<tr><td> " + str + "</td></tr>";
+            $('#barcodetable').append(table);
+        }
+    </script>
+}

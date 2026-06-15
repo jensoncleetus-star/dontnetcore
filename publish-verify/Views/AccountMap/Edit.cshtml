@@ -1,0 +1,103 @@
+@model QuickSoft.Models.accountmapviewmodal
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Account Map</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "AccountMap", FormMethod.Post, new { id = "editform" }))
+    {
+        <script type="text/javascript">
+            $('form#popupFormSize').removeData("validator");
+            $('form#popupFormSize').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#popupFormSize'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.AccountMapId)
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.Label("Accounts", null, new { @class = "control-label" }) *
+            @Html.DropDownList("accountid", (SelectList)ViewBag.accounts, "", new { @class = "form-control", @required = "required" })
+            @*@Html.EditorFor(model => model.AccountName, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })*@
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.Label("Payment Type", null, new { @class = "control-label" }) *
+            @Html.EnumDropDownListFor(model => model.PaymentTypeId, new { @class = "form-control" })
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.Label("Payment Alias", null, new { @class = "control-label" }) *
+            @Html.EditorFor(model => model.description, new { @class = "form-control", @required = "required" })
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.Label("Level", null, new { @class = "control-label" }) *
+            @Html.EditorFor(model => model.level, new { @class = "form-control width-50", @required = "required", @type = "number" })
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.LabelFor(model => model.notintaxinvoice, new { @class = "control-label" }) *
+            @Html.CheckBoxFor(model => model.notintaxinvoice)
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.Label("Employee", null, new { @class = "control-label" }) *
+            @*  @Html.DropDownList("employeeid", (SelectList)ViewBag.employee, "", new { @class = "form-control", @required = "required"})*@
+            @*@Html.EditorFor(model => model.EmployeeName, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })*@
+
+            @Html.ListBoxFor(m => m.EmployeeId, (MultiSelectList)ViewBag.employee, new { @class = "Employees form-control input-sm textwidth" })
+
+        </div>
+    </div>
+
+</div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" class="btn btn-info col-sm-offset-4" value="Update"  id="btnUpdate"/>
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+}
+<script>
+    $("#EmployeeId").select2({
+        placeholder: 'Search Employees by Name',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/AdditionalMC/SearchEmployee",
+            dataType: 'json',
+            type: "POST",
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page,
+                    lead: 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+</script>

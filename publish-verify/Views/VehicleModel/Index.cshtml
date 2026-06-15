@@ -1,0 +1,309 @@
+
+
+<style>
+    h4 {
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        
+    }
+    @@media only screen and (max-width: 420px) {
+        h4 {
+            font-size: 14px;
+        }
+    }
+</style>
+
+@{
+    ViewBag.Title = "Vehicle Model";
+    ViewBag.SubTitle = "Vehicle Model";
+    ViewBag.Active = "Master";
+    string actData = "";
+    // bool userRole = true;
+    string delchk = "";
+    string deleteBTn = "";
+    //if (User.IsInRole("Dev") || User.IsInRole("Delete Vehicle Model"))
+    //{
+    //    // userRole = true;
+    //    deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+    //           "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+    //            "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    //}
+}
+<div class="box box-info">
+    <div class="row">
+        <div class="col-md-11 col-xs-8">
+            <h4>Vehicle Models</h4>
+        </div>
+        <div class="col-md-1 col-xs-4">
+            <a href="/VehicleModel/Create" class="btn btn-info modal-create"><i class="glyphicon glyphicon-plus"></i> Create</a>
+        </div>
+    </div>
+
+    <div class="box-body search-box">
+        @*<a class="btn btn-primary" id="srch">
+                <i class="glyphicon glyphicon-search"></i> Advanced Search
+            </a>*@
+
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-2">
+                        @Html.Label("Type", null, new { @class = "control-label" })
+                        @Html.TextBox("ColName", "", new { @class = "form-control input-sm" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAll", "VehicleModel", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Type</td>
+                        <td data-priority="2">Manufacturer</td>
+                        <td data-priority="2">Model</td>
+                        <td data-priority="1">Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#advsearch').hide();
+        });
+
+        var oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/VehicleModel/GetModel',
+                "data": function (data) {
+                    data.ColName = $('#ColName').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "columnDefs": [{
+                "targets": [3],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "ModelId", "name": "ModelId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "Type", "name": "Type" },
+
+                { "data": "Manufacturer", "name": "Manufacturer" },
+                { "data": "Model", "name": "Model" },
+                    {
+                        "name": "MId", "data": function (data) {
+                            var rest = "";
+                            @{
+
+                                                      actData += "<a class=\"modal-edit\" href=\"/VehicleModel/Edit/'+ data.ModelId +'\" title=\"Edit Vehicle model\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+
+                                                    actData += "<a class=\"modal-delete\" href=\"/VehicleModel/Delete/'+ data.ModelId +'\" title=\"Delete Vehicle model\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+
+                                              }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    }
+
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis',
+             {
+                 extend: 'print',//
+                 title: "",
+                 footer: true,
+                 exportOptions: {
+                     columns: ':visible'
+                 },
+                 message: '<table class="tblcompact table table-bordered"><thead>' +
+                     ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Vehicle Type</h4></th></tr>' +
+                     ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                 customize: function (win) {
+                     // $(win.document.body)
+                     //.css('font-size', '10pt')
+                     //.css('padding', '1px');
+                     $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                         .css('font-size', '10pt')
+                         .css('padding', '5px')
+                         .addClass('compact');
+                     $(win.document.body).append('</td></tr></tbody>')
+
+                 }
+             }, 'copy', 'csv', 'excel',
+            {
+                extend: 'pdf',//
+                title: "Vehicle Type",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+                @Html.Raw(deleteBTn)
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+        @*var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(3);
+            column1.visible(true);
+          / $('.dt-button.btn-danger').show();
+        } else {
+            var column1 = oTable.column(3);
+            column1.visible(false);
+            $('.dt-button.btn-danger').hide();
+        }*@
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+                //
+                $('#ColName').val("");
+                oTable.draw();
+            }
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#UserTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+
+            if (false == $(this).prop("checked")) { //if this Vehicle Typeis unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+    </script>
+}
+
+

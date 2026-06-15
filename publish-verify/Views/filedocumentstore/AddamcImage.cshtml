@@ -1,0 +1,205 @@
+﻿@model List<QuickSoft.ViewModel.FilemultipleDocumentsview>
+@{
+    int di = 0;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4> Documents</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Editdoc", "AMC", FormMethod.Post, new { id = "createFormamc", role = "form", enctype = "multipart/form-data" }))
+    {
+        <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
+
+        <div class="row save hidden">
+            <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button1" tabindex=34>Attach Documents<i class="fa fa-plus-circle" aria-hidden="true" style="margin-top:2px"></i></button>
+            <br>
+            <div class="form-group input_fields_wrap1 save">
+            </div>
+            <br>
+        </div>
+
+        <div class="row text-center hidden">
+            <button type="submit" id="save" class="btn btn-info" tabindex="75">
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+            </button>
+        </div>
+        <div class="form-group input_fields_wrap3">
+            <table class="table table-condensed table-hover" id="tblDcmnt">
+                @{
+
+                    var doctype = "";
+                    if (Model != null && Model.Count()>0)
+                    {
+                        foreach (var item in Model)
+                        {
+                           
+                                <h3>@item.Document  </h3>
+                              
+                          
+                            <div class="row" style="margin-top: 1rem;">
+                                <div class="col-md-3" hidden>
+                                    @*<label class="control-label">Document id</label>
+                                        <div class="input-group">
+                                            <input type="text" value="@item.Id" name="lstMultidocview[@di].DocumnetId" class="form-control">
+                                        </div>*@
+                                </div>
+                                <div class="col-md-10">
+                                    <div class="input-group">
+                                        <input type="text" value="@item.Document" title="@item.Document" class="form-control file-upload-info downpress" onclick="newfn(@item.Document) readonly=" readonly>
+                                        <input type="hidden" value="@item.Document" title="@item.Document">
+
+                                        <a href="/uploads/commondocuments/@item.Document" value="@item.Document" target="_new" style=" margin-top:0.4rem;margin-right:0.4rem; margin-left:0.4rem; width:100px;">Open</a>
+
+      
+                                     
+
+                                    </div>
+                                </div>
+                            </div>
+                            di++;
+
+                        }
+                    }
+                }
+            </table>
+        </div>
+
+
+
+
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+}
+
+<script type="text/javascript">
+    function confirmdel(ids) {
+    var url = "/Amc/DeleteImage/" + ids;
+        modalshow(url, '#modal-create');
+    }
+    $('#modal-create').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-create');
+
+    });
+    var docgroup = '<option value="">--Select--</option>';
+    var s = '<option value="">--Select--</option>';
+    var add_button1 = $(".add_field_button1"); //Add button ID
+    var minOffset = 0,
+        maxOffset = 20;
+    var max_fields = 10; //maximum input boxes allowed
+    var wrapper1 = $(".input_fields_wrap1"); //Fields wrapper
+
+    var x = 1;
+    var thisYear = new Date().getFullYear() + 2;
+
+
+    for (var i = minOffset; i <= maxOffset; i++) {
+        var year = thisYear - i;
+        docgroup += '<option value="' + year + '">' + year + '</option>';
+    }
+    $.ajax({
+        type: "GET",
+        url: "/Customer/GetDocTypes",
+        data: "{}",
+        success: function (data) {
+            for (var i = 0; i < data.length; i++) {
+                s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+            }
+        }
+    });
+
+    $(add_button1).click(function (e) { //on add input button click
+        e.preventDefault();
+        if (x < max_fields) { //max input box allowed
+
+            var rowno = document.getElementById('documentRowcount').value;
+
+            //paste here
+            $(wrapper1).append('<div class="row DocSet"  style=" border: 1px solid rgba(0,0,0,0.12); border-radius: 30px; margin-top:10px;">' +
+                '<div class="col-md-2 col-xs-12">' +
+                '<label class="control-label">Document Year</label>' +
+                '<div class="input-group">' +
+                '<select class="form-control TransType" id="TransType" name="AmcDocuments[' + rowno + '].TransType" tabindex="49">' + docgroup +
+                '</select>' +
+                '</div></div>' +
+
+                '<div class="col-md-2 col-xs-12">' +
+                '<label class="control-label">Document Type</label>' +
+                '<div class="input-group">' +
+                '<select class="form-control DocumentTypeID" id="DocumentTypeID" name="AmcDocuments[' + rowno + '].DocumentTypeID" tabindex="35">' + s +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="col-md-3 col-xs-12">' +
+                '<label class="control-label">Expiry</label>' +
+                '<div class="input-group">' +
+                '<input type="date" id="Expiry" name="AmcDocuments[' + rowno + '].Expiry" class="form-control Expiry" placeholder="Expiry" tabindex="36">' +
+                '</div>' +
+                '</div>' +
+                '<div class="col-md-2 col-xs-12">' +
+                '<label class="control-label">Notes</label>' +
+                '<div class="input-group">' +
+                '<input type="text" id="Notes" name="AmcDocuments[' + rowno + '].Notes" class="form-control Notes" placeholder="Notes" tabindex="37">' +
+                '</div>' +
+                '</div>' +
+                '<div class="col-md-2 col-xs-11">' +
+                '<label class="control-label">Choose Image</label>' +
+                '<div class="input-group">' +
+                '<input type="file" id="FileName" name="AmcDocuments[' + rowno + '].FileName" class="form-control file-upload-info FileName"  placeholder="Choose image" required tabindex="38">' +
+                '</div>' +
+                '</div>' +
+                '<a href="javascript:void(0);" class="remove_button1"><i style="color:red;margin-top:25px;" class="fa fa-trash" aria-hidden="true" tabindex="39"></i></a>' +
+                '</br>' + ' </br >' +
+                '</div > ');
+            x++;
+            rowno++;
+            document.getElementById('documentRowcount').value = rowno;
+            $('#DocumentTypeID').select2({});
+            resetDocbtn();
+        }
+    });
+
+    //Function To Reset Index
+    function resetDocbtn() {
+        var i = 0;
+        $('.DocSet').each(function (index, element) {
+
+            var inputDocType = $(this).find('.DocumentTypeID');
+            var inputExpiry = $(this).find('.Expiry');
+            var inputNotes = $(this).find('.Notes');
+            var inputFileName = $(this).find('.FileName');
+
+            //To update the index value of name & Id of each rows while appending or deleting
+            inputDocType.attr('name', 'AmcDocuments[' + i + '].DocumentTypeID');
+            inputExpiry.attr('name', 'AmcDocuments[' + i + '].Expiry');
+            inputNotes.attr('name', 'AmcDocuments[' + i + '].Notes');
+            inputFileName.attr('name', 'AmcDocuments[' + i + '].FileName');
+
+            i++;
+        });
+    }
+
+    $(wrapper1).on('click', '.remove_button1', function (e) {
+        e.preventDefault();
+        $(this).parent('div').remove(); //Remove field html
+        x--; //Decrement field counter
+        resetDocbtn();
+    });
+
+
+</script>
+
+

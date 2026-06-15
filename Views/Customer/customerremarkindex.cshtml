@@ -1,0 +1,747 @@
+@model QuickSoft.Models.Customer
+@{
+    ViewBag.Title = "Work Updation List";
+    ViewBag.SubTitle = "Customer";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Customer"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+             "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+              "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+
+
+    }
+}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<style type="text/css">
+    input[type="search"] {
+        border-radius: 17px;
+    }
+
+    body {
+        font-family: 'Open Sans', sans-serif;
+        line-height: 1.25;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: #2196f3;
+        border-color: #2196f3;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        padding: 5px;
+    }
+
+    .btn-warning {
+        color: #fff;
+        background-color: #f44336;
+        border-color: #f44336;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        padding: 5px;
+    }
+
+    /**/
+    .dropdown-check-list {
+        display: inline-block;
+        /*  position: absolute;*/
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    /* .select2 {
+        width: 150px;
+        padding: 5px 50px 5px 10px;
+        border: 1px solid #ccc;
+        height: 33px;
+        font-size: 15px;
+        font-family: 'Open Sans', sans-serif;
+    }*/
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+
+        <h3 class="box-title">Work Updation Report</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border add-btn-item" href="/Customer/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>}
+        </div>
+
+        <div class="row">
+       
+            <div class="col-md-12">
+                <div class="box-body search-box" id="">
+
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <h3 style="color:black">Select Option</h3>
+                                @Html.Label("Customer", null, new { @class = "" })
+
+                                @Html.RadioButton("Customer", "1", true)
+                                <br />
+                                @Html.Label("Task", null, new { @class = "" })
+
+                                @Html.RadioButton("Customer", "2", false)
+                                <br />
+                                @Html.Label("Amc", null, new { @class = "" })
+
+                                @Html.RadioButton("Customer", "3", false)
+                                <br /> <br /> <br />
+                            </div>
+                                    <div class="form-group col-md-2 " id="searchs">
+                                        @Html.Label("From Date", null, new { @class = "control-label" })
+                                        <div class="input-group date">
+                                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                            <div class="input-group-addon">
+                                                <i class="fa fa-calendar"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group col-md-2 " id="searchtodate">
+                                        @Html.Label("To Date", null, new { @class = "control-label" })
+                                        <div class="input-group date">
+                                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                                            <div class="input-group-addon">
+                                                <i class="fa fa-calendar"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group col-md-2" id="Employee1">
+                                        @Html.Label("User", null, htmlAttributes: new { @class = "control-label " })
+                                        @Html.DropDownList("ddluser", (SelectList)ViewBag.emp1, "All", new { @class = "form-control select2" })
+                                    </div>
+
+                                    <div class="form-group col-md-2" id="search">
+                                        <input type="submit" class="btn btn-submit" value="Submit" />
+                                    </div>
+                                    <div class="form-group col-md-2" id="close">
+                                        <input type="button" class="btn btn-close" value="Close" />
+                                    </div>
+                                </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div>
+        </div>
+    </div>
+ 
+
+
+    <div class="row">
+
+        <div class="col-md-12">
+            @using (Html.BeginForm("DeleteAaar", "Customer", FormMethod.Post, new { id = "payform", role = "form" }))
+            {
+
+                <table class="customer-table" id="MyTable" width="100%">
+                    <thead>
+                        <tr style="background-color: #acd6e9">
+                            <th scope="col" width="5%" data-priority="1">S/N</th>
+                            <th scope="col" width="5%" data-priority="1">Entry code</th>
+                            <th scope="col" width="15%" data-priority="1">Details</th>
+                            <th scope="col" width="0%" data-priority="3">trn</th>
+                            <th scope="col" width="0%" data-priority="3">address</th>
+                            <th scope="col" width="5%" data-priority="3">phone</th>
+                            <th scope="col" width="20%" data-priority="2">Contacts</th>
+                            <th scope="col" width="10%" data-priority="2">Sales Person</th>
+                            <th scope="col" width="30%" data-priority="1">Remarks</th>
+                            <th scope="col" width="5%" data-priority="2">Updated By</th>
+                            <th scope="col" width="5%" data-priority="2">Last Updated</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/Mobile")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+<script type="text/javascript">
+
+      
+      /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+   
+        function sendwhatsap(link) {
+            var myno = "http://wa.me/" + link + "?text=hi";
+            window.open(myno, "_blank");
+    }
+    var oTable;
+    $(document).ready(function () {
+        $("#ddluser").select2({});
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+
+            });
+
+          $('#ToDate').datepicker({
+              format: 'dd-mm-yyyy',
+              autoclose: true,
+              allowInputToggle: true,
+
+          });
+
+          var date = new Date();
+          var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          var priordate = new Date(new Date().setDate(today.getDate()));
+        $('#ToDate').datepicker('setDate', today);
+            $('#FromDate').datepicker('setDate', today);
+            //$('#advsearchlist').hide();
+
+
+
+         oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            "timeout": 600000,
+            responsive: true,
+            "ajax": {
+                "url": '/Customer/GetCustomerRemarks',
+                "data": function (data) {
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.user = $('#ddluser').val();
+                    data.options = $("#Customer:checked").val();
+
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+
+
+            "columns": [
+
+                {
+                    "data": "id", "name": "id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+
+                { "data": "CustomerCode", "name": "CustomerCode" },
+                {
+                    "name": "CustomerName", "data": function (data) {
+                           @{
+                               var datas = "";
+                               //datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                               {
+                                   datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               }
+                               else
+                               {
+                                   datas = "data.CustomerName";
+                               }
+                           }
+                        return @Html.Raw(datas);
+                    }
+                },
+                { "data": "TaxRegNo", "name": "TaxRegNo" },
+                { "data": "Address", "name": "Address" },
+                {
+                    "name": "Phone", "data": function (data) {
+                        var datas = "";
+                        $.each(data.mobmodel, function (i, item) {
+                            if (item.Num != null) {
+                                if (i > 0) {
+                                    datas += ",";
+                                }
+                                datas += "+971"+item.Num.replace("+971", "").replace("971", "").replace(" ","");
+                            }
+                        });
+                        return datas;
+                    }
+
+
+},
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null) {
+                                 if (datas != "") {
+                                     datas += "<br> ";
+                                 }
+                                 datas += item.Name + '<br>';
+                                 var myno = "http://wa.me/" + "971" + item.Num.replace("+971", "").replace("971", "").replace(" ", "").replace("+5", "+9715") + "?text=hi";
+                                 var numorg = "971" + item.Num.replace("+971", "").replace("971", "").replace(" ", "");
+                                 datas += '<a href="javascript:void(0)" onclick="sendwhatsap(' + numorg + ')"><i class="fa fa-whatsapp" aria-hidden="true"></i></a>' + '<br>';
+                                 datas += '<a href="tel:' + item.Num.replace("+971+971", "+971") + '">' + item.Num.replace("+971+971", "+971").replace("+5","+9715") + '</a>' + '<br>';
+
+                                 datas += '<a href="mailto:' + item.emails + '">' + item.emails + '</a>' + '<br>';
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+                 { "data": "Email", "name": "Email" },
+                { "data": "Remarks", "name":"Remarks"},
+                { "data": "OpnBalance", "name": "OpnBalance" },
+                {
+                    "name": "ldate", "data": function (data) {
+                        var result = "";
+                        if (data.ldate != null) {
+                            result = LastUpdatedIn(data.ldate);
+                        }
+                        return (result);
+                    }
+                },
+
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Customers </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Customers",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+
+
+            },
+         @Html.Raw(deleteBTn)
+
+
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+
+
+            }
+        });
+                var column1 = oTable.column(3);
+                column1.visible(false);
+                var column1 = oTable.column(4);
+                column1.visible(false);
+                var column1 = oTable.column(5);
+                column1.visible(false);
+                var column1 = oTable.column(7);
+                column1.visible(true);
+                var column1 = oTable.column(8);
+      column1.visible(true);
+      var column1 = oTable.column(9);
+      column1.visible(true);
+
+
+
+           // AddMobile();
+
+
+
+        });
+
+        //$('#modal-create-lg').on('shown.bs.modal', function (e) {
+        //    addmobile('mobilebody', 'contact', "");
+        //    //alert("dss");
+        //});
+
+
+
+
+
+        var chkcol = '@userRole';
+
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /*******  To uncheck all the checkboxes in the Select List  ************/
+        var checkboxes = document.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(function (Checkbox) {
+            Checkbox.checked = false;
+        });
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-edit').on('submit', '#createForm', function (e) {
+            e.preventDefault();
+            var url = $('#createForm')[0].action;
+            var data = $('#createForm').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('div').on('click', 'a.ViewUpdates', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container3');
+            $(this).attr('data-toggle', 'modal');
+        });
+ 
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+      $('#srch, .search-box .btn-close').on('click', function (e) {
+         // $('#advsearchlist').toggle();
+
+          /*******  To uncheck all the checkboxes in the Select List  ************/
+          var checkboxes = document.querySelectorAll("input[type='checkbox']");
+          checkboxes.forEach(function (Checkbox) {
+              Checkbox.checked = false;
+          });
+
+          if ($('#srch').hasClass('btn-primary')) {
+              $('#srch').addClass('btn-danger');
+              $('#srch').removeClass('btn-primary');
+          }
+          else {
+              if ($('#srch').hasClass('btn-danger')) {
+                  $('#srch').addClass('btn-primary');
+                  $('#srch').removeClass('btn-danger');
+              }
+              $('#ddlCustomer').val(null).trigger("change");
+              $('#Alias').val("");
+              $('#ddlCustomerType').val(null).trigger("change");
+              $('#ddlsource').val(null).trigger("change");
+              $('#TaxReg').val("");
+              $('#ddlEmployee').val(null).trigger("change");
+
+              $('#TaxType').val(null).trigger("change");
+              $('#ddlMobile').val(null).trigger("change");
+              $('#CLimit').val("");
+              $('#CPeriod').val("");
+              $('#MailId').val("");
+              oTable.draw();
+          }
+      });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            //var checkList = document.getElementById('list1');
+
+                 
+
+
+            oTable.draw();
+        });
+
+        CallRepCustomer();
+        CallRepEmployee();
+
+        $("#ddlCustomerType").select2({
+            placeholder: 'Search Customer Type',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/CustomerType/SearchType",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        x: "All",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#ddlMobile").select2({
+            placeholder: 'Search Customer by Mobile',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Customer/SearchMobile",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        x: "All",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#ddlPhone").select2({
+            placeholder: 'Search Customer by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Customer/SearchPhone",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        x: "All",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $('#modal-create').on('submit', '#srcform', function (e) {
+            var url = $('#srcform')[0].action;
+            var text = $("#SrcName").val();
+            var formData = new FormData(this);
+            //var mobi = new Array();
+            //var num = 0;
+
+            //for (i = 0; i < count; i++) {
+            //    mobi.push($('#Mobile' + count).val());
+            //}
+
+            $('#ddlSrcLead option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: formData,//$('#srcform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-create').modal('hide');
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlSrcLead').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+            e.preventDefault();
+        });
+
+      /******* Function to remove dropdown checklist while clicking outside it ********/
+   
+
+</script>
+}
+

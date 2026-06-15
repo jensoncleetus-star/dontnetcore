@@ -1,0 +1,324 @@
+﻿
+@model QuickSoft.ViewModel.LedgerViewModel
+@{
+    ViewBag.Title = "Day Book";
+    ViewBag.SubTitle = "Day Book";
+    ViewBag.Active = "Reports";
+    var sl = 1;
+    long prev = -5;
+    int ItemCount = 0;
+    int cnt = 0;
+    DateTime? prevDate = null;
+    var prevInv = "";
+    var prevType = "";
+    var prevAcc = "";
+
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Day Book</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr>
+                        <td colspan="8">
+                            From : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))  - @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))
+                        </td>
+                    </tr>
+
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Date</td>
+                        <td>Type</td>
+                        <td>Vch No.</td>
+                        <td>Account</td>
+                        <td>Debit(AED)</td>
+                        <td>Credit(AED)</td>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @foreach (var item in Model.Ledger)
+                    {
+                        ItemCount = Model.Ledger.Count();
+                        cnt++;
+
+                        <tr>
+                            <td>@sl</td>
+                            @if (item.Date != prevDate)
+                            {
+                                <td>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", item.Date))</td>
+                            }
+                            else
+                            {
+                                <td></td>
+                            }
+                            @if (item.Invoice != prevInv )
+                            {
+                                <td>@Html.DisplayFor(m => item.Type)</td>
+                                <td>@Html.DisplayFor(m => item.Invoice)</td>
+                            }
+                            else
+                            {
+                                <td></td>
+                                <td></td>
+                            }
+                            <td>@Html.DisplayFor(m => item.RAccount)</td>
+                            <td>@Html.DisplayFor(m => item.Debit)</td>
+                            <td>@Html.DisplayFor(m => item.Credit)</td>
+
+                        </tr>
+                        sl++;
+                        prevDate = item.Date;
+                        prevInv = item.Invoice;
+                        prevType = item.Type;
+                    }
+
+                    @*<tr>
+                                <td>@sl</td>
+                                <td>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", item.Date))</td>
+
+                                @if (item.Type == prevType)
+                                {
+                                    <td rowspan="3">@Html.DisplayFor(m => item.Type)</td>
+                                }
+                                else
+                                {
+                                    <td>@Html.DisplayFor(m => item.Type)</td>
+                                }
+                                @if (item.Invoice == prevInv)
+                                {
+                                    <td rowspan="3">@Html.DisplayFor(m => item.Invoice)</td>
+                                }
+                                else
+                                {
+                                    <td>@Html.DisplayFor(m => item.Invoice)</td>
+                                }
+                                @if (item.RAccount == prevAcc)
+                                {
+                                    <td rowspan="3">@Html.DisplayFor(m => item.RAccount)</td>
+                                }
+                                else
+                                {
+                                    <td>@Html.DisplayFor(m => item.RAccount)</td>
+                                }
+                                <td>@Html.DisplayFor(m => item.Debit)</td>
+                                <td>@Html.DisplayFor(m => item.Credit)</td>
+                            </tr>
+
+                            sl++;
+                        prevDate = item.Date;
+                        prevInv = item.Invoice;
+                        prevType = item.Type;
+                        }*@
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var groupColumn = 1;
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                //"columnDefs": [
+                //      { "visible": false, "targets": [1] }
+                //],
+
+                //"order": [[groupColumn, "asc"]],
+                //"drawCallback": function (settings) {
+                //    var api = this.api();
+                //    var rows = api.rows({ page: 'current' }).nodes();
+                //    var last = null;
+                //    api.column(groupColumn, { page: 'current' }).data().each(function (group, i) {
+                //        if (last !== group) {
+                //            $(rows).eq(i).before(
+                //                '<tr class="group"><td colspan="7">' + group + '</td></tr>'
+                //            );
+                //            last = group;
+                //        }
+                //    });
+                //},
+
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+       'colvis',
+          {
+              extend: 'print',//
+              exportOptions: {
+                  columns: ':visible'
+              },
+              title: "",
+              footer: true,
+              filename: function () {
+                  return 'DayBook';
+              },
+              message: function () {
+                  var head = '<table class="tblcompact table table-bordered"><thead>' +
+                      ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>DayBook</h4></th></tr>' +
+                      ' <tr><th><span class="text-left"></span><span class="text-right pull-left"> From :  ' + '@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))' + ' To : ' + '@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))' + '</span></th></tr></thead><tbody><tr><td>';
+                  return head;
+              },
+              customize: function (win) {
+                  // $(win.document.body)
+                  //.css('font-size', '10pt')
+                  //.css('padding', '1px');
+                  $(win.document.body).find('table, th,tr, td ')
+                     // .css('border', 'inherit')
+                      .css('font-size', '10pt')
+                      .css('padding', '5px')
+                      .addClass('compact');
+                  $(win.document.body).append('</td></tr></tbody>')
+
+              }
+          }, 'copy', 'csv', //'excel',
+          {
+              extend: 'excel',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return 'DayBook';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' Payment Report \n' +
+                     'From :  ' + '@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))' + ' To : ' + '@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))' + '';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: ':visible'
+              },
+          },
+          {
+              extend: 'pdf',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return 'DayBook';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' DayBook \n' +
+                     'From :  ' + '@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))' + ' To : ' + '@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))' + '';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: ':visible'
+              },
+              customize: function (doc) {
+                  doc.pageMargins = [10, 10, 10, 10];
+                  doc.defaultStyle.fontSize = 10;
+                  // Header font and bg color
+                  doc.styles.tableHeader.fillColor = '#d3d3d3';
+                  doc.styles.tableHeader.color = 'black';
+                  doc.styles.tableHeader.fontSize = 10;
+                  doc.styles.title.fontSize = 12;
+                  // Remove spaces around page title
+                  doc.content[0].text = doc.content[0].text.trim();
+
+                  doc.styles['td:nth-child(2)'] = {
+                      width: '100%',
+                      'max-width': '100%'
+                  }
+                  //doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+                  //doc.content[1].table.widths = [
+                  //'5%',
+                  //'8%',
+                  //'13%',
+                  //'8%',
+                  //'13%',
+                  //'8%',
+                  //'8%',
+                  //'10%',
+                  //'10%',
+                  //'15%'
+                  //]
+
+                  var objLayout = {};
+                  // Horizontal line thickness
+                  objLayout['hLineWidth'] = function (i) { return .5; };
+                  // Vertikal line thickness
+                  objLayout['vLineWidth'] = function (i) { return .5; };
+                  //// Horizontal line color
+                  //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                  //// Vertical line color
+                  //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                  // Left padding of the cell
+                  objLayout['paddingLeft'] = function (i) { return 4; };
+                  // Right padding of the cell
+                  objLayout['paddingRight'] = function (i) { return 4; };
+                  // Inject the object in the document
+                  doc.content[1].layout = objLayout;
+                  // Footer font and bg color
+                  doc.styles.tableFooter.fillColor = '#d3d3d3';
+                  doc.styles.tableFooter.color = 'black';
+              }
+
+          },
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip"
+
+            });
+
+            //MergeCommonRows($("#UserTable"), 3);
+
+        });
+
+        function MergeCommonRows(table, columnIndexToMerge) {
+            //alert(table + "  =  " + columnIndexToMerge);
+            previous = null;
+            cellToExtend = null;
+            table.find("td:nth-child(" + columnIndexToMerge + ")").each(function () {
+                jthis = $(this);
+                content = jthis.text()
+                if (previous == content) {
+                    jthis.remove();
+                    if (cellToExtend.attr("rowspan") == undefined) {
+                        cellToExtend.attr("rowspan", 2);
+                    }
+                    else {
+                        currentrowspan = parseInt(cellToExtend.attr("rowspan"));
+                        cellToExtend.attr("rowspan", currentrowspan + 1);
+                    }
+                }
+                else {
+                    previous = content;
+                    cellToExtend = jthis;
+                }
+            });
+        };
+    </script>
+}
+
+
+
+@*<tr>
+            <td>@sl</td>
+            <td>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", item.Date))</td>
+            <td>@Html.DisplayFor(m => item.Type)</td>
+            <td>@Html.DisplayFor(m => item.Invoice)</td>
+            <td>@Html.DisplayFor(m => item.RAccount)</td>
+            <td>@Html.DisplayFor(m => item.Debit)</td>
+            <td>@Html.DisplayFor(m => item.Credit)</td>
+        </tr>
+    sl++;
+*@
+
+

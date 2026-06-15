@@ -1,0 +1,97 @@
+@model QuickSoft.Models.PropertySettings
+@{
+    ViewBag.Title = "Property Settings";
+    ViewBag.SubTitle = "Create";
+    ViewBag.Active = "Property";
+
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Create", "PropertySettings", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Property Settings</h3>
+            <div class="pull-right">
+                <a class="btn btn-success no-border" href="/Property/PropertySettings">
+                    <i class="fa fa-fw fa-history"></i> List
+                </a>
+            </div>
+        </div>
+        <div class="box-body">
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+            <div class="form-group col-md-4">
+                @Html.Label("Module Name", null, htmlAttributes: new { @class = "control-label" })*
+                @Html.EditorFor(model => model.Module, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Module Name", @required = "required" } })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Type", null, new { @class = "control-label" })
+                @Html.DropDownListFor(m => m.Type, (SelectList)ViewBag.Proptype, "--select--", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.LValue, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.LValue, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Lvalue" } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.SValue, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.SValue, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Svalue" } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Description, htmlAttributes: new { @class = "control-label" })
+                @Html.TextAreaFor(model => model.Description, new { @class = "form-control", @placeholder = "Enter Module Description" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Status, htmlAttributes: new { @class = "control-label col-md-4" })
+                @Html.EnumDropDownListFor(model => model.Status, new { @class = "form-control" })
+            </div>
+
+            <div class="form-group col-md-12 pull-left">
+                <div class="col-md-12">
+                </div>
+            </div>
+        </div>
+        <div class="box-footer clearfix">
+            <input type="submit" class="btn btn-info col-sm-offset-5" value="Save" id="btnSubmit" />
+            <input type="button" class="btn btn-default" value="Cancel" id="btnreset" />
+        </div>
+    }
+
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+}
+
+<script type="text/javascript">
+    $('#createForm').on('submit', function (e) {
+        e.preventDefault();
+        if ($("#createForm").valid()) {
+            var url = $('#createForm')[0].action;
+            var formData = new FormData(this);
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                url: url,
+                data: formData,//JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                        //window.location.href = 'Url.Action("Index", "PropertySettings")';
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+    });
+    </script>

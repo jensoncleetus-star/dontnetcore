@@ -1,0 +1,1506 @@
+﻿@model QuickSoft.ViewModel.CustomerViewModel
+@{
+    ViewBag.Title = "Create Customer";
+    ViewBag.SubTitle = "Customer";
+    ViewBag.Active = "Master";
+    int di = 0;
+    int si = 0;
+    int ci = 0;
+}
+<html lang="en">
+<head>
+
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-datepicker")
+
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="~/Content/css/shared/style.css">
+    <!-- BOS: page marker so the compact/refined styles apply ONLY to this form -->
+    <script>document.addEventListener('DOMContentLoaded', function () { document.body.classList.add('bosx-customer-create'); });</script>
+    <!-- endinject -->
+    <!-- Layout styles -->
+    <link rel="stylesheet" href="~/Content/css/demo_1/style.css">
+    <!-- End Layout styles -->
+
+    <style>
+        #file {
+            -webkit-border-top-right-radius: 17px;
+            -webkit-border-bottom-right-radius: 17px;
+            -moz-border-radius-topright: 17px;
+            -moz-border-radius-bottomright: 17px;
+            border-top-right-radius: 17px;
+            border-bottom-right-radius: 17px;
+        }
+
+        .btn.btn-fw {
+            min-width: 120px;
+            float: left;
+            margin-bottom: .4rem;
+        }
+
+        .iconalign {
+            transform: scale(1.5) !important;
+        }
+
+        .fa-4x {
+            color: blue;
+        }
+
+        .fa-plus-circle:hover {
+            color: black;
+        }
+
+        /************/
+        .input-group-btn .sh-align {
+            height: 100% !important;
+            position: absolute;
+            right: -21px;
+            /* bottom: 30px; */
+            font-size: 13px;
+        }
+
+
+        .convert li {
+            display: inline-block;
+            padding: 5px;
+            background-color: ghostwhite;
+        }
+
+        .convert ul {
+            list-style: none;
+        }
+
+        @@media only screen and (max-width: 420px) {
+            .sh-align {
+                position: relative;
+                bottom: -2px;
+                right: -50%;
+                transform: scale(1.19) !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-scroller">
+        @using (Html.BeginForm("Create", "Customer", FormMethod.Post, new { id = "creForm", role = "form", enctype = "multipart/form-data" }))
+        {
+            <input type="hidden" name="leadid" value="@ViewBag.leadid" />
+            <!-- partial:../../partials/_navbar.html -->
+            <!-- partial -->
+            <div class="container-fluid page-body-wrapper">
+                <!-- partial -->
+                <div class="main-panel">
+                    <div class="">
+                        <div class="col-md-12 grid-margin stretch-card" style=" padding-top: 0.8rem;">
+                            <div class="card">
+
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <h4 class="card-title">
+                                                    <b>CREATE CUSTOMER</b>
+
+                                                    @if (User.IsInRole("Dev") || User.IsInRole("Customer"))
+                                                    {
+                                                        <a class="btn btn-outline-primary btn-fw" style="float: right;" href="/Customer">
+                                                            <i class="fa fa-fw fa-history"></i> List
+                                                        </a>
+                                                    }
+                                                    @*<button type="button" class="btn btn-outline-primary btn-fw" style="float: right;">List</button>
+                                                        <button type="button" class="btn btn-outline-primary btn-fw" style="float: right;">Contact</button>*@
+                                                </h4>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    @* BOS: small on-screen instructions so users understand the form (additive — no field/data change) *@
+                                    <div class="bosx-form-help">
+                                        <i class="fa fa-info-circle bosx-form-help-icon" aria-hidden="true"></i>
+                                        <div class="bosx-form-help-text">
+                                            <b>How to fill this form</b>
+                                            Fields marked <span class="bosx-req">*</span> are required. Type the <b>Customer Name</b> and choose a <b>Sales Person</b>, then click <b>More</b> to open all the details (address, credit, tax&nbsp;ID, etc.). Use <b>Add&nbsp;Contact</b> to add phone / email contacts, and <b>More&nbsp;Details</b> for opening balance, notes &amp; documents. Click the green <b>Save</b> button when you are done.
+                                        </div>
+                                    </div>
+
+                                    <form action="#">
+                                        @Html.AntiForgeryToken()
+                                        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+                                        @Html.HiddenFor(model => model.ConvertFrom)
+                                        @Html.HiddenFor(model => model.CustomerID)
+                                        <input type="hidden" class="form-control" id="RowCount" value="0" placeholder="">
+                                        <input type="hidden" class="form-control" id="balanceRowcount" value="0" placeholder="">
+                                        <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
+                                        @if(1==1)// (ViewBag.shortform == 0)
+                                        {
+                                            <style>
+                                                .hidell,.hideall
+                                                {
+                                                    display:none;
+
+                                                }
+                                            </style>
+
+                                        }
+
+                                        <div class="form-group ">
+                                            <div class="row">
+                                                <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-user"></i></span> Basic Information</div>
+                                                <div class="col-md-3 hidell">
+                                                    <label class="control-label">Customer Code</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.CustomerCode, new { htmlAttributes = new { @class = "form-control", tabindex = 1 } })
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Customer Name*</label>
+                                                    <div class="input-group">
+
+                                                        @Html.DropDownListFor(model => model.CustomerName, (SelectList)ViewBag.CustName, new { @class = "form-control input-sm select2", @required = "required", @placeholder = "customer Name", tabindex = 2 })
+
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-3 ">
+
+                                                    <label class="control-label">Sales Person*</label>
+                                                    <div class="input-group">
+                                                        @Html.DropDownListFor(m => m.SalesPerson, (SelectList)ViewBag.Empl, "", new { id = "ddlEmployee", @class = "form-control select2", tabindex = 6, @required = "required" })
+
+                                                        @if (@ViewBag.Employees == 0)
+                                                        {
+                                                            <span class="input-group-btn">
+                                                                <a href="/Employee/Create" class="btn btn-flat sh-align" target="_new" title="Add SalesPerson"><i class="fa fa-4x fa-plus-circle iconalign"></i></a>
+
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="input-group-btn">
+                                                                <a href="/SalesExecutive/Create" class="btn btn-flat sh-align" target="_new" title=" Add SalesPerson"><i class="fa fa-4x fa-plus-circle iconalign"></i></a>
+
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <a href="javascript:void(0)" onclick="triggers()">More</a>
+                                                </div>
+                                                <div class="col-md-3 hidell">
+                                                    <label class="control-label">Customer Alias</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.Alias, new { htmlAttributes = new { @class = "form-control", tabindex = 3 } })
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3 hidell">
+                                                    <label class="control-label">Customer Print Name</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.CustomerPrintName, new { @id = "efCustmPrintName", htmlAttributes = new { @class = "form-control", tabindex = 4 } })
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            </div>
+
+                                        <div class="form-group hidell">
+                                            <div class="row">
+                                                <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-percent"></i></span> Tax, Source &amp; Credit</div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">TAX ID TRN</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.TaxID_TRN, new { htmlAttributes = new { @type = "text", @class = "form-control", tabindex = 5 } })
+                                                        @*<input type="text" class="form-control" placeholder="TAX ID TRN">*@
+                                                    </div>
+                                                </div>
+
+
+
+                                               
+
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Source of lead</label>
+                                                    <div class="input-group">
+                                                        @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, "", new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 7, @required = "required" })
+                                                        <span class="input-group-btn">
+                                                            <a href="/SourceOfLead/Index" class="btn btn-flat sh-align" target="_new" title="Add Source"><i class="fa fa-4x fa-plus-circle iconalign"></i></a>
+
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                @*//*@
+                                                @if (User.IsInRole("Dev") || User.IsInRole("Customer Credit Limit Visibile"))
+                                                {
+                                                    <div class="col-md-3">
+                                                        <label class="control-label">Credit Limit</label>
+                                                        <div class="input-group">
+                                                            @Html.EditorFor(model => model.CreditLimit, new { htmlAttributes = new { @type = "number", @class = "form-control", @placeholder = "Enter Credit Limit", tabindex = 8 } })
+                                                            <label class="control-label">Include PDC</label>  @Html.CheckBoxFor(Model => Model.includepdc, new { @class = "checkbox" })
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group hideall">
+                                            <div class="row ">
+
+                                                <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-map-marker"></i></span> Address &amp; Region</div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Credit Period</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.CreditPeriod, new { htmlAttributes = new { @class = "form-control", @placeholder = "Credit Period", tabindex = 9 } })
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Country</label>
+                                                    <div class="input-group">
+                                                        @Html.DropDownListFor(m => m.CountryID, (SelectList)ViewBag.Cntry, "", new { id = "ddlCountryID", @class = "form-control select2", tabindex = 10 })
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Emirates/States</label>
+                                                    <div class="input-group">
+
+                                                        @Html.DropDownListFor(m => m.StateID, (SelectList)ViewBag.States, "", new { id = "ddlStateID", @class = "form-control select2", tabindex = 11 })
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Location</label>
+                                                    <div class="input-group">
+
+                                                        @Html.DropDownListFor(m => m.LocationID, (SelectList)ViewBag.Location, "", new { id = "ddlLocationID", @class = "form-control select2", tabindex = 12 })
+
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Customer Address</label>
+                                                    <div class="input-group">
+                                                        @Html.TextAreaFor(model => model.Addres, new { @class = "form-control", @placeholder = "Enter Address", tabindex = 13 })
+                                                    </div>
+                                                </div>
+                                                @*<!==================================================================================>*@
+
+                                                @*<div class="col-md-3">
+            <br />
+            <label class="control-label">Price Category</label>
+            <div class="input-group">
+                @Html.DropDownListFor(m => m.Category, (SelectList)ViewBag.Categorys, "", new { @class = "form-control select2", tabindex = 14 })
+            </div>
+        </div>*@
+                                                @*<!++++++++===============================================================================>*@
+                                                <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-tags"></i></span> Pricing &amp; Terms</div>
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Price Category*</label>
+                                                    <div class="input-group">
+
+                                                        @Html.DropDownListFor(m => m.Category, (SelectList)ViewBag.Categorys, "", new { id = "ddlPricecategory", @class = "form-control select2", tabindex = 14, @required = "required" })
+                                                        <span class="input-group-btn">
+                                                            <a href="/PriceCategory/Index" class="btn btn-flat sh-align" target="_new" title="Add Price Category"><i class="fa fa-4x fa-plus-circle iconalign"></i></a>
+
+                                                        </span>
+
+                                                    </div>
+                                                </div>
+                                                @*<!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++>*@
+
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Customer Type*</label>
+                                                    <div class="input-group">
+
+                                                        @Html.DropDownListFor(m => m.CustomerType, (SelectList)ViewBag.custmertype, new { id = "ddlCustomerType", @class = "form-control select2", tabindex = 14, @required = "required" })
+                                                        <span class="input-group-btn">
+                                                            <a href="/Customertype/Index" class="btn btn-flat sh-align" target="_new" title="Add CustomerType"><i class="fa fa-4x fa-plus-circle iconalign"></i></a>
+
+                                                        </span>
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Terms and Conditions</label>
+                                                    <div class="input-group">
+                                                        @Html.TextAreaFor(model => model.TermsandCondition, new { @class = "form-control", @placeholder = "Enter Terms and Conditions", tabindex = 13 })
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Lattitude</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.Lattitude, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Lattitude", tabindex = 9, @type = "number" } })
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Longitude</label>
+                                                    <div class="input-group">
+                                                        @Html.EditorFor(model => model.Longitude, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Longitude", tabindex = 10, @type = "number" } })
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-key"></i></span> Login &amp; Bonus</div>
+                                                <div class="col-md-3">
+                                                    <br />
+                                                    <label class="control-label">Create Login</label>
+                                                    <div class="input-group">
+                                                        @Html.CheckBoxFor(model => model.createuser)
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2  createuser" style="display:none;">
+                                                    <br />
+                                                    <label class="control-label">User Name*</label>
+                                                    <div class="input-group">
+
+                                                        @Html.EditorFor(m => m.username, new { @id = "username", htmlAttributes = new { @class = "form-control", tabindex = 50 } })
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2  createuser" style="display:none;">
+                                                    <br />
+                                                    <label class="control-label">Password*</label>
+                                                    <div class="input-group">
+
+                                                        @Html.EditorFor(m => m.password, new { @id = "password", htmlAttributes = new { @class = "form-control", tabindex = 51 } })
+
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-2">
+                                                    <br />
+                                                    @Html.LabelFor(model => model.bonuscheck, htmlAttributes: new { @class = "control-label" })
+
+                                                    <div class="input-group">
+
+                                                        @Html.CheckBoxFor(m => m.bonuscheck, new { htmlAttributes = new { @class = "form-control", tabindex = 51 } })
+
+                                                    </div>
+                                                </div>
+                                                
+                                                <div id="bonusblock" style="display:none" class="col-md-6">
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <br />
+                                                            @Html.LabelFor(model => model.startbonusdate, htmlAttributes: new { @class = "control-label temp2" })
+                                                            <div class="input-group date">
+                                                                <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                                                                @Html.TextBoxFor(m => m.startbonusdate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <br />
+                                                            @Html.LabelFor(model => model.bonusbaseamount, htmlAttributes: new { @class = "control-label" })
+
+                                                            <div class="input-group">
+                                                                @Html.EnumDropDownListFor(model => model.bonusbaseamount, new { @class = "form-control", tabindex = 27 })
+
+
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <br />
+                                                            @Html.LabelFor(model => model.bonuspercentage, htmlAttributes: new { @class = "control-label" })
+
+                                                            <div class="input-group">
+
+                                                                @Html.EditorFor(m => m.bonuspercentage, new { htmlAttributes = new { @class = "form-control", tabindex = 51, max = "100" } })
+
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <br />
+                                                            @Html.LabelFor(model => model.bonusclimembility, htmlAttributes: new { @class = "control-label" })
+
+                                                            <div class="input-group">
+
+                                                                @Html.EditorFor(m => m.bonusclimembility, new { htmlAttributes = new { @class = "form-control", tabindex = 51, max = "100" } })
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+
+
+
+
+                                            </div>
+                                        </div>
+
+                                        <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button0" tabindex=15>Add Contact &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
+                                        <br><br>
+                                        <div class="form-group input_fields_wrap">
+
+                                            <table class="table table-condensed table-hover" id="contactTbl">
+
+                                                @{
+
+
+                                                    if (Model != null && Model.LstContacts != null && Model.LstContacts.Count > 0)
+                                                    {
+                                                        List<QuickSoft.Models.Country> CountryCodelist = ViewBag.CountryCodes;
+
+                                                        foreach (var item in Model.LstContacts.ToList())
+                                                        {
+                                                            <div class="row" style="margin-top: 1rem;">
+                                                                <div class="col-md-2" hidden>
+                                                                    <label class="control-label">id</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.ContactID" name="LstContacts[@ci].ContactID" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="control-label">TypeOfContact </label>
+                                                                    <div class="input-group">
+                                                                        @*<input type="hidden" name="LstContacts[@(di)].ContactId" value="@item.ContactID" id="docu" />*@
+                                                                        <select id="Type" class="form-control" name="LstContacts[@ci].ContactTypeID">
+                                                                            @{
+                                                                                List<QuickSoft.Models.ContactType> typelist = ViewBag.TypeList;
+
+                                                                                foreach (var data in typelist)
+                                                                                {
+                                                                                    if (data.ContactId == item.ContactTypeID)
+                                                                                    {
+                                                                                        <option value="@data.ContactId" selected="selected">@data.Type</option>
+                                                                                    }
+                                                                                    else if (data.ContactId == 4)
+                                                                                    {
+                                                                                        <option value="@data.ContactId" selected="selected">@data.Type</option>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        <option value="@data.ContactId">@data.Type</option>
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+
+                                                                    <label class="control-label">First Name</label>'
+                                                                    <div class="input-group">
+
+                                                                        <input type="text" name="LstContacts[@ci].FirstName" class="form-control" value="@item.FirstName" required>'
+
+                                                                    </div>
+
+                                                                </div>
+                                                                <div class="col-md-3">
+
+                                                                    <label class="control-label">Last Name</label>
+                                                                    <div class="input-group">
+
+                                                                        <input type="text" name="LstContacts[@ci].LastName" class="form-control" value="@item.LastName">
+
+                                                                    </div>
+
+                                                                </div>
+                                                                <div class="col-md-3">
+
+                                                                    <label class="control-label">Company Name</label>'
+                                                                    <div class="input-group">
+
+                                                                        <input type="text" name="LstContacts[@ci].Name" class="form-control" value="@item.Name">
+
+                                                                    </div>
+
+                                                                </div>
+
+                                                            </div>
+
+
+                                                            <div class="row" style="margin-top: 1rem;">
+                                                                <div class="col-md-2">
+                                                                    <label class="control-label">Country Code</label>
+                                                                    <div class="input-group">
+                                                                        <select id="Type" class="form-control" name="LstContacts[@ci].CountryID">
+                                                                            @{
+                                                                                foreach (var data in CountryCodelist)
+                                                                                {
+                                                                                    if (data.CountryID == item.CountryID)
+                                                                                    {
+                                                                                        <option value="@data.CountryID" selected="selected">@data.CountryName (@data.CountryCode)</option>
+                                                                                    }
+                                                                                    else if (data.CountryID == 1)
+                                                                                    {
+                                                                                        <option value="@data.CountryID" selected="selected">@data.CountryName (@data.CountryCode)</option>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        <option value="@data.CountryID">@data.CountryName (@data.CountryCode)</option>
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                        </select>
+                                                                        @*<input type="text" value="@item.Country" name="LstContacts[@ci].Country" class="form-control">*@
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Mobile</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.Mobile" name="LstContacts[@ci].Mobile" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Email Id</label>
+                                                                    <div class="input-group">
+                                                                        <input type="email" value="@item.EmailId" name="LstContacts[@ci].EmailId" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Website</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.Website" name="LstContacts[@ci].Website" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <a href="javascript:void(0);" class="remove_button"><i style="color:red; top: 1.3rem; position: relative; " class="fa fa-trash" aria-hidden="true"></i></a>
+                                                            </div>
+
+                                                            ci++;
+
+                                                        }
+                                                    }
+                                                }
+                                            </table>
+
+
+                                        </div>
+                                        <div class="form-group input_fields_wrap0">
+
+                                        </div>
+
+                                        <button style="width: 200px;" onclick="myFunction()" type="button" class="hideall btn btn-primary btn-rounded btn-fw" tabindex="21">More Details &ensp;<i class="fa fa-arrow-circle-o-down" aria-hidden="true"></i></button>
+                                        <br><br>
+                                        <div class="form-group" id="myDIV" style="display:none">
+                                            <div class="row">
+                                                <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-folder-open-o"></i></span> Opening Balance, Notes &amp; Documents</div>
+                                                <div class="col-md-2">
+                                                    <label class="control-label">Opening Balance</label>
+                                                    <div class="input-group">
+                                                        @*<input type="text" name="model.OpnBalance" class="form-control" placeholder="Enter Opening Balance" required>*@
+                                                        @Html.EditorFor(model => model.OpnBalance, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Opening Balance", tabindex = 0 } })
+                                                        <div class="input-group-addon no-padding dcwidth">
+                                                            @Html.EnumDropDownListFor(model => model.DC, new { @class = "form-control", tabindex = 27 })
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="control-label">Pre Year Balance</label>
+                                                    <div class="input-group">
+                                                        @*<input type="text" name="model.PreYearBalance" class="form-control" placeholder="Pre year balance" required>*@
+                                                        @Html.EditorFor(model => model.PreYearBalance, new { htmlAttributes = new { @class = "form-control", @placeholder = "Pre year balance", tabindex = 1 } })
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <label class="control-label">Notes</label>
+                                                    <div class="input-group">
+                                                        @*<input type="text" name="model => model.Note" class="form-control" placeholder="Notes" required>*@
+                                                        @Html.EditorFor(model => model.Note, new { htmlAttributes = new { @class = "form-control", @placeholder = "Notes", tabindex = 2 } })
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw  add_field_button2 hideall">Balance &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
+                                        <br><br>
+                                        <div class="form-group input_fields_wrap2">
+
+                                        </div>
+
+
+
+                                        <button style="width: 200px;" type="submit" class= "hideall btn btn-primary btn-rounded btn-fw add_field_button3">Documents Attach &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
+                                        <br>
+                                        <br>
+                                        <div class="form-group input_fields_wrap3">
+                                            <table class="table table-condensed table-hover" id="tblDcmnt">
+                                                @{
+
+
+                                                    if (Model != null && Model.LstLeadDocument != null && Model.LstLeadDocument.Count > 0)
+                                                    {
+                                                        foreach (var item in Model.LstLeadDocument.ToList())
+                                                        {
+                                                            List<QuickSoft.Models.DocumentType> doclist = ViewBag.DocList;
+
+                                                            <div class="row" style="margin-top: 1rem;">
+                                                                <div class="col-md-2" hidden>
+                                                                    <label class="control-label">Document id</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.LeadDocumentId" name="LstLeadDocument[@di].LeadDocumentId" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="control-label">Document Type</label>
+                                                                    <div class="input-group">
+                                                                        @*<input type="text" value="@item.DoucumentType" class="form-control">*@
+                                                                        <select id="Type" class="form-control" name="LstCutomerDocument[@(di)].DocumentTypeID">
+                                                                            @{
+                                                                                foreach (var data in doclist)
+                                                                                {
+                                                                                    if (data.ID == item.DocumentTypeID)
+                                                                                    {
+                                                                                        <option value="@data.ID" selected="selected">@data.Name</option>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        <option value="@data.ID">@data.Name</option>
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="control-label">Expiry</label>
+                                                                    <div class="input-group">
+                                                                        <input type="date" value="@item.Expiry.ToString("yyyy-MM-dd")" name="LstCutomerDocument[@di].Expiry" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="control-label">Notes</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.Notes" name="LstCutomerDocument[@di].Notes" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="control-label">Choose Image</label>
+                                                                    <div class="input-group">
+                                                                        <input type="file" value="@item.FileName" name="LstCutomerDocument[@di].FileName" class="form-control file-upload-info">
+                                                                        <input type="hidden" value="@item.FileName" name="LstCutomerDocument[@di].filenamelead" class="form-control file-upload-info">
+
+                                                                    </div>
+                                                                    <a href="/uploads/leaddocuments/@item.FileName" target="_new">Open</a>
+                                                                </div>
+                                                                <a href="javascript:void(0);" class="remove_button"><i style="color:red; top: 2.5rem; position: relative; left: 0.5rem;" class="fa fa-trash" aria-hidden="true"></i></a>
+                                                            </div>
+
+
+
+
+
+                                                            di++;
+
+                                                        }
+                                                    }
+                                                }
+                                                @{
+
+
+                                                    if (Model != null && Model.LstCutomerDocument != null && Model.LstCutomerDocument.Count > 0)
+                                                    {
+                                                        foreach (var item in Model.LstCutomerDocument.ToList())
+                                                        {
+                                                            List<QuickSoft.Models.DocumentType> doclist = ViewBag.DocList;
+
+                                                            <div class="row" style="margin-top: 1rem;">
+                                                                <div class="col-md-3" hidden>
+                                                                    <label class="control-label">Document id</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.DocumnetId" name="LstCutomerDocument[@di].DocumnetId" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Document Type</label>
+                                                                    <div class="input-group">
+                                                                        <select id="Type" class="form-control" name="LstCutomerDocument[@(di)].DocumentTypeID">
+                                                                            @{
+                                                                                foreach (var data in doclist)
+                                                                                {
+                                                                                    if (data.ID == item.DocumentTypeID)
+                                                                                    {
+                                                                                        <option value="@data.ID" selected="selected">@data.Name</option>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        <option value="@data.ID">@data.Name</option>
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                        </select>
+                                                                        @*<input type="text" value="@item.DoucumentType" name="LstCutomerDocument[@di].DoucumentType" class="form-control">*@
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Expiry</label>
+                                                                    <div class="input-group">
+                                                                        <input type="date" value="@item.Expiry.ToString("yyyy-MM-dd")" name="LstCutomerDocument[@di].Expiry" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Notes</label>
+                                                                    <div class="input-group">
+                                                                        <input type="text" value="@item.Notes" name="LstCutomerDocument[@di].Notes" class="form-control">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <label class="control-label">Choose Image</label>
+                                                                    <div class="input-group">
+                                                                        <input type="file" value="@item.FilePath" title="@item.FilePath" name="LstCutomerDocument[@di].filenamelead" class="form-control file-upload-info">
+                                                                        <a href="/uploads/customerdocuments/@item.FilePath" target="_new">Open</a>
+                                                                    </div>
+                                                                </div>
+                                                                <a href="javascript:void(0);" class="remove_button"><i style="color:red; top: 1.3rem; position: relative; " class="fa fa-trash" aria-hidden="true"></i></a>
+                                                            </div>
+
+                                                            di++;
+
+                                                        }
+                                                    }
+                                                }
+                                            </table>
+                                        </div>
+
+
+
+
+
+
+                                    </form>
+                                    <br>
+                                    <button type="submit" id="save" class="btn btn-success" tabindex="28">
+                                        <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                                    </button> 
+                                    <button type="button" class="btn btn-default can-btn" tabindex="29" onclick="@("window.location.href='/Customer/Index'");">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- content-wrapper ends -->
+                </div>
+                <!-- main-panel ends -->
+            </div>
+            <!-- page-body-wrapper ends -->
+        }
+    </div>
+</body>
+</html>
+
+<!-- container-scroller -->
+<!-- End custom js for this page -->
+<!-- add more js -->
+<script type="text/javascript"></script>
+<script type="text/javascript">
+    function movenexttextbox(obj) {
+        $("#Alias").focus();
+    }
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true,
+      
+    });
+    $(document).on('keydown', '.select2-search__field', function (e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            $('#CustomerName').select2("close");
+            $("#Alias").val($("#CustomerName").val());
+            $("#CustomerPrintName").val($("#CustomerName").val());
+            var inputs = $(this).closest('form').find(':input:visible');
+            inputs.eq(inputs.index(this) + 1).focus();
+            if ($("#TaxID_TRN").val() == "")
+                $("#TaxID_TRN").focus();
+        }
+    });
+
+    function checkmob(obj) {
+        var val = $(obj).val()
+        var reg = /^0/gi;
+        if (val.match(reg)) {
+            $(obj).val(val.replace(reg, ''));
+        }
+    }
+    var Countrys = '<option value="0">--Select--</option>';
+    function triggers() {
+        $('.hidell').toggle();
+        $('.hideall').toggle();
+        
+    }
+
+    $("#remainter").on("click", function () {
+        $("#remainter").hide();
+    });
+    $(document).ready(function () {
+
+        $("#createuser").trigger("change");
+        $("#ddlCountryID").val(1);
+        $("#ddlStateID").val(1);
+        $("#ddlLocationID").val(1);
+        SearchCustExists();
+        $.ajax({
+            type: "GET",
+            url: "/Customer/GetCountryCode",
+            data: "{}",
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i].ID == 1) {
+                        Countrys += '<option value="' + data[i].ID + '" selected>' + data[i].Name + '</option>';
+                    }
+                    else {
+                        Countrys += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                    }
+                }
+            }
+        });
+
+
+        $("#ddlCustomerType").select2({
+            placeholder: ' ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/CustomerType/SearchType",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: " Select CustomerType"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        CallEmployee();
+        SrcOfLead();
+
+        //
+
+        $("#ddlPricecategory").select2({
+            placeholder: '',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/PriceCategory/SearchPriceCategory",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: " Select CustomerType"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+
+
+
+
+
+    });
+
+
+
+
+    $(document).ready(function () {
+        var max_fields = 10; //maximum input boxes allowed
+        var wrapper = $(".input_fields_wrap0"); //Fields wrapper
+        var add_button = $(".add_field_button0"); //Add button ID
+
+        var x = 1; //initlal text box count
+
+        var s = '<option value="0">--Select--</option>';
+
+        $(document).ready(function () {
+            $.ajax({
+                type: "GET",
+                url: "/Customer/GetContactTypes",
+                data: "{}",
+                success: function (data) {
+                    for (var i = 0; i < data.length; i++) {
+                        if (data[i].ID == 4) {
+                            s += '<option value="' + data[i].ID + '" selected>' + data[i].Name + '</option>';
+}
+                        else {
+                            s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                        }
+                    }
+                }
+            });
+        });
+
+        $(add_button).click(function (e) { //on add input button click
+            e.preventDefault();
+            if (x < max_fields) { //max input box allowed
+
+                var rowno = document.getElementById('RowCount').value;
+                //paste here
+                $(wrapper).append(
+
+                    '<div class="remove">' +
+
+                    '<div class="row" style="margin-top: 1rem;">' +
+                    '<div class="col-md-2">' +
+                    '<label class="control-label">Country Code</label>' +
+                    '<div class="input-group">' +
+                    '<select class="form-control"  name="LstContacts[' + rowno + '].CountryID" id="CountryID' + rowno + '"  tabindex="20">' + Countrys +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<label class="control-label">Mobile Number( W/O Country code)</label>' +
+                    '<div class="input-group">' +
+                    '<select  name="LstContacts[' + rowno + '].Mobile" class="form-control mobilenumber select2"  required onchange="loadcontact(' + rowno + ',this)"  id="Mobile' + rowno + '"  tabindex="21" ><option value="">Select</option></select>' +
+                    ' </div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<label class="control-label">Email Id</label>' +
+                    '<div class="input-group">' +
+                    '<select   name="LstContacts[' + rowno + '].EmailId" class="form-control select2 emailid" id="EmailId' + rowno + '" onchange="loadcontactemail(' + rowno + ',this)" tabindex="22"></select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<label class="control-label">Website</label>' +
+                    '<div class="input-group">' +
+                    '<input type="text"  name="LstContacts[' + rowno + '].Website" class="form-control"  id="Website' + rowno + '"  tabindex="23">' +
+                    '</div>' +
+                    '</div ">' +
+                    '<div class="col-md-1">' +
+                    '<a href="javascript:void(0);" class="remove_button "><i style="color:red;margin-top: 32px;margin-left: 20px; " class="fa fa-trash " aria-hidden="true" tabindex="24"></i></a>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="row" style="margin-top: 1rem;">' +
+                    '<div class="col-md-2">' +
+                    '<label class="control-label">Contact Type</label>' +
+                    '<div class="input-group">' +
+                    '<select class="form-control"  name="LstContacts[' + rowno + '].ContactTypeID" tabindex="25" id="ContactTypeID' + rowno + '">' + s +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<label class="control-label">First Name</label>' +
+                    '<div class="input-group">' +
+                    '<input type="text"  name="LstContacts[' + rowno + '].FirstName" class="form-control"  tabindex="26"  required id="firstname' + rowno + '" > ' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<label class="control-label">Last Name</label>' +
+                    '<div class="input-group">' +
+                    '<input type="text"  name="LstContacts[' + rowno + '].lastname" class="form-control" id="lastname' + rowno + '"  tabindex="27">' +
+                    ' </div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<label class="control-label">Company Name</label>' +
+                    '<div class="input-group">' +
+                    '<input type="text"  name="LstContacts[' + rowno + '].Name" class="form-control"  id="Name' + rowno + '"  tabindex="28">' +
+                    '</div>' +
+                    ' </div>' +
+                    '</div>' +
+                    '</div>');
+
+                x++;
+                rowno++;
+                document.getElementById('RowCount').value = rowno;
+                callselect();
+            }
+        });
+        $(wrapper).on('click', '.remove_button', function (e) {
+            e.preventDefault();
+
+            $(this).closest('.remove').remove(); //Remove field html
+            x--; //Decrement field counter
+        });
+    });
+</script>
+
+<script type="text/javascript">
+        $('input[type="search"]').change(function () {
+
+            var val = $(this).val()
+            var reg = /^0/gi;
+            if (val.match(reg)) {
+                $(this).val(val.replace(reg, ''));
+            }
+        });
+
+
+        $('#creForm').on('submit', function (e) {
+            e.preventDefault();
+            var url = $('#creForm')[0].action;
+            var formData = new FormData(this);
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                url: url,
+                data: formData,//JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status) {
+
+                        window.location.href = '@Url.Action("Create", "Customer")';
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+
+            function PrintBarcode(e) {
+                var count = e.item.PCount;
+                var itemName = e.item.ItemName;
+                var itemPrice = e.item.ItemPrice;
+                var barCode = e.item.Barcode;
+                printSticker('barcode', barCode);
+                var image = $("#cont").html();
+                var CName = $("#cname").val();
+
+                var i = 0;
+                var table = "";
+                var str = '<h4>' + CName + '</h4><div>' + image + '</div><p style="margin-top: -12px;line-height: 10px;position: relative;">' + itemName + '<br> DHS    ' + itemPrice + '</p>';
+                while (i < count) {
+                    table += "<tr><td> " + str + "</td></tr>";
+                    i++;
+                }
+                $('#bartable').append(table);
+                var originalpage = document.body.innerHTML;
+                var printContent = $('#printBarcode').html();
+                $('body').html(printContent);
+                $('title').html("Barcode Print");
+                window.print();
+            }
+        });
+
+        function loadcontact(i, obj) {
+            $('.mobilenumber').select2('destroy');
+            var s = $("#Mobile" + i).val();
+
+            s = s.replace(/^0+/, '');
+            var opt = '<option value="' + s + '" selected>' + s + '</option>'
+            $("#Mobile" + i).append(opt);
+            mobileload();
+
+            $.ajax({
+                url: "/Customer/getcontactsbymobile",
+                type: "GET",
+                dataType: "JSON",
+                data: { mobile: obj.value },
+                success: function (result) {
+                        if (!result || result.length === 0) { return; } // no existing contact for this mobile -> nothing to auto-fill (guard against result[0] being undefined)
+                        $("#firstname" + i).val(result[0].FirstName);
+                        $("#Website" + i).val(result[0].Website);
+                        $('.emailid').select2('destroy');
+                        var opt = '<option value="' + result[0].EmailId + '" selected>' + result[0].EmailId + '</option>'
+                        $("#EmailId" + i).append(opt);
+
+                        $("#EmailId" + i).val(result[0].EmailId);
+
+                       // $("#Mobile" + i).val(result[0].MobileNum);
+                        $("#CountryID" + i).val(result[0].CountryID);
+                        $("#Name" + i).val(result[0].Name + "," + result[0].Address);
+                        $("#lastname" + i).val(result[0].LastName);
+                        $("#ContactTypeID" + i).val(result[0].ContactTypeID);
+                        emailload();
+                }
+            });
+
+            //Function to check correct format for Mobile Number
+            //CheckMobileNo(s, i);
+        }
+        function loadcontactemail(i, obj) {
+            $.ajax({
+                url: "/Customer/getcontactsbyemail",
+                type: "GET",
+                dataType: "JSON",
+                data: { email: obj.value },
+                success: function (result) {
+                    if (!result || result.length === 0) { return; } // no existing contact for this email -> nothing to auto-fill
+                    $("#firstname" + i).val(result[0].FirstName);
+                    $("#Website" + i).val(result[0].Website);
+                    $("#EmailId" + i).val(result[0].EmailId);
+                    $('.mobilenumber').select2('destroy');
+                    var opt = '<option value="' + result[0].MobileNum + '" selected>' + result[0].MobileNum + '</option>'
+                    $("#Mobile" + i).append(opt);
+
+                    //$("#Mobile" + i).val(result[0].MobileNum);
+                    $("#CountryID" + i).val(result[0].CountryID);
+                    $("#Name" + i).val(result[0].Name + "," + result[0].Address);
+                    $("#lastname" + i).val(result[0].LastName);
+                    $("#ContactTypeID" + i).val(result[0].ContactTypeID);
+
+                    mobileload();
+                }
+            });
+        }
+        function callselect() {
+            mobileload();
+            emailload();
+        }
+        function mobileload() {
+            $('.mobilenumber').select2({
+                tags: true,
+                placeholder: '5xxxxxxxx',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchMobilecontact",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        }
+        function emailload() {
+            $('.emailid').select2({
+                tags: true,
+
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchEmailcontact",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+
+                    },
+                    cache: true
+                },
+            });
+        }
+        $(document).ready(function () {
+
+            var max_fields = 10; //maximum input boxes allowed
+            var wrapper2 = $(".input_fields_wrap2"); //Fields wrapper
+            var add_button = $(".add_field_button2"); //Add button ID
+
+            var x = 1; //initlal text box count
+
+            $(add_button).click(function (e) { //on add input button click
+                e.preventDefault();
+                if (x < max_fields) { //max input box allowed
+                    var rowno = document.getElementById('balanceRowcount').value;
+                    //paste here
+                    $(wrapper2).append('<div class="row" style="margin-top: 1rem;">' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Invoice Number</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text" name="LstSalesEntry[' + rowno + '].BillNo" class="form-control" required>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Date Of Invoice</label>' +
+                        '<div class="input-group">' +
+                        '<input type="date" name="LstSalesEntry[' + rowno + '].SEDate" class="form-control" required>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Amount</label>' +
+                        '<div class="input-group">' +
+                        '<input type="number" name="LstSalesEntry[' + rowno + '].SEGrandTotal" class="form-control" required>' +
+                        ' </div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Due Date</label>' +
+                        '<div class="input-group">' +
+                        '<input type="date" name="LstSalesEntry[' + rowno + '].DueDate" class="form-control"  required>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Due Reason</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text" name="LstSalesEntry[' + rowno + '].DueReason" class="form-control" required>' +
+                        ' </div>' +
+                        '</div>' +
+                        '<a href="javascript:void(0);" class="remove_button"><i style="color:red;margin-top: 1.5rem;" class="fa fa-trash" aria-hidden="true"></i></a></div>');
+
+                    x++;
+
+                    rowno++;
+                    document.getElementById('balanceRowcount').value = rowno;
+                }
+            });
+            $(wrapper2).on('click', '.remove_button', function (e) {
+                e.preventDefault();
+
+                $(this).parent('div').remove(); //Remove field html
+                x--; //Decrement field counter
+            });
+        });
+</script>
+
+<script type="text/javascript">
+    $('body').on('change', '#CustomerName', function (e) {
+        var cusname = $('#CustomerName').val();//CustomerCheck
+        $.ajax({
+            url: '/Customer/CustomerCheck',
+            type: "GET",
+            dataType: "JSON",
+            data: { customer: cusname },
+            success: function (rslt) {
+                if (rslt == true) {
+                    alert("Customer Name already Exists")
+                    $('#CustomerName').val('');
+                }
+            }
+        });
+
+    });
+    /*
+    $(document).ready(function () {
+        $("#CustomerName").select2({
+
+            tags: true,
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Customer/SearchCustomer",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+    });
+    */
+
+    var s = '<option value="0">--Select--</option>';
+
+    $(document).ready(function () {
+        $.ajax({
+            type: "GET",
+            url: "/Customer/GetDocTypes",
+            data: "{}",
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                }
+            }
+        });
+    });
+
+
+    $(document).ready(function () {
+
+        var max_fields = 10; //maximum input boxes allowed
+        var wrapper3 = $(".input_fields_wrap3"); //Fields wrapper
+        var add_button = $(".add_field_button3"); //Add button ID
+
+        var x = 1; //initlal text box count
+
+
+        $(add_button).click(function (e) { //on add input button click
+            e.preventDefault();
+            if (x < max_fields) { //max input box allowed
+
+                var rowno = document.getElementById('documentRowcount').value;
+
+                //paste here
+                $(wrapper3).append('<div class="row" style="margin-top: 1rem;">' +
+                    '<div class="col-md-3">' +
+                    '<div class="input-group">' +
+                    '<select class="form-control" id="DocumentTypeID" name="LstCutomerDocument[' + rowno + '].DocumentTypeID" tabindex="30">' + s +
+                    '</select>' +
+                    /* '<input type="text" name="LstCutomerDocument[' + rowno + '].DoucumentType" class="form-control" placeholder="Document Type" required>' +*/
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<div class="input-group">' +
+                    '<input type="date" name="LstCutomerDocument[' + rowno + '].Expiry" class="form-control" placeholder="Expiry" required>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    '<div class="input-group">' +
+                    '<input type="text" name="LstCutomerDocument[' + rowno + '].Notes" class="form-control" placeholder="Notes" required>' +
+                    ' </div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    ' <div class="input-group">' +
+                    '<input type="file" name="LstCutomerDocument[' + rowno + '].FilePath" class="form-control file-upload-info"  placeholder="Choose image" required>' +
+
+                    '</div>' +
+                    '</div>' +
+                    '<a href="javascript:void(0);" class="remove_button"><i style="color:red;" class="fa fa-trash" aria-hidden="true"></i></a></div>');
+
+                x++;
+
+                rowno++;
+                document.getElementById('documentRowcount').value = rowno;
+            }
+        });
+        $(wrapper3).on('click', '.remove_button', function (e) {
+            e.preventDefault();
+
+            $(this).parent('div').remove(); //Remove field html
+            x--; //Decrement field counter
+        });
+    });
+</script>
+
+<script>
+    function myFunction() {
+        var x = document.getElementById("myDIV");
+        if (x.style.display === "none") {
+            x.style.display = "block";
+        } else {
+            x.style.display = "none";
+        }
+    }
+</script>
+
+<script>
+
+    $("#efCustmrName").keyup(function () {
+        $("#CustomerPrintName").val($("#efCustmrName").val());
+    });
+
+</script>
+
+<script>
+    $(document).ready(function () {
+        $("#ddlCountryID").change(function () {
+            var id = $(this).val();
+            $("#ddlStateID").empty();
+            $.get("State_Bind", { country_id: id }, function (data) {
+                var v = "<option>---Select---</option>";
+                $.each(data, function (i, v1) {
+                    v += "<option value=" + v1.Value + ">" + v1.Text + "</option>";
+                });
+                $("#ddlStateID").html(v);
+            });
+        });
+        
+        $("#bonuscheck").change(function () {
+            if ($(this).is(':checked')) {
+                $("#bonusblock").show();
+            }
+            else {
+                $("#bonusblock").hide();
+            }
+        });
+        $("#createuser").change(function () {
+            if ($(this).is(':checked')) {
+                $(".createuser").show();
+            }
+            else {
+                $(".createuser").hide();
+            }
+
+        });
+        $("#ddlStateID").change(function () {
+            var id = $(this).val();
+            $("#ddlLocationID").empty();
+            $.get("Location_Bind", { state_id: id }, function (data) {
+                var v = "<option value='0'>---Select---</option>";
+                $.each(data, function (i, v1) {
+                    v += "<option value=" + v1.Value + ">" + v1.Text + "</option>";
+                });
+                $("#ddlLocationID").html(v);
+            });
+        });
+    });
+
+    //Function to check correct format for Mobile Number
+    function CheckMobileNo(MobileNo, i) {
+
+        var NumbersOnly = /[^0-9]/g;
+        var NewMob = (MobileNo.replace(NumbersOnly, ""));
+
+        if (MobileNo != NewMob) {
+            alert("Please Select Correct Format For Mobile..(Numbers Only)");
+
+            var opt = '<option value="" selected>5xxxxxxxx</option>'
+
+            $("#Mobile" + i).append(opt);
+            mobileload();
+        }
+        else if (MobileNo.length > 9) {
+            alert("Only 9 numbers are allowed...")
+            var opt = '<option value="" selected >5xxxxxxxx</option>'
+
+            $("#Mobile" + i).append(opt);
+            mobileload();
+        }
+        else {
+
+            //Replacing 0 at first position of Mobile No.
+            var NwMob = MobileNo.replace(/^0+/, '');
+
+            var opt = '<option value="' + NwMob + '" selected>' + NwMob + '</option>'
+
+            $("#Mobile" + i).append(opt);
+            mobileload();
+        }
+    }
+</script>
+
+

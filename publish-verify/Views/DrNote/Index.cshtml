@@ -1,0 +1,438 @@
+@{
+    ViewBag.Title = "Dr.Note List";
+    ViewBag.SubTitle = "Dr.Note";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    if (User.IsInRole("Dev") || User.IsInRole("Delete DrNote"))
+    {
+        userRole = true;
+    }
+
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Dr.Note</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("DrNote Entry"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/DrNote/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Dr.Note
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-4">
+                        @Html.Label("Invoice No", null, new { @class = "control-label" })
+                        @Html.TextBox("InvoiceNo", "", new { @class = "form-control input-sm" })
+                    </div>
+                    @*<div class="form-group col-md-4">
+                        @Html.Label("Debit Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlDebitType", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value="-1"},
+                            new SelectListItem() {Text = "Not applicable", Value="0"},
+                            new SelectListItem() {Text = "Cr.note Issued Against Sale", Value="2"},
+                            new SelectListItem() {Text = "Dr.note Received Against Purchase", Value="1"},
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @id = "ddlDebitType", @name = "ddlDebitType" })
+                    </div>*@
+                    <div class="form-group col-md-4">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Pay To", null, new { @class = "control-label" })
+                        @Html.DropDownList("PayTo", (SelectList)ViewBag.Paidto, new { @class = "form-control input-sm select2",@style= "width: 100% !important;" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Pay From", null, new { @class = "control-label" })
+                        @Html.DropDownList("PayFrom", (SelectList)ViewBag.Paidfrom,new { @class = "form-control input-sm select2", @style = "width: 100% !important;" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAllDebitNote", "DrNote", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="SalesTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Voucher No</td>
+                        <td data-priority="1">Date</td>
+                        <td data-priority="3">Pay To</td>
+                        <td data-priority="3">Pay From</td>
+                        <td data-priority="5">Debit Type</td>
+                        <td data-priority="6">Created By</td>
+                        <td data-priority="5">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        if (User.IsInRole("Dev") || User.IsInRole("Delete DrNote"))
+        {
+            <div class="box-footer text-right col-md-12" id="sub">
+                <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+            </div>
+        }
+
+    }
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#advsearch').hide();
+
+            $('#PayFrom').select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/AllAccountsExpStkAdj",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: SelectToGroup,
+                templateSelection: ToSetFormatSelection,
+            });
+
+            var crtype = 1; //$('#ddlDebitType').val();
+            // paid to atribute
+            $("#PayTo").select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccountsCNote",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "all",
+                            page: params.page || 0,
+                            ctype: crtype,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: SelectToGroup,
+                templateSelection: ToSetFormatSelection,
+            });
+
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+        var oTable = $('#SalesTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/DrNote/GetDrNote',
+                "data": function (data) {
+                    data.InvoiceNo = $('#InvoiceNo').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.PayFrom = $('#PayFrom').val();
+                    data.PayTo = $('#PayTo').val();
+                    //data.drtype = $('#ddlDebitType').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[1, "desc"]],
+            "columnDefs": [{
+                "targets": [7,8],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "DrNoteId", "name": "DrNoteId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "BillNo", "name": "BillNo" },
+                { "data": "DNDate", "name": "DNDate", "render": function (data) { return convertToDate(data); } },
+                { "data": "PayTo", "name": "PayTo" },
+                { "data": "PayFrom", "name": "PayFrom" },
+                //{ "data": "GrandTotal", "name": "GrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                 {
+                     "data": "DebitType", "name": "DebitType",
+                     "render": function (data) {
+                         if (data == 2) {
+                             return "Cr.note Issued Against Sale";
+                         } else if (data == 1) {
+                             return "Dr.note Recieved Against Purchase";
+                         } else {
+                             return "Not applicable";
+                         }
+                     }
+                 },
+                { "data": "User", "name": "User" },
+                {
+                    "name": "DrNoteId", "data": function (data) {
+                        var rest = "";
+
+                        @{
+                            // if (User.IsInRole("Dev") || User.IsInRole("View DrNote"))
+                            // {
+                            //     actData += "<a class=\"details\" href=\"/DrNote/Details/'+ data.DrNoteId +'\" title=\"View Dr.Note\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                            // }
+                            // if (User.IsInRole("Dev") || User.IsInRole("Edit DrNote"))
+                            // {
+                            actData += "<a href=\"/DrNote/Edit/'+ data.DrNoteId +'\" title=\"Edit Dr.Note\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                            // }
+                            // if (User.IsInRole("Dev") || User.IsInRole("Delete DrNote"))
+                            // {
+                            actData += "<a class=\"modal-delete\" href=\"/DrNote/Delete/'+ data.DrNoteId +'\" title=\"Delete Dr.Note\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            // }
+                            // if (User.IsInRole("Dev") || User.IsInRole("Download DrNote"))
+                            // {
+                            actData += "<a class=\"modal-link-download\" href=\"/DrNote/Download/'+ data.DrNoteId +'\" title=\"Download Dr.Note\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                            // }
+                        }
+                        return rest = '@Html.Raw(actData)';
+                    }
+                },
+                    {
+                        "name": "DrNoteId", "data": function (data) {
+                            var rest = "";
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete DrNote"))
+                                {
+                                    delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.DrNoteId +'></input>";
+                                }
+                            }
+                            return rest = '@Html.Raw(delchk)';
+                        }
+                    },
+            ], "drawCallback": function (settings) {
+                var table = $('#SalesTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(8);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(8);
+            column1.visible(false);
+        }
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for view detail popup */
+        $('#SalesTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#SalesTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+                //location.reload();
+                $('#InvoiceNo').val("");
+                $('#PayFrom').val(0).trigger('change');
+                $('#PayTo').val(0).trigger('change');
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                //$('#ddlDebitType').val(-1);
+                oTable.draw();
+            }
+
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            //$('#ToDate').datepicker('setDate', today);
+            //$('#FromDate').datepicker('setDate', priordate);
+
+            CallCustomer();
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+    </script>
+}

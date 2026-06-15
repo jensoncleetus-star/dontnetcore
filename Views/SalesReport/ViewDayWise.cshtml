@@ -1,0 +1,337 @@
+﻿@{
+    ViewBag.Title = "View Day Wise Sale";
+    ViewBag.SubTitle = "Day Wise Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default" id="SReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+    <input type="hidden" id="todate" value="@ViewBag.todate" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Day Wise Sale</h3>
+    </div>
+    <div class="box-body">
+        <table class="display table table-bordered" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td>S/N</td>
+                    <td>Date</td>
+                    <td class="text-center">Total Sales</td>
+                    <td class="headeralign">Taxable Sale Amount</td>
+                    <td class="headeralign">Total Sales Amount</td>
+                    <td class="text-center">Total Sale Return</td>
+                    <td class="headeralign">Taxable Sale Return Amount</td>
+                    <td class="headeralign">Total Sale Return</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <th>Total:</th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": false,
+                "ajax": {
+                    "url": '/SalesReport/GetDayWise',
+                    "data": {
+                        From: getParameterByName('from'), To: getParameterByName('to'), ddmc: getParameterByName('ddmc'),
+                        emp: getParameterByName('emp'), task: getParameterByName('task'), project: getParameterByName('project'),
+                        customer: getParameterByName('customer'), hfrom: getParameterByName('hfrom'), hto: getParameterByName('hto'),
+                        htype: getParameterByName('htype'), stype: getParameterByName('stype')
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "SaleTax", "name": "SaleTax",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "data": "Date", "name": "Date",
+                        "render": function (data) {
+                            var date = convertToDate(data);
+                            return date.toString();
+                        }
+                    },
+                    
+                    { "data": "SaleCount", "name": "SaleCount", "sClass": "numberright" },
+                    { "data": "SaleTax", "name": "SaleTax", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "TotalSale", "name": "TotalSale", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "ReturnCount", "name": "ReturnCount", "sClass": "numberright" },
+                    { "data": "RetSaleTax", "name": "RetSaleTax", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "RetTotalSale", "name": "RetTotalSale", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis', {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Day Wise-Sales';
+                    },
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Sales Report(Day Wise)</h4></th></tr>' +
+                        ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Day Wise-Sales';
+                    },
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                           '' + $('#caddress').val() + '\n' +
+                           ' Sales Report (Day Wise) \n' +
+                           'From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                },
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Day Wise-Sales';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                           '' + $('#caddress').val() + '\n' +
+                           ' Sales Report (Day Wise) \n' +
+                           'From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    //exportOptions: {
+                    //    columns: [0, 1, 2, 3, 4, 5, 6]
+                    //},
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+
+                        doc.styles.title.fontSize = 12;
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+
+                        //doc.styles['td:nth-child(2)'] = {
+                        //    width: '100%',
+                        //    'max-width': '100%'
+                        //}
+                        //doc.content[1].table.widths = [
+                        //'15%',
+                        //'15%',
+                        //'15%',
+                        //'15%',
+                        //'15%',
+                        //'15%',
+                        //'10%'
+                        //]
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+
+                },
+
+                ], sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+                    // Total over all pages
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(4)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(4, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(4).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(6)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(6, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(6).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(7)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(7, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(7).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        });
+    </script>
+}

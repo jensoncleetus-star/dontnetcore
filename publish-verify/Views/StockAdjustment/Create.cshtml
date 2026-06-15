@@ -1,0 +1,234 @@
+@model QuickSoft.ViewModel.StockAdjustmentViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Stock Adjustment";
+    ViewBag.Active = "Utility";
+
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Create", "StockAdjustment", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+
+        <div class="box-header with-border">
+            <h3 class="box-title">Stock Adjustment-Invoice</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Stock Adjustment"))
+                    {
+                        <a class="btn bg-black no-border" href="/StockAdjustment/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Stock Adjustment"))
+                {
+                    <a class="btn btn-success no-border" href="/StockAdjustment">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="box-body">
+            <input type="hidden" id="cofactor" />
+            <input type="hidden" id="prate" />
+            <input type="hidden" id="batchcheck" value="@ViewBag.BatchWiseStock" />
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.VoucherNo, htmlAttributes: new { @class = "control-label" })*
+                @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @placeholder = "Voucher No", @required = "required", @readonly = "@readonly" } })
+            </div>
+            <div class="col-md-2 form-group">
+                @Html.LabelFor(model => model.AdjDate, htmlAttributes: new { @class = "control-label" })*
+                <div class="input-group date">
+                    <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                    @Html.TextBoxFor(m => m.AdjDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.ItemID, htmlAttributes: new { @class = "control-label" })
+                <div class="input-group">
+                    @Html.DropDownListFor(m => m.ItemID, new SelectList("", ""), new { id = "ddlItem", @class = "form-control select2" })
+                    <div class="input-group-addon no-padding">
+                        <select name="ItemUnitID" id="ItemUnitID"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2">
+                @Html.LabelFor(model => model.AdjustmentType, htmlAttributes: new { @class = "control-label" })
+                @Html.EnumDropDownListFor(model => model.AdjustmentType, new { @class = "form-control" })
+            </div>
+
+            <div class="form-group col-md-2">
+                @Html.LabelFor(model => model.ItemQuantity, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.ItemQuantity, new { htmlAttributes = new { @type = "number", @Value = 1, @class = "form-control", @placeholder = "Enter Item Quantity" } })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.LabelFor(model => model.PurchaseRate, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.PurchaseRate, new { htmlAttributes = new { @type = "number", @Value = "1.00", @class = "form-control", @placeholder = "Enter Purchase Rate" } })
+            </div>
+            <div class="form-group col-md-2">
+                <label class="control-label">Stock Value</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" readonly id="stockvalue" />
+                    <div class="input-group-addon no-padding">
+                        <span id="stockType">Cr.</span>
+                    </div>
+                </div>
+             </div>
+            @if (@ViewBag.EnableMCcheck == 0)
+                {
+                <div class="form-group col-md-2">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(model => model.MaterialCenter, (SelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control input-sm" })
+                </div>
+            }
+            <div class="form-group col-md-5">
+                @Html.LabelFor(model => model.Reason, htmlAttributes: new { @class = "control-label" })
+                @Html.TextAreaFor(model => model.Reason, new { @class = "form-control", @placeholder = "Enter Reason for Adjustment"})
+            </div>
+        </div>
+        <div id="batchStock"></div>
+        <div class="box-footer clearfix text-center">
+            <button type="submit" id="save" class="btn btn-info" tabindex="28"> Save
+            </button>
+            <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='/StockAdjustment/Index'");">Cancel</button>
+            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+        </div>
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/StockAdjustment")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(document).ready(function () {
+            StockValue();
+            CallMC();
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            getunit(itemId);
+        });
+        $('body').on('change', '#ItemUnitID', function (e) {
+            var index = $('#ItemUnitID').prop('selectedIndex');
+            var price = "";
+            if (index == 1) {
+                price = parseFloat($("#prate").val());
+                var cfactor = parseFloat($("#cofactor").val());
+                var newprice = parseFloat(price / cfactor);
+                $("#PurchaseRate").val(newprice.toFixed(2));
+            } else {
+                price = parseFloat($("#prate").val());
+                $("#PurchaseRate").val(price.toFixed(2));
+            }
+            StockValue();
+            UnitChange();
+        });
+        
+        $('body').on('change', '#PurchaseRate, #ItemQuantity', function (e) {
+            StockValue();
+            BStcostup(0);
+        });
+        $('body').on('change', '#AdjustmentType', function (e) {
+            var type = $(this).val();
+            if (type == "0") {
+                $("#stockType").text("Cr.");
+            }
+            else {
+                $("#stockType").text("Dr.");
+            }
+            stTypeChange();
+        });
+        $('body').on('change', '#ItemQuantity', function (e) {
+            var ItemId = $("#ddlItem").val();
+            var tqty = $("#ItemQuantity").val();
+            $("#bts_tqty_0").text(tqty);
+            PopupBatchStock(0, ItemId);
+        });
+        
+        //$('#createForm').on('submit', function (e) {
+        //    e.preventDefault();
+        //    var url = $('#createForm')[0].action;
+        //    var Entry = {
+        //        'VoucherNo': $('#VoucherNo').val(),
+        //        'AdjDate': $('#AdjDate').val(),
+        //        'ItemID': $('#ItemID').val(),
+        //        'ItemQuantity': $('#ItemQuantity').val(),
+        //        'ItemUnitID': $('#ItemUnitID').val(),
+        //        'AdjustmentType': $('#AdjustmentType').val(),
+        //        "PurchaseRate": $('#PurchaseRate').val(),
+        //        'Reason': $('#Reason').val(),
+        //    }
+        //    var parameters = {};
+        //    parameters.saledata = Entry;
+        //    $.ajax({
+        //        async: true,
+        //        cache: false,
+        //        dataType: "json",
+        //        type: "POST",
+        //        contentType: "application/json; charset=utf-8",
+        //        url: url,
+        //        data: JSON.stringify(parameters),
+        //        success: function (e) {
+        //            BindBill(e);
+        //            $('.ajax_response', res_success).text(e.message);
+        //            $('.AlertDiv').prepend(res_success);
+        //            window.location.href = '/StockAdjustment/Create';
+                   
+        //        }
+        //    });
+        //});
+
+    </script>
+}
+
+
+
+

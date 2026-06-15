@@ -1,0 +1,280 @@
+﻿@{
+    ViewBag.Title = "View Item Category Wise PurchaseReturn";
+    ViewBag.SubTitle = "PurchaseReturn Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default" id="SReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="category" value="@ViewBag.category" />
+    <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+    <input type="hidden" id="todate" value="@ViewBag.todate" />
+    <input type="hidden" id="Salety" value="@ViewBag.Salety" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Item Category Wise PurchaseReturn</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Category</td>
+                        <td class="headeralign">Retun Amt.</td>
+                        <td class="headeralign">No. of Vch.(Purchase Return)</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": false,
+                "bLengthChange": false,
+                    //"columnDefs": [{
+                    //    targets: "_all",
+                    //    orderable: false
+                    //}],
+
+                    //"autoWidth": false,
+                    //"columnDefs": [
+                    //{ "width": "70px", "targets": 4 }],
+                    "ajax": {
+                        "url": '/PurchaseReturnReport/GetCategoryWise',
+                        "data": { category: getQueryString1('category'), fromdate: getParameterByName('from'), todate: getParameterByName('to'), ddMC: getParameterByName('ddMC') },
+                        "type": "POST",
+                        "datatype": "json"
+
+                    },
+                    "order": [[0, "desc"]],
+                    "columns": [
+                        {
+                            "data": "ItemCategoryID", "name": "ItemCategoryID",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                       { "data": "Category", "name": "Category" },
+                       { "data": "RetunAmt", "name": "RetunAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                       { "data": "NoOfVchReturn", "name": "NoOfVchReturn", "sClass": "numberright" },
+                    ],
+                    buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'ItemCategoryWise-Sale';
+                        },
+                        message: function()
+                        {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>PurchaseReturn Report (Item Category Wise)</h4></th></tr>' +
+                            ' <tr><th><span class="text-left">Item Category : ' + $('#category').val() + '</span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                               // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'ItemCategoryWise-PurchaseReturn';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' PurchaseReturn Report (Item Category Wise) \n' +
+                             'Item Category : ' + $('#category').val() + '\n' +
+                             'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'ItemCategoryWise-PurchaseReturn';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' PurchaseReturn Report (Item Category Wise) \n' +
+                             'Item Category : ' + $('#category').val() + '\n' +
+                             'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4, 5, 6]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.content[1].table.widths = [
+                            '15%',
+                             '15%',
+                             '15%',
+                             '15%',
+                            ]
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+
+                    },
+
+                    ],
+
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api(), data;
+
+                        // Remove the formatting to get integer data for summation
+                        var intVal = function (i) {
+                            return typeof i === 'string' ?
+                                i.replace(/[\$,]/g, '') * 1 :
+                                typeof i === 'number' ?
+                                i : 0;
+                        };
+                        
+                        // Total over all pages
+                        total = api
+                            .column(3)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(3, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(3).footer()).html(
+                             pageTotal.toFixed(3)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+
+
+                        // Total over all pages
+                        total = api
+                            .column(2)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(2, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(2).footer()).html(
+                             pageTotal.toFixed(2)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+
+
+                        var table = $('#UserTable').DataTable();
+                        if (!table.data().any()) {
+                            $('#UserTable tfoot').hide();
+                        } else {
+                            $('#UserTable tfoot').show();
+                        }
+
+                    }
+            });
+                var type = $('#category').val();
+                if (type != 'All') {
+                    var column1 = oTable.column(1);
+                    column1.visible(false);
+                } else {
+                    var column1 = oTable.column(1);
+                    column1.visible(true);
+                }
+
+                $('#UserTable tbody').on('click', 'tr', function () {
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected');
+                    }
+                    else {
+                        oTable.$('tr.selected').removeClass('selected');
+                        $(this).addClass('selected');
+                        $(this).addClass('dataTables_row');
+                    }
+                });
+
+            });
+    </script>
+}

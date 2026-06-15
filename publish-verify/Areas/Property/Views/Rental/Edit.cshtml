@@ -1,0 +1,431 @@
+@model QuickSoft.ViewModel.RentalViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Rental";
+    ViewBag.Active = "Master";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("Update", "Rental", FormMethod.Post, new { id = "updateForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Rental</h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    // if (User.IsInRole("Dev") || User.IsInRole("Edit Rental"))
+                    //{
+                        <a class="btn bg-black no-border" href="/Property/Rental/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    //}
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    // if (User.IsInRole("Dev") || User.IsInRole("Edit Rental"))
+                    //{
+                        <a class="btn bg-black no-border" href="/Property/Rental/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    //}
+                }
+                else
+                {
+                    // if (User.IsInRole("Dev") || User.IsInRole("Create Rental"))
+                    //{
+                        <a class="btn bg-black no-border" href="/Property/Rental/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    //}
+                }
+
+                @*@if (User.IsInRole("Dev") || User.IsInRole("Rental"))
+                {*@
+                <a class="btn btn-success no-border" href="/Property/Rental">
+                    <i class="fa fa-fw fa-history"></i> Rental
+                </a>
+                @*}*@
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(m => m.RentalID)
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.RDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Tenant, new { @class = "control-label" }) *
+                    @*@if (User.IsInRole("Dev") || User.IsInRole("Create Developer"))
+                        {*@
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.Tenant, (SelectList)ViewBag.Tenan, new { id = "ddlTenant", @class = "form-control select2", @required = "required" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/Property/Tenant/AddTenant" class="modal-develop btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                    @*}
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Tenant, (SelectList)ViewBag.Tenan, new { id = "ddlTenant", @class = "form-control select2", @required = "required" })
+                        }*@
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Property, new { @class = "control-label" }) *
+                    @*@if (User.IsInRole("Dev") || User.IsInRole("Create Property"))
+                        {*@
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.Property, (SelectList)ViewBag.Proper, new { id = "ddlProperty", @class = "form-control select2", @required = "required" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/Property/PropertyMain/AddProperty" class="modal-property btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                    @*}
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Property, (SelectList)ViewBag.Proper, new { id = "ddlProperty", @class = "form-control select2", @required = "required" })
+                        }*@
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Unit, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.Unit, (SelectList)ViewBag.Uni, "", new { id = "ddlUnit", @class = "form-control select2", @required = "required" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Amount, new { @class = "control-label" }) *
+                    @Html.TextBoxFor(m => m.Amount, new { @class = "form-control input-sm", tabindex = 7 })
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="row">
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Branch", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        </div>
+                    </div>
+                }
+              @for (int i = 0; i < Model.AdditionalField.Count; i++)
+              {
+                  string myrate = Model.AdditionalFieldVieModels.Where(a => a.Field == Model.AdditionalField[i].ID).Select(a => a.Entrydata).FirstOrDefault();
+                  var ratev = (myrate != null) ? myrate : "";
+                <div class="form-group col-sm-2">
+                    <label class="control-label" for="SellingPrice">@Model.AdditionalField[i].Name</label>
+                    <input type="hidden" id="ID@i" name="AdditionalField[@i].ID" value="@Model.AdditionalField[i].ID" />
+                    <input class="form-control input-sm" id="Name@i" name="AdditionalField[@i].Name" data-val="true" type="text" value="@ratev">
+                </div>
+
+              }
+            </div>
+
+            <div class="col-md-12 pull-right">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Note, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm textarea", rows = 8 })
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Remark, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                </div>
+                <div class="form-group">
+                    @Html.TextAreaFor(model => model.TermsCondition, new { @class = "form-control", @placeholder = "Terms And Condition", @rows = 2 })
+                </div>
+                <div class="form-group pull-right">
+                    <button type="submit" id="save" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+                    <button type="submit" id="print" class="btn btn-success">
+                        <span class="glyphicon glyphicon-print"></span> Update And Print
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Property/Rental/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+<div id="modal-develop" class="modal fade itemscroll" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+<div id="modal-property" class="modal fade itemscroll" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+<div id="modal-Tenant" class="modal fade itemscroll" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+<div id="modal-owner" class="modal fade itemscroll" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+@{
+    var Modelv = "modal-lg";
+}
+@Html.Partial("_Voucher")
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/Mobile")
+    @Scripts.Render("~/js/property")
+
+
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            GetDeveloper(0);
+            GetOwner(0);
+            GetProperty(0);
+            GetTenant(0);
+        });
+
+        //submit function
+        $('#updateForm').on('submit', function (e) {
+            if ($("#updateForm").valid()) {
+                e.preventDefault();
+                var url = $('#updateForm')[0].action;
+                var formData = new FormData(this);
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                formData.append('fnval', fnval);
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//$('#createlandlordForm').serialize(), //formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            if (fnval == "save") {
+                                location.reload();
+                            }
+                            if (fnval == "print") {
+                                Rentalprint(e); location.reload();
+                            }
+                            @*window.location.href = '@Url.Action("Index", "Rental")';*@
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });
+
+
+        /* function for Create popup */
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-develop', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-develop');
+        });
+        $('#modal-develop').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-develop');
+        });
+
+        $('span').on('click', '.modal-property', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-property');
+        });
+        $('#modal-property').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-property');
+        });
+        $('span').on('click', '.modal-Tenant', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-Tenant');
+        });
+        $('#modal-Tenant').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-Tenant');
+        });
+        $('span').on('click', '.modal-owner', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-owner');
+        });
+        $('#modal-owner').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-owner');
+        });
+        PropertyPopup();
+
+        $("#ddlUnit").select2({
+            placeholder: 'Search Unit',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Property/Unit/SearchUnit",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: type,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        function GetTenant(val) {
+
+            var type = val = 0 ? "empty" : "all";
+            $("#ddlTenant").select2({
+                placeholder: 'Search Tenant Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Property/Tenant/SearchTenant",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: type,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        }
+
+        function Rentalprint(e) {
+            var dat = convertToDate(e.Data.RDate);
+            $("#lblBillNo").text(e.Data.VoucherNo);
+            $("#lblDate").text(dat);
+
+            $("#lblproperty").text(e.Data.Property);
+            $("#lblTenant").text(e.Data.Tenant);
+            $("#lblunit").text(e.Data.Unit);
+            $("#lblamount").text(e.Data.Amount);
+
+
+            var adcount = 1;
+            $.each(e.additionalfield, function (i, item) {
+
+                var dat = ((item.data != null) ? item.data : "");
+                var str = '<tr>';
+                str += '<td>' + item.Field + '</td>';
+                str += '<td>' + ' ' + dat + '</td>';
+                str += '</tr>';
+                if (dat != "" && dat != 0) {
+                    $('#addfield').append(str);
+                    adcount++;
+                }
+            });
+            if (adcount == 1) {
+                $("#addfield").hide();
+            }
+            else {
+                $("#addfield").show();
+            }
+
+            if (e.ComHeadCheck == 0) {
+                $("#ComHeadCheck").hide();
+            }
+            else {
+                $("#ComHeadCheck").show();
+            }
+
+
+            if ($('#hideheader').prop('checked') == true) {
+                $('#ComHeadCheck').hide();
+                $('#ComfootCheck').hide();
+                //$(".invoice.print").css("margin-top", "100px");
+                $("#comHeader").css("margin-top", "100px");
+            }
+            else {
+                $('#ComHeadCheck').show();
+                $('#ComfootCheck').show();
+            }
+
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printit').html();
+            $('title').html("Rental Voucher - " + e.Data.VoucherNo);
+            $('body').html(printContent);
+            window.print();
+        }
+    </script>
+}
+

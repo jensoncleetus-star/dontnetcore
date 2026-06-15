@@ -1,0 +1,562 @@
+@model QuickSoft.Models.Developer
+@{
+    ViewBag.Title = "Developer List";
+    ViewBag.SubTitle = "Developer";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    // if (User.IsInRole("Dev") || User.IsInRole("Delete Developer"))
+    // {
+    userRole = true;
+    deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+         "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+          "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    // }
+}
+
+<div class="box box-info">
+    <div class="box-header with-border">
+
+        <h3 class="box-title">Developer</h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create Developer"))*@
+            @*{*@
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="/Property/Developer/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create
+            </a>
+            @*}*@
+        </div>
+    </div>
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-2 select2-box">
+                        @Html.Label("Developer", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlDeveloper", (SelectList)ViewBag.Cust, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Developer Alias", null, new { @class = "control-label" })
+                        @Html.TextBox("Alias", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Tax RegNo", null, new { @class = "control-label" })
+                        @Html.TextBox("TaxReg", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Employee", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.Empl, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Tax Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("TaxType", (SelectList)ViewBag.TxType, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Mobile No", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMobile", (SelectList)ViewBag.Mobile, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Phone No", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlPhone", (SelectList)ViewBag.Phone, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Credit Limit", null, new { @class = "control-label" })
+                        @Html.TextBox("CLimit", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Credit Pedriod", null, new { @class = "control-label" })
+                        <div class="input-group input-group-sm">
+                            @Html.TextBox("CPeriod", "", new { @class = "form-control input-sm" })
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-flat">Days</button>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        @Html.Label("E-Mail", null, new { @class = "control-label" })
+                        @Html.TextBox("MailId", "", new { @class = "form-control input-sm" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAllDeveloper", "Developer", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover dtable" id="MyTable">
+                <thead>
+                    <tr>
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Developer Code</td>
+                        <td data-priority="3">Name</td>
+                        <td data-priority="4">TRN</td>
+                        <td data-priority="11">Address</td>
+                        <td data-priority="7">Phone</td>
+                        <td data-priority="7">Mobile</td>
+                        <td data-priority="8">Email</td>
+                        <td data-priority="9">CreditLimit</td>
+                        <td data-priority="10">CreditPeriod</td>
+                        <td data-priority="11">Opening Balance</td>
+                        <td data-priority="11">Current Balance</td>
+                        <td data-priority="1"> Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete Developer"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/Mobile")
+    @Scripts.Render("~/js/property")
+    @Scripts.Render("~/js/docexp")
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#advsearch').hide();
+
+            AddMobile();
+            Adddoctypeexp();
+        GetDeveloper();
+        });
+
+        //$('#modal-create-lg').on('shown.bs.modal', function (e) {
+        //    addmobile('mobilebody', 'contact', "");
+        //    //alert("dss");
+        //});
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/Property/Developer/GetDeveloper',
+                "data": function (data) {
+                    data.Developer = $('#ddlDeveloper').val();
+                    data.TaxReg = $('#TaxReg').val();
+                    data.Mobile = $('#ddlMobile').val();
+                    data.Phone = $('#ddlPhone').val();
+                    data.CLimit = $('#CLimit').val();
+                    data.CPeriod = $('#CPeriod').val();
+                    data.Employee = $('#ddlEmployee').val();
+                    data.TxType = $('#TaxType').val();
+                    data.MailId = $('#MailId').val();
+                    data.Alias = $('#Alias').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [ 12,13],
+                "orderable": false
+            }],
+            "order": [[1, "desc"]],
+            "columns": [
+
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+
+                 { "data": "DeveloperCode", "name": "DeveloperCode" },
+                 {
+                     "name": "DeveloperName", "data": function (data) {
+                           @{
+                               var datas = "";
+                               //datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               //if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                              // {
+                                   datas = "'<a href=\"/Property/Developer/Details/'+ data.id +'\">'+ data.DeveloperName +'</a>' ";
+                              // }
+                               //else
+                              // {
+                               //    datas = "data.CustomerName";
+                               //}
+                           }
+                           return @Html.Raw(datas);
+                      }
+                 },
+                 { "data": "TaxRegNo", "name": "TaxRegNo" },
+                 { "data": "Address", "name": "Address" },
+                 { "data": "Phone", "name": "Phone" },
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null) {
+                                 if (datas != "") {
+                                     datas += ", ";
+                                 }
+                                 datas += item.Num;
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+                 { "data": "Email", "name": "Email" },
+                 { "data": "CreditLimit", "name": "CreditLimit" },
+                 {
+                     "data": "CreditPeriod", "name": "CreditPeriod", "render": function (data) {
+                         return data + " Days";
+                     }
+                 },
+                 { "data": "OpnBalance", "name": "OpnBalance" },
+                { "data": "currentbalance", "name": "currentbalance" },
+                        //{
+                        //    "data": function (data) {
+                        //        var CurBalance;
+                        //        CurBalance = (data.Debit > data.Credit) ? (data.currentbalance + " Dr") : (data.currentbalance + " Cr.");
+                        //        return CurBalance;
+                        //    }
+                        //},
+
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         @{
+                             //if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                             //{
+                             //    actData += "<a class=\"details\" href=\"/Property/Developer/ViewDetails/'+ data.id +'\" title=\"View Developer\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                             //}
+                             if (User.IsInRole("Dev") || User.IsInRole("Edit Customer"))
+                             {
+                                 actData += "<a href=\"/Property/Developer/Edit/'+ data.id +'\" title=\"Edit Developer\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                             }
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete Customer"))
+                             {
+                                 actData += "<a class=\"modal-delete\" href=\"/Property/Developer/Delete/'+ data.id +'\" title=\"Delete Developer\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                             }
+                             }
+                         return rest = '@Html.Raw(actData)';
+                     }
+                 },
+                  //{
+                  //    "data": "id", "name": "id",
+                  //    "render": function (data, type, row, meta) {
+                  //        var box = '<input class="checkbox" type="checkbox" name="bill[]" value="' + data + '"/>';
+                  //        return box;
+                  //    }
+                  //},
+                  {
+                      "name": "id", "data": function (data) {
+                          var rest = "";
+                          @{
+                          //    if (User.IsInRole("Dev") || User.IsInRole("Delete Developer"))
+                           //   {
+                                  delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                           //   }
+                          }
+                          return rest = '@Html.Raw(delchk)';
+                      }
+                  },
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Developer </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Developer",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+
+
+            },
+         @Html.Raw(deleteBTn)
+
+
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+
+
+            }
+        });
+
+        @*var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(11);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(11);
+            column1.visible(false);
+            var column1 = oTable.column(13);
+            column1.visible(false);
+        }*@
+
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+
+                $('#ddlDeveloper').val(0).trigger("change");
+                $('#TaxReg').val("");
+                $('#ddlMobile').val(0).trigger("change");
+                $('#ddlPhone').val(0).trigger("change");
+                $('#CLimit').val("");
+                $('#CPeriod').val("");
+                $('#ddlEmployee').val(0).trigger("change");
+                $('#TaxType').val(null).trigger("change");
+                $('#MailId').val("");
+                $('#Alias').val("");
+                oTable.draw();
+            }
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        CallRepCustomer();
+        CallRepEmployee();
+
+        $("#ddlMobile").select2({
+            placeholder: 'Search Developer by Mobile',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Property/Developer/SearchMobile",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        x: "All",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#ddlPhone").select2({
+            placeholder: 'Search Developer by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Property/Developer/SearchPhone",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        x: "All",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $('#modal-create').on('submit', '#srcform', function (e) {
+            var url = $('#srcform')[0].action;
+            var text = $("#SrcName").val();
+            var formData = new FormData(this);
+            //var mobi = new Array();
+            //var num = 0;
+
+            //for (i = 0; i < count; i++) {
+            //    mobi.push($('#Mobile' + count).val());
+            //}
+
+            $('#ddlSrcLead option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: formData,//$('#srcform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-create').modal('hide');
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlSrcLead').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+            e.preventDefault();
+        });
+
+    </script>
+}

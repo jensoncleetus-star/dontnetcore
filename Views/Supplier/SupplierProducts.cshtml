@@ -1,0 +1,414 @@
+
+@{
+    ViewBag.Title = "Supplier Product";
+    ViewBag.SubTitle = "Supplier Product Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Supplier</h3>
+    </div>
+
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("SupplierProducts", "Supplier", FormMethod.Post, new { id = "popupForm", target = "_new" }))
+            {
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+                <div class="row">
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("Item", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItem", (SelectList)ViewBag.Items, new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Category", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlcategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Brand", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm" })
+                    </div>
+
+
+
+
+
+                </div>
+
+               
+
+                <div class="row box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Supplier List</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Code</td>
+                        <td data-priority="1">Supplier Name</td>
+                        <td data-priority="1">Contact</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            /*datatable still hided before clicking the submit button*/
+            $("#StockReport").hide()
+
+            //Item DropDown
+            ItemSearchable();
+
+            //Brand Dropdown
+            $("#ddlBrand").select2({
+                placeholder: 'Search Item Brand',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemBrand/SearchBrand",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            //Category Dropdown
+            $("#ddlcategory").select2({
+                placeholder: 'Search Item Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemCategory/SearchCategory",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        function SearchData(data) {
+
+            data.Item       =   $('#ddlItem').val();
+
+            data.Brand = $('#ddlBrand').val();
+            data.Category = $('#ddlcategory').val();
+        }
+
+        function showdatatable() {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "stateSave": false,
+                "bDestroy": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 50,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Supplier/GetSuppliers',
+                    /* calling the function for capturing the datas*/
+                    "data": function (data) {
+                        data = SearchData(data);
+                    },
+                    /*end*/
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "SupplierCode", "name": "SupplierCode" },
+                 
+                    { "data": "SupplierName", "name": "SupplierName" },
+                    {
+                        "name": "mobmodel", "data": function (data) {
+                            var datas = "";
+                            $.each(data.mobmodel, function (i, item) {
+                                if (item.Num != null) {
+                                    if (datas != "") {
+                                        datas += "<br> ";
+                                    }
+                                    datas += item.Name + '<br>';
+                                    datas += '<a href="tel:' + item.Num + '">' + item.Num + '</a>' + '<br>';
+                                    datas += item.emails + '<br>';
+                                }
+                            });
+                            return datas;
+                        }
+                    },
+                   
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Supplier - Report';
+                        },
+                        columnDefs: [
+                            { width: 400, targets: 2 }
+                        ],
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Supplier - Report</h4></th></tr>' +
+                                ' <tr><th><span class="text-left">Serial No : ' + $('#BatchNo').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                            $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                                .css('min-width', '80px');
+                            //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                            //    .css('padding', '0px');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    //Excel
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Supplier - Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                'Supplier\n' +
+                                'Serial No : ' + $('#BatchNo').val() + '\n'
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Supplier - Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                'Supplier Report\n' +
+                                'Serial No : ' + $('#BatchNo').val() + '\n'
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            //doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+                            //doc.content[1].table.widths = [
+                            //'5%',
+                            //'7%',
+                            //'12%',
+                            //'10%',
+                            //'10%',
+                            //'10%',
+                            //'12%',
+                            //'12%',
+                            //'12%',
+                            //'10%'
+                            //]
+
+                            //doc['header'] = (function () {
+                            //    return {
+                            //        columns: [
+                            //			{
+                            //			    alignment: 'left',
+                            //			    italics: true,
+                            //			    text: 'dataTables',
+                            //			    fontSize: 18,
+                            //			    margin: [10, 0]
+                            //			},
+                            //			{
+                            //			    alignment: 'right',
+                            //			    fontSize: 14,
+                            //			    text: 'Custom PDF export with dataTables'
+                            //			}
+                            //        ],
+                            //        margin: 20
+                            //    }
+                            //});
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+
+                        }
+                    }
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+
+            });
+            //for showing the datatable when click the submit button
+
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+
+                oTable.draw();
+                $('#SReport').show();
+                $('#UserTable').show();
+
+
+
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+    </script>
+}

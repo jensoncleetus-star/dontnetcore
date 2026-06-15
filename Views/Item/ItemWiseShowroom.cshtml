@@ -1,0 +1,1197 @@
+@{
+    ViewBag.Title = "Search Stock";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+    string actData = "";
+    var dtURL = "'/StockReport/GetItemWisenew'";
+}
+@Html.Partial("../Common/_ModalCreate")
+<style>
+    .select2-results__options[aria-multiselectable="true"] li {
+        padding-left: 30px;
+        position: relative
+    }
+
+        .select2-results__options[aria-multiselectable="true"] li:before {
+            position: absolute;
+            left: 8px;
+            opacity: .6;
+            top: 6px;
+            font-family: "FontAwesome";
+            content: "\f0c8";
+        }
+
+        .select2-results__options[aria-multiselectable="true"] li[aria-selected="true"]:before {
+            content: "\f14a";
+        }
+</style>
+<div class="box box-default">
+    <input type="hidden" id="LastSale" value="@ViewBag.LastTransInSale" />
+    <input type="hidden" id="LastPurchase" value="@ViewBag.LastTransInPurchase" />
+
+
+    <input type="hidden" id="VoucherType" value="Sales" />
+    <div class="row">
+        <div class="col-md-12 col-xs-12">
+            <div class="pull-right">
+
+                <a class="btn btn-success no-border" href="/ShowRoomItemForecast">
+                    <i class="fa fa-fw fa-history"></i> Forecast  Showroom wise
+                </a>
+
+            </div>
+        </div>
+    </div>
+        <div class="box-header with-border">
+        <h3 class="box-title">Item Wise</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("ItemWise", "Item", FormMethod.Post, new { id = "search-form", target = "_new" }))
+        {
+            <div class="form-group row">
+
+                <div class="form-group col-md-12">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @*@Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm", @multiple = "multiple", @name = "ddlMC[]" })*@
+                    @Html.ListBox("ddlMC", (MultiSelectList)ViewBag.mc, new { @class = "form-control input-sm select2" })
+                </div>
+                @*<div class="col-md-12">
+                        @Html.Label("Item", null, new { @class = "control-label col-md-12" })
+                        @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2", @multiple = "multiple", @name = "ddlItem[]" })
+                    </div>*@
+                <div class="form-group col-md-12">
+                    @Html.Label("Item", null, new { @class = "control-label" })
+                    @Html.ListBox("ddlItem", (MultiSelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                </div>
+                @if (@ViewBag.BCEnable == 0)
+                {
+                    <div class="form-group col-md-4">
+                        <label class="control-label">Item BarCode</label>
+                        <input type="text" class="form-control barcode" />
+                    </div>
+                }
+                @*<div class="col-md-4 lblpadding">
+                        <label class="control-label"><input type="checkbox" value="true" name="stockable" id="stockable" />  Include non-stockable Items</label>
+                    </div>*@
+                <div class="col-md-12 lblpadding">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            </div>
+        }
+
+    </div>
+    <div id="LastSalePur"></div>
+    <div id="itemdesc"></div>
+    <div class="box box-default" id="StockReport">
+
+        <div class="box-body">
+            <div class="box-body">
+                @{
+                    var url = Model;
+                    var file = "";
+                    var chk = "";
+
+                    if (url == "'/Item/GetItemWise'")
+                    {
+                        file = "Stock Report (Item Wise)";
+                    }
+                }
+
+                <table class="display table table-bordered table-hover" id="UserTable">
+                    <thead>
+                        <tr class="bg-gray">
+                            <td data-priority="1">S/N</td>
+                            <td data-priority="1">Item Code</td>
+                            <td data-priority="1">Item Name</td>
+                            <td data-priority="5">Material Cen.</td>
+                            <td data-priority="6">Primary Stock</td>
+                            <td data-priority="7">Secondary Stock</td>
+                            <td data-priority="5">Selling Price</td>
+                            <td data-priority="5">Base Price</td>
+                            <td data-priority="5">MRP</td>
+                            <td data-priority="5">Purchase Price</td>
+
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+
+
+                        </tr>
+                    </tfoot>
+                </table>
+                <h3>Similar Items</h3>
+                <table class="display table table-bordered table-hover" id="SuggUserTable">
+                    <thead>
+                        <tr class="bg-gray">
+                            <td data-priority="1">S/N</td>
+                            <td data-priority="1">Item Code</td>
+                            <td data-priority="1">Item Name</td>
+                            <td data-priority="5">Material Cen.</td>
+                            <td data-priority="6">Primary Stock</td>
+                            <td data-priority="7">Secondary Stock</td>
+                            <td data-priority="5">Selling Price</td>
+                            <td data-priority="5">Base Price</td>
+                            <td data-priority="5">MRP</td>
+                            <td data-priority="5">Purchase Price</td>
+
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+
+
+                        </tr>
+                    </tfoot>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+<h4 class="headinghide"><strong>Total Stock</strong></h4>
+<h4 class="answer"><textarea style="width:100%;height:100px;" id="answertext"></textarea></h4>
+<div class="row">
+    <div id="answertext2"></div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/scaner")
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    <script type="text/javascript">
+
+
+        function showitemdesc(result) {
+            var Modal = "<div id='itemdesc-" + result + "' class='modal fade' role='dialog' aria-hidden='true'><div class='modal-dialog modal-large'><div class='modal-content'>" +
+                "<div class='modal-header bg-aqua'><button type='button' class='close' data-dismiss='modal' style='font-size:30px;color:red;'>&times;</button> <h4 class='text-left lastsalepur'>Item Description </h4><input type='hidden' id='lps_itemName_" + result + "' value='" + result.ItemName + "'></div>" +
+                "<div class='modal-body' style='padding-top:0px;padding-right:0px;'><p class='errormsg'></p>" +
+                "<div class='description-" + result+"'></div>"+
+
+                "<div class='form-actions no-color text-center'>" +
+
+                "</div></div></div></div></div>";
+            $("#itemdesc").append(Modal);
+
+            $.ajax({
+                type: "POST",
+                data: { itemid: result },
+                url: "/Item/Getdescription",
+                success: function (msg) {
+                    $('.description-' + result).html(msg);
+                }
+            });
+
+            var lastsale = $('#LastSale').val();
+            var lastpurchase = $('#LastPurchase').val();
+            if (lastsale == "active" || lastpurchase == "active") {
+                var ID = "#itemdesc-" + result;
+                var bstlength = $(ID).length;
+                if (bstlength != 0) {
+                    $(ID).modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        function LastSalePurList(result, dataid) {
+            var Modal = "<div id='LastPurSale-" + result + "' class='modal fade' role='dialog' aria-hidden='true'><div class='modal-dialog modal-large'><div class='modal-content'>" +
+                "<div class='modal-header bg-aqua'><button type='button' class='close' data-dismiss='modal' style='font-size:30px;color:red;'>&times;</button> <h4 class='text-left lastsalepur'>Sale </h4><input type='hidden' id='lps_itemName_" + result + "' value='" + result.ItemName + "'></div>" +
+                "<div class='modal-body' style='padding-top:0px;padding-right:0px;'><p class='errormsg'></p>" +
+                "<div id='lasts-" + result + "'><div id='pscustname'><h5><label id='lastcustname-" + result + "'></label></h5></div>" +
+                "<table class='table table-bordered table-hover' id='LSale-" + result + "'><thead><tr class='bg-gray'>" +
+                "<th class='text-center'>S/N</th><th class='text-center'>Date</th><th class='text-center'>BillNo</th><th class='text-center'>Customer</th> <th class='text-center'>Unit</th><th class='text-center'>Qty</th>" +
+                "<th class='text-center'>Rate</th><th class='text-center'>Sub Total</th><th>Discount</th><th>TAX</th><th>Total</th>" +
+                "</tr></thead><tbody></tbody><tfoot><tr><th></th><th></th><th></th><th></th><th></th><th class='text-right'></th><th></th><th></th><th></th><th></th></tr></tfoot></table></div>" +
+
+                "<div id='lastp-" + result + "'>" +
+                "<table class='table table-bordered table-hover' id='LPurchase-" + result + "'><thead><tr class='bg-gray'>" +
+                "<th class='text-center'>S/N</th><th class='text-center'>Date</th><th class='text-center'>BillNo</th><th class='text-center'>Supplier</th> <th class='text-center'>Unit</th><th class='text-center'>Qty</th>" +
+                "<th class='text-center'>Rate</th><th class='text-center'>Sub Total</th><th>Discount</th><th>TAX</th><th>Total</th>" +
+                "</tr></thead><tbody></tbody><tfoot><tr><th></th><th></th><th></th><th></th><th></th><th class='text-right'></th><th></th><th></th><th></th><th></th></tr></tfoot></table></div>" +
+
+                "<div id='salepurmsg' hidden><h4 class='text-red'>Not Found..!!</h4></div>" +
+
+                "<div class='form-actions no-color text-center'>" +
+
+                "</div></div></div></div></div>";
+            $("#LastSalePur").append(Modal);
+            addLastSPRow(result, dataid);
+
+
+            var lastsale = $('#LastSale').val();
+            var lastpurchase = $('#LastPurchase').val();
+            if (lastsale == "active" || lastpurchase == "active") {
+                var ID = "#LastPurSale-" + result;
+                var bstlength = $(ID).length;
+                if (bstlength != 0) {
+                    $(ID).modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                }
+            }
+        }
+        function addLastSPRow(ItemId, flag) {
+
+            var salecount = 10;
+            var purchasecount = 10;
+
+            if (salecount > 0) {
+                var customer = $('#ddlCustomer').val();
+                if (customer != "") {
+                    $('#pscustname').show();
+                    $('#lastcustname-' + ItemId + '').text($('#ddlCustomer option:selected').text());
+                } else {
+                    $('#pscustname').hide();
+                }
+
+                if ($.fn.DataTable.isDataTable('#LSale-' + ItemId + '')) {
+                    $('#LSale-' + ItemId + '').DataTable().destroy();
+                }
+
+                $('#LSale-' + ItemId + ' tbody').empty();
+
+                var oTable = $('#LSale-' + ItemId + '').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "searching": false,
+                    "bInfo": false,
+                    "bSortable": true,
+                    "ajax": {
+                        "url": '/CreditSale/GetLastSales',
+                        "data": function (data) {
+                            data.salecount = salecount;
+                            data.ItemId = ItemId;
+                            data.customer = customer;
+                        },
+                        "type": "POST",
+                        "datatype": "json"
+                    },
+                    "columns": [
+                        {
+                            "data": "SEItemsId", "name": "SEItemsId",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        {
+                            "data": "SEDate", "name": "SEDate",
+                            "render": function (data) {
+                                var date = convertToDate(data);
+                                return date.toString();
+                            }
+                        },
+                        { "data": "BillNo", "name": "BillNo", "sClass": "headeralign" },
+                        { "data": "CustomerName", "name": "CustomerName", "sClass": "headeralign" },
+                        { "data": "ItemUnit", "name": "ItemUnit", "sClass": "headeralign" },
+                        { "data": "ItemQuantity", "name": "ItemQuantity", "sClass": "headeralign" },
+                        { "data": "ItemUnitPrice", "name": "ItemUnitPrice", "sClass": "headeralign" },
+                        { "data": "ItemSubTotal", "name": "ItemSubTotal", "sClass": "headeralign" },
+                        { "data": "ItemDiscount", "name": "ItemDiscount", "sClass": "headeralign" },
+                        { "data": "ItemTax", "name": "ItemTax", "sClass": "headeralign" },
+                        { "data": "ItemTotalAmount", "name": "ItemTotalAmount", "sClass": "headeralign" },
+                    ],
+                });
+
+
+            }
+            if (purchasecount > 0) {
+
+                if ($.fn.DataTable.isDataTable('#LPurchase-' + ItemId + '')) {
+                    $('#LPurchase-' + ItemId + '').DataTable().destroy();
+                }
+
+                $('#LPurchase-' + ItemId + ' tbody').empty();
+
+                var oTable = $('#LPurchase-' + ItemId + '').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "searching": false,
+                    "bInfo": false,
+                    "bSortable": true,
+                    "ajax": {
+                        "url": '/PurchaseEntry/GetLastPurchase',
+                        "data": function (data) {
+                            data.purchasecount = purchasecount;
+                            data.ItemId = ItemId;
+                        },
+                        "type": "POST",
+                        "datatype": "json"
+                    },
+                    "order": [1, 'desc'],
+                    "columns": [
+                        {
+                            "data": "PEItemsId", "name": "PEItemsId",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        {
+                            "data": "PEDate", "name": "PEDate",
+                            "render": function (data) {
+                                var date = convertToDate(data);
+                                return date.toString();
+                            }
+                        },
+                        { "data": "BillNo", "name": "BillNo", "sClass": "headeralign" },
+                        { "data": "SupplierName", "name": "SupplierName", "sClass": "headeralign" },
+
+                        { "data": "ItemUnit", "name": "ItemUnit", "sClass": "headeralign" },
+                        { "data": "ItemQuantity", "name": "ItemQuantity", "sClass": "headeralign" },
+                        { "data": "ItemUnitPrice", "name": "ItemUnitPrice", "sClass": "headeralign" },
+                        { "data": "ItemSubTotal", "name": "ItemSubTotal", "sClass": "headeralign" },
+                        { "data": "ItemDiscount", "name": "ItemDiscount", "sClass": "headeralign" },
+                        { "data": "ItemTax", "name": "ItemTax", "sClass": "headeralign" },
+                        { "data": "ItemTotalAmount", "name": "ItemTotalAmount", "sClass": "headeralign" },
+                    ],
+
+                });
+
+            }
+            if (flag == 1) {
+                $('#lasts-' + ItemId + '').show();
+                $('.lastsalepur').text("Sales ");
+                $('#lastp-' + ItemId + '').hide();
+            }
+            else {
+                $('#lastp-' + ItemId + '').show();
+                $('.lastsalepur').text("Purchase ");
+                $('#lasts-' + ItemId + '').hide();
+            }
+        }
+        function PSLastSubmit(ItemId) {
+            var IName = $("#lps_itemName_" + ItemId).val();
+            $('#lasts-' + ItemId + '').toggle();
+            $('#lastp-' + ItemId + '').toggle();
+            if ($('#lasts-' + ItemId + '').css('display') == 'none') {
+                $('#plistbutton-' + ItemId + '').attr('value', 'Sales List');
+                $('.lastsalepur').text("Purchase : " + IName);
+            }
+            if ($('#lastp-' + ItemId + '').css('display') == 'none') {
+                $('#plistbutton-' + ItemId + '').attr('value', 'Purchase List');
+                $('.lastsalepur').text("Sale : " + IName);
+            }
+        }
+
+        $(document).ready(function () {
+
+
+
+
+
+
+
+
+
+
+
+
+
+            $('#StockReport').hide();
+            $('.headinghide').hide();
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                closeOnSelect: false,
+                ajax: {
+                    url: "/Item/Searchgetname",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+
+                        };
+                    },
+                    results: function (data) {
+                        return { results: data };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: repoFormatResult,
+                templateSelection: repoFormatSelection,
+            });
+
+
+            CallMC();
+            function CallMC() {
+                if ($("#ddlMC") != null) {
+                    // Material Center
+                    $("#ddlMC").select2({
+                        placeholder: 'Search Material Center by Name or Code',
+                        minimumInputLength: 0,
+                        ajax: {
+                            url: "/MC/SearchMC",
+                            dataType: 'json',
+                            delay: 50,
+                            data: function (params) {
+                                return {
+                                    q: params.term,
+                                    x: "All",
+                                    page: params.page,
+                                };
+                            },
+                            processResults: function (data, params) {
+                                params.page = params.page || 1;
+
+                                return {
+                                    results: data
+                                };
+                            },
+                            cache: true
+                        },
+                    });
+                }
+            }
+            $(".barcode").scannerDetection({
+                timeBeforeScanTest: 200,
+                avgTimeByChar: 40,
+                preventDefault: true,
+                endChar: [13],
+                onComplete: function (barcode, qty) {
+                    validScan = true;
+                    readBarcode(barcode);
+                },
+                onError: function (string, qty) {
+                    readBarcode(string);
+                }
+            });
+        });
+        //$('body').on('change', '#ddlMC', function (e) {
+        //    CallRepMCUser();
+        //});
+
+
+        function readBarcode(q) {
+            $.ajax({
+                url: "/Item/GetByBarcode",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: { q: q },
+                success: function (e) {
+                    if (e.length == 1) {
+                        var itemid = e[0]['id'];
+                        if (itemid != null) {
+                            //alert(item);
+                            $('#ddlItem').removeClass("select2");
+                            $('#ddlItem option[value=' + itemid + ']').attr('selected', true);
+
+                            $("#ddlItem").select2({
+                                placeholder: 'Search Item by Name or Code',
+                                minimumInputLength: 0,
+                                ajax: {
+                                    url: "/Item/Search",
+                                    dataType: 'json',
+                                    delay: 50,
+                                    data: function (params) {
+                                        return {
+                                            q: params.term || "",
+                                            page: params.page || 0
+
+                                        };
+                                    },
+                                    results: function (data) {
+                                        return { results: data };
+                                    },
+                                    processResults: function (data, params) {
+                                        params.page = params.page || 0;
+                                        return {
+                                            results: data,
+                                            pagination: {
+                                                //more: (params.page * 10) < 50
+                                                more: true
+                                            }
+                                        };
+                                    },
+                                    cache: true
+                                },
+                                templateResult: repoFormatResult,
+                                templateSelection: repoFormatSelection,
+                            });
+
+                            $(".barcode").val("");
+                            $(".barcode").focus();
+
+                        }
+                    }
+                },
+                complete: function () {
+                    me.data('requestRunning', false);
+                },
+                cache: true
+            });
+        }
+        function showtotal() {
+            $('.headinghide').show();
+            var itmID = $("#ddlItem").val();
+            $.ajax({
+                type: "POST",
+                data: { itmid: itmID },
+                url: "/Item/GetTotal",
+                success: function (msg) {
+                    $('#answertext').val(msg);
+                }
+            });
+        }
+        function showtotal2() {
+            $('.headinghide').show();
+            var itmID = $("#ddlItem").val();
+            $.ajax({
+                type: "POST",
+                data: { itmid: itmID },
+                url: "/Item/GetTotal2",
+                success: function (msg) {
+                    $('#answertext2').html(msg);
+                }
+            });
+        }
+    </script>
+    <script type="text/javascript">
+        function showdatatable() {
+        oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+
+            "bStateSave": true,
+            "pageLength": 50,
+            @*@Html.Raw(chk)*@
+            "bLengthChange": false,
+            "paging": true,
+            stateSave: true,
+            responsive: true,
+
+            "ordering": true,
+
+            "ajax": {
+                "url":  "/Item/GetItemWisenewshowroom",
+                "data": function (data) {
+                    data=searchData(data);
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+           "columns": [
+                {
+                    "data": "ItemID", "name": "ItemID",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                {
+                    "data": "itemcode", "name": "itemcode",
+                },
+                {
+                    "name": "itemname", "data": function (datas) {
+                       var plink = "";
+                       @{
+
+                          actData = "";
+                          //actData = "datas.stcost";
+
+
+                      actData += "<a  onclick=showitemdesc('+datas.ItemID+')  >'+datas.itemname+'</a> ";
+
+                      }
+                       return rest = '@Html.Raw(actData)';
+
+                       }
+                },
+                {
+                    "name": "MC", "data": "MC"
+                },
+                {
+                     "name": "pritotal", "data": function (data) {
+                        return (data.total / data.ConFactor +" "+ data.PriUnit);
+                     }
+                },
+                {
+                    "name": "total", "data": function (data) {
+                        return (data.total +" "+ data.SubUnit);
+                    }
+                },
+               {
+                   "name": "price", "data": function (datas) {
+                       var plink = "";
+                       @{
+
+                          actData = "";
+                          //actData = "datas.stcost";
+
+
+                      actData += "<a  onclick=LastSalePurList('+datas.ItemID+',1)  >'+datas.price+'</a> ";
+
+                      }
+                       return rest = '@Html.Raw(actData)';
+
+                       }
+
+
+               },
+                { "data": "BasePrice", "name": "BasePrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "mrp", "name": "mrp", render: $.fn.dataTable.render.number(",", ".", 2) },
+               {
+                   "name": "stcost", "data": function (datas) {
+                       var dat = datas;
+                      @{
+                          var rest = "";
+                          actData = "";
+                          //actData = "datas.stcost";
+
+                          if ( User.IsInRole("ItemPurchasePrice"))
+                          {
+                              //            actData += "<aa   >'+datas.stcost.toFixed(2)+'</aa> ";
+                              actData += "<a  onclick=LastSalePurList('+datas.ItemID+',2)  >'+datas.stcost+'</a> ";
+
+                          }
+                          else
+                          {
+                              actData = "";
+                          }
+                      }
+                       return rest = '@Html.Raw(actData)';
+
+
+                   },
+               }
+
+
+
+            ],
+            buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+            'colvis',
+            {
+                extend: 'print',//
+                exportOptions: {
+                    columns: ':visible'
+                },
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@file';
+                },
+                message: function () {
+                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>@file</h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                    return head;
+                },
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', //'excel',
+            {
+                extend: 'excel',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@file';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                       '' + $('#caddress').val() + '\n' +
+                       '@file';
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+            },
+          {
+              extend: 'pdf',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return '@file';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     '@file';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: ':visible'
+              },
+              customize: function (doc) {
+                  doc.pageMargins = [10, 10, 10, 10];
+                  doc.defaultStyle.fontSize = 10;
+                  doc.styles.tableHeader.fontSize = 10;
+                  doc.styles.title.fontSize = 12;
+
+                  // Header font and bg color
+                  doc.styles.tableHeader.fillColor = '#d3d3d3';
+                  doc.styles.tableHeader.color = 'black';
+                  // Remove spaces around page title
+                  doc.content[0].text = doc.content[0].text.trim();
+
+
+                  doc.styles['td:nth-child(1)'] = {
+                      width: '100%',
+                      'max-width': '100%'
+                  }
+
+                  //doc.content[1].table.widths = [
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //]
+
+
+                  var objLayout = {};
+                  // Horizontal line thickness
+                  objLayout['hLineWidth'] = function (i) { return .5; };
+                  // Vertikal line thickness
+                  objLayout['vLineWidth'] = function (i) { return .5; };
+                  //// Horizontal line color
+                  //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                  //// Vertical line color
+                  //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                  // Left padding of the cell
+                  objLayout['paddingLeft'] = function (i) { return 4; };
+                  // Right padding of the cell
+                  objLayout['paddingRight'] = function (i) { return 4; };
+                  // Inject the object in the document
+                  doc.content[1].layout = objLayout;
+                  // Footer font and bg color
+                  doc.styles.tableFooter.fillColor = '#d3d3d3';
+                  doc.styles.tableFooter.color = 'black';
+              }
+
+
+          },
+
+            ],
+
+
+
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api(), data;
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                        i : 0;
+                };
+
+
+
+
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $('#UserTable tfoot').hide();
+                } else {
+                    $('#UserTable tfoot').show();
+                }
+            }
+        });
+
+
+
+
+
+
+
+            oTablesugg = $('#SuggUserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+
+            "bStateSave": true,
+            "pageLength": 50,
+            @*@Html.Raw(chk)*@
+            "bLengthChange": false,
+            "paging": true,
+            stateSave: true,
+            responsive: true,
+
+            "ordering": true,
+
+            "ajax": {
+                "url":  "/Item/GetItemWisenewsuggshowroom",
+                "data": function (data) {
+                    data=searchData(data);
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+           "columns": [
+                {
+                    "data": "ItemID", "name": "ItemID",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                {
+                    "data": "itemcode", "name": "itemcode",
+                },
+                {
+                    "name": "itemname", "data": function (datas) {
+                       var plink = "";
+                       @{
+
+                          actData = "";
+                          //actData = "datas.stcost";
+
+
+                      actData += "<a  onclick=showitemdesc('+datas.ItemID+')  >'+datas.itemname+'</a> ";
+
+                      }
+                       return rest = '@Html.Raw(actData)';
+
+                       }
+                },
+                {
+                    "name": "MC", "data": "MC"
+                },
+                {
+                     "name": "pritotal", "data": function (data) {
+                        return (data.total / data.ConFactor +" "+ data.PriUnit);
+                     }
+                },
+                {
+                    "name": "total", "data": function (data) {
+                        return (data.total +" "+ data.SubUnit);
+                    }
+                },
+               {
+                   "name": "price", "data": function (datas) {
+                       var plink = "";
+                       @{
+
+                          actData = "";
+                          //actData = "datas.stcost";
+
+
+                      actData += "<a  onclick=LastSalePurList('+datas.ItemID+',1)  >'+datas.price+'</a> ";
+
+                      }
+                       return rest = '@Html.Raw(actData)';
+
+                       }
+
+
+               },
+                { "data": "BasePrice", "name": "BasePrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "mrp", "name": "mrp", render: $.fn.dataTable.render.number(",", ".", 2) },
+               {
+                   "name": "stcost", "data": function (datas) {
+                       var dat = datas;
+                      @{
+
+                          actData = "";
+                          //actData = "datas.stcost";
+
+                          if ( User.IsInRole("ItemPurchasePrice"))
+                          {
+                              //            actData += "<aa   >'+datas.stcost.toFixed(2)+'</aa> ";
+                              actData += "<a  onclick=LastSalePurList('+datas.ItemID+',2)  >'+datas.stcost+'</a> ";
+
+                          }
+                          else
+                          {
+                              actData = "";
+                          }
+                      }
+                       return rest = '@Html.Raw(actData)';
+
+
+                   },
+               }
+
+
+
+            ],
+            buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+            'colvis',
+            {
+                extend: 'print',//
+                exportOptions: {
+                    columns: ':visible'
+                },
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@file';
+                },
+                message: function () {
+                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>@file</h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                    return head;
+                },
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', //'excel',
+            {
+                extend: 'excel',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@file';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                       '' + $('#caddress').val() + '\n' +
+                       '@file';
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+            },
+          {
+              extend: 'pdf',//
+              title: "",
+              footer: true,
+              filename: function () {
+                  return '@file';
+              },
+              message: function () {
+                  var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     '@file';
+                  return head;
+              },
+              pageSize: 'A4',
+              exportOptions: {
+                  columns: ':visible'
+              },
+              customize: function (doc) {
+                  doc.pageMargins = [10, 10, 10, 10];
+                  doc.defaultStyle.fontSize = 10;
+                  doc.styles.tableHeader.fontSize = 10;
+                  doc.styles.title.fontSize = 12;
+
+                  // Header font and bg color
+                  doc.styles.tableHeader.fillColor = '#d3d3d3';
+                  doc.styles.tableHeader.color = 'black';
+                  // Remove spaces around page title
+                  doc.content[0].text = doc.content[0].text.trim();
+
+
+                  doc.styles['td:nth-child(1)'] = {
+                      width: '100%',
+                      'max-width': '100%'
+                  }
+
+                  //doc.content[1].table.widths = [
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //'8%',
+                  //]
+
+
+                  var objLayout = {};
+                  // Horizontal line thickness
+                  objLayout['hLineWidth'] = function (i) { return .5; };
+                  // Vertikal line thickness
+                  objLayout['vLineWidth'] = function (i) { return .5; };
+                  //// Horizontal line color
+                  //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                  //// Vertical line color
+                  //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                  // Left padding of the cell
+                  objLayout['paddingLeft'] = function (i) { return 4; };
+                  // Right padding of the cell
+                  objLayout['paddingRight'] = function (i) { return 4; };
+                  // Inject the object in the document
+                  doc.content[1].layout = objLayout;
+                  // Footer font and bg color
+                  doc.styles.tableFooter.fillColor = '#d3d3d3';
+                  doc.styles.tableFooter.color = 'black';
+              }
+
+
+          },
+
+            ],
+
+
+
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api(), data;
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                        i : 0;
+                };
+
+
+
+
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $('#UserTable tfoot').hide();
+                } else {
+                    $('#UserTable tfoot').show();
+                }
+            }
+        });
+    }
+    </script>
+    <script type="text/javascript">
+
+        function searchData(data) {
+
+            data.itemidd = $("#ddlItem").val();
+            data.ddmcc = $("#ddlMC").val();
+        }
+        $(document).ready(function () {
+            //var values = "20080,20081";
+            //$.each(values.split(","), function (i, e) {
+            //    $("#ddlMC option[value='" + e + "']").prop("selected", true);
+            //});
+            //$("#ddlMC").trigger("change");
+            //values = "2,5";
+            //$.each(values.split(","), function (i, e) {
+            //    $("#ddlMC option[value='" + e + "']").prop("selected", false);
+            //});
+            //$("#ddlMC").trigger("change");
+        });
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                //showtotal();
+                //showtotal2()
+                flag = 1;
+            }
+            else
+                oTable.draw();
+            oTablesugg.draw();
+            $('#StockReport').show();
+            //showtotal();
+            //showtotal2();
+        });
+    </script>
+
+
+}
+

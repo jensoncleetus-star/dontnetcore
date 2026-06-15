@@ -1,0 +1,206 @@
+﻿@model QuickSoft.ViewModel.BOMViewModel
+@{
+    ViewBag.Title = "Create Task Items";
+    ViewBag.SubTitle = "Task Items";
+    ViewBag.Active = "Master";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Create", "TaskItem", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Task Items</h3>
+           
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="box-body">
+            
+
+            <div>
+                <div class="table-responsive bomtable">
+                    <hr>
+                    <table class="table table-bordered table-hover" id="bomtable">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Item <i class="text-danger"></i></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Quantity <i class="text-danger"></i></th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbomitem"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="box-footer text-center clearfix">
+            @*<button type="submit" id="save" class="btn btn-info">
+                Save
+                </button>*@
+            <button type="submit" id="save" class="btn btn-success" tabindex="26">
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+            </button>
+            <button type="button" class="btn btn-default" onclick="@("window.location.href='/ProTask/MyTask'");">Cancel</button>
+            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+        </div>
+    }
+
+</div>
+@Html.Partial("../Common/_ModeItemCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/bom")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            ////startDate: new Date(minDate),
+            ////endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            $("#PrUnit").text("");
+            GetBranch();
+
+            addbomitem('addbomitem', '', '0');
+
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+                    var newOption = $('<option></option>');
+                    if ((data.PriUnit != data.SubUnit) && data.SubUnitId != null) {
+                        newOption.val(data.ItemUnitID).html(data.PriUnit);
+                        var newOption1 = $('<option></option>');
+                        newOption1.val(data.SubUnitId).html(data.SubUnit);
+                        if (data.ItemUnit) {
+                            if (data.ItemUnit == data.ItemUnitID)
+                                newOption.attr("selected", "selected");
+                            if (data.ItemUnit == c.SubUnitId)
+                                newOption1.attr("selected", "selected");
+                        }
+                        $('#Unit').html('');
+                        $('#Unit').append(newOption);
+                        $('#Unit').append(newOption1);
+
+                    } else {
+                        $('#Unit').html('');
+                        newOption.val(data.ItemUnitID).html(data.PriUnit);
+                        $('#Unit').append(newOption);
+                    }
+                    $("#PrUnit").text("/ " + data.PriUnit);
+                }
+            });
+        });
+
+        $('body').on('change', '#Unit', function (e) {
+            var textvalue = $("#Unit option:selected").text();
+            $("#PrUnit").text("/ " + textvalue);
+        });
+
+        $('body').on('change', '#BOMDate', function (e) {
+            var bomdate = $(this).val();
+            var MC = $("#ddlMC").val();
+            searchbomItem(bomdate, MC);
+        });
+        $('body').on('change', '#ddlMC', function (e) {
+            var MC = $(this).val();
+            var bomdate = $("#BOMDate").val();
+            searchbomItem(bomdate, MC);
+        });
+
+        AddItemPopUp();
+        ItemCategory();
+        ItemBrand();
+        //On Modal Create
+
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            Itemtype();
+
+            //var ItemName =
+            addbatsaleItem('addbatchItem', 'sale', ItemName, "0.00", "0.00", "");
+        });
+        // form submit
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if ($("#createForm").valid()) {
+                BOMSubmit(fnval);
+            }
+            else {
+                $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+            }
+        });
+
+        $('span').on('click', '.modal-create-lg', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create-lg');
+        });
+        //$('#modal-create-lg').on('submit', '#createitemform', function (e) {
+        //    e.preventDefault();
+        //    var url = $('#createitemform')[0].action;
+        //    var data = $('#createitemform').serialize();
+        //    createajax(url, data, '#modal-create-lg');
+        //});
+
+    </script>
+}
+
+
+

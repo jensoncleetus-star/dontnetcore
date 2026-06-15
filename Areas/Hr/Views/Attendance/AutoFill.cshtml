@@ -1,0 +1,215 @@
+﻿@model QuickSoft.ViewModel.AttendanceAutoFillViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Attendance Auto Fill</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <input type="hidden" id="SelEmployee" />
+                    <input type="hidden" id="EmployeeCode" />
+                    <div class="form-group">
+                        <label class="control-label col-sm-4">Department</label>
+                        <select class="form-control select2" id="ddlDepartment" name="ddlDepartment" required="required"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-4">Employee</label>
+                        @Html.ListBoxFor(m => m.Employees, (SelectList)ViewBag.Employee, new {@id= "ddlEmployee", @class = "form-control select2 textwidth multiple", @required = "required" })
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-4">Attendance Type</label>
+                        <select class="form-control select2" id="ddlAtType" name="ddlAtType" required="required"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-4">Value</label>
+                        <input type="number" id="AFValue" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label col-sm-4">Unit</label>
+                        <input type="text" id="AFUnit" class="form-control" readonly="readonly"/>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group text-center">
+                    <input type="button" class="btn btn-success" id="autofillbtn" value="Add">
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal">
+                    @*<div id="imgload" hidden>
+                        <img src="/img/loading.gif" alt="this slowpoke moves" width="20" />
+                    </div>*@
+                </div>
+            </div>
+            <script>
+                var newOption = new Option("All", 0, true, true);
+                // Append it to the select
+                $('#ddlEmployee').append(newOption).trigger('change');
+
+
+                $('body').on('change', '#ddlDepartment', function (e) {
+                    var deptId = $("#ddlDepartment").val();
+                    if (deptId != null) {
+                        $.ajax({
+                            url: '/Employee/GetAllEmployeeByDept',
+                            type: "GET",
+                            dataType: "JSON",
+                            data: { dept: deptId },
+                            success: function (result) {
+                                if (result != null) {
+                                    var chk = 0;
+                                    var values = new Array();
+                                    $.each(result, function (j, member) {
+                                        values.push(member.EmployeeId);
+                                        chk++;
+                                    });
+                                    $('#ddlEmployee').val(values).trigger("change");
+                                } else {
+                                    $('#ddlEmployee').val(null).trigger("change");
+                                }
+                            }
+                        });
+                    } else {
+                        $('#ddlEmployee').val(null).trigger("change");
+                    }
+                });
+
+                $("#ddlAtType").select2({
+                    placeholder: 'Search by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/AttendanceType/SearchAttendanceType",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "empty"
+
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 0;
+
+                            return {
+                                results: data,
+                                pagination: {
+                                    //more: (params.page * 10) < 50
+                                    more: true
+                                }
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $("#ddlEmployee").select2({
+                    placeholder: 'Search by Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchEmployeeWithAcc",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "all"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 0;
+
+                            return {
+                                results: data,
+                                pagination: {
+                                    //more: (params.page * 10) < 50
+                                    more: true
+                                }
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $("#ddlDepartment").select2({
+                    placeholder: 'Search by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Department/SearchDepartment",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "empty"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 0;
+                            return {
+                                results: data,
+                                pagination: {
+                                    more: true
+                                }
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                $('body').on('change', '#ddlEmployee', function (e) {
+                    $("#SelEmployee").val($("#ddlEmployee").val());
+                });
+
+                $('body').on('change', '#ddlAtType', function (e) {
+                    var typeID = $(this).val();
+                    $.ajax({
+                        url: '/AttendanceType/AttendanceTypeById',
+                        type: "GET",
+                        dataType: "JSON",
+                        data: { typeID: typeID },
+                        success: function (result) {
+                            $("#AFUnit").val(result.Unit);
+                        }
+                    });
+                });
+
+                $("#autofillbtn").click(function () {
+                    //$("#imgload").show();
+                    var dept = $("#ddlDepartment").val();
+                    var AFValue = $("#AFValue").val() || 0;
+                    var AFUnit = $("#AFUnit").val();
+                    var AtType = $("#ddlAtType").val();
+                    var SelEmp = $("#SelEmployee").val();
+
+                    //if (dept == null) {
+                    //    alert("Please Select Department..!!");}
+                    //else 
+                    if (SelEmp == "" || SelEmp == null) {
+                        alert("Please Select Employee..!!");}
+                    else if (AtType == null) {
+                        alert("Please Select Attendance Type..!!");
+                    } else {
+
+                        $.ajax({
+                            url: '/Hr/Attendance/GetAutoFillEmployee',
+                            dataType: 'json',
+                            data: { AFValue: AFValue, AFUnit: AFUnit, AtType: AtType, SelEmp: SelEmp },
+                            cache: true,
+                            success: function (data) {
+                                $('#addempitem').html('');
+                                $.each(data, function (i, item) {
+                                    addempitem('addempitem', '', item.EmpName, item.EmployeeId, item.AttType, item.AttendanceType, item.Value, item.Unit, item.EmpCode,'', item);
+                                });
+                                addempitem('addempitem', "", "", "", "", "", "", "");
+                            }
+                        });
+                        $(this).closest(".modal").modal('hide');
+                    }
+                });
+            </script>
+        </div>
+    </div>
+</div>
+

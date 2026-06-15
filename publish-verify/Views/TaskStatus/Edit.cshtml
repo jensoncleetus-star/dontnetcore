@@ -1,0 +1,104 @@
+@model QuickSoft.ViewModel.TaskStatusViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Task Status</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "TaskStatus", FormMethod.Post, new { id = "editform" }))
+            {
+        <script type="text/javascript">
+            $('form#editform').removeData("validator");
+            $('form#editform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#editform'));
+        </script>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.TaskStatusId)
+
+        <div class="row">
+            @Html.HiddenFor(model => model.Department)
+            @Html.HiddenFor(model => model.Designation)
+            <div class="col-md-12">
+                <div class="col-md-12 form-group">
+                    @Html.LabelFor(model => model.StatusName, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.StatusName, new { htmlAttributes = new { @class = "form-control", tabindex = 1, autofocus = "autofocus", required = "required" } })
+                </div>
+                <div class="col-md-6 form-group">
+                    @Html.Label("Department", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlDepartment", (MultiSelectList)ViewBag.Depart, "", new { @class = "form-control select2 ddlDepart textwidth", @name = "ddlDepartment[]", @multiple = "multiple" })
+                </div>
+                <div class="col-md-6 form-group">
+                    @Html.Label("Designation", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlDesignation", (MultiSelectList)ViewBag.Desgn, "", new { @class = "form-control select2 ddlDesign textwidth", @name = "ddlDesignation[]", @multiple = "multiple" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" class="btn btn-info col-sm-offset-4" value="Update" tabindex="2" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+        <script>
+            $(".ddlDepart").select2({
+                placeholder: 'Search Department by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Department/SearchDepartment",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $(".ddlDesign").select2({
+                placeholder: 'Search Designation by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Designation/SearchDesignation",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $('body').on('change', '#ddlDepartment', function (e) {
+                $("#Department").val($(this).val());
+            });
+            $('body').on('change', '#ddlDesignation', function (e) {
+                $("#Designation").val($(this).val());
+            });
+        </script>
+    }
+</div>

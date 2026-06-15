@@ -1,0 +1,136 @@
+﻿@model QuickSoft.ViewModel.JobCardViewModel
+@{
+    ViewBag.Title = "JobCard Setting";
+    ViewBag.SubTitle = "JobCard Setting";
+    ViewBag.Active = "Settings";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("JobCardSetting", "JobCard", FormMethod.Post, new { id = "createForm", role = "form" }))
+            {
+        <div class="box-header with-border">
+            <h3 class="box-title">JobCard Setting</h3>
+        </div>
+        <div class="box-body">
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+            <div class="col-md-12">
+                <div class="table-responsive bomtable">
+                    <table class="table table-bordered table-hover" id="itemtable">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Labour/Parts<i class="text-danger">*</i></th>
+                                <th class="text-center">Amount</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="additem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <label id="totalAmt"></label>
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-12 headeralign">
+                <div class="box-footer">
+                    <button type="submit" id="save" class="btn btn-info">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@Html.Partial("../Common/_ModeItemCreate")
+@section Scripts {
+    @Scripts.Render("~/js/jqueryval")
+
+@Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/jobcard")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            ItemCategory();
+            ItemBrand();
+            ItemTax();
+            ItemUnit();
+            ItemSubUnit();
+            additem('additem', '', "", "0.00", "0.00", "0");
+            $.ajax({
+                url: '/JobCard/GetDefaultItems',
+                dataType: 'json',
+                data: {},
+                cache: true,
+                success: function (data) {
+                    $('#additem').html('');
+                    $.each(data, function (i, item) {
+                        additem('additem', '', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                    });
+                    additem('additem', '', "", "0.00", "0.00", "0");
+                }
+            });
+        });
+
+         /* function for Create popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        AddItemPopUp();
+
+        // form submit
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if ($("#createForm").valid()) {
+                JcItemSubmit(fnval);
+            }
+            else {
+                $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+            }
+        });
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            ItemTax();
+            ItemUnit();
+            ItemSubUnit();
+        });
+
+    </script>
+}
+
+
+
+
+

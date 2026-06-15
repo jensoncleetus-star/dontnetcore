@@ -1,0 +1,161 @@
+﻿@{
+
+    ViewBag.Title = "BRS List";
+    ViewBag.SubTitle = "BRS";
+    ViewBag.Active = "Master";
+    var sl = 0;
+    string balance = "";
+    var colspan = 10;
+    string actData = "";
+    string delchk = "";
+    string Withdrawal = "";
+    string Deposit = "";
+    string BankAmount = "";
+}
+
+
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Bank Reconciliation</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("GetBRS", "BRS", FormMethod.Post, new { id = "fileupload", @class = "form-horizontal" }))
+        {
+            <div class="form-group">
+                <label class="control-label col-md-4">Select Bank Account</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("Account", (SelectList)ViewBag.AccName, "Select Bank Account", new { id = "ddlbank", @class = "form-control select2", @required = "required", data_msg_required = "The Bank Account field is required" })
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">Type of Entry</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("ShowType", (SelectList)ViewBag.ItemType, new { @class = "form-control select2", @onchange = "Itemtype();" })
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">From</label>
+                <div class="col-sm-4">
+                    <div class="input-group date">
+                        @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @required = "required", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">To</label>
+                <div class="col-sm-4">
+                    <div class="input-group date">
+                        @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @required = "required", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                    <div class="box-footer col-md-12">
+                        <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                        <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                    </div>
+        }
+    </div>
+</div>
+
+@Html.Partial("../Common/_ModalEdit")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/sweetalert2")
+}
+@section Scripts {
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/sweetalert2")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        //$('.date').datepicker({            
+        //    format: 'dd-mm-yyyy',
+        //    autoclose: true,
+        //    allowInputToggle: true
+        //})
+        function cal() {
+            $('.date').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                startDate: new Date(minDate),
+                endDate: new Date(maxmDate)
+            });
+        };
+        var Stype = $('#ShowType').val();
+        
+
+        $(document).ready(function () {
+            var minDate = new Date($("#Start").val());
+            var maxDate = new Date($("#End").val()); //alert(maxDate+' d '+minDate);
+            $("#ClearDate").datepicker();
+            $("#ddlbank").select2();
+            $('#Tabledata').hide();
+            $("#ShowType").select2();
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                startDate: new Date(minDate),
+                endDate: new Date(maxDate)
+            });
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true,
+                startDate: new Date(minDate),
+                endDate: new Date(maxDate)
+            });
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            if (priordate < minDate) {
+                $('#FromDate').datepicker('setDate', minDate);
+            } else {
+                $('#FromDate').datepicker('setDate', priordate);
+            }
+            $('#ToDate').datepicker('setDate', today);
+        });
+
+
+
+        
+        
+        /* function for EditDate popup */
+        $('div').on('click', '.modal-edit', function (e) {
+            cal();
+            e.preventDefault();
+            var url = $(this).attr('href');            
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            //$('#UserTable').DataTable().reload();
+        });
+        /* function for view detail popup */
+        $('#brsitem').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        })
+    </script>
+}

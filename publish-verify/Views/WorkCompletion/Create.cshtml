@@ -1,0 +1,1437 @@
+
+@model QuickSoft.ViewModel.QuotationViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Work Completion";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+
+}
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+<script>
+    //if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    //    window.location = "/Quotation/Createmobile";
+    //}
+</script>
+<style>
+    #normalinvoice tr > *:nth-child(5) {
+        display: none;
+    }
+     #normalinvoice tfoot > *:nth-child(1) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(6) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(7) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(8) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(9) {
+        display: none;
+    }
+     #normalinvoice tr > *:nth-child(10) {
+        display: none;
+    }
+</style>
+<div class="row">
+    @*<div class="col-md-4"><select name="selectquotation" id="selectquotation" onchange="loadsales(this)"></select></div>
+    <div class="col-md-4"><select name="selectsalesorder" id="selectsalesorder" onchange="loadsalesbyso(this)"></select></div>
+    <div class="col-md-4"><select name="selecttask" id="ddlTaskName" onchange="loadtaskitems2(this)"></select></div>*@
+</div>
+@using (Html.BeginForm("Create", "WorkCompletion", FormMethod.Post, new { id = "quotationform", role = "form", enctype = "multipart/form-data" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Work Completion</h3>
+
+            <div class="pull-right">
+               
+                    <a class="btn btn-success no-border" href="/WorkCompletion">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.QuotationId)
+        @Html.HiddenFor(model => model.ConTypeId)
+        @Html.HiddenFor(model => model.ConType)
+        <input type="hidden" id="VoucherType" value="Quotation" />
+        @*for showing the last datas of sales and purchase*@
+        @*Id's are used in saleinvoice2.js*@
+        <input type="hidden" id="LastSale" value="@ViewBag.LastTransInSale" />
+        <input type="hidden" id="LastPurchase" value="@ViewBag.LastTransInPurchase" />
+        <input type="hidden" id="LastSaleCount" value="@Model.SaleTransCount" />
+        <input type="hidden" id="LastPurchaseCount" value="@Model.PurTransCount" />
+        @*end*@
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="SelApprovedBy" />
+            <div class="row">
+
+
+               
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("WorkID No", null, new { @class = "control-label" }) *
+                    <div class="input-group input-group-sm">
+                        @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                        @Html.HiddenFor(model => model.QuotNo)
+                    </div>
+                </div>
+                @*<div class="col-sm-1 form-group ">
+                    @Html.Label("Revision", null, new { @class = "control-label" })
+                    <div class="input-group input-group-sm">
+                        @Html.EditorFor(model => model.revision, new { htmlAttributes = new { @class = "form-control" } })
+
+                    </div>
+                </div>*@
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.QuotDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @onchange = "nodays()" })
+                    </div>
+                </div>
+            
+
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required", @onchange = "GetCustomer()" })
+                            <span class="input-group-btn">
+                                <a href="/Customer/Create" class="btn btn-success btn-flat" target="_new"><i class="fa fa-1x fa-plus-circle"></i></a>
+                          </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, new { id = "ddlCustomer", @class = "form-control select2", @required = "required", @onchange = "GetCustomer()" })
+                    }
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.QuotCashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.QuotCashier, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                </div>
+                <div class="form-group col-md-4 hidden">
+                    @Html.Label("Invoice", null, new { @class = "control-label" })
+                    @Html.TextBoxFor(m=>m.InvoiceNo, new { @class = "form-control input-sm ",@id= "ddlInvoice" })
+                </div>
+                @*<div class="col-sm-2 form-group">
+                    @Html.Label("QuotationType", null, new { @class = "control-label" })
+
+
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.QuotationType, (SelectList)ViewBag.Quot, "", new { id = "ddlQuote", @class = "form-control select2" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/QuotationType/Create" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+
+                </div>*@
+            </div>
+            @*<div class="row">
+                @if (@ViewBag.EnableCRM == 0)
+                {
+                    <div class="col-sm-2 form-group">
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Leads"))
+                        {@Html.Label("Leads", null, new { @class = "control-label" })
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.lead, (SelectList)ViewBag.leads, "", new { id = "ddllead", @class = "form-control select2", @onchange = "Getlead()" })
+
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.Label("Lead", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.lead, (SelectList)ViewBag.leads, new { id = "ddllead", @class = "form-control select2", @onchange = "Getlead()" })
+                        }
+                    </div>
+
+                }
+
+                @if (@ViewBag.ProjCheck == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Project", null, new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.Proj, new { id = "ddlProject", @class = "form-control select2" })
+                                <span class="input-group-btn">
+                                    <a href="/Project/AddProject" class="modal-project btn btn-success btn-flat" title="Add Project"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.Proj, new { id = "ddlProject", @class = "form-control select2" })
+                        }
+                    </div>
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.ProTask, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "", new { id = "ddlProTask", @class = "form-control select2" })
+                    </div>
+                }
+
+                <div class="form-group col-md-1 no-paddingleft">
+                    @Html.Label("Validity", null, new { @class = "control-label" })
+                    <div class="input-group input-group-sm">
+                        @Html.EditorFor(model => model.QuotValidity, new { htmlAttributes = new { @class = "form-control text-right", @Value = "30" } })
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-flat">Days</button>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-sm-1 form-group">
+                    @Html.Label("Status", null, new { @class = "control-label" })
+                    <div class="input-group">
+
+
+                        @Html.DropDownList("qtnstatus", new SelectList(new List<SelectListItem>
+                               {
+                                   new SelectListItem() {Text = "Open", Value="0"},
+                                   new SelectListItem() {Text = "Closed", Value="1"},
+
+
+                               }, "Value", "Text"), new { @class = "form-control input-sm", @name = "Emirate" })
+                    </div>
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Exp Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.quotationexpdate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @onchange = "nodays()" })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+
+                }
+
+                @if (@ViewBag.BusinessType == "Scaffold")
+                {
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.PaymentTerms, new { @class = "control-label" })
+                        @Html.TextBoxFor(model => model.PaymentTerms, new { @class = "form-control", @placeholder = "Payment Terms", @rows = 2 })
+                    </div>
+                }
+                @if (@ViewBag.BusinessType == "Scaffold")
+                {
+                    <div id="HireType">
+                        <div class="form-group col-sm-2">
+                            @Html.LabelFor(m => m.HireType, new { @class = "control-label" }) *
+                            @Html.DropDownListFor(m => m.HireType, (SelectList)ViewBag.HiType, new { id = "ddlHType", @class = "form-control select2", @required = "required", data_msg_required = "The Hire type field is required" })
+                        </div>
+                        <div class="form-group col-md-2">
+                            @Html.Label("From Date", null, new { @class = "control-label" }) *
+                            <div class="input-group date">
+                                @Html.TextBoxFor(m => m.FromDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @onchange = "DateSet();", @required = "required", data_msg_required = "The Start Date field is required" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-2">
+                            @Html.Label("To Date", null, new { @class = "control-label" }) *
+                            <div class="input-group date">
+                                @Html.TextBoxFor(m => m.ToDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required", data_msg_required = "The End Date field is required" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (@ViewBag.MLAQuot == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Approved By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlApprovedBy", (SelectList)ViewBag.ApproveBy, "", new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                    </div>
+                }
+                <div class="clearfix"></div>
+            </div>*@
+            @*<div class="form-group col-md-12">
+                <input type="text" style="border:0px;width:100%" id="itemimagepath" />
+            </div>*@
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-sm-2">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="">
+                        </div>
+                    }
+                }
+            </div>
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover hidden" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists" width="40%">Item <i class="text-danger">*</i></th>
+                                <th class="text-center" width="27%">Unit</th>
+                                <th class="text-center" width="25%">Qty <i class="text-danger">*</i></th>
+                                <th class="text-center">Rate <i class="text-danger">*</i></th>
+                                <th class="text-center">Sub Total</th>
+                                <th class="text-center">Discount</th>
+                                <th class="text-center">TAX</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">Warranty</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemQty"></label>
+                                </td>
+                                <td class="text-right"></td>
+                                <td class="text-right">
+                                    <label id="SubTotal"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemDisc"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="total_tax_amount"></label>
+
+                                </td>
+                                <td class="text-right">
+                                    <label id="total"></label>
+
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        @*@if (ViewBag.CheckMail == 0)
+                        {
+                            <div class="form-group">
+                                @Html.Label("To", null, new { @class = "control-label" })
+                                @Html.TextAreaFor(m => m.CustomerEmail, new { @class = "form-control input-sm", tabindex = 3, rows = 2 })
+                                <span class="help-block" style="color:#f39c12;">Enter multiple email separated by space</span>
+                            </div>
+                            <div class="form-group">
+                                @Html.Label("Cc", null, new { @class = "control-label" })
+                                @Html.TextAreaFor(m => m.CreatedUserEmail, new { @class = "form-control input-sm", tabindex = 3, rows = 2 })
+                                <span class="help-block" style="color:#f39c12;">Enter multiple email separated by space</span>
+                            </div>
+                        }*@
+                    </div>
+
+                    <div class="col-md-8">
+                        @*<div class="form-group col-md-4 no-paddingleft">*@
+                            @*@Html.Label("Discount :", null, new { @class = "control-label" })
+                                @Html.EditorFor(model => model.QuotDiscount, new { htmlAttributes = new { @id = "Discount", @onchange = "discount_change();", @class = "form-control text-right", @value = "0.00" } })*@
+                        @*</div>*@
+                        <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                        
+                           
+                            @Html.HiddenFor(model => model.QuotGrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                            
+                        
+                        @*<div class="form-group">
+                            @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                            @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 4, @style = "height:150px" })
+                        </div>*@
+                        <div class="form-group">
+                            @*@Html.Label("Terms and Conditions", null, new { @class = "control-label" })*@
+                            @Html.TextAreaFor(m => m.TermsCondition, new { @class = "form-control input-sm textarea", rows = 6, @style = "height:150px" })
+                        </div>
+                        @if (@ViewBag.PrintLayout == 0)
+                        {
+                            <div class="form-group col-sm-5">
+                                @Html.Label("Print Layout", null, new { @class = "control-label" })
+                                @Html.DropDownListFor(m => m.PrintLayout, (SelectList)ViewBag.printlay, new { id = "ddlPrintlayout", @class = "form-control select2" })
+                            </div>
+                        }
+                        @if (@ViewBag.AutoSave == 0)
+                        {
+
+                            <input type="checkbox" id="autosave" checked hidden>
+                        }
+
+
+                        <div class="form-group no-padding text-right">
+                            <div class="checkbox-inline">
+                                <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                                <label class="control-label" for="hideheader">Hide Header In Print</label>
+                            </div>
+                        </div>
+                        <div class="form-group no-padding text-right">
+                            <div class="checkbox-inline">
+                                <input class="checkbox" data-val="true" id="showzeal" name="showzeal" type="checkbox" value="false">
+                                <label class="control-label" for="showzeal">Show Zeal In Print</label>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-12" hidden>
+                            @Html.Label("Documents", null, new { @class = "control-label" })
+                            <div class="file-loading">
+                                <input id="input-24" name="input24[]" type="file" multiple>
+                            </div>
+                        </div>
+                        <div class="form-group pull-right">
+                            <button type="submit" id="save" class="btn btn-success">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                            </button>
+
+
+                            <button type="submit" id="print" class="btn btn-success">
+                                <span class="glyphicon glyphicon-print"></span> Save And Print
+                            </button>
+
+                            @*<button type="submit" id="download" class="btn btn-success">
+                                <span class="glyphicon glyphicon-print"></span> Update And Download
+                            </button>*@
+                            @*@if (@ViewBag.CheckMail == 0)
+                            {
+                                <button type="submit" id="sendmail" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                                </button>
+                            }*@
+
+                            <button type="button" class="btn btn-warning" onclick="@("window.location.href='/home/Index'");">Cancel</button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@*this id used in saleinvoice2.js for capturing the lastsale and lastpurchase data*@
+<div id="LastSalePur"></div>
+<div id="batchStock"></div>
+
+@{var vModel = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @vModel)
+@Html.Partial("../Common/_ModalEdit", @vModel)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+@Html.Partial("../Common/_ModalCustomer")
+@Styles.Render("~/css/wysihtml5")
+
+@*@Html.Partial("_Invoice")*@
+@Html.Action("invoice", "InvoiceLayout", new { type = "WorkCompletion" })
+
+@section style{
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @*@Styles.Render("~/css/print")*@
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+
+<style>
+    .itemnote {
+        height: 200px !important;
+    }
+</style>
+
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    <script src="~/Content/js/WorkCompletion.js"></script>
+    <script type="text/javascript">
+
+        $('.date').datepicker({
+           format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+90d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        //function temp(obj) {
+        //    var taskid = $(obj).val();
+        //    $.ajax({
+        //        url: '/WorkCompletion/getText',
+        //        dataType: 'json',
+        //        data: { CustId: taskid },
+        //        cache: true,
+        //        success: function (data) {
+        //        $('.wysihtml5-sandbox').contents().find('body').html(data);
+        //        }
+        //    });
+        //    //var taskid = $(obj).val();
+        //    //alert(taskid);
+        //    //var temdata=$("#ddlTemplates").text();
+        //    //$("#TermsCondition").text(temdata).wysihtml5();
+        //}
+        function loadtaskitems2(obj) {
+            var val = $(obj).val();
+
+            window.location.href = "/WorkCompletion/Create/" + val + "/Sales";
+        }
+     
+        $(document).ready(function () {
+            var salefrom = '@ViewContext.RouteData.Values["type"]';
+            var EntryID = '@ViewContext.RouteData.Values["id"]';
+            if (salefrom == "Sales") {
+                $.ajax({
+                    url: "/CreditSale/GetSEItems",
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { SalesEntryID: EntryID },
+                    success: function (result) {
+                        $('#addinvoiceItem').html('');
+                        $.each(result, function (i, item) {
+                            addrow('addinvoiceItem', 'quot', 1, item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+
+                          //  addrow('addinvoiceItem', 'sales', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+                        addrow('addinvoiceItem', 'quot', 1, 0, 0, 0, 0);
+
+                        //var pro = "";
+                        //pro = '<option value="' + result[0].project[0].project + "' selected>" + result[0].project[0].projectname + "</option>";
+                        // $("#ddlProject").append(pro);
+                        //  $("#ddlProject").val(1);
+                        //$("#ddlProject").val(result[0].project[0].project).trigger("change");
+                        //$("#ddlProTask").val(result[0].project[0].taskid).trigger("change");
+
+                    }
+
+                });
+            }
+
+
+            $("#ddllead").select2({});
+            $(function () {
+              $("#TermsCondition").wysihtml5();
+       
+            });
+            $(function () {
+
+                  //  $(".Temp").wysihtml5();
+
+
+            });
+            $(function () {
+                //$("#Remarks").wysihtml5();
+            });
+            
+           
+            $("#ddlTemplates").select2({
+
+                placeholder: 'Search Task Name',
+                minimumInputLength: 0,
+                ajax: {
+
+                    url: "/WorkCompletion/SearchTemplates",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            customer: $("#ddlCustomer").val(),
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#selectquotation").select2({
+                placeholder: 'Search Quotation No',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Quotation/SearchQuotation",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            customer: $("#ddlCustomer").val(),
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#selectsalesorder").select2({
+                placeholder: 'Search Sales Order No',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/SalesOrder/SearchSalesOrder",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            customer: $("#ddlCustomer").val(),
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+            //$("#SaleType").select2();
+            $('#SaleType option:contains(POS)').remove();
+
+            if ('@ViewBag.Contype' != "Quote" && '@ViewBag.Contype' != "QuotExtend") {
+                $("#SaleType").prop('selectedIndex', 0);
+                $('#HireType').hide();
+            }
+            else {
+                var Type = $('#SaleType').val();
+                if (Type == 2) {
+                    $('#HireType').show();
+                }
+                else {
+                    $('#HireType').hide();
+                }
+            }
+           // HType();
+            GetBranch();
+            CallCustomer();
+            CallEmployee();
+            CallApprovedBy();
+
+            var QType = '@ViewContext.RouteData.Values["type"]';
+            var EntryID = '@ViewContext.RouteData.Values["id"]';
+
+
+
+
+            searchItem();
+            ItemCategory();
+            ItemBrand();
+
+            addrow('addinvoiceItem', 'quot', 1, 0, 0, 0, 0);
+
+        });
+         /* For hidden creditlimit*/
+        $('body').on('change', '#ddlCustomer', function (e) {
+
+         Count = 0;
+            var CustId = $('#ddlCustomer').val();
+            CustId = $(this).val();
+            @*var SId ='@ViewContext.RouteData.Values["SId"]';
+            alert(SId);*@
+            if (CustId != null) {
+
+             //Calling function to retrieve PMaintenance details based on AmcID
+             $.ajax({
+                 url: '/Quotation/GetFillDetails',
+                 dataType: 'json',
+                 data: { CustId: CustId  },
+                 cache: true,
+                 success: function (data) {
+
+
+                     CallEmployee();
+
+                    $('#ddlEmployee').select2('destroy');
+
+                         var opt = '<option value="' + data[0].ddlEmployee + '" selected>' + data[0].ddlEmployee + '</option>'
+
+
+                         $("#ddlEmployee").append(opt);
+                     $("#ddlEmployee").val(data[0].ddlEmployee);
+                     CallEmployee();
+
+                 }
+             });
+
+
+
+             oTable.draw();
+         }
+        });
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            var cust = $("#ddlCustomer").val();
+            if (cust != null) {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project Code Or Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProjectByCustomer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                customer: cust,
+                                x: "--No Project--"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                    templateResult: projectFormatResult,
+                    templateSelection: projectFormatSelection,
+                });
+            }
+
+        });
+
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+        //sales type change
+        $('body').on('change', '#SalesType', function (e) {
+            var type = $(this).val();
+            ptypechange(type);
+        });
+
+
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#projectform', function (e) {
+            e.preventDefault();
+            var url = $('#projectform')[0].action;
+            var data = $('#projectform').serialize();
+            createajax(url, data, '#modal-project');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+
+        function GetCustomer() {
+            var CustomerId = $('#ddlCustomer').val();
+            if (CustomerId != null) {
+                $.ajax({
+                    url: '/Customer/GetCustomerEmailById',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { CustID: CustomerId },
+                    success: function (result) {
+                        $("#CustomerEmail").val(result.EmailId);
+                    }
+                });
+            }
+        }
+        function Getlead() {
+            var CustomerId = $('#ddlCustomer').val();
+            if (CustomerId != null) {
+                $.ajax({
+                    url: '/Customer/getlead',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { CustID: CustomerId },
+                    success: function (result) {
+                        $("#ddlcustomer").val(result.customerid);
+                    }
+                });
+            }
+        }
+
+        $("#ddlQuote").select2({
+            placeholder: 'Search QuotationType',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/QuotationType/SearchType",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: " Select QuotationType"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        $('#quotationform').on('submit', function (e) {
+            e.preventDefault();
+            var flag = 0;
+            $("#addbillsundry tr").each(function () {
+                var bsname = $(this).find('.bsname').text();
+                if (bsname != null) {
+                    if (bsname.search("VAT") != -1) {
+                        flag = 1;
+                    }
+                }
+            });
+            //if (flag == 0) {
+
+            //    alert("Select Vat");
+            //    return false;
+            //}
+            if ($("#quotationform").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+
+                var parameters = {};
+                var QNo = $('#QuotNo').val();
+                var BillNo = $('#BillNo').val();
+                var CustomerID = $('#ddlCustomer').val();
+
+                var QuotCashierID = $('#ddlEmployee').val();
+                var QuotDate = $('#QuotDate').val();
+                var Items = $('#ItemCount').val();
+                var ItemQuantity = $('#ItemQty').text();
+                var SubTotal = $('#SubTotal').text();
+                var Tax = $('#total_tax_amount').text();
+                var TotalTax = $('#total_tax_amount').text();
+                var Discount = $('#ItemDisc').text();
+                var GrandTotal = $('#GrandTotal').val();
+                var QuotValidity = $('#QuotValidity').val();
+                var tAndc = $('#TermsCondition').val();
+                var custMail = $('#CustomerEmail').val();
+                var CreatedUserEmail = $('#CreatedUserEmail').val();
+                var Remarks = $('#Remarks').val();
+                var Branch = $('#ddlBranch').val();
+                var Project = $("#ddlProject").val();
+                var SaleType = $('#SaleType').val();
+                var Start = $('#FromDate').val();
+                var End = $('#ToDate').val();
+                var HireType = $('#ddlHType').val();
+                var SalesType = $('#SalesType').val();
+                var PaymentTerms = $('#PaymentTerms').val();
+                var Task = $('#ddlProTask').val();
+
+
+                var ConTypeId = $('#ConTypeId').val();
+                var ConType = $('#ConType').val();
+
+                var ApprovedBy = $('#SelApprovedBy').val();
+                var expdate = $("#quotationexpdate").val();
+                var leadsid = $("#ddllead").val();
+                var quotationstatus = $("#qtnstatus").val();
+                var revision = $("#revision").val();
+                var quotationtype = $("#ddlQuote").val();
+                var Ref1 = "";
+                var Ref2 = "";
+                var Ref3 = "";
+                var Ref4 = "";
+                var Ref5 = "";
+                var Invoice = $("#ddlInvoice").val();
+                var autosave = "";
+                var check = "true";
+                if ('@ViewBag.AutoSave'=="active") {
+                    autosave = "autosave";
+                }
+                else {
+                    autosave = "false";
+                }
+
+
+
+                if ('@Model.FieldMap.Count' > 0) {
+                    Ref1 = $('#Ref1').val();
+                    Ref2 = $('#Ref2').val();
+                    Ref3 = $('#Ref3').val();
+                    Ref4 = $('#Ref4').val();
+                    Ref5 = $('#Ref5').val();
+                }
+                var Layout = $('#ddlPrintlayout').val();
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+                var HTMLtblbs = {
+                    getData: function (table) {
+                        var bsData = [];
+                        table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                            var cols = {};
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                itid = $(this).attr('data-name').split(' ')[0];
+                                itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                                cols[itid] = itval;
+                            });
+                            bsData.push(cols);
+                        });
+                        return bsData;
+                    }
+                }
+
+
+
+
+
+                var bsData = HTMLtblbs.getData($('#billsundry'));
+
+
+                var quotEntry = [CustomerID, QuotCashierID, QuotDate, Items, ItemQuantity,
+                TotalTax, Discount, GrandTotal,
+                SubTotal, Tax, QuotValidity, tAndc, custMail, CreatedUserEmail, QNo, BillNo, Remarks,
+                Branch, Project, SaleType, Start, End, HireType, SalesType, PaymentTerms, ConTypeId, ConType, Task, ApprovedBy,
+                    Ref1, Ref2, Ref3, Ref4, Ref5, Layout, expdate, leadsid, quotationstatus, revision, quotationtype, autosave, Invoice]
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+               /* var abc = [check];*/
+
+                parameters.array = data;
+                parameters.quotdata = quotEntry;
+                parameters.bsmodel = bsData;
+                parameters.action = fnval;
+              /*  parameters.test = "true";*/
+
+                if (fnval == "save" || fnval == "print" || fnval == "download" || (fnval == "sendmail" && custMail != "")) {
+
+
+                    $.ajax({
+                        async: true,
+                        cache: false,
+                        dataType: "json",
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        url: "/WorkCompletion/Create",
+                        data: JSON.stringify(parameters),
+                        beforeSend: function () {
+                            $("button").prop('disabled', true); // disable button
+                        },
+                        success: function (e) {
+
+
+                            var fileUpload = $("#input-24").get(0);
+                            var files = fileUpload.files;
+
+                            // Create FormData object
+                            var fileData = new FormData();
+
+                            // Looping over all files and add it to FormData object
+                            for (var i = 0; i < files.length; i++) {
+                                fileData.append(files[i].name, files[i]);
+                            }
+
+                            fileData.append('id', e.qtnid);
+                            /*fileData.append('abc', e.test);*/
+
+                            $.ajax({
+                                url: '/Quotation/UploadFiles',
+                                type: "POST",
+                                contentType: false, // Not to set any content header
+                                processData: false, // Not to process data
+                                data: fileData,
+                                success: function (result) {
+                                    if (fnval == "print") {
+                                        PrintInvoice(e, "", "inactive", "WorkCompletion");
+
+                                        setTimeout(function () { window.location.href = '/WorkCompletion/Create'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+
+                                        }
+                                    else if (fnval == "download") {
+                                        if ($('#showzeal').prop('checked') == true) {
+                                            var Item = 1;
+                                            window.location.href = '/Quotation/Download/' + e.qtnid + "?ItemId=" + Item;
+                                        }
+                                        else
+                                        {
+                                            window.location.href = '/Quotation/Download/' + e.qtnid;
+                                        }
+
+                                        $("button").prop('disabled', false);
+                                    }
+                                    else {
+                                        $('.ajax_response', res_success).text(e.message);
+                                        $('.AlertDiv').prepend(res_success);
+
+                                        setTimeout(function () { window.location.href = '/WorkCompletion/Create'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+
+                                        }
+
+
+                                    }
+
+
+
+                            });
+
+
+
+
+                            if (e.status == true) {
+                                if (fnval == "print") {
+                                   //printInvoice(e, "", "inactive", "Quotation");
+                                }
+                                else {
+                                  //$('.ajax_response', res_success).text(e.message);
+                                   //('.AlertDiv').prepend(res_success);
+                                }
+                                // window.location.href = '@Url.Action("Create", "Quotation")';
+                             //   setTimeout(function () { window.location.href = '/Quotation/Create'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+
+                            } else {
+                                $('.ajax_response', res_danger).text(e.message);
+                                $('.AlertDiv').prepend(res_danger);
+                                $("button").prop('disabled', false); // enable button
+                            }
+
+                        }
+                    });
+                } else {
+                    $('.ajax_response', res_danger).text("Please Enter Email Address");
+                    $('.AlertDiv').prepend(res_danger);
+                    $('#CustomerEmail').focus();
+                }
+
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        function savequt() {
+
+            var flag = 0;
+            $("#addbillsundry tr").each(function () {
+                var bsname = $(this).find('.bsname').text();
+                if (bsname != null) {
+                    if (bsname.search("VAT") != -1) {
+                        flag = 1;
+                    }
+                }
+            });
+            //if (flag == 0) {
+            //    alert("Select Vat");
+            //    //var a = $('#ddlCustomer').val();
+            //    //if (a == "")
+            //    //{
+            //    //    alert("Customer Plz..")
+
+            //    //}
+
+
+
+            //    return false;
+            //}
+
+            var Qtno = $('#BillNo').val();
+
+            $.ajax({
+                async: true,
+                cache: false,
+                url: "/Quotation/deleteexistingquotation",
+                dataType: 'json',
+                contentType: "application/json; charset=utf-8",
+                data: { qutno: Qtno },
+                cache: true,
+                success: function (data) {
+
+                       var fnval = "save";
+
+                    var parameters = {};
+
+                    var QNo = $('#QuotNo').val();
+                    var BillNo = $('#BillNo').val();
+                   var CustomerID = $('#ddlCustomer').val();
+
+                    var QuotCashierID = $('#ddlEmployee').val();
+                    var QuotDate = $('#QuotDate').val();
+                    var Items = $('#ItemCount').val();
+                    var ItemQuantity = $('#ItemQty').text();
+                    var SubTotal = $('#SubTotal').text();
+                    var Tax = $('#total_tax_amount').text();
+                    var TotalTax = $('#total_tax_amount').text();
+                    var Discount = $('#ItemDisc').text();
+                    var GrandTotal = $('#GrandTotal').val();
+                    var QuotValidity = $('#QuotValidity').val();
+                    var tAndc = $('#TermsCondition').val();
+                    var custMail = $('#CustomerEmail').val();
+                    var CreatedUserEmail = $('#CreatedUserEmail').val();
+                    var Remarks = $('#Remarks').val();
+                    var Branch = $('#ddlBranch').val();
+                    var Project = $("#ddlProject").val();
+                    var SaleType = $('#SaleType').val();
+                    var Start = $('#FromDate').val();
+                    var End = $('#ToDate').val();
+                    var HireType = $('#ddlHType').val();
+                    var SalesType = $('#SalesType').val();
+                    var PaymentTerms = $('#PaymentTerms').val();
+                    var Task = $('#ddlProTask').val();
+
+
+                    var ConTypeId = $('#ConTypeId').val();
+                    var ConType = $('#ConType').val();
+
+                    var ApprovedBy = $('#SelApprovedBy').val();
+                    var expdate = $("#quotationexpdate").val();
+                    var leadsid = $("#ddllead").val();
+                    var quotationstatus = $("#qtnstatus").val();
+                    var revision = $("#revision").val();
+                    var quotationtype = $("#ddlQuote").val();
+                    var Ref1 = "";
+                    var Ref2 = "";
+                    var Ref3 = "";
+                    var Ref4 = "";
+                    var Ref5 = "";
+                    var autosave = "autosave";
+                    if ('@Model.FieldMap.Count' > 0) {
+                        Ref1 = $('#Ref1').val();
+                        Ref2 = $('#Ref2').val();
+                        Ref3 = $('#Ref3').val();
+                        Ref4 = $('#Ref4').val();
+                        Ref5 = $('#Ref5').val();
+                    }
+                    var Layout = $('#ddlPrintlayout').val();
+                    var HTMLtbl = {
+                        getData: function (table) {
+                            var data = [];
+                            table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                                var cols = [];
+                                $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                    cols.push($(this).val());
+                                });
+                                data.push(cols);
+                            });
+                            return data;
+                        }
+                    }
+                    var HTMLtblbs = {
+                        getData: function (table) {
+                            var bsData = [];
+                            table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                                var cols = {};
+                                $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                    itid = $(this).attr('data-name').split(' ')[0];
+                                    itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                                    cols[itid] = itval;
+                                });
+                                bsData.push(cols);
+                            });
+                            return bsData;
+                        }
+                    }
+                    var bsData = HTMLtblbs.getData($('#billsundry'));
+
+
+                    var quotEntry = [CustomerID, QuotCashierID, QuotDate, Items, ItemQuantity,
+                        TotalTax, Discount, GrandTotal,
+                        SubTotal, Tax, QuotValidity, tAndc, custMail, CreatedUserEmail, QNo, BillNo, Remarks,
+                        Branch, Project, SaleType, Start, End, HireType, SalesType, PaymentTerms, ConTypeId, ConType, Task, ApprovedBy,
+                        Ref1, Ref2, Ref3, Ref4, Ref5, Layout, expdate, leadsid, quotationstatus, revision, quotationtype,autosave]
+
+
+
+
+                    var data = HTMLtbl.getData($('#normalinvoice'));
+
+                    parameters.array = data;
+                    parameters.quotdata = quotEntry;
+                    parameters.bsmodel = bsData;
+                    parameters.action = fnval;
+
+
+
+                    $.ajax({
+                        async: true,
+                        cache: false,
+                        dataType: "json",
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        url: "/WorkCompletion/CreateAutosave",
+                        data: JSON.stringify(parameters),
+                        beforeSend: function () {
+
+                        }
+
+
+
+
+                    });
+                }
+
+            });
+
+
+
+
+        }
+
+
+        //keep stock change
+        function chgkeepstok() {
+            //$('#KeepStock').click(function () {
+            if ($('#KeepStock').prop('checked') == true) {
+                $('.StockSection').show();
+            }
+            else {
+                $('.StockSection').hide();
+            }
+            //  });
+        }
+
+        AddItemPopUp();
+        ProjectPopup();
+        CustomerPopup();
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+
+        });
+        function HType() {
+            var Type = $('#SaleType').val();
+            var method;
+            if (Type == 2) {
+                $('#HireType').show();
+                method = "Hire";
+            }
+            else {
+                $('#HireType').hide();
+                method = "Sale";
+            }
+            saletypechange(Type, method);
+
+            //hirerate
+            var Stype = (($('#SaleType').val()) == 1) ? "Sale" : "Hire";
+            //if ($('#SaleType').val() == 1) {
+                $.ajax({
+                    url: '/Quotation/GetHireInvoiceNum',
+                    data: { hiretype: Stype },
+                    type: "POST",
+                    dataType: "JSON",
+                    success: function (Hresult) {
+                        $('#BillNo').val(Hresult);
+                    }
+                });
+            //}
+        }
+        //$('body').on('change', '#ddlHType', function (e) {
+        //    //var type = $(this).val();
+        //    var method = "Hire";
+        //    var type = $('#ddlHType').val(); alert(method);
+        //    saletypechange(type, method);
+        //});
+        //function HType() {
+        //    var Type = $('#SaleType').val();
+        //    if (Type == 2) {
+        //        $('#HireType').show();
+        //    }
+        //    else {
+        //        $('#HireType').hide();
+        //    }
+        //    ptypechange(Type);
+        //}
+        //function DateSet() {
+        //    var ndate = $('#FromDate').val();
+
+        //    $('#ToDate').datepicker({
+        //        startDate: ndate,
+        //        format: 'dd-mm-yyyy',
+        //        autoclose: true,
+        //        allowInputToggle: true
+        //    });
+
+        //}
+    </script>
+    <script type="text/javascript">
+
+        function nodays() {
+
+
+            var date1 = $("#QuotDate").val();
+            var dateParts = date1.split("-");
+            var dateObject1 = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+            var date2 = $("#quotationexpdate").val();
+            var dateParts2 = date2.split("-");
+            var dateObject2 = new Date(+dateParts2[2], dateParts2[1] - 1, +dateParts2[0]);
+            //var Difference_In_Time = dateParts2.getTime() - dateObject1.getTime();
+
+
+            // var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+            const diffTime = Math.abs(dateObject2 - dateObject1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            $("#QuotValidity").val(diffDays);
+
+        }
+
+        $("#input-24").fileinput({
+            maxFilePreviewSize: 10240,
+            autoReplace: true,
+            maxFileCount: 10,
+            showUploadedThumbs: true,
+            showUpload: false,
+            overwriteInitial: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+                'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showUpload: false,
+            },
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        });
+        $("#ddllead").select2({
+            placeholder: 'Search Customer by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Customer/Searchlead",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        customer: $("#ddlCustomer").val(),
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+    </script>
+}
+

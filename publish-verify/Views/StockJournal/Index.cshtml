@@ -1,0 +1,683 @@
+
+@model QuickSoft.ViewModel.StockJournalViewModel
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "StockJournal";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List StockJournal </h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("StockJournal Entry"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/StockJournal/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <input type="hidden" id="remId" />
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        @Html.Label("Material center from", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.MCFrom, (SelectList)ViewBag.MC, "", new { id = "ddlMCFrom", @class = "form-control select2" })
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        @Html.Label("Material center to", null, new { @class = "control-label" }) *
+                        @Html.DropDownListFor(m => m.MCTo, (SelectList)ViewBag.MC, "", new { id = "ddlMCTo", @class = "form-control select2" })
+                    </div>
+                    <div class="col-sm-2 form-group">
+                        @Html.Label("Employee", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Employee, (SelectList)ViewBag.Emp, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                    </div>
+                </div>
+                @if (ViewBag.MLASJour == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Approval Status", null, new { @class = "control-label" })
+                        @Html.DropDownList("ApprovalStatus", (SelectList)ViewBag.AppStat, "All", new { id = "ApprovalStatus", @class = "form-control" })
+                    </div>
+                }
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAllStkJournal", "StockJournal", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="SJTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Voucher No</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="4">Employee</td>
+                        <td data-priority="2">From Material Center</td>
+                        <td data-priority="5">To material Center</td>
+                        <td data-priority="5">Description</td>
+                        <td data-priority="4">Created By</td>
+                        <td data-priority="3">Approval Status</td>
+                        <td data-priority="2">Action</td>
+                        <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        if (User.IsInRole("Dev") || User.IsInRole("Delete StockJournal"))
+        {
+            <div class="box-footer text-right col-md-12" id="sub">
+                <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+            </div>
+        }
+    }
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-aqua">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Status Updation History</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-hover" id="UserTableInfo">
+                        <thead>
+                            <tr class="bg-aqua">
+                                <td>Status</td>
+                                <td>Updated By</td>
+                                <td>Requested By</td>
+                                <td>Date</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Reminder/Index")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+
+        $(document).ready(function () {
+            $('#advsearch').hide();
+
+            //bind to Material Centre
+            $("#ddlMCFrom").select2({
+                placeholder: 'Items Generated ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+        var oTable = $('#SJTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/StockJournal/GetStockJournal',
+                "data": function (data) {
+                    data.MCFrom = $('#ddlMCFrom').val();
+                    data.MCTo = $('#ddlMCTo').val();
+                    data.Employee = $('#ddlEmployee').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.appstat = $('#ApprovalStatus').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [8, 9],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "Id", "name": "Id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "Voucher", "name": "Voucher" },
+                 {
+                     "data": "SJDate", "name": "SJDate",
+                     "render": function (data) {
+                         var date = convertToDate(data);
+                         return date.toString();
+                     }
+                 },
+                { "data": "Employee", "name": "Employee" },
+                { "data": "MCFrom", "name": "MCFrom" },
+                { "data": "MCTo", "name": "MCTo" },
+                { "data": "Description", "name": "Description" },
+
+                { "data": "UserName", "name": "UserName" },
+                {
+                    "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                        var status = "";
+                        var cls = "";
+                        if (data.app.length > 0 || (data.Approval == true && '@ViewBag.MLASJour' == 'active')) {
+                            if (data.ApprovalStatus == "0") {
+                                status = '<span class="badge bg-green">Approved</span>';
+                            }
+                            else if (data.ApprovalStatus == "1") {
+                                status = '<span class="badge bg-red">Rejected</span>';
+                            }
+                            else if (data.ApprovalStatus == "2") {
+                                status = '<span class="badge bg-orange">Pending</span>';
+                            }
+                            return '<a  class="Updation" onclick="details(' + data.Id + ')"  title="View Status">' + status + ' </a>';
+                        } else { return null; }
+                    }
+                },
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit StockJournal"))
+                                {
+                                    actData += "<a href=\"/StockJournal/Edit/'+ data.Id +'\" title=\"Edit StockJournal\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+}
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete StockJournal"))
+                                {
+                                    actData += "<a class=\"modal-delete\" href=\"/StockJournal/Delete/'+ data.Id +'\" title=\"Delete StockJournal\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                }
+                                    }
+
+                            rest += '@Html.Raw(actData)';
+                            if (data.Approval == true && '@ViewBag.MLASJour' == 'active') {
+                                @{
+                                 actData = "";
+                                 actData = "<a class=\"modal-edit\"  href=\"/StockJournal/EditStatus/'+ data.Id +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+                             }
+                                rest += '@Html.Raw(actData)';
+                            }
+
+                            if ("@ViewBag.Remind" == "active") {
+                                @{
+                                   actData = "";
+                                   actData += "<a class=\"UpdationRe\" onclick=\"detailsRemind(' + data.Id + ')\" title=\"View Reminder\"><i class=\"fa-lg fa fa-bell\" ></i></a> ";
+                                   actData += "<a class=\"modal-create\" href=\"/Reminder/AddReminder/'+ data.Id +'/StkJnl\" title=\"Add Reminder\"><i class=\"fa-lg fa fa-sticky-note\" ></i></a> ";
+                               }
+                                rest += '@Html.Raw(actData)';
+                            }
+                            return rest;
+                        }
+                    },
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+                            @{
+                                    if (User.IsInRole("Dev") || User.IsInRole("Delete StockJournal"))
+                                    {
+                                        delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.Id +'></input>";
+                                    }
+                                }
+                            return rest = '@Html.Raw(delchk)';
+                        }
+                    },
+            ], "drawCallback": function (settings) {
+                var table = $('#SJTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var statcol = '@ViewBag.MLASJour';
+        if (statcol == "active") {
+            var column1 = oTable.column(8);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(8);
+            column1.visible(false);
+        }
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+        /* function for view detail popup */
+        $('#SJTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            detailsRemind($("#remId").val());
+        });
+
+        /* function for delete popup */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            detailsRemind($("#remId").val());
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+                $('#Voucher').val("");
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                $('#ddlEmployee').val(0);
+                $('#MCTo').val(0);
+                $('#MCFrom').val(0);
+                oTable.draw();
+            }
+
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+
+            $("#ddlMCTo").select2({
+                placeholder: 'Search by Material Center to',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlMCFrom").select2({
+                placeholder: 'Search by Material Center to',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlEmployee").select2({
+                placeholder: 'Search Employee by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('.table').on('click', '.modal-close-btn', function () {
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        });
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        function details(d) {
+            var MCId = d;
+            var oTable = $('#UserTableInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "ajax": {
+                    "url": '/StockJournal/GetAllStatusUpdation',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { MCId: MCId }
+                },
+                "columns": [
+                        {
+                            "name": "ApprovalStatus", "data": function (data) {
+                                var datas = "";
+                                if (data.ApprovalStatus == "Approved") {
+                                    datas += '<span class="badge bg-green">Approved</span>';
+                                }
+                                if (data.ApprovalStatus == "Rejected") {
+                                    datas += '<span class="badge bg-red">Rejected</span>';
+                                }
+                                return datas;
+                            }
+                        },
+                      { "data": "User", "name": "User" },
+                      { "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertDateTime(data); } },
+                      { "data": "Remarks", "name": "Remarks" },
+                ],
+                searching: false
+            });
+            oTable.destroy();
+        }
+
+        $('div').on('click', 'a.UpdationRe', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-containerRe');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            var date = new Date();
+            date.setDate(date.getDate());
+            $('.datepicker').datepicker({
+                startDate: date,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            jQuery.validator.methods["date"] = function (value, element) { return true; }
+            $(".timepicker").timepicker({
+                showInputs: true,
+                defaultTime: false,
+                format: 'dd-mm-yyyy'
+            });
+            $("#ddlAssignedTo").select2({
+                placeholder: 'Search User',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployeeUser",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        function detailsRemind(d) {
+            if (d != "") {
+                $("#remId").val(d);
+                var oTable1 = $('#RemindInfo').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "sortable": true,
+                    "ordering": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": '/Reminder/GetAllReminder',
+                        "type": "POST",
+                        "datatype": "json",
+                        "data": { Id: d, type: "StkJnl" }
+                    },
+                    "order": [[0, "desc"]],
+
+                    "columns": [
+                         {
+                             "data": "ReminderId", "name": "ReminderId",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                      { "data": "Note", "name": "Note" },
+                      { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertDateTime(data); } else { return "" } } },
+                        //{
+                      //    "name": "AssignedTo", "data": function (data) {
+                      //        var datas = "";
+                      //        $.each(data.AssignedTo, function (i, item) {
+                      //            if (datas != "") {
+                      //                datas += ", ";
+                      //            }
+                      //            datas += item.FirstName + " " + item.LastName;
+                      //        });
+                      //        return datas;
+                      //    }
+                      //},
+                     // { "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedBy", "name": "CreatedBy" },
+                      { "data": "RStatus", "name": "RStatus" },
+                      {
+                          "name": "ReminderId", "data": function (data) {
+                              var rest = "";
+                              @{
+                                actData = "";
+                                actData += "<a class=\"modal-edit\"  href=\"/Reminder/Edit/'+ data.ReminderId +'\" title=\"Edit Reminder\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                actData += "<a class=\"modal-delete\" href=\"/Reminder/Delete/'+ data.ReminderId +'\" title=\"Delete Reminder\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                              rest += '@Html.Raw(actData)';
+                              return rest;
+                          }
+                      }
+                    ],
+                });
+                oTable1.destroy();
+            }
+        }
+    </script>
+}

@@ -1,0 +1,197 @@
+@model QuickSoft.ViewModel.SalaryStructuresViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Salary Structure";
+    ViewBag.Active = "Payroll";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("EditSalaryStructure", "SalaryStructure", FormMethod.Post, new { id = "editForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Salary Structure</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("SalaryStructure List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/SalaryStructure">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(m=>m.SalaryStrId)
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.EmployeeId, new { @class = "control-label" })*
+                    @Html.DropDownListFor(m => m.EmployeeId, (SelectList)ViewBag.Employ, new { id = "ddlEmployee", @class = "form-control select2" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.EFDate, new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.EFDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="row">
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Branch", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        </div>
+                    </div>
+                }
+
+            </div>
+            <div class="row">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Pay Head <i class="text-danger">*</i></th>
+                                <th class="text-center">Rate</th>
+                                <th class="text-center">Per </th>
+                                <th class="text-center">Pay Head Type</th>
+                                <th class="text-center">Calculation Type</th>
+                                <th class="text-center">Computed On</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addempitem"></tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-12 pull-right">
+                <div class="form-group pull-right">
+                    <button type="submit" id="update" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Hr/SalaryStructure/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@{
+    var Modelv = "modal-lg";
+}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/salarystructure")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            CallEmployeeAcc();
+
+            var SalID = getQueryString('');
+            if (SalID != null) {
+                $.ajax({
+                    url: '/Hr/SalaryStructure/GetSalaryStructureById',
+                    dataType: 'json',
+                    data: { SalID: SalID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addempitem').html('');
+                        $.each(data, function (i, item) {
+                            addempitem('addempitem', '', item.PayHead, item.PayHeadId, item.Rate, item.Per, item.HeadType, item.CalType, item.Computed, item);
+                        });
+                        addempitem('addempitem', "", "", "", "", "", "");
+                    }
+                });
+            }
+            addempitem('addempitem', "", "", "", "", "", "");
+        });
+
+
+        /* function for Create popup */
+
+        $('table').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('#editForm').on('submit', function (e) {
+            e.preventDefault();
+
+            if ($("#editForm").valid()) {
+                var url = $('#editForm')[0].action;
+                var formData = new FormData(this);
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '@Url.Action("Index", "SalaryStructure")';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+
+        });
+    </script>
+}
+

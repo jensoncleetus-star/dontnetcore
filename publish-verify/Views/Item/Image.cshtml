@@ -1,0 +1,161 @@
+﻿@model IEnumerable<QuickSoft.Models.ItemImage>
+@{
+    Layout = null;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>View Item Image</h4>
+    <p class="pull-right">
+        <a href="/Item/ImageAdd/@Request.Url.Segments.Last()" class="btn btn-info modal-link-create"><i class="glyphicon glyphicon-plus"></i> Add New</a>
+    </p>
+</div>
+<div class="modal-body">
+    <table class="table table-bordered table-hover" id="UserTable" width="100%">
+        <thead>
+            <tr class="bg-gray">
+                <td>Image</td>
+                <td>Image Name</td>
+                <td>Action</td>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr id="@Html.DisplayFor(modelItem => item.ItemImageID)">
+                    <td>
+                        @*<img src="~/uploads/itemmages/@Html.DisplayFor(modelItem => item.ItemID)/@Html.DisplayFor(modelItem => item.FileName)" width="50" height="50" />*@
+                        <img width="500" alt="@Html.DisplayFor(modelItem => item.FileName)" title="Click to Open" src="~/uploads/itemimages/@Html.DisplayFor(modelItem => item.ItemID)/@Html.DisplayFor(modelItem => item.FileName)" ID="ImageButton11" />
+
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.FileName)
+                    </td>
+                    <td>
+                        @Html.ActionLink("Delete", "ImageDelete", new { id = item.ItemImageID }, new { @class = "modal-link-delete" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div id="modal-container3" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    function fadeAlert() {
+        window.setTimeout(function () {
+            $(".alert-message").alert("close");
+        }, 5000);
+    }
+
+    $(document).ready(function () {
+        $('.table').on('click', '.modal-link-delete', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container3');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-container3').on('submit', '#popupFormItemImage', function (e) {
+            var url = $('#popupFormItemImage')[0].action;
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#popupFormItemImage').serialize(),
+                success: function (data) {
+                    if (data.status) {                        
+                        $('#modal-container3').modal('hide');
+                        $('.ajax_response', res_success).text(data.message);
+                        $('.AlertDiv').prepend(res_success);
+                        $('#' + data.Id).remove();
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+            e.preventDefault();
+        })
+
+        $('div').on('click', '.modal-link-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container3');
+            $(this).attr('data-toggle', 'modal');
+        });        
+
+        $('#modal-container3').on('submit', '#popupFormItemImageAdd', function (e) {            
+            var url = $('#popupFormItemImageAdd')[0].action;
+            var formData = new FormData($('#popupFormItemImageAdd')[0]);           
+           
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    if (data.status) {                        
+                        $('#modal-container3').modal('hide');
+                        $('.ajax_response', res_success).text(data.message);
+                        $('.AlertDiv').prepend(res_success);
+                        $('#modal-container2').clearQueue();
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+            e.preventDefault();
+        })
+
+
+        $('body').on('click', '.closed', function () {
+            $('#modal-container3').modal('hide');
+            $('#modal-container3').removeData('bs.modal');
+        });
+
+        $('#modal-container3').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+    });
+
+
+    jQuery(function ($) {
+        var $overflow = '';
+        var colorbox_params = {
+            rel: 'colorbox',
+            reposition: true,
+            scalePhotos: true,
+            scrolling: false,
+            previous: '<i class="ace-icon fa fa-arrow-left"></i>',
+            next: '<i class="ace-icon fa fa-arrow-right"></i>',
+            close: '&times;',
+            current: '{current} of {total}',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            onOpen: function () {
+                $overflow = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+            },
+            onClosed: function () {
+                document.body.style.overflow = $overflow;
+            },
+            onComplete: function () {
+                $.colorbox.resize();
+            }
+        };
+
+        $('.ace-thumbnails [data-rel="colorbox"]').colorbox(colorbox_params);
+        $("#cboxLoadingGraphic").html("<i class='ace-icon fa fa-spinner orange fa-spin'></i>");//let's add a custom loading icon
+
+
+        $(document).one('ajaxloadstart.page', function (e) {
+            $('#colorbox, #cboxOverlay').remove();
+        });
+    })
+</script>

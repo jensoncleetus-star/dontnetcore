@@ -1,0 +1,564 @@
+@model QuickSoft.ViewModel.ItemTaskViewModel
+@{
+    ViewBag.Title = "Create Task Items";
+    ViewBag.SubTitle = "Task Items";
+    ViewBag.Active = "Master";
+    string actData = "";
+    bool userRole = false;
+    string delchk = "";
+    string deleteBTn = "";
+
+    userRole = true;
+    deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+           "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+            "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+}
+
+
+<div class="box box-info">
+    @using (Html.BeginForm("Create", "ItemTask", FormMethod.Post, new { id = "createform", role = "form" }))
+    {
+        <div class="box-header with-border">
+
+            <input type="hidden" id="ddlMC" value="@(ViewBag.MaterialId)" />
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="box-body">
+            <div style="display:none;">
+                <div class="row">
+
+                    <div class="col-md-12">
+                            <div class="form-group">
+                                @Html.Label("Task Name", null, htmlAttributes: new { @class = "control-label" })
+                                @Html.DropDownListFor(model => model.taskid, (SelectList)ViewBag.TaskName, new { id = "ddlItem", @disabled = true, @class = "form-control select2", @required = "required" })
+
+                            </div>
+                            <div class="form-group">
+                                @Html.Label("Material Center", null, htmlAttributes: new { @class = "control-label" })
+                                @Html.DropDownListFor(model => model.MaterialId, (SelectList)ViewBag.MCbag, new { id = "ddlMC", @readonly = true, @class = "form-control select2", @required = "required" })
+
+                            </div>
+                        </div>
+                   
+                    <div class="col-sm-2 form-group">
+                        @Html.Label("Date", null, htmlAttributes: new { @class = "control-label" })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.TaskDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        </div>
+                    </div>
+
+
+
+                </div>
+            </div>
+            <div class="pull-right">
+
+                        <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                        <a class="btn btn-info no-border" href="@Url.Action("MyTask","ProTask",new { id=ViewBag.Remind})">
+
+                            <i class="glyphicon glyphicon-plus"></i> MY Task
+                        </a>
+
+                </div>
+            <br />
+            <br />
+            <br />
+            <br />
+            <div>
+                <div class="table-responsive bomtable">
+                    <hr>
+                    <table class="table table-bordered table-hover" id="bomtable">
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width:5%">S/N</th>
+                                <th class="text-center">Item <i class="text-danger"></i><div style="width:280px;height:10px"></div></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Quantity <i class="text-danger"></i></th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbomitem"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="box-footer text-center clearfix">
+                @*<button type="submit" id="save" class="btn btn-info">
+                    Save
+                    </button>*@
+                <button type="submit" id="save" class="btn btn-success" tabindex="26">
+                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                </button>
+
+                <button type="button" class="btn btn-default can-btn" tabindex="29" onclick="@("window.location.href='/ProTask/MyTask'");">Cancel</button>
+                @*<button type="button" class="btn btn-default" onclick="@("window.location.href='/ProTask/'MyTask");">Cancel</button>*@
+                <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+            </div>
+        </div>
+        }
+
+</div>
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/additem")
+
+    @Scripts.Render("~/js/bom2")
+    <script type="text/javascript">
+        count = 0;
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+       
+        $('#createform').on('submit', function (e) {
+            var cn = $('.quty').length - 2;
+            e.preventDefault();
+            var qtyflag = 0;
+            $.each($('.quty'), function (i, data) {
+                if ((data.value <= 0 || data.value=="") && i <= cn)
+                    qtyflag = 1
+
+            });
+            if (qtyflag == 0) {
+              
+                $("#save").prop('disabled', true);
+                var url = $('#createform')[0].action;
+                var data = $('#createform').serialize();
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: data,
+                    success: function (data) {
+
+                        window.location.href = '/ProTask/MyTask';
+
+                    }
+                });
+            }
+            else {
+                alert("please Enter Quantity");
+            }
+        });
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            ////startDate: new Date(minDate),
+            ////endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        function addbomitemtask(t, action, Quantity, Unit, Item, ItemWithCode, itemdata) {
+            Quantity = 0;
+            if (count == limits) alert("You have reached the limit of adding " + count + " inputs");
+            else {
+                var data = "";
+                var Type = "";
+                var Option = "";
+                var readonly = "";
+                var row = "<tr class='item_' id='item_" + count + "'>";
+                var slno = $('#addbomitem tr').length + 1;
+                var a = "item_name" + count,
+                    tabindex = count * 4;
+                tab1 = tabindex + 1;
+                tab2 = tabindex + 2;
+                tab3 = tabindex + 3;
+                tab4 = tabindex + 4;
+                if (Item != null) {
+                    row = "<tr class='item_" + Item + "' id='item_" + count + "'>";
+                    Option = "<option value='" + Item + "'>" + ItemWithCode + "</option>";
+                }
+                if (count == 1) {
+                    required = 'required="required"';
+                }
+                if (action != '') {
+                    type = action;
+                }
+                var itemaddbtn = "<span class='input-group-btn'><a type='button' href='/Item/AddItem' class='modal-create-lg btn btn-success btn-flat'><i class='fa fa-1x fa-plus-circle'></i></a></span>";
+
+                data = "<td class='text-center'> " + slno + " </td>" +
+                    "<input type='hidden' name='bomitems[" + count + "].TaskId' value='1' /> " +
+                    "<td class='input-group input-group-sm'><select  name='bomitems[" + count + "].ItemId' class='form-control item_name data-id='" + count + "' placeholder='Item Name' id='item_name_" + count + "'  data-val-required='The Item field is required' onchange='GetItemdetailstask(this," + count + ",\"" + type + "\")'>" + Option + "</select> " + itemaddbtn + "</td>" +
+                    "<td style='width:100px;'><select  name='bomitems[" + count + "].Unit' class='form-control units unit_name_" + count + "' id='unit_name_" + count + "'  data-id='" + count + "' id='unit_name' tabindex='" + tab2 + "'></select></td>" +
+                    "<td> <input type='number' name='bomitems[" + count + "].Quantity' onchange='quantity_change(" + count + ");' id='total_qntt_" + count + "' value='" + Quantity + "'  class='total_qntt_" + count + " form-control text-right quty'  value='0'  tabindex='" + tab3 + "'/></td>" +
+                    "<td class='text-center'><button tabindex='" + tab4 + "' style='text-align: right;' class='btn btn-danger' type='button' value='Delete' onclick='deleteRow(this)'><i class='fa fa-trash fa-1x'></i></button></td>";
+
+                row += data + "</tr>";
+
+                $('#' + t).append(row);
+                var date = $("#BOMDate").val();
+                var MC = $("#ddlMC").val();
+                if (MC == 0) {
+                    alert("Material Center Not Assigned");
+
+                }
+                else {
+                searchbomItem(date, MC);
+            }
+                if (itemdata) {
+                    createUnitList(itemdata, count);
+                }
+               // minstockupdate(result, dataid);
+                count++;
+                setTabIndex();
+            }
+        }
+        function GetItemdetailstask(selectObject, dataid, action) {
+
+            if (selectObject.value) {
+                var ItemId = selectObject.value;
+                if (ItemId != null) {
+                    if ($(".item_" + ItemId).length > 0) {
+                        if (confirm('Are you sure want to Add this item Again?')) {
+                            itemUpdatetask(selectObject, dataid, action);
+
+                        }
+                    }
+                    else {
+                        itemUpdatetask(selectObject, dataid, action);
+                    }
+                }
+            }
+        }
+
+        function minstockcheck(arg) {
+            var keepstock = $(".minstock_" + arg).attr('data-keeps');
+            if (keepstock == "yes") {
+                var index = $('#unit_name_' + arg).prop('selectedIndex');
+                var unitname = $('#unit_name_' + arg).find('option:selected').text();
+                var minstock = parseFloat($(".minstock_" + arg).attr('data-min'));
+                var confactor = parseFloat($(".minstock_" + arg).attr('data-confactor'));
+                var stock = parseFloat($(".minstock_" + arg).attr('data-stock'));
+                var quantity = parseFloat($(".total_qntt_" + arg).val());
+
+                var qty = 0;
+                var classn = $("#item_" + arg).attr('class');
+
+                $("." + classn).each(function () {
+
+                    var rowid = $(this).attr('id');
+                    var arr = rowid.split('_');
+                    var arg1 = arr[1];
+                    var index1 = $("#" + rowid + " .units").prop('selectedIndex');
+                    var curent = $("#" + rowid + " .quty").val();
+                    var confactor1 = parseFloat($("#" + rowid + "  .minstock_" + arg1).attr('data-confactor'));
+                    if (index == 0) {
+                        qty += (curent * confactor1);
+                    }
+                    else {
+                        qty += curent;
+                    }
+                });
+
+                //var ItemOutOfStock = $("#ItemOutOfStock").val();
+
+                if (index == 0) {
+                    //alert(stock);
+                    stock = stock - (qty - (quantity * confactor));
+                    //alert("stock = " + stock + " qty = " + qty + " quantity = " + quantity);
+                    minstock = minstock / confactor;
+                    stock = stock / confactor;
+                    var tostock = stock - quantity;
+                    var totstock = tostock / confactor;
+
+                    //var totstock = stock - qty;
+                    if (totstock <= minstock && totstock >= 0) {
+                       // alert("Stock Exceeds Minimum Stock");
+                    }
+                    //else if (quantity >= stock && stock <= 0) {
+                    //    $(".total_qntt_" + arg).val(quantity);
+                    //    stock = stock - (qty - quantity);
+                    //}
+                    else if (totstock < 0 ) {
+                        stock = stock.toFixed(2);
+                        alert("This Item Is Going To Out of Stock!!! Only " + stock + " " + unitname + "Items Are Available In Stock.." + "");
+                        $(".total_qntt_" + arg).val(parseInt(""));
+                    }
+
+                } else {
+                    stock = stock - (qty - quantity);
+                    var totstock = stock - quantity;
+                    if (totstock <= minstock && totstock >= 0) {
+                        //alert("Stock Exceeds Minimum Stock");
+                    }
+                    if (totstock < 0 ) {
+                        alert("This Item Is Going To Out of Stock!!! Only " + stock + " " + unitname + " Items Are Available In Stock..");
+                        $(".total_qntt_" + arg).val("");
+                    }
+
+                }
+                //if (quantity >= stock && stock <= 0) {
+                //    alert("You are Adding The Item In Less Stock..");
+                //    $(".total_qntt_" + arg).val(quantity);
+                //    stock = stock - (qty - quantity);
+                //}
+            }
+        }
+        function itemUpdatetask(selectObject, dataid, action) {
+            var mc = $("#ddlMC").val();
+            $.ajax({
+                url: '/Item/GetItemMC',
+                type: "GET",
+                dataType: "JSON",
+                data: {
+                    itemID: selectObject.value,
+                    MC: mc,
+
+                },
+                success: function (result) {
+                    if (result.total <= 0) {
+                        alert("This Item is Out of Stock!!!");
+                        var classname = $($("#total_qntt_" + dataid)).closest('tr').attr('class');
+                        if (classname != 'item_') {
+                            $("." + classname + " .btn-danger").click();
+                        }
+                        else {
+                            $("#item_name_" + dataid).val(null).trigger("change");
+                            $("#unit_name_" + dataid).val(null).trigger("change");
+                            $("#total_qntt_" + dataid).val(null).trigger("change");
+                            $("#price_item_" + dataid).val(null).trigger("change");
+                        }
+                    }
+                    createUnitList(result, dataid);
+                   // $("#total_qntt_" + dataid).val(1);
+                    $("#total_qntt_" + dataid).val("");
+                    $(selectObject).closest('tr').attr('class', "item_" + result.ItemID);
+                    if ($(".item_").length == 0) {
+                        addbomitemtask('addbomitem', '', '0');
+
+
+                    }
+                    $('.unit_name_' + dataid).focus();
+                }
+            });
+        }
+        $(document).ready(function () {
+
+            $("#PrUnit").text("");
+            GetBranch();
+
+            addbomitemtask('addbomitem', '', '0');
+
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                dropdownAutoWidth: true,
+                ajax: {
+                    url: "/ProTask/SearchProTask",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+
+    $(document).ready(function () {
+
+        var oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/ItemTask/Gettaskitems',
+                "data": function (data) {
+                    data.protaskid = GetURLParameter();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "columnDefs": [{
+                "targets": [2, 3],
+                "orderable": false
+            }],
+            "columns": [
+                {
+                    "data": "fieldmcid", "name": "fieldmcid",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "ItemName", "name": "ItemName" },
+                { "data": "unit", "name": "unit" },
+                { "data": "qty", "name": "qty" },
+
+                {
+                    "name": "fieldmcid", "data": function (data) {
+                        var rest = "";
+                            @{
+
+
+
+actData += "<a class=\"modal-delete\" href=\"/ItemTask/Delete/'+ data.fieldmcid +'\" title=\"Delete \"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+
+                                              }
+                        return rest = '@Html.Raw(actData)';
+                    }
+                },
+
+            ],
+
+
+
+            "drawCallback": function (settings) {
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        $('#UserTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+
+        });
+    });
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+                    var newOption = $('<option></option>');
+                    if ((data.PriUnit != data.SubUnit) && data.SubUnitId != null) {
+                        newOption.val(data.ItemUnitID).html(data.PriUnit);
+                        var newOption1 = $('<option></option>');
+                        newOption1.val(data.SubUnitId).html(data.SubUnit);
+                        if (data.ItemUnit) {
+                            if (data.ItemUnit == data.ItemUnitID)
+                                newOption.attr("selected", "selected");
+                            if (data.ItemUnit == c.SubUnitId)
+                                newOption1.attr("selected", "selected");
+                        }
+                        $('#Unit').html('');
+                        $('#Unit').append(newOption);
+                        $('#Unit').append(newOption1);
+
+                    } else {
+                        $('#Unit').html('');
+                        newOption.val(data.ItemUnitID).html(data.PriUnit);
+                        $('#Unit').append(newOption);
+                    }
+                    $("#PrUnit").text("/ " + data.PriUnit);
+                }
+            });
+        });
+
+        $('body').on('change', '#Unit', function (e) {
+            var textvalue = $("#Unit option:selected").text();
+            $("#PrUnit").text("/ " + textvalue);
+        });
+
+        $('body').on('change', '#BOMDate', function (e) {
+            var bomdate = $(this).val();
+            var MC = $("#ddlMC").val();
+            if (MC == 0) {
+                alert("Material Center Not Assigned");
+
+            }
+            else {
+                searchbomItem(bomdate, MC);
+            }
+        });
+        $('body').on('change', '#ddlMC', function (e) {
+            var MC = $(this).val();
+            var bomdate = $("#BOMDate").val();
+            searchbomItem(bomdate, MC);
+        });
+
+        AddItemPopUp();
+        ItemCategory();
+        ItemBrand();
+        //On Modal Create
+
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            Itemtype();
+
+            //var ItemName =
+            addbatsaleItem('addbatchItem', 'sale', ItemName, "0.00", "0.00", "");
+        });
+        // form submit
+
+
+        $('span').on('click', '.modal-create-lg', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create-lg');
+        });
+                                //$('#modal-create-lg').on('submit', '#createitemform', function (e) {
+                                //    e.preventDefault();
+                                //    var url = $('#createitemform')[0].action;
+                                //    var data = $('#createitemform').serialize();
+                                //    createajax(url, data, '#modal-create-lg');
+                                //});
+
+    </script>
+}
+<div class="box-body">
+    <table class="table table-bordered table-hover" id="UserTable">
+        <thead>
+            <tr class="bg-gray">
+                <td data-priority="2">S/N</td>
+                <td data-priority="1">Item</td>
+                <td data-priority="1">Unit</td>
+                <td data-priority="1">Qty</td>
+                <td data-priority="1">Action</td>
+
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+

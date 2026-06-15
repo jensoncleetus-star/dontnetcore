@@ -1,0 +1,83 @@
+﻿@model QuickSoft.Models.Customer
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Customer Type</h4>
+    <p>@ViewBag.ErrorMessage</p>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("AddCustomerType", "Customer", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <script type="text/javascript">
+            $('form#createForm').removeData("validator");
+            $('form#createForm').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createForm'));
+        </script>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group col-md-12">
+                    @Html.HiddenFor(model => model.CustomerID)
+                    @Html.LabelFor(model => model.CustomerType, htmlAttributes: new { @class = "control-label" })*
+                    @Html.DropDownListFor(m=>m.CustomerType, (SelectList)ViewBag.CustomerType,  new { @class = "form-control",id= "ddlCustomerTypes" })
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row text-center">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" value="Save" class="btn btn-info" id="submit" tabindex="2" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" tabindex="3" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<script>
+    $(document).ready(function () {
+        callcustomertype();
+    });
+    function callcustomertype() {
+        $("#ddlCustomerTypes").select2({
+            placeholder: 'Search Customer Type',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/CustomerType/SearchType",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+    }
+    $('#modal-create').on('submit', '#createForm', function (e) {
+        e.preventDefault();
+        var url = $('#createForm')[0].action;
+        var data = $('#createForm').serialize();
+        createajaxnew(url, data, '#modal-create');
+    });
+
+</script>
+
+
+

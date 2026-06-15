@@ -1,0 +1,141 @@
+﻿@model QuickSoft.ViewModel.LedgerViewModel
+@{
+    ViewBag.Title = "Ledger Issue";
+    ViewBag.SubTitle = "Check Data";
+    ViewBag.Active = "Upgrade";
+    decimal blnc = Model.OpeningBalance;
+    var sl = 0;
+    string balance = "";
+    var colspan = 8;
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Account Ledger ISSUE Data</h3>
+
+        <div class="pull-right">
+            <button class="btn btn-danger no-border" id="dups">
+                <i class="fa fa-fw fa-history"></i> Delete Duplicate Values
+            </button>
+        </div>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Date</td>
+                        @if (Model.MainAccountID == -1)
+                        {
+                            <td>Particulars</td>
+                        }
+                        <td>Vch/Bill No</td>
+                        <td>Type</td>
+                        <td>Account</td>
+                        <td>Debit(AED)</td>
+                        <td>Credit(AED)</td>
+                        <td>Balance(AED)</td>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @foreach (var item in Model.Ledger)
+                    {
+                        balance = "";
+                        var debit = (item.Debit != 0) ? item.Debit : null;
+                        var Credit = (item.Credit != 0) ? item.Credit : null;
+                        if (item.Debit != null && item.Debit != 0)
+                        {
+                            blnc = blnc + (item.Debit ?? 0);
+                        }
+                        else
+                        {
+                            blnc = blnc - (item.Credit ?? 0);
+                        }
+                        if (blnc < 0)
+                        {
+                            balance = Math.Abs(blnc) + " Dr.";
+                        }
+                        else
+                        {
+                            balance = Math.Abs(blnc) + " Cr.";
+                        }
+                        sl++;
+
+                        <tr>
+                            <td>@sl</td>
+                            <td>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", item.Date))</td>
+                            @if (Model.MainAccountID == -1)
+                            {
+                                <td>@Html.DisplayFor(m => item.particulars)</td>
+                            }
+                            <td>@Html.DisplayFor(m => item.Invoice)</td>
+                            <td>@Html.DisplayFor(m => item.Type)</td>
+                            <td>@Html.DisplayFor(m => item.RAccount)</td>
+                            <td>@debit </td>
+                            <td>@Credit</td>
+                            <td>@balance</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        @if (Model.MainAccountID == -1)
+                        {
+                            <td></td>
+                        }
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>Closing Balance</td>
+                        <td>@balance</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                "order": [[0, "asc"]]
+            });
+        });
+
+        $('#dups').on('click', function (e) {
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                url: "/Upgrade/DeleteData",
+                success: function (e) {
+                    if (e.status) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            });
+
+        });
+    </script>
+}

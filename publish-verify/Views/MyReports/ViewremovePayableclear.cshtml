@@ -1,0 +1,705 @@
+﻿
+@{
+    ViewBag.Title = "Outstanding Payable";
+    ViewBag.SubTitle = "Payable";
+    ViewBag.Active = "Reports";
+    var NCSName = @ViewBag.ComName;
+    var LPN = @ViewBag.LPNo;
+}
+<div class="box box-default" id="PReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Outstanding Payable Clear</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="From" value="@ViewBag.From" />
+        <input type="hidden" id="To" value="@ViewBag.To" />
+
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr id="divnames">
+                        @if ((@ViewBag.SupCus == "Sup" && @ViewBag.SupId != 0) || (@ViewBag.SupCus == "Cus" && @ViewBag.CusId != 0))
+                        {
+                            <td colspan="3">@NCSName</td>
+                            <td colspan="3">From : @ViewBag.From - To : @ViewBag.To</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td>S/N</td>
+                        <td>Invoice No</td>
+                        <td>Date</td>
+                        @if (@ViewBag.SupCus == "Sup" && @ViewBag.SupId == 0)
+                        {
+                            <td>Supplier</td>
+                        }
+                        else if (@ViewBag.SupCus == "Cus" && @ViewBag.CusId == 0)
+                        {
+                            <td>Customer</td>
+                        }
+                        <td class="headeralign">Amount</td>
+                        <td>Days</td>
+                        <td>Clear</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th colspan="2"></th>
+                        @if ((@ViewBag.SupCus == "Sup" && @ViewBag.SupId == 0) || (@ViewBag.SupCus == "Cus" && @ViewBag.CusId == 0))
+                        {
+                            <th> </th>
+                        }
+                        <th class="text-right"><div id="selectedtotal"></div></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalDelete")
+<div id="initialtotal"></div>
+<style type="text/css">
+    .bgtable {
+        background-color: #aab7d1;
+    }
+</style>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        if (('@ViewBag.SupCus' == "Sup" && @ViewBag.SupId == 0) || ('@ViewBag.SupCus' == "Cus" && @ViewBag.CusId == 0))
+        {
+            $('#divnames').hide();
+            jQuery(function ($) {
+                var oTable = $('#UserTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "paging": true,
+                    // "bStateSave": true,
+                    "bLengthChange": false,
+                    "pageLength": 5000,
+                    //"deferLoading": 0,
+                    "ordering": true,
+                    Responsive: true,
+                    "ajax": {
+                        "url": '/MyReports/GetPayableClear',
+                        "data": {
+                            CSType: getQueryString1('CSType'),
+                            Sups: getQueryString1('Sups'),
+                            Cuss: getQueryString1('Cuss'),
+                            fromdate: getQueryString1('fromdate'),
+                            todate: getQueryString1('todate'),
+                            agedays: getQueryString1('agedays'),
+                            TTtype: getQueryString1('TTtype'),
+                        },
+                        "type": "POST",
+                        "datatype": "json"
+
+                    },
+                    "order": [[0, "desc"]],
+                    "columns": [
+                         {
+                             "data": "", "name": "",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                      //{ "data": "Invoice", "name": "Invoice" },
+                      {
+
+                          "name": "Invoice", "data": function (result) {
+                              if(result.Ctyp=="Sup")
+                              {
+                                  @{
+                                   var urls = "";
+
+                                   urls = "'<a href=\"/PurchaseEntry/Edit/'+  result.id +'\" target=\"_new\">'+ result.Invoice +'</a>' ";
+                               }
+                                  return @Html.Raw(urls);
+                              }
+                              else{
+                                  return result.Invoice;
+                              }
+                          }
+                      },
+                      { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                      { "data": "Name", "name": "Name" },
+                      { "data": "Amount", "name": "Amount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                        { "data": "Days", "name": "Days" },
+                       {
+                            "name": "Invoice", "data": function (result) {
+
+
+
+
+
+                                    @{
+
+                                    var urls2 = "";
+
+                                        urls2 = "'<a href=\"/MyReports/DeletePayClear/'+  result.id +'\" target=\"_new\" class=\"modal-delete\"><i class=\"fa fa-lg fa-trash\" ></i></a>' ";
+                            }
+                                    return @Html.Raw(urls2);
+
+                            }
+                        },
+                    ],
+                    buttons: [
+                        'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Payable Outstanding-Report';
+                        },
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Payable Outstanding </h4></th></tr>' +
+                            ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To : ' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                               // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Payable Outstanding-Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Payable Outstanding \n' +
+                            // 'Account Name : ' + $('#ddlAccountName').text() + '\n' +
+                             'From : ' + $('#From').val() + ' To : ' + $('#To').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Payable Outstanding-Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Payable Outstanding \n' +
+                            // 'Account Name : ' + $('#ddlAccountName').text() + '\n' +
+                             'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            //doc.styles['td:nth-child(2)'] = {
+                            //    width: '100%',
+                            //    'max-width': '100%'
+                            //}
+
+                            doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+                           // doc.content[1].table.widths = [
+                           //'10%',
+                           //'15%',
+                           //'15%',
+                           //'28%',
+                           //'20%',
+                           //'12%',
+                           // ]
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+                    },
+
+                    ],
+
+
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api(), data;
+
+                        // Remove the formatting to get integer data for summation
+                        var intVal = function (i) {
+                            return typeof i === 'string' ?
+                                i.replace(/[\$,]/g, '') * 1 :
+                                typeof i === 'number' ?
+                                i : 0;
+                        };
+
+                        // Total over all pages
+                        total = api
+                            .column(4)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(4, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+
+                        //$(api.column(4).footer()).html(
+                        //     pageTotal.toFixed(2)
+                        //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                        //);
+                        $('#selectedtotal').html(pageTotal);
+                        $('#initialtotal').html(pageTotal);
+
+                        var table = $('#UserTable').DataTable();
+                        if (!table.data().any()) {
+                            $('#UserTable tfoot').hide();
+                        } else {
+                            $('#UserTable tfoot').show();
+                        }
+                    },
+                    createdRow: function( row, data, dataIndex ) {
+                        $(row).addClass('bgtable');
+                    }
+
+                });
+
+                //oTable.on('init', function () {
+                //    if (oTable.rows().count() > 4999) {
+                //        oTable.buttons('.dt-buttons .buttons-pdf').nodes().addClass('hidden');
+                //    } else {
+                //        oTable.buttons('.dt-buttons .buttons-pdf').nodes().removeClass('hidden');
+                //    }
+                //});
+                //$('#UserTable tbody').on('click', 'tr', function () {
+                //        var data = oTable.row(this).data();
+                //        var url = "/MyReports/Details?CSType=" + getQueryString1('CSType') + "&Sups=" + data.Supplier +
+                //            "&Cuss=" + data.Customer + "&fromdate=" + getQueryString1('fromdate') + "&todate=" + getQueryString1('todate') +
+                //            "&agedays=" + getQueryString1('agedays') + "&TTtype=" + getQueryString1('TTtype');
+                //        $(location).attr('href', url);
+                //});
+
+
+                $('#search-form').on('submit', function (e) {
+                    e.preventDefault();
+                    oTable.draw();
+                    $('#PReport').show();
+                    var type = $('#ddlType').find(":selected").text();
+                    if (type != 'Ageing wise') {
+                        var column = oTable.column(5);
+                        column.visible(false);
+                    } else {
+                        var column = oTable.column(5);
+                        column.visible(true);
+                    }
+                });
+
+                $('#UserTable tbody').on('click', 'tr', function () {
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected');
+                    }
+                    else {
+                        oTable.$('tr.selected').removeClass('selected');
+                        $(this).addClass('selected');
+                        $(this).addClass('dataTables_row');
+                    }
+                });
+            });
+        }
+        else
+        {
+
+            //$('#divnames').show();
+            jQuery(function ($) {
+                var oTable = $('#UserTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "paging": true,
+                    // "bStateSave": true,
+                    "bLengthChange": false,
+                    "pageLength": 5000,
+                    //"deferLoading": 0,
+                    "ordering": true,
+                    Responsive: true,
+                    "ajax": {
+                        "url": '/MyReports/GetPayableClear',
+                        "data": {
+                            CSType: getQueryString1('CSType'),
+                            Sups: getQueryString1('Sups'),
+                            Cuss: getQueryString1('Cuss'),
+                            fromdate: getQueryString1('fromdate'),
+                            todate: getQueryString1('todate'),
+                            agedays: getQueryString1('agedays'),
+                            TTtype: getQueryString1('TTtype'),
+                        },
+                        "type": "POST",
+                        "datatype": "json"
+
+                    },
+                    "order": [[0, "desc"]],
+                    "columns": [
+                         {
+                             "data": "", "name": "",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                      { "data": "Invoice", "name": "Invoice" },
+                      { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                      //{ "data": "Name", "name": "Name" },
+                      { "data": "Amount", "name": "Amount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                        { "data": "Days", "name": "Days" },
+                                             {
+                            "name": "Invoice", "data": function (result) {
+
+
+
+
+
+                                    @{
+
+                                    var urls3 = "";
+
+                                        urls3 = "'<a href=\"/MyReports/DeleteremovePayClear/'+  result.id +'\" target=\"_new\" class=\"modal-delete\">Allocate Invoice</a>' ";
+                            }
+                                    return @Html.Raw(urls3);
+
+                            }
+                        },
+                    ],
+                    buttons: [
+                        'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Payable Outstanding-Report';
+                        },
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Payable Outstanding </h4></th></tr>' +
+                            ' <tr><th><span class="text-left">' + '@ViewBag.ComName' + '</span><span class="text-right pull-right"> From : ' + $('#From').val() + ' To : ' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                               // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Payable Outstanding-Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Payable Outstanding \n' +
+                             '@ViewBag.ComName' + '\n' +
+                             'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible' //[0, 1, 2, 3]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Payable Outstanding-Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Payable Outstanding \n' +
+                            '@ViewBag.ComName' + '\n' +
+                             'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            //doc.styles['td:nth-child(2)'] = {
+                            //    width: '100%',
+                            //    'max-width': '100%'
+                            //}
+
+                            doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+
+                           // doc.content[1].table.widths = [
+                           //'15%',
+                           //'18%',
+                           //'25%',
+                           //'20%',
+                           //'20%',
+                           // ]
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+                    },
+
+                    ],
+
+
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api(), data;
+
+                        // Remove the formatting to get integer data for summation
+                        var intVal = function (i) {
+                            return typeof i === 'string' ?
+                                i.replace(/[\$,]/g, '') * 1 :
+                                typeof i === 'number' ?
+                                i : 0;
+                        };
+
+                        // Total over all pages
+                        total = api
+                            .column(3)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(3, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+
+                        //$(api.column(3).footer()).html(
+                        //     pageTotal.toFixed(2)
+                        //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                        //);
+
+                        $('#selectedtotal').html(pageTotal);
+                        $('#initialtotal').html(pageTotal);
+
+                        var table = $('#UserTable').DataTable();
+                        if (!table.data().any()) {
+                            $('#UserTable tfoot').hide();
+                        } else {
+                            $('#UserTable tfoot').show();
+                        }
+                    },
+                    createdRow: function( row, data, dataIndex ) {
+                        $(row).addClass('bgtable');
+                    },
+
+                });
+
+                $('#search-form').on('submit', function (e) {
+                    e.preventDefault();
+                    oTable.draw();
+                    $('#PReport').show();
+                    var type = $('#ddlType').find(":selected").text();
+                    if (type != 'Ageing wise') {
+                        var column = oTable.column(5);
+                        column.visible(false);
+                    } else {
+                        var column = oTable.column(5);
+                        column.visible(true);
+                    }
+                });
+
+                $('#UserTable tbody').on('click', 'tr', function () {
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected');
+                    }
+                    else {
+                        oTable.$('tr.selected').removeClass('selected');
+                        $(this).addClass('selected');
+                        $(this).addClass('dataTables_row');
+                    }
+                });
+            });
+
+        }
+
+        $('#UserTable tbody').on( 'click', 'tr', function () {
+            var count=0;
+            var totalSUM= 0;
+            var totalSUMs=0;
+            var newval= $('#selectedtotal').html();
+            var tbody = $("#UserTable tbody");
+            if (tbody.children().length > 0) {
+                tbody.children("tr").each(function () {
+                    if (!$(this).hasClass('bgtable')){
+                        count++;
+                    }
+                });
+            }
+            if ($(this).hasClass('bgtable')) {
+                $(this).removeClass('bgtable');
+                if (tbody.children().length > 0) {
+                    tbody.children("tr").each(function () {
+                        if (!$(this).hasClass('bgtable')) {
+                            var getValue = $(this).find('td:eq(4)').text();
+                            var filteresValue=getValue.replace(/\,/g, '');
+                            totalSUM = parseFloat(totalSUM) + parseFloat(Number(filteresValue));
+                        }
+                    });
+                    $('#selectedtotal').html(totalSUM.toFixed(2));
+                }
+            }
+            else {
+                $(this).addClass('bgtable');
+                if(count == 1){
+                    var inittot = $('#initialtotal').html();
+                    $('#selectedtotal').html(inittot);
+                }else{
+                    if (tbody.children().length > 0) {
+                        tbody.children("tr").each(function () {
+                            if (!$(this).hasClass('bgtable')) {
+                                var getValue = $(this).find('td:eq(4)').text();
+                                var filteresValue=getValue.replace(/\,/g, '');
+                                totalSUMs = parseFloat(totalSUMs) + parseFloat(Number(filteresValue));
+                            }
+                        });
+                    }
+                    $('#selectedtotal').html(totalSUMs.toFixed(2));
+                }
+            }
+
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            window.location.reload();
+            detailsRemind($("#remId").val());
+
+        });
+
+    </script>
+}

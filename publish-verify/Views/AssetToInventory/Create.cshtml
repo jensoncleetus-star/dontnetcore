@@ -1,0 +1,362 @@
+@model QuickSoft.ViewModel.AssetToInventoryViewModel
+
+@{
+    ViewBag.Title       =   "Create";
+    ViewBag.SubTitle    =   "AssetToInventory";
+    ViewBag.Active      =   "Transactions";
+    var TimeOut         =   @ViewBag.TMOut;
+}
+<style type="text/css">
+    .hide {
+        visibility: hidden;
+    }
+    .sh-btn {
+        background-color: red;
+        color: white;
+        border-radius: 5px !important;
+        border: none;
+        padding: 4px 8px 4px 8px;
+    }
+</style>
+
+@using (Html.BeginForm("Create", "AssetToInventory", FormMethod.Post, new { id = "Createform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create Asset To Inventory</h3>
+            <div class="pull-right">               
+                <a class="btn btn-success no-border" href="/AssetToInventory/CreateAssetPurchase">
+                    <i class="fa fa-fw fa-history"></i>Asset Purchase To Inventory
+                </a>
+            </div>
+            <div class="pull-right">
+                <a class="btn btn-success no-border" href="/AssetToInventory/Index">
+                    <i class="fa fa-fw fa-history"></i>List
+                </a>
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+        <div class="box-body">
+
+            <div class="row">
+
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Entry No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.EntryNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Entry Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(model => model.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.Label("Asset Accounts", null, new { @class = "control-label" })*
+                    @Html.DropDownList("ddlAssetAccounts", (SelectList)ViewBag.AssetAccounts, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("Material Centre", null, new { @class = "control-label" }) *
+
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(model => model.McFromId, (SelectList)ViewBag.MCbag, new { id = "ddlMCFrom", @class = "form-control select2", @required = "required" })
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+            <div class="row">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="AssetDetails">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Assets Name</th>
+                                <th class="text-center">Barcode</th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Depreciation%</th>
+                                <th class="text-center">Depreciation Account</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-center">Unit Price</th>
+                                <th class="text-center">Total Price</th>
+                                <th class="text-center">Action</th>
+                                <th class="text-center"><button type="button" class="sh-btn" onclick="deleteAll();">Delete</button></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="text-right"><label id="ToItemQnty"></label> </td>
+                                <td class="text-right"><label id="ToItemPrice"></label> </td>
+                                <td class="text-right"><label id="ToItemAmount"></label> </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            @Html.TextBoxFor(model => model.TotalAmount, new { id = "GrandTotal", @class = "form-control hidden", @readonly = "readonly" })
+            <div class="col-md-6"></div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group pull-right">
+                        <button type="submit" id="save" class="btn btn-success">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="window.location.href='/AssetToInventory/Index'">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+  <script src="~/Content/js/Asset.js?A=2"></script>
+  <script type="text/javascript">
+
+     var Count = 0;
+
+     $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+     });
+
+     jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+     //add a blank row when page is loaded
+     AssetToInventoryAddRow(1, 'addinvoiceItem','', '', '', '', '', '', '', '','','','','','','');
+
+
+      $("#ddlMCFrom").select2({
+          placeholder: 'Search Material Centre by Name or Code',
+          minimumInputLength: 0,
+          ajax: {
+              url: "/MC/SearchMC",
+              dataType: 'json',
+              delay: 50,
+              data: function (params) {
+                  return {
+                      q: params.term,
+                      page: params.page,
+                      x: ""
+                  };
+              },
+              processResults: function (data, params) {
+                  params.page = params.page || 1;
+                  return {
+                      results: data
+                  };
+              },
+              cache: true
+          },
+      });
+     //DropDown Asset Account
+     $("#ddlAssetAccounts").select2({
+         placeholder: 'Search Accounts',
+         minimumInputLength: 0,
+         ajax: {
+             url: "/AssetToInventory/SpecialAccounts",
+             dataType: 'json',
+             type: "POST",
+             delay: 50,
+             data: function (params) {
+
+                 return {
+                     q: params.term,
+                     page: params.page
+                 };
+             },
+             processResults: function (data, params) {
+                 params.page = params.page || 1;
+
+                 return {
+                     results: data,
+                     //pagination: {
+                     //    //more: (params.page * 10) < 50
+                     //    more: true
+                     //}
+                 };
+             },
+             cache: true
+         },
+     });
+
+     //To retrieve data, while changing AssetAccounts
+     $('body').on('change', '#ddlAssetAccounts', function (e) {
+         Count = 0;
+
+         var AssetAccntID = $('#ddlAssetAccounts').val();
+
+         if (AssetAccntID != null) {
+
+             //Calling function to retrieve Items based on AssetAccountID
+             $.ajax({
+                 url: '/AssetToInventory/GetItemsInCreate',
+                 dataType: 'json',
+                 data: { AssetAccountID: AssetAccntID, TransType: "AssetFromInventory" },
+                 cache: true,
+                 success: function (data) {
+
+                     $('#addinvoiceItem').html('');
+
+                     //adding rows for retrieved data
+                     $.each(data, function (i, item) {
+
+                         //Don't show the rows which are already transferred to Inventory
+                         if (item.Quantity > 0) {
+                             Count = i + 1;
+                             AssetToInventoryAddRow(Count, 'addinvoiceItem', item.AssetId, item.AssetName, item.AssetEntryId, item.Barcode, item.UnitId, item.ItemUnitName, item.Quantity, item.Price.toFixed(2), item.TotalPrice.toFixed(2), item.RefItemId, item.DepreciationPercentage, item.DepreciationAccountId, item.DepreciationAccntName, item.McFromId);
+                         }
+                     });
+
+                     //if no data is there, add a blank row
+                     if (Count == 0)
+                         AssetToInventoryAddRow(1, 'addinvoiceItem', '', '', '', '', '', '', '', '', '', '', '', '', '','');
+                 }
+             });
+         }
+     });
+
+    //Saving
+    $('#Createform').on('submit', function (e) {
+         e.preventDefault();
+
+         var fnval          = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+         var AssetAccountID = $('#ddlAssetAccounts').val();
+
+         var warnmsg = @ViewBag.WarnMsg;
+
+            if (warnmsg == 0) {
+
+                var WMsg = confirm("Do you want to Save..?");
+
+                if(WMsg==true){
+                    SaveFunction(fnval);
+                }
+                else {
+                }
+            }
+            else {
+                if (AssetAccountID != 0) {
+                    if (Count != 0) {
+                        SaveFunction(fnval);
+                    }
+                    else
+                        alert("Couldn't save..There is no Asset details..")
+                }
+                else
+                    alert("Asset Accounts should be selected")
+
+            }
+    });
+  
+     function SaveFunction(fnval) {
+
+         if ($("#Createform").valid()) {
+
+             /************** Master Table Data *****************/
+             var EntryNo        =   $('#EntryNo').val();
+             var Date           =   $('#Date').val();
+             var AssetAccountID = $('#ddlAssetAccounts').val();
+             var McId           = $('#ddlMCFrom').val();
+             var TotAmount      =   $('#GrandTotal').val();
+             var TransType      =   "AssetFromInventory";
+
+             var Entry = [EntryNo, Date, AssetAccountID, TotAmount, TransType, McId,]
+            /***************************************************/
+
+            /************** Detail Table Data *****************/
+             var HTMLtbl = {
+                 getData: function (table) {
+                     var data = [];
+                     table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                         var cols = [];
+                         $(this).find('input,textarea,select').each(function (colIndex, c) {
+                             cols.push($(this).val());
+                         });
+                         data.push(cols);
+                     });
+                     return data;
+                 }
+             }
+             var data = HTMLtbl.getData($('#AssetDetails'));
+           /***************************************************/
+
+             var SaveYn = 0;
+
+             //Checking if Quantity is > 0 for all rows(Quantity is at index 10 and Asset Name is at index 5)
+             for (var i = 0; i < data.length - 1; i++)
+             {
+                 if (data[i][10] <= 0) {
+                     alert("Qty should be greater than 0 for Asset : " + data[i][5])
+                     SaveYn = 1;
+                     break;
+                 }
+             }
+
+             if (SaveYn == 0) {
+                 var parameters = {};
+                 parameters.array = data;
+                 parameters.mtdata = Entry;
+                 parameters.action = fnval;
+
+                 if (fnval == "save") {
+                     submitForm(fnval, parameters);
+                 }
+             }
+         }
+     }
+
+     //Saving
+     function submitForm(fnval, parameters) {
+
+         $.ajax({
+             async: true,
+             cache: false,
+             dataType: "json",
+             type: "POST",
+             contentType: "application/json; charset=utf-8",
+             url: "/AssetToInventory/Create",
+             data: JSON.stringify(parameters),
+             beforeSend: function () {
+                 $("button").prop('disabled', true); // disable button
+             },
+             success: function (e) {
+
+                 if (e.status == true) {
+                     $('.ajax_response', res_success).text(e.message);
+                     $('.AlertDiv').prepend(res_success);
+                     $("button").prop('disabled', false);
+                     setTimeout(function () { window.location.href = '/AssetToInventory/Create'; }, '@TimeOut');
+                 }
+                 else {
+                     $('.ajax_response', res_danger).text(e.message);
+                     $('.AlertDiv').prepend(res_danger);
+                     $("button").prop('disabled', false); //enable button
+                 }
+             }
+         });
+     }
+  </script>
+}

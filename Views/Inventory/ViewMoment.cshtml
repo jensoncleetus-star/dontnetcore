@@ -1,0 +1,431 @@
+﻿@{
+    ViewBag.Title = "View Stock";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+    var type = ViewBag.JewCheck == 0 ? "Stock Enquiry" : "Stock Moment";
+}
+<div class="box box-default" id="StockReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="itemname" value="@ViewBag.ItemName" />
+    <input type="hidden" id="mcname" value="@ViewBag.MCSName" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View @type</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <h4>@ViewBag.ItemName </h4>
+            <table class="display table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                       <th colspan="3"></th>
+                        <th colspan="3" class="text-center">Stock In </th>
+                        <th colspan="3" class="text-center">Stock Out</th>
+                        <th colspan="3" class="text-center">Balance</th>
+                    </tr>
+                    <tr class="bg-gray">
+                        <th>Date</th>
+                        <th>Invoice No.</th>
+                        <th>Type</th>
+
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Stock Value</th>
+                   
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Stock Value</th>
+                    
+                        <th>Qty</th>
+                        <th>Cost</th>
+                        <th>Stock Value</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+    $(document).ready(function () {
+            oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                //"deferLoading": 0, // disable default ajax loading
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                responsive: true,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Inventory/GetMoment',
+                    "data": { iditem: getQueryString1('iditem'), ddmc: getQueryString1('ddmc') },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    // {
+                    //     "data": "ItemID", "name": "ItemID",
+                    //     "render": function (data, type, row, meta) {
+                    //         return meta.row + meta.settings._iDisplayStart + 1;
+                    //     }
+                    // },
+                    {
+                        "data": "TDate", "name": "TDate", "render": function (data) {
+                            if (data != null && convertToDate(data) != '01-01-2010') {
+                                var date = convertToDate(data);
+                                return date.toString();
+                            }
+                            else
+                                return "";
+                        }
+                    },
+
+
+                    {
+                        "name": "Invoice", "data": function (data) {
+                            @{var urls = "";
+}
+                         if (data.invoiceid > 0) {
+
+                                 @{
+
+
+                    urls = "'<a href=\"/STockTransfer/Edit/'+  data.invoiceid +'\" target=\"_new\">'+ data.Invoice +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+
+                         }
+                         else if (data.TItemType == "Sales Return")
+                         {
+   @{
+
+
+                    urls = "'<a href=\"/CreditSaleReturn/Edit/'+  data.TItemId +'\" target=\"_new\">'+ data.Invoice +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+                         }
+                                              else if (data.TItemType == "Sales")
+                         {
+   @{
+
+
+                    urls = "'<a href=\"/CreditSale/Edit/'+  data.TItemId +'\" target=\"_new\">'+ data.Invoice +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+                         }
+                         else if (data.TItemType == "Purchase")
+                         {
+   @{
+
+
+                    urls = "'<a href=\"/PurchaseEntry/Edit/'+  data.TItemId +'\" target=\"_new\">'+ data.Invoice +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+                         }
+                         else if (data.TItemType == "Purchase Return")
+                         {
+   @{
+
+
+                    urls = "'<a href=\"/PurchaseReturn/Edit/'+  data.TItemId +'\" target=\"_new\">'+ data.Invoice +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+                         }
+                            else {
+                                return (data.Invoice);
+                            }
+                        }
+                    },
+                    { "data": "TItemType", "name": "TItemType" },
+
+                    {
+                        "name": "IQty", "data": function (data) {
+                            if (data.TItemType != "Opening Stock" && data.IQty == 0 && data.ICost == 0 && data.ICostValue == 0) {
+                                return "";
+                            } else {
+                                return parseFloat(data.IQty / data.confactor).toFixed(2);
+                            }
+                        }
+                    },
+
+                    {
+                        "name": "ICost", "data": function (data) {
+                            if (data.IQty == 0 && data.ICost == 0 && data.ICostValue == 0) {
+                                return "";
+                            } else {
+                                var valcost = data.ICost;
+                                if (data.ICost < 0) {
+                                    valcost = valcost * -1;
+                                }
+                                return parseFloat(valcost ).toFixed(2);
+                            }
+                        }
+                    },
+                    {
+                        "name": "ICostValue", "data": function (data) {
+                            if (data.IQty == 0 && data.ICost == 0 && data.ICostValue == 0) {
+                                return "";
+                            } else {
+                                var valcost = data.ICostValue;
+                                if (data.ICostValue < 0) {
+                                    valcost = valcost * -1;
+                                }
+                                return parseFloat(valcost ).toFixed(2);
+                            }
+                        }
+                    },
+
+                     {
+                         "name": "OQty", "data": function (data) {
+                             if (data.TItemType != "Opening Stock" && data.OQty == 0 && data.OCost == 0 && data.OCostValue == 0) {
+                                 return "";
+                             } else {
+                                 return parseFloat(data.OQty / data.confactor).toFixed(2);
+                             }
+                         }
+                     },
+                     {
+                         "name": "OCost", "data": function (data) {
+                             if (data.OQty == 0 && data.OCost == 0 && data.OCostValue == 0) {
+                                 return "";
+                             } else {
+                                 var valcost = data.OCost;
+                                 if (data.OCost < 0) {
+                                     valcost = valcost * -1;
+                                 }
+                                 return parseFloat(valcost ).toFixed(2);
+                             }
+                         }
+                     },
+                     {
+                         "name": "OCostValue", "data": function (data) {
+                             if (data.OQty == 0 && data.OCost == 0 && data.OCostValue == 0) {
+                                 return "";
+                             } else {
+                                 var valcost = data.OCostValue;
+                                 if (data.OCostValue < 0) {
+                                     valcost = valcost * -1;
+                                 }
+                                 return parseFloat(valcost / data.confactor).toFixed(2);
+                             }
+                         }
+                     },
+                     {
+                         "name": "BQty", "data": function (data) {
+                             if (data.TItemType != "Opening Stock" && data.BQty == 0 && data.BCost == 0 && data.BCostValue == 0) {
+                                 return "";
+                             } else {
+                                 return parseFloat(data.BQty / data.confactor).toFixed(2);
+                             }
+                         }
+                     },
+                   {
+                       "name": "BCost", "data": function (data) {
+                           if (data.BCost == 0 && data.BCost == 0 && data.BCostValue == 0) {
+                               return "";
+                           } else {
+                               var valcost = data.BCost;
+                               if (data.BCost < 0) {
+                                   valcost = valcost * -1;
+                               }
+                               return parseFloat(valcost ).toFixed(2);
+                           }
+                       }
+                   },
+                   {
+                       "name": "BCostValue", "data": function (data) {
+                           if (data.BQty == 0 && data.BCost == 0 && data.BCostValue == 0) {
+                               return "";
+                           } else {
+                               var valcost = data.BCostValue;
+                               //if (data.BCostValue < 0) {
+                               //    valcost = valcost * -1;
+                               //}
+                               return parseFloat(valcost / data.confactor).toFixed(2);
+                           }
+                       }
+                   },
+
+                ],
+                buttons: [
+            {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@type';
+                },
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: function()
+                {
+                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>@type</h4></th></tr>' +
+                    ' <tr><th><span class="text-left">Item Name : ' + $('#itemname').val() + '</span><span class="text-right pull-right">' + $('#mcname').val() + '</span></th></tr></thead><tbody><tr><td>';
+                    //+ '<tr><th>' + $('#mcname').val() + '</th></tr>';
+                    return head;
+                },
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', //'excel',
+            {
+                extend: 'excel',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@type';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' @type \n' +
+                     'Item Name : ' + $('#itemname').val() + '\n' +
+                       $('#mcname').val();
+                    //'From :  ' + $('#From').val() + ' To :' + $('#To').val() + ''
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+            },
+            {
+                extend: 'pdf',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return '@type';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' @type \n' +
+                     'Item Name : ' + $('#itemname').val() + '\n' +
+                        $('#mcname').val();
+                    //'From :  ' + $('#From').val() + ' To :' + $('#To').val() + ''
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Header font and bg color
+                    doc.styles.tableHeader.fillColor = '#d3d3d3';
+                    doc.styles.tableHeader.color = 'black';
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                    // Footer font and bg color
+                    doc.styles.tableFooter.fillColor = '#d3d3d3';
+                    doc.styles.tableFooter.color = 'black';
+                }
+            },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+                    // converting to interger to find total
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    //// Total over all pages
+                    //total = api
+					//	.column(9)
+					//	.data()
+					//	.reduce(function (a, b) {
+					//	    return intVal(a) + intVal(b);
+					//	}, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+					//	.column(9, { page: 'current' })
+					//	.data()
+					//	.reduce(function (a, b) {
+					//	    return intVal(a) + intVal(b);
+					//	}, 0);
+
+                    //// Update footer
+                    //$(api.column(9).footer()).html(
+					//	 pageTotal.toFixed(2)
+					//	//'$' + pageTotal + ' ( $' + total + ' total)'
+					//);
+
+                }
+
+            });
+
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+
+    });
+</script>
+}

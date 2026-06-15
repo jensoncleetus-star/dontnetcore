@@ -1,0 +1,185 @@
+@model QuickSoft.ViewModel.HireReturnViewModel
+@{
+    Layout = null;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Return Note Details</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Return Note No :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.BillNo)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date :", null, new { @class = "control-label" })
+                    @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.Date))
+                </div>
+                <div class="col-sm-2 form-group"> 
+                    @Html.Label("Sales Executive :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.EmployeeName)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.CustomerName)
+                </div>
+                @*<div class="col-sm-2 form-group">
+                    @Html.Label("Return Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.RtType)
+                </div>*@
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Hire Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.HType)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Invoice No :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.InBillNo)
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="col-md-2 form-group">
+                        @Html.Label("Material Center : ", null, new { @class = "control-label" })
+                        @Html.DisplayFor(m => m.MCName)
+                    </div>
+                }
+                <div class="col-sm-12 form-group">
+                    @if (Model.Emp != null && Model.Emp.Count() > 0)
+                    {
+                        @Html.Label("Approved By:", null, new { @class = "control-label" })
+                        bool CHECK = true;
+                        foreach (var Ext in Model.Emp)
+                        {
+                            var EmpName = "";
+                            if (CHECK == true)
+                            {
+                                EmpName = @Ext.EmpName;
+                                CHECK = false;
+                            }
+                            else
+                            {
+                                EmpName = ", " + @Ext.EmpName;
+                            }
+
+                            @Html.Label(@EmpName, new { @style = "font-weight:normal" })
+                        }
+                    }
+                </div>
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-sm-2">
+
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref1")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref1)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref2")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref2)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref3")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref3)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref4")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref4)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref5")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref5)
+                            }
+                        </div>
+                    }
+                }
+                <div class="clearfix"></div>
+            </div>
+
+            <div>
+                <div class="table-responsive">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Items</h3>
+                        </div>
+                        <div class="box-body">
+                            <table class="table table-bordered table-hover">
+                                <tr class="bg-gray">
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Received</th>
+                                    <th>Damaged</th>
+                                    <th>Missing</th>
+                                    <th>Balance</th>
+                                </tr>
+                                @foreach (var quot in Model.HrItem)
+                                {
+                                    var RetItemQuantitys = (quot.RetQty != null) ? quot.RetQty : 0;
+                                    var DvItemQuantitys = (quot.DvQty != null) ? quot.DvQty : 0;
+                                    var itmbalances = DvItemQuantitys - RetItemQuantitys;
+
+                                    var itemnote = "";
+                                    if (@quot.ItemNote != "")
+                                    {
+                                        itemnote = "<br /><small>" + @quot.ItemNote + "</small>";
+                                    }
+                                    <tr>
+                                        <td>@quot.ItemCode - @quot.ItemName  @quot.ItemUnit @Html.Raw(itemnote)</td>
+                                        <td>@quot.ItemQuantity</td>
+                                        <td>@quot.ReceivedQty</td>
+                                        <td>@quot.DamageQty</td>
+                                        <td>@quot.MissingQty</td>
+                                        <td>@itmbalances</td>
+                                    </tr>
+
+                                    if (quot.bundleitem != null)
+                                    {
+                                        foreach (var bund in quot.bundleitem)
+                                        {
+                                            var RetItemQty = (bund.RetQty != null) ? bund.RetQty : 0;
+                                            var DvItemQty = (bund.DvQty != null) ? bund.DvQty : 0;
+                                            var balance = (DvItemQty - RetItemQty);
+
+                                        <tr>
+                                            <td>@bund.ItemCode - @bund.ItemName  @bund.ItemUnit @Html.Raw(itemnote)</td>
+                                            <td>@bund.ItemQuantity</td>
+                                            <td>@bund.ReceivedQty</td>
+                                            <td>@bund.DamageQty</td>
+                                            <td>@bund.MissingQty</td>
+                                            <td>@balance</td>
+                                        </tr>
+                                        }
+                                    }
+
+                                }
+
+                            </table>
+                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        @if (Model.Remarks != "")
+                        {
+                            <div class="form-group">
+                                <strong>Remarks </strong><br />
+                                @Html.Raw(Model.Remarks)
+                            </div>
+                        }
+                        <div class="form-group">
+                            <strong>Terms And Conditions </strong><br />
+                            @Html.Raw(Model.TermsCondition)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

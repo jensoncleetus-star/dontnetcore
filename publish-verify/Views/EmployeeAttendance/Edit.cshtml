@@ -1,0 +1,125 @@
+@model QuickSoft.ViewModel.EmpAttendanceViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "EmployeeAttendance", FormMethod.Post, new { id = "editform", role = "form" }))
+    {
+        <script type="text/javascript">
+            $('form#popupFormUnit').removeData("validator");
+            $('form#popupFormUnit').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#popupFormUnit'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.EmpattendanceId)
+        @Html.HiddenFor(model => model.EmpattendancedetailsId)
+
+        <div class="row">
+            @*<div class="col-md-6">
+                    <div class="form-group">
+                        <label class="control-label">Duration</label>
+                        <input type="text" class="form-control" value="@Model.userid"  id="duraduplicate" name="dura" readonly style="text-align:center;"/>
+                    </div>
+                </div>*@
+            <div class="form-group  col-md-9">
+                @Html.Label("Employee Name", null, new { @class = "control-label" })
+                @Html.DropDownListFor(m => m.EmployeeId, (SelectList)ViewBag.User, new { @id = "ddluser", @class = "form-control input-sm select2 Vendor" })
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-group">
+                    @Html.Label("Start Time", null, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.starttime, "{0:yyyy-MM-ddThh:mm:ss}", new { @class = "form-control login-tm", type = "datetime-local" })
+                    @Html.ValidationMessageFor(m => m.starttime, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    @Html.Label(" Logout", null, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => Model.logout, "{0:yyyy-MM-ddThh:mm:ss}", new { @class = "form-control logout-tm", type = "datetime-local" })
+                    @Html.ValidationMessageFor(m => m.logout, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit"  class="btn btn-info col-sm-offset-4" value="Update" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<script>
+    $("#ddluser").select2({
+        placeholder: 'Select User',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/EmployeeAttendance/UserSearch",
+            dataType: 'json',
+            type: "POST",
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page,
+                    lead: 1
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+
+    $('#editform').on('submit', function (e) {
+        e.preventDefault();
+
+        var from = new Date($('#starttime').val());
+        var to = new Date($('#logout').val());
+        if (to < from) {
+            alert("Logout time must be Greater than Start time");
+            e.preventDefault();
+            return false;
+        }
+        else {
+            $('#editform').submit();
+           
+        }
+
+
+
+
+    });
+
+
+
+    $(document).ready(function () {
+        
+        $("#starttime,#logout").change(function () {
+            var from = new Date($('#starttime').val());
+            var to = new Date($('#logout').val());
+            
+            if (to < from) {
+                alert("Logout time must be Greater than Start time");
+                
+            }; 
+        });
+    });
+
+    
+</script>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+
+}

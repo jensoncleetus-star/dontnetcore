@@ -1,0 +1,258 @@
+@model QuickSoft.ViewModel.PaymentViewModel
+@{
+    Layout = "~/Views/Shared/_AppLayout.cshtml";
+    ViewBag.Title = "Edit Payment";
+    ViewBag.SubTitle = "Payment";
+    ViewBag.Active = "Transactions";
+}
+@using (Html.BeginForm("Edit", "Payment", FormMethod.Post, new { id = "payform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Payment</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Payment List"))
+                {
+                    <a class="btn btn-success no-border" href="/app/payment/index.html">
+                        <i class="fa fa-fw fa-history"></i> Payments List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    <input type="hidden" />
+                    @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
+                    @if (ViewBag.EditVoucher == 0)
+                    {
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                    }
+                    else
+                    {
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly", tabindex = 1 } })
+                    }
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 2 })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.MOPayment, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.MOPayment, new { @id = "MoPay", @class = "form-control",  tabindex = 3 })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("PDCDate", null, htmlAttributes: new { @class = "control-label", @id = "PDC", })
+                    @Html.Label("CDCDate", null, htmlAttributes: new { @class = "control-label", @id = "CDC", })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PDCDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", tabindex = 4 })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-sm-4">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+                <div class="col-sm-4 form-group">
+                    @Html.LabelFor(m => m.PayFrom, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayFrom, (SelectList)ViewBag.Paidfrom, new { id = "ddlpayfrom", @class = "form-control select2", tabindex = 5 })
+                    <div id="accbalancefrm" class="form-group" style="display:none">
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetailsfrm"></label>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="col-sm-4 form-group">
+                    <label id="acctype" class="hidden">@ViewBag.acctype</label>
+                    @Html.LabelFor(m => m.PayTo, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, new { id = "ddlpayto", @class = "form-control select2", tabindex = 7 })
+                    <div id="accbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetails"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4 form-group" id="checkno">
+                    @Html.LabelFor(model => model.CheckNo, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CheckNo, new { htmlAttributes = new { @class = "form-control", data_msg_required = "Check Number is Required", tabindex = 8 } })
+                </div>
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive hight-250" id="invoice"><hr /></div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Remarks", rows = "5", tabindex = 9 })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.Discount, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Discount, new { htmlAttributes = new { @id = "Discount", @class = "form-control text-right", @value = "0.00", tabindex = 10 } })
+                        </div>
+                        <div class="form-group col-md-6  col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.GrandTotal, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.GrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", @min = "0.01", tabindex = 14 } })
+                        </div><br />
+                        <div class="form-group col-md-6 no-paddingleft">
+                            @Html.LabelFor(model => model.Paying, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Paying, new { htmlAttributes = new { @id = "Paying", @class = "form-control text-right", @value = "0.00", @min = "0.01", tabindex = 15 } })
+                        </div>
+                        <div class="form-group col-md-6 no-padding">
+                            @Html.LabelFor(model => model.Balance, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Balance, new { htmlAttributes = new { @id = "Balance", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 16 } })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <hr />
+                    <div class="form-group pull-right">
+                        <input type="hidden" value="" name="submittype" id="submittype" />
+                        <button type="submit" id="save" class="btn btn-info">
+                            <span class="glyphicon glyphicon-floppy-disk" tabindex="17"></span> Update
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success">
+                            <span class="glyphicon glyphicon-print"></span> Update And Print
+                        </button>
+                        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                        <input type="hidden" value="@ViewBag.BillToPayment" id="BillToPayment">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@Html.Partial("_Voucher")
+
+@*@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/payment")
+    <script type="text/javascript">
+        
+        $(document).ready(function () {
+            // modechange();
+
+
+            cashBalance();
+            GetBranch();
+
+            $('#PDCDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            modechange();
+            $('.sup').hide();
+            PaymentTo();
+            PaymentFrom();
+
+            var accid = $('#ddlpayfrom').val();
+            accbalancefrm(accid);
+            searchInvoice();
+
+            var entry = getQueryString('');
+            if(entry !=null){
+                $.ajax({
+                    url: '/Payment/GetPaymentBill',
+                    dataType: 'json',
+                    data: { entry: entry },
+                    cache: true,
+                    success: function (data) {
+                        if (data != "") {
+                            bindinvoiceNew();
+                            $('#addinvoiceItem').html('');
+                            $.each(data, function (i, item) {
+                                //var amt = item.Balance < item.Amount ? item.Balance : item.Amount;
+                                addrows('addinvoiceItem', 'edit', item.id, item.BillNo, item.Date, item.Balance, item.Amount, item.type, item.NewRefName, item.Type);
+                            });
+                            addrows('addinvoiceItem', 'edit', '', '', '', '0.00', '0.00');
+                            RowTotal();
+                        }
+                    }
+                });
+            }
+
+        });
+        function acctypecheck() {
+            var acctype = $('#acctype').text();
+            if (acctype != "Expense") {
+                $('#invoice').html('<hr/>');
+                $('.exp').hide();
+                $('.sup').show();
+            }
+            else {
+                $('#invoice').html('<hr/>');
+                $('.exp').show();
+                $('.sup').hide();
+                grandTotal();
+            }
+
+
+        }
+
+        $('body').on('change', '#Discount', function (e) {
+
+            cashBalance();
+        });
+        // on change function of payto
+        $('body').on('change', '#ddlpayto', function (e) {
+            var accid = $(this).val();
+            accbalance(accid);
+        });
+
+        $('body').on('change', '#ddlpayfrom', function (e) {
+            var accid = $(this).val();
+            accbalancefrm(accid);
+        });
+
+        // on change function taxpercentage
+        $('body').on('change', '#taxpercentage', function (e) {
+            var taxid = $(this).val();
+            Findtax(taxid);
+        });
+
+        // onchange function for paying
+        $('body').on('change', '#Paying', function (e) {
+            cashBalance();
+        });
+
+        // onchange function for paying
+        $('body').on('change', '#SubTotal', function (e) {
+            taxcalc();
+        });
+        // onchange function for modpaying
+        $('body').on('change', '#MoPay', function (e) {
+            var MOP = $('#MoPay').val();
+            var hid = (MOP == 2) ? $('#CDC').show() && $('#PDC').hide() : ($('#PDC').show() && $('#CDC').hide());
+            modechange();
+        });
+
+        //
+        $('#payform').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#payform").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                $('#submittype').val(fnval);
+                formsubmition(fnval);
+            }
+        });
+            
+    </script>
+}*@

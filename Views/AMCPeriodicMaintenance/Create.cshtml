@@ -1,0 +1,380 @@
+@model QuickSoft.ViewModel.AmcPeriodicMaintenanceViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Periodic Maintenance";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+}
+
+@using (Html.BeginForm("Create", "AMCPeriodicMaintenance", FormMethod.Post, new { id = "Createform", role = "form" }))
+{
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Create Periodic Maintenance</h3>
+        <div class="pull-right" style="padding:0px;">
+            <a class="btn btn-info no-border btn-up" href="/AMCPeriodicMaintenance/MyPeriodic">
+                <i class="glyphicon glyphicon-plus"></i>My Periodic
+            </a>
+        </div>
+        <div class="pull-right" style="padding:0px;">
+            <a class="btn btn-info no-border btn-up" href="/AMC/Create">
+                <i class="glyphicon glyphicon-plus"></i>Create AMC
+            </a>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+    @Html.HiddenFor(model => model.PMainDetailId)
+    <div class="box-body">
+
+        <div class="row">
+            <div class="col-md-2 col-xs-12 form-group">
+                @Html.LabelFor(model => model.AmcId, htmlAttributes: new { @class = "control-label" })*
+                @if (ViewBag.Mode == "Create")
+                {
+                    @Html.DropDownListFor(model => model.AmcId, (SelectList)ViewBag.Dropdowns, new { id = "ddlAmcNo", @class = "form -control input-sm select2", @required = "required", tabindex = 1 })
+                }
+                else
+                {
+                    @Html.DropDownListFor(model => model.AmcId, (SelectList)ViewBag.Amcs, new { id = "ddlAmcNo", @class = "form -control input-sm select2", @required = "required", tabindex = 1 })
+                }
+            </div>
+            <div class="col-md-2 col-xs-12 form-group">
+                @Html.Label("Periodic Sl No", null, new { @class = "control-label" }) *
+                @Html.EditorFor(model => model.PMaintNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly", @id = "PMaintNo" } })
+            </div>
+            <div class="col-md-4 col-xs-12 form-group">
+                @Html.Label("Customer Name", null, new { @class = "control-label" })
+                @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { @class = "form-control text-center", @readonly = "readonly", @id = "CustomerName" } })
+            </div>
+            <div class="col-md-4 col-xs-12 form-group">
+                @Html.Label("Contract Name", null, new { @class = "control-label" })
+                @Html.EditorFor(model => model.ContractName, new { htmlAttributes = new { @class = "form-control text-center", @readonly = "readonly", @id = "ContractName" } })
+            </div>           
+        </div>
+
+        <div class="row">
+            <div class="col-md-2 col-xs-12 form-group ">
+                @Html.Label("Periodic Date", null, new { @class = "control-label" })*
+                <div class="input-group date">
+                    <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                    @Html.TextBoxFor(model => model.PDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 3})
+                </div>
+            </div>           
+            <div class="col-md-10 col-xs-12 form-group ">
+                @Html.Label("Notes", null, new { @class = "control-label" })
+                @Html.TextAreaFor(model => model.Notes, new { @class = "form-control col-md-10", @placeholder = "Notes", tabindex = 36 })
+            </div>
+        </div>
+
+        <div class="row">
+
+            <div class="form-group col-md-4 col-xs-12">
+                @Html.LabelFor(m => m.AssignType, new { @class = "control-label" })
+                @if (ViewBag.Mode == "Create")
+                {
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.AssignTypeAll, (SelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple", tabindex = 12 })
+                    </div>
+                }
+                else
+                {
+                    <div class="input-group input-group-sm">
+                        @Html.ListBoxFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTeam, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple", @style = "width:100%", tabindex = 13 })
+                    </div>
+                }
+            </div>
+
+            <div class="form-group col-md-6 col-xs-12 ">
+                @Html.LabelFor(m => m.AssignedTos, new { @class = "control-label" })
+                @if (ViewBag.Mode == "Create")
+                {
+                    @Html.DropDownListFor(m => m.AssignedTo, (SelectList)ViewBag.Employee, "", new { @id = "AssignedUsers", @class = "form-control select2 porder", @name = "AssignedTo[]", @multiple = "multiple", tabindex = 13 })
+                }
+                else
+                {
+                    @Html.ListBoxFor(m => m.AssignedTo, (MultiSelectList)ViewBag.AssignTo, new { @id = "AssignedUsers", @class = "form-control select2 ", @name = "AssignedTo[]", @multiple = "multiple", @style = "width:100%", tabindex = 14 })
+                }
+            </div>
+
+            <div class="col-md-2 form-group col-xs-12 ">
+                <br/>
+                <button type="submit" id="save" class="btn btn-success">
+                    <span class="glyphicon glyphicon-floppy-disk"></span>Save
+                </button>
+                <button type="button" class="btn btn-warning" onclick="window.location.href='/AMCPeriodicMaintenance/Create'">Cancel</button>
+            </div>
+        </div>
+
+        <div class="box-body">
+            <table class="table table-bordered" id="PerdcDtlTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">Sl No.</td>
+                        <td data-priority="1">Periodic Date</td>
+                        <td data-priority="1">Notes</td>
+                        <td data-priority="1">Status</td>
+                        <td data-priority="1">Assigned To</td>
+                        <td data-priority="1">Last Updated</td>
+                        <td data-priority="1">Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+}
+
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+<script type="text/javascript">
+
+    var AmcId = $('#ddlAmcNo').val();
+    var Count = 0;
+
+
+     $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+     });
+
+    jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+    CallTeam();
+    AssignedUsersSelect2();
+
+     //DropDown Amc no.
+     $("#ddlAmcNo").select2({
+         placeholder: 'Search Amc No.',
+         minimumInputLength: 0,
+         ajax: {
+             url: "/AMC/SearchAmcNo",
+             dataType: 'json',
+             type: "POST",
+             delay: 50,
+             data: function (params) {
+
+                 return {
+                     q: params.term,
+                     page: params.page
+                 };
+             },
+             processResults: function (data, params) {
+                 params.page = params.page || 1;
+
+                 return {
+                     results: data
+                 };
+             },
+             cache: true
+         },
+     });
+
+    function AssignedUsersSelect2() {
+
+        $("#AssignedUsers").select2({
+            placeholder: 'Search Employees by Name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+    }
+
+     $('body').on('change', '#AssignTypeAll', function (e) {
+         var assign = $("#AssignTypeAll").val();
+         AssignTypeChange(assign);
+         CallTaskStatus();
+     });
+
+    var PMainNo = $("#PMaintNo").val();
+
+     //To retrieve data, while changing AssetAccounts
+     $('body').on('change', '#ddlAmcNo', function (e) {
+         Count = 0;
+
+         AmcId = $(this).val();
+         if (AmcId != null) {
+
+             //Calling function to retrieve PMaintenance details based on AmcID
+             $.ajax({
+                 url: '/AMCPeriodicMaintenance/GetFillDetails',
+                 dataType: 'json',
+                 data: { AmcId: AmcId, FillMode: "Create"  },
+                 cache: true,
+                 success: function (data) {
+
+                     //To Set the PMaintenance No.
+                     if (data[0].PMaintNo == 0 && '@ViewBag.Mode' == "Create")
+                         $("#PMaintNo").val(PMainNo);
+                     else if (data[0].PMaintNo == 0 && '@ViewBag.Mode' == "Edit")
+                         $("#PMaintNo").val(data[0].NewMaintNo);
+                     else
+                         $("#PMaintNo").val(data[0].PMaintNo);                    
+
+                     //To set PMainDetailId to 0 while changing AMC
+                     $('#PMainDetailId').attr('value', 0);
+
+                     $("#CustomerName").val(data[0].CustomerName);
+                     $("#ContractName").val(data[0].ContractName);
+                 }
+             });
+
+            //To Clear fetched data
+            $("#PDate").val("@ViewBag.NewDate");
+            $("#Notes").val("");
+            $("#AssignTypeAll").val(0);
+            CallTeam();
+            $("#AssignedUsers").val(0);
+            AssignedUsersSelect2();
+
+             oTable.draw();
+         }
+     });
+
+    var oTable = $('#PerdcDtlTable').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": false, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "pageLength": 50,
+        responsive: true,
+        "bLengthChange": false,
+        "ajax": {
+            "url": '/AMCPeriodicMaintenance/GetPeriodicMaintDtls',
+            "data": function (data) {
+                data.AmcId = AmcId ? AmcId : 0;
+            },
+            "type": "POST",
+            "datatype": "json",
+        },
+        "order": [[5, "desc"]],
+        "columnDefs": [{
+            "targets": [4,6],
+            "orderable": false
+        }],
+        "columns": [
+            {
+                "data": "PerMaintDetailsId", "name": "PerMaintDetailsId",
+                "render": function (data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
+            {
+                "data": "PDate", "name": "PDate",
+                "render": function (data) {
+                    var date = convertToDate(data);
+                    return date.toString();
+                }
+            },
+            { "data": "Notes", "name": "Notes" },
+            { "data": "StatusName", "name": "StatusName" },
+            {
+                "name": "AssignedTo", "data": function (data) {
+                    var datas = "";
+                    $.each(data.AssignedTo, function (i, item) {
+                        if (datas != "") {
+                            datas += ", ";
+                        }
+                        datas += item.FirstName + " " + item.LastName;
+                    })
+                    return datas;
+                }
+            },
+            {
+                "name": "ldate", "data": function (data) {
+                    var result = "";
+                    if (data.ldate != null) {
+                        result = LastUpdatedIn(data.ldate);
+                    }
+                    return (result);
+                }
+            },
+            {
+                "name": "PerMaintDetailsId", "data": function (data) {
+                var rest = "";
+                @{
+                    actData += "<a class=\"modal-fill btn btn-icons btn-rounded btn-edit\" href=\"/AMCPeriodicMaintenance/Create/'+ data.PerMaintDetailsId +'/Edit\" title=\"Edit Periodic Maintenance Details\" class=\"text-red\"><i class=\"fa fa fa-pencil\" ></i></a> ";
+                    actData += "<a class=\"modal-delete btn btn-icons btn-rounded btn-delete\" href=\"/AMCPeriodicMaintenance/Delete/'+ data.PerMaintDetailsId +'\" title=\"Delete Periodic Maintenance Details\"><i class=\"fa fa-trash\" ></i></a> ";
+                }
+                return rest = '@Html.Raw(actData)';
+                }
+            },
+        ],
+    });
+
+    /* function for Delete popup */
+    $('.table').on('click', '.modal-delete', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-delete');
+    });
+
+    //Delete Submit
+    $('#modal-delete').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-delete');
+
+        //To Clear fetched data
+        @*$("#PDate").val("@ViewBag.NewDate");
+        $("#Notes").val("");
+        $("#AssignTypeAll").val(0);
+        CallTeam();
+        $("#AssignedUsers").val(0);
+        AssignedUsersSelect2();*@
+
+        window.location.href = '@Url.Action("Create/", "AMCPeriodicMaintenance")';
+    });
+
+    //Posting
+    $('#Createform').on('submit', function (e) {
+        e.preventDefault();
+
+        if (AmcId != "") {
+            var url = $('#Createform')[0].action;
+            var data = $('#Createform').serialize();
+            createajax(url, data);
+
+            //To Clear fetched data
+            @*$("#PDate").val("@ViewBag.NewDate");
+            $("#Notes").val("");
+            $("#AssignTypeAll").val(0);
+            CallTeam();
+            $("#AssignedUsers").val(0);
+            AssignedUsersSelect2();*@
+
+            window.location.href = '@Url.Action("Create/", "AMCPeriodicMaintenance")';
+        }
+    });
+</script>
+}
+

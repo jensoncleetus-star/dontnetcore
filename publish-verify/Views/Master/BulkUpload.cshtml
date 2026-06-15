@@ -1,0 +1,314 @@
+﻿@model QuickSoft.ViewModel.BankViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Bank Accounts";
+    ViewBag.Active = "Master";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("BulkUploadBankAccount", "Master", FormMethod.Post, new { id = "fileupload", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Bank Accounts</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Bank Accounts"))
+                {
+                    <a class="btn btn-success no-border" href="/Master/BankAccounts">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-sm-12">
+                <div class="callout callout-danger">
+                    <h4> Warning </h4>
+                    <ul>
+                        <li>Maximum Number of Item on an Excel Sheet is '500'</li>
+                        <li>Account Name, Group, Status fields are Mandatory</li>
+                        <li>Group Name is same as in Accounts Group</li>
+                        <li>Status is active or inactive null value always take inactive</li>
+                        <li>All Fields Are Case Sensitive</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-sm-12 form-group top-10">
+                <input type="file" id="excelfile" /><br />
+                <input type="button" id="upexcel" class="btn btn-primary btn-xs" value="Upload" onclick="ExportToTable()" />
+                <input type="button" id="dwformat" class="btn btn-default btn-xs" value="Download Format" />
+            </div>
+        </div>
+        <div class="box-footer">
+
+            <div id="excelup">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists">Bank Name <i class="text-danger">*</i></th>
+                                <th class="text-center">Account No</th>
+                                <th class="text-center">Alias</th>
+                                <th class="text-center">IBAN No</th>
+                                <th class="text-center">Branch</th>
+                                <th class="text-center">Swift</th>
+                                <th class="text-center">Opening Balance</th>
+                                <th class="text-center">Note</th>
+                                <th class="text-center">Status</th>    
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr></tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button type="submit" id="save" class="btn btn-success">
+                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                </button>
+                <div class="form-group pull-right">
+
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/sheetjs")
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#excelup').hide();
+        });
+
+        $("#dwformat").click(function () {
+            window.location.href = '@Url.Action("DownloadExcel", "Master")';
+        });
+        function delete_dt() {
+            var table = document.getElementById("addinvoiceItem");
+            var rowCount = table.rows.length;
+            while(table.rows.length > 0) {
+                table.deleteRow(0);
+            }
+        }
+        //Excel working
+        function ExportToTable() {
+            delete_dt();
+
+            $('#excelup').show();
+            $("#chkexcel").val("true");
+            //var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;
+            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+            /*Checks whether the file is a valid excel file*/
+            if (regex.test($("#excelfile").val())) {
+                // if (regex.test($("#excelfile").val().toLowerCase())) {
+                var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
+                if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
+                    xlsxflag = true;
+                }
+                /*Checks whether the browser supports HTML5*/
+                if (typeof (FileReader) != "undefined") {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        ///*Converts the excel data in to object*/
+                        var data = new Uint8Array(reader.result);
+
+                        //if (xlsxflag) {
+                        var workbook = XLSX.read(data, { type: 'array' });
+                        //}
+                        //else {
+                        //    var workbook = XLS.read(data, { type: 'array' });
+                        //}
+                        /*Gets all the sheetnames of excel in to a variable*/
+                        var sheet_name_list = workbook.SheetNames;
+                        var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
+                        sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
+                            /*Convert the cell value to Json*/
+                            //if (xlsxflag) {
+                            var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y], { defval: '' })
+                            //}
+                            //else {
+                            //    var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
+                            //}
+
+                            if (exceljson.length > 0 && cnt == 0) {
+                                BindTable(exceljson, '#exceltable');
+                                cnt++;
+                            }
+                        });
+                        $('#exceltable').show();
+                    }
+                    if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
+                        reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+                    }
+                    else {
+                        reader.readAsBinaryString($("#excelfile")[0].files[0]);
+                    }
+                }
+                else {
+                    alert("Sorry! Your browser does not support HTML5!");
+                }
+            }
+            else {
+                $('#excelup').hide();
+                alert("Please upload a valid Excel file!");
+            }
+        }
+        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
+            var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/
+            var data = [];
+            $('#addinvoiceItem').html('');
+            $.each(jsondata, function (i, item1) {
+                //console.log(item1);
+                var parameters = {};
+                parameters.BankName = (typeof item1.AccName === "undefined") ? (typeof item1['Bank Name'] === "undefined" ? "0" : item1['Bank Name']) : item1.AccName;
+                parameters.Alias = (typeof item1.Alias === "undefined") ? (typeof item1['Alias'] === "undefined" ? "0" : item1['Alias']) : item1.Alias;
+                parameters.IBAN = (typeof item1.IBAN === "undefined") ? (typeof item1['IBAN No'] === "undefined" ? "0" : item1['IBAN No']) : item1.IBAN;
+                parameters.OpeningBalance = (typeof item1.OpeningBalance === "undefined") ? (typeof item1['Opening Balance'] === "undefined" ? "0" : item1['Opening Balance']) : item1.OpeningBalance;
+                parameters.AccNo = (typeof item1.AccNo === "undefined") ? (typeof item1['Account No'] === "undefined" ? "0" : item1['Account No']) : item1.AccNo;
+
+                parameters.Branch = (typeof item1.Branch === "undefined") ? (typeof item1['Branch'] === "undefined" ? "0" : item1['Branch']) : item1.Branch;
+                parameters.Status = (typeof item1.Status === "undefined") ? (typeof item1.Status === "Status" ? "" : item1['Status']) : item1.Status;
+                parameters.Note = (typeof item1.Note === "undefined") ? (typeof item1['Note'] === "undefined" ? "0" : item1['Note']) : item1.Note;
+                parameters.Swift = (typeof item1.Swift === "undefined") ? (typeof item1['Swift'] === "undefined" ? "0" : item1['Swift']) : item1.Swift;
+
+                parameters.DebitCredit = (typeof item1.DebitCredit === "undefined") ? (typeof item1['Debit/Credit'] === "undefined" ? "0" : item1['Debit/Credit']) : item1.DebitCredit;
+
+                if (parameters.ItemName != "") {
+                   bulkupload('addinvoiceItem', parameters)
+                }
+            })
+        }
+
+        function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/
+            var columnSet = [];
+            var headerTr$ = $('<tr />');
+            for (var i = 0; i < jsondata.length; i++) {
+                var rowHash = jsondata[i];
+                for (var key in rowHash) {
+                    if (rowHash.hasOwnProperty(key)) {
+                        if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/
+                            columnSet.push(key);
+                            headerTr$.append($('<th />').html(key));
+                        }
+                    }
+                }
+            }
+            $(tableid).append(headerTr$);
+            return columnSet;
+        }
+
+
+        $('#fileupload').on('submit', function (e) {
+            e.preventDefault();
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+
+            var data = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.array = data;
+            submitForm(parameters);
+
+        });
+        function submitForm(parameters) {
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/Master/BulkUploadBankAccount",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+
+                },
+                success: function (e) {
+                    var mybody = $("body").html();
+                    if (e.status == true) {
+                        {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+
+                        window.location.href = '@Url.Action("Index", "Accounts")';
+
+                    } else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+
+        }
+
+        var count = 1, type = '';
+        limits = 500;
+        //Add Row
+        var pcount = 2;
+        function bulkupload(t, Item) {
+            if (count == limits) alert("You have reached the limit of adding " + count + " inputs");
+            else {
+                var Option = "";
+                var optionunit = "";
+                var required = "";
+                var slno = $('#addinvoiceItem tr').length + 1;
+
+                var row = "<tr class='item_' id='item_" + count + "'>";
+                //var baseprice = 0;
+                //var mrp = 0;
+                var htdata = "";
+                var itemnote = "";
+                var divid = "cus_name_" + Item.AccName;
+
+                if (count == 1) {
+                    required = 'required="required"';
+                }
+                data = "<td class='text-center' id=" + divid + "> " + slno + " </td>" +
+                        "<td ><input class='form-control BankName_" + count + "' type='text' " + required + "  data-id='" + count + "' id='BankName_" + count + "' data-msg-required='The Item field is required' placeholder='Type Bank Account Name' value='" + Item.BankName + "'/> </td>" +
+                        "<td ><input class='form-control accno_" + count + "' type='text' data-id='" + count + "' id='accno_" + count + "' placeholder='Type Account No' value='" + Item.AccNo + "'/> </td>" +
+                        "<td ><input class='form-control alias_" + count + "' type='text' data-id='" + count + "' id='alias_" + count + "' placeholder='Type Account Alias' value='" + Item.Alias + "'/> </td>" +
+                        "<td ><input class='form-control iban_" + count + "' type='text' data-id='" + count + "' id='iban_" + count + "' placeholder='Type IBAN No' value='" + Item.IBAN + "'/> </td>" +
+                        "<td ><input class='form-control Branch_" + count + "' type='text' data-id='" + count + "' id='Branch_" + count + "' placeholder='Type Branch Name' value='" + Item.Branch + "'/> </td>" +
+                        "<td ><input class='form-control Swift_" + count + "' type='text' data-id='" + count + "' id='Swift_" + count + "' placeholder='Type Swift Name' value='" + Item.Swift + "'/> </td>" +
+                        "<td ><input class='openingbalance_" + count + "' value='" + Item.OpeningBalance + "' placeholder='Type Opening Balance' name='openingbalance' id='openingbalance_" + count + "'/></td>" +
+                        "<td ><input class='form-control note_" + count + "' type='text' data-id='" + count + "' id='note_" + count + "' placeholder='Type Note' value='" + Item.Note + "'/> </td>" +
+                        "<td ><input class='form-control status_" + count + "' type='text' data-id='" + count + "' id='status_" + count + "' placeholder='Type status' value='" + Item.Status + "'/> </td>" +
+                        
+                        "<input type='hidden' class='debit_" + count + "' value='" + Item.DebitCredit + "' name='debit' id='debit_" + count + "'/>" +
+
+                        "</td>" +
+                        "<td class='text-center'><button  style='text-align: right;' class='btn btn-danger' type='button' value='Delete' onclick='deleteRow(this)'><i class='fa fa-trash fa-1x'></i></button>" + itemnote + htdata + "</td>";
+                row += data + "</tr>";
+                $('#' + t).append(row);
+
+                count++;
+
+            }
+        }
+        function deleteRow(t) {
+            var classname = $(t).closest('tr').attr('class');
+                var e = t.parentNode.parentNode;
+                e.parentNode.removeChild(e);
+            var i = 1;
+            $('#addinvoiceItem tr').each(function () {
+                $(this).find('td:first').text(i);
+                i++;
+            });
+        }
+
+    </script>
+}

@@ -1,0 +1,77 @@
+@{
+    ViewBag.Title = "Search Stock";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+    var type = ViewBag.JewCheck == 0 ? "Stock Enquiry" : "Stock Moment";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">@type</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("Moment", "StockReport", FormMethod.Post, new { id = "popupForm" }))
+        {
+            <div class="row">
+                <div class="form-group col-md-4">
+                    @Html.Label("Item", null, new { @class = "control-label col-md-4" })
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.Category, new { @class = "form-control input-sm", @required = "required" })
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        }
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            CallRepMCUser();
+
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        //$('body').on('change', '#ddlMC', function (e) {
+        //    CallMCUser();
+        //});
+    </script>
+}

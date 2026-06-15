@@ -1,0 +1,906 @@
+@model QuickSoft.Models.Customer
+@{
+    ViewBag.Title = "PipeLine List";
+    ViewBag.SubTitle = "PipeLine";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Bank Accounts"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+               "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+                "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+        .dropdown-check-list.visible .anchor {
+            color: #0094ff;
+        }
+
+        .dropdown-check-list.visible .items {
+            display: block;
+        }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">PipeLine</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create PipeLine"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/PipeLine/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create PipeLine
+                </a>
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liname" />Lead Name </li>
+                        <li><input type="checkbox" id="lileadsource" />Lead Source</li>
+                        <li><input type="checkbox" id="licreatedby" />Created By </li>
+                        <li><input type="checkbox" id="lilocation" />Location</li>
+                        <li><input type="checkbox" id="lileadstatus" />Lead Status</li>
+                        <li><input type="checkbox" id="liassignedto" />Assigned To</li>
+                        <li><input type="checkbox" id="lileadlevel" />Lead Level</li>
+                        <li><input type="checkbox" id="lifromdate" />From Date</li>
+                        <li><input type="checkbox" id="litodate" />To Date</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchname">
+                                    @Html.Label("Lead Name", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlLeadName", (SelectList)ViewBag.LeadName, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchsource">
+                                    @Html.Label("Lead Source", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlLeadSource", (SelectList)ViewBag.LeadSource, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchcreatedby">
+                                    @Html.Label("Created By", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchlocation">
+                                    @Html.Label("Location", null, new { @class = "control-label" })
+                                    @Html.TextBox("TxtLocation", "", "", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchleadstatus">
+                                    @Html.Label("Lead Status", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlLeadStatus", (SelectList)ViewBag.LeadStatus, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchassignedto">
+                                    @Html.Label("Assigned To", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlAssignedTo", (SelectList)ViewBag.AssignedTo, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchleadlevel">
+                                    @Html.Label("Lead Level", null, new { @class = "control-label" })
+                                    @Html.DropDownList("LeadLevel", new SelectList(new List<SelectListItem>
+                                    {
+                                        new SelectListItem(){ Text = "All", Value="All"},
+                                        new SelectListItem() {Text = "Small", Value="Small"},
+                                        new SelectListItem() {Text = "Medium", Value="Medium"},
+                                        new SelectListItem() {Text = "High", Value="High"},
+                                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LeadLevel", @required = "required", tabindex = 7 })
+                                </div>
+                                <div class="form-group col-md-2" id="searchfromdate">
+                                    @Html.Label("From Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2" id="searchtodate">
+                                    @Html.Label("To Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAllPipeLine", "PipeLine", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">#</td>
+                        <td data-priority="3">PipeLine Code</td>
+                        <td data-priority="2">Name</td>
+                        <td data-priority="4">Tax Reg No</td>
+                        <td data-priority="6">Location</td>
+                        <td data-priority="7">Phone</td>
+                        <td data-priority="7">Mobile</td>
+                        <td data-priority="8">Email</td>
+
+                        <td data-priority="10">Source Of Lead</td>
+
+                        <td data-priority="10">Assigned To</td>
+                        <td>Status Update</td>
+                        <td data-priority="11"> Action</td>
+                        <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete PipeLine"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+
+    <div id="modal-containerstatus" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>View Status </h4>
+                </div>
+                <div class="modal-body">
+                    <div class="box-body" id="modelview">
+                        <table class="table table-bordered table-hover" id="UserTableInfo" width="100%">
+                            <thead>
+                                <tr style="background-color: #d2d6de">
+                                    <td>Current State</td>
+                                    <td>Convert From</td>
+                                    <td>Converted User</td>
+                                    <td>Converted Date</td>
+                                    <td>Remarks</td>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+            </div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    <script type="text/javascript">
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+
+        });
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/PipeLine/GetAllPipeLine',
+                "data": function (data) {
+                    data.LeadName = $('#ddlLeadName').val();
+                    data.LeadSource = $('#ddlLeadSource').val();
+                    data.CreatedBy = $('#ddlCreatedBy').val();
+                    data.Location = $('#TxtLocation').val();
+                    data.LeadStatus = $('#ddlLeadStatus').val();
+                    data.AssignedTo = $('#ddlAssignedTo').val();
+                    data.LeadLevel = $('#LeadLevel').val();
+                    data.fromdate = $('#From').val();
+                    data.todate = $('#To').val();
+
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [11, 12],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Code", "name": "Code" },
+                  {
+                      "name": "Name", "data": function (data) {
+                          @{
+                              var datas = "";
+                              if (User.IsInRole("Dev") || User.IsInRole("View PipeLine"))
+                              {
+                                  datas = "'<a href=\"/PipeLine/ViewDetails/'+ data.id +'\">'+ data.Name +'</a>' ";
+                              }
+                              else
+                              {
+                                  datas = "data.Name";
+                              }
+                          }
+                          return @Html.Raw(datas);
+                      }
+                  },
+                 { "data": "TaxRegNo", "name": "TaxRegNo" },
+                 { "data": "Location", "name": "Location" },
+                 { "data": "Phone", "name": "Phone" },
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null) {
+                                 if (datas != "") {
+                                     datas += ", ";
+                                 }
+                                 datas += item.Num;
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+                 { "data": "Email", "name": "Email" },
+
+                   { "data": "SrcLead", "name": "SrcLead" },
+                    {
+                        "name": "assin", "data": function (data) {
+                            var datas = "";
+                            $.each(data.lead, function (i, item) {
+                                if (datas != "") {
+                                    datas += ", ";
+                                }
+                                datas += item.emp;
+                            })
+                            return datas;
+                        }
+                    },
+                   {
+                       "data": "Type", "name": "Type", "data": function (data, type, dataToSet) {
+                           return '<a  class="Updation" onclick="details(' + data.id + ')"  title="View Status">Status</a>';
+                       }
+                   },
+
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         @{
+                                 if (User.IsInRole("Dev") || User.IsInRole("View PipeLine"))
+                                 {
+                                     actData += "<a class=\"details\" href=\"/PipeLine/Details/'+ data.id +'\" title=\"View PipeLine\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Edit PipeLine"))
+                                 {
+                                     actData += "<a href=\"/PipeLine/Edit/'+ data.id +'\" title=\"Edit PipeLine\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete PipeLine"))
+                                 {
+                                     actData += "<a class=\"modal-delete\" href=\"/PipeLine/Delete/'+ data.id +'\" title=\"Delete PipeLine\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                                 {
+                                     actData += "<a href=\"/Customer/Create/'+ data.id +'/PipeLine\"  title =\"Convert To Customer\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                 }
+
+                             }
+                         return rest = '@Html.Raw(actData)';
+                     }
+                 },
+                {
+                    "name": "id", "data": function (data) {
+                        var rest = "";
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete PipeLine"))
+                            {
+                                delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                            }
+                        }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Suppliers </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+                }
+            }, 'copy', 'csv', 'excel',
+
+            {
+                extend: 'pdf',//
+                title: "Pipeline",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+             @Html.Raw(deleteBTn)
+
+            ],
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(12);
+            column1.visible(true);
+        }
+        else {
+            var column1 = oTable.column(12);
+            column1.visible(false);
+        }
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        $('#To').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        $('#From').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-containerstatus');
+            $(this).attr('data-toggle', 'modal');
+        })
+
+        $('.table').on('click', '.modal-close-btn', function () {
+            $('#modal-containerstatus').modal('hide');
+            $('#modal-containerstatus').removeData('bs.modal');
+        });
+
+        $('#modal-containerstatus').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-delete');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        function details(d) {
+            var custId = d;
+            var oTable = $('#UserTableInfo').DataTable({
+                responsive: true,
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Customer/GetAllConversionUpdation',
+                    "data": { custId: custId },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                  { "data": "Status", "name": "Status" },
+                  { "data": "ConvertFrom", "name": "ConvertFrom" },
+                  { "data": "ConvertUser", "name": "ConvertUser" },
+                  { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertToDate(data); } },
+                  { "data": "Remarks", "name": "Remarks" },
+                ],
+                searching: false
+            });
+            oTable.destroy();
+        }
+
+        //Lead Name
+        $("#ddlLeadName").select2({
+            placeholder: 'Search Lead Name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/PipeLine/SearchPipeLine",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //Lead Source
+        $("#ddlLeadSource").select2({
+            placeholder: 'Search Lead Source',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchLeadSource",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //CreatedBy
+        $("#ddlCreatedBy").select2({
+            placeholder: 'Search Employee by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Users/SearchUser",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //ddlLeadStatus
+        $("#ddlLeadStatus").select2({
+            placeholder: 'Search Lead Status ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchLeadStatus",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //AssignedTo
+        $("#ddlAssignedTo").select2({
+            placeholder: 'Search Employee by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchAssignedTo",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //Button close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+
+                /*******  To clear all the data entered  *********/
+                $('#ddlLeadName').val(0).trigger("change");
+                $('#ddlLeadSource').val(0).trigger("change");
+                $('#ddlCreatedBy').val(0).trigger("change");
+                $('#TxtLocation').val("");
+                $('#ddlLeadStatus').val(null).trigger("change");
+                $('#ddlAssignedTo').val(null).trigger("change");
+                $('#LeadLevel').val("All");
+                $('#From').val("");
+                $('#To').val("");
+                oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+      var checkList = document.getElementById('list1');
+      /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+      checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+          if (checkList.classList.contains('visible'))
+              checkList.classList.remove('visible');
+          else
+              checkList.classList.add('visible');
+      }
+
+      /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+      $("ul li input:checkbox").click(function () {
+
+          var _show = 0;
+
+          //Lead Name
+          if ($("#liname").prop("checked") == true) {
+              $("#searchname").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlLeadName').val(0).trigger("change");
+              $("#searchname").hide();
+              oTable.draw();
+          }
+
+          //Lead Source
+          if ($("#lileadsource").prop("checked") == true) {
+              $("#searchsource").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlLeadSource').val(0).trigger("change");
+              $("#searchsource").hide();
+              oTable.draw();
+          }
+
+          //Created By
+          if ($("#licreatedby").prop("checked") == true) {
+              $("#searchcreatedby").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlCreatedBy').val(0).trigger("change");
+              $("#searchcreatedby").hide();
+              oTable.draw();
+          }
+
+          //Location
+          if ($("#lilocation").prop("checked") == true) {
+              $("#searchlocation").show();
+              _show = 1;
+          }
+          else {
+              $("#TxtLocation").val("");
+              $("#searchlocation").hide();
+              oTable.draw();
+          }
+
+          //Lead Status
+          if ($("#lileadstatus").prop("checked") == true) {
+              $("#searchleadstatus").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlLeadStatus').val("All").trigger("change");
+              $("#searchleadstatus").hide();
+              oTable.draw();
+          }
+
+          //Assigned To
+          if ($("#liassignedto").prop("checked") == true) {
+              $("#searchassignedto").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlAssignedTo').val(null).trigger("change");
+              $("#searchassignedto").hide();
+              oTable.draw();
+          }
+
+          //Lead Level
+          if ($("#lileadlevel").prop("checked") == true) {
+              $("#searchleadlevel").show();
+              _show = 1;
+          }
+          else {
+              $("#LeadLevel").val("All");
+              $("#searchleadlevel").hide();
+              oTable.draw();
+          }
+
+          //From Date
+          if ($("#lifromdate").prop("checked") == true) {
+              $("#searchfromdate").show();
+              _show = 1;
+          }
+          else {
+              $("#From").val("");
+              $("#searchfromdate").hide();
+              oTable.draw();
+          }
+
+          //To Date
+          if ($("#litodate").prop("checked") == true) {
+              $("#searchtodate").show();
+              _show = 1;
+          }
+          else {
+              $("#To").val("");
+              $("#searchtodate").hide();
+              oTable.draw();
+          }
+
+          if (_show == 1) {
+              $('#advsearchlist').show();
+          }
+          else {
+              $('#advsearchlist').hide();
+          }
+      });
+
+      /******* Function to hide dropdown checklist while clicking outside it ********/
+      $(document).on("click", function (event) {
+
+          var element1 = $("#list1");
+
+          if (element1 !== event.target && !element1.has(event.target).length) {
+              checkList.classList.remove('visible');
+          }
+      });
+
+    </script>
+}
+
+
+

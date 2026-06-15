@@ -1,0 +1,198 @@
+@model QuickSoft.ViewModel.AttendanceViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Attendance";
+    ViewBag.Active = "Payroll";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("EditAttendance", "Attendance", FormMethod.Post, new { id = "updateForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Attendance</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Attendance List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/Attendance">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(m=>m.AttendanceId)
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.AtDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="row">
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Branch", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        </div>
+                    </div>
+                }
+            </div>
+             <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Employee <i class="text-danger">*</i></th>
+                                <th class="text-center">Emp Code</th>
+                                <th class="text-center">Attendance Type <i class="text-danger">*</i></th>
+                                <th class="text-center">Current Balance</th>
+                                <th class="text-center">Value</th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addempitem"></tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>
+                </div>
+
+            <div class="col-md-12 pull-right">
+                <div class="form-group">
+                    @Html.Label("Note", null, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm textarea", rows = 8 })
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                </div>
+
+                <div class="form-group pull-right">
+                    <button type="submit" id="update" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Hr/Attendance/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/attendance")
+
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+
+            var AttID = getQueryString('');
+            if (AttID != null) {
+                $.ajax({
+                    url: '/Hr/Attendance/GetAttendanceById',
+                    dataType: 'json',
+                    data: { AttID: AttID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addempitem').html('');
+                        $.each(data, function (i, item) {
+                            addempitem('addempitem', '', item.EmpName, item.EmployeeId, item.AttType, item.AttendanceType, item.Value, item.Unit,item.EMPCode,'', item);
+                        });
+                        addempitem('addempitem', "", "", "", "", "", "", "", "");
+                    }
+                });
+            }
+            addempitem('addempitem', "", "", "", "", "", "", "", "");
+        });
+
+
+        /* function for Create popup */
+
+        $('table').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('#updateForm').on('submit', function (e) {
+            e.preventDefault();
+
+            //Attendance type validation
+            var tbody = $("#normalinvoice tbody");
+            var chkcount = 0;
+            var length = tbody.children().length-1;
+            if (tbody.children().length > 0) {
+                tbody.children("tr").each(function () {
+                    var rowid = $(this).attr("id");
+                    var rowclass = $(this).attr("class");
+                    var item = $("#" + rowid + " .AtType").val();
+                    if (rowclass != "emp_" && (item == null || item == "")) {
+                        chkcount++;
+                    }
+                });
+            }
+            if (length == chkcount || ((length - chkcount) != length)) {
+                alert("Please Select Attendance Type..!!");
+            } else {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                if ($("#updateForm").valid()) {
+                    AttendanceSubmit(fnval);
+                }
+                else {
+                    $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+                }
+            }
+        });
+    </script>
+}
+

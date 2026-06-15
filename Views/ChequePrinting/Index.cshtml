@@ -1,0 +1,271 @@
+﻿@model QuickSoft.Models.ChequePrinting
+@{
+
+    ViewBag.SubTitle = "Cheque Design";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+
+    @*bool userRole = false;
+        if (User.IsInRole("Dev") || User.IsInRole("Delete PurchaseQuotation"))
+        {
+            userRole = true;
+        }*@
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Cheque Design Templates</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Invoice Template"))
+            {
+                <a class="btn btn-default no-border" href="/InvoiceTemplate/Index?docType=Cheque" title="Design / manage cheque print templates">
+                    <i class="glyphicon glyphicon-duplicate"></i> Design Templates
+                </a>
+            }
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="/ChequePrinting/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create Cheque Print
+            </a>
+
+        </div>
+    </div>
+
+
+    @using (Html.BeginForm("DeleteAllPrintTemplate", "ChequePrinting", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="ChequePrintTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+
+                        <td data-priority="4">FormateName</td>
+
+                        <td data-priority="1">Action</td>
+                        <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+        if (User.IsInRole("Dev") || User.IsInRole("Delete ChequePrinting"))
+        {
+        <div class="box-footer text-right col-md-12" id="sub">
+            <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+        </div>
+        }
+    }
+</div>
+
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            $('#advsearch').hide();
+
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+        var oTable = $('#ChequePrintTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/ChequePrinting/GetChequePrinting',
+                "data": function (data) {
+
+                    data.FormateName = $('#FormateName').val();
+
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            //"order": [[1, "desc"]],
+            //"columnDefs": [{
+            //    "targets": [10, 11],
+            //    "orderable": false
+            //}],
+            "columns": [
+                     {
+                         "data": "ChequePrintingId", "name": "ChequePrintingId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+
+                     { "data": "FormateName", "name": "FormateName" },
+
+
+
+                {
+                    "name": "ChequePrintingId", "data": function (data) {
+
+                        var rest = "";
+                        @{
+                             actData = "";
+                             actData += "<a href=\"/ChequePrinting/ChequeDesign/'+ data.ChequePrintingId +'\" title=\"Cheque\"><i class=\"fa fa-cog fa-spin\" ></i></a> ";
+                             ////actData += "<a href=\"/ChequePrinting/Create/'+ data.ChequePrintingId+'/ChequePrintingId\" title=\"Convert Cheque Printng\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                             //actData += "<a class=\"Design\" href=\"/ChequePrinting/ConfigureChequeTemplate/'+ data.ChequePrintingId +'\" title=\"Cheque Template\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+
+                        }
+                        rest += '@Html.Raw(actData)';
+
+                        return rest;
+                    }
+                },
+                 {
+                     "name": "ChequePrintingId", "data": function (data) {
+                         var rest = "";
+                         @{
+
+                                 delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.ChequePrintingId +'></input>";
+
+                         }
+                         return rest = '@Html.Raw(delchk)';
+                     }
+                 },
+
+
+            ], "drawCallback": function (settings) {
+                var table = $('#ChequePrintTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var column1 = oTable.column(3);
+        column1.visible(true);
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+
+
+
+        /* chang status */
+
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+
+            $('#advsearch').toggle();
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+                $('#FormateName').val("");
+                oTable.draw();
+            }
+
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            CallRepSupplier();
+            CallRepEmployee();
+
+            $("#ddlProject").select2({
+                placeholder: 'Search Project Code Or Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Project/SearchProject",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+
+            });
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+    </script>
+}

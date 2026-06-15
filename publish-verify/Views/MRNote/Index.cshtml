@@ -1,0 +1,787 @@
+@model QuickSoft.Models.MaterialReceiveNote
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Material Receive Note";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete MRNote"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+              "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+               "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Material Receive Note</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Invoice Template"))
+            {
+                <a class="btn btn-default no-border" href="/InvoiceTemplate/Index?docType=MaterialRequisition" title="Design / manage material-requisition print templates">
+                    <i class="glyphicon glyphicon-duplicate"></i> Design Templates
+                </a>
+            }
+            @if (User.IsInRole("Dev") || User.IsInRole("MRNote Entry"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/MRNote/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+
+        <div class="search-body col-md-12" id="advsearch" style="display:block;position:relative">
+            <form id="search-form">
+                <div class="row">
+                    <input type="hidden" id="remId" />
+                    <div class="form-group col-md-2">
+                        @Html.Label("MRNote No", null, new { @class = "control-label" })
+                        @Html.TextBox("BillNo", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "01-09-2023", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2" id="creditsale">
+                        @Html.Label("Supplier", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="execreditsale">
+                        @Html.Label("Requested By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExecutive, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="crecreditsale">
+                        @Html.Label("Created By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="valcreditsale">
+                        @Html.Label("Validitys", null, new { @class = "control-label" })
+                        @Html.TextBox("Validity", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("Type", (SelectList)ViewBag.MRType, new { @class = "form-control" })
+                    </div>
+                    @if (ViewBag.MLAMRNote == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.Label("Approval Status", null, new { @class = "control-label" })
+                            @Html.DropDownList("ApprovalStatus", (SelectList)ViewBag.AppStat, "All", new { id = "ApprovalStatus", @class = "form-control" })
+                        </div>
+                    }
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAllMRNote", "MRNote", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="PoTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">MR Note No</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="4">Supplier</td>
+                        <td data-priority="3">Requested Date</td>
+                        <td data-priority="5">Requested By</td>
+                        <td data-priority="3">Type</td>
+                        <td data-priority="5">Created By</td>
+                        <td data-priority="3">Approval Status</td>
+                        <td data-priority="2">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+    }
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-aqua">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Status Updation History</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-hover" id="UserTableInfo">
+                        <thead>
+                            <tr class="bg-aqua">
+                                <td>Status</td>
+                                <td>Updated By</td>
+                                <td>Requested By</td>
+                                <td>Date</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Reminder/Index")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    <script type="text/javascript">
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+
+        $(document).ready(function () {
+            $('#advsearch').hide();
+        });
+        var oTable = $('#PoTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "bLengthChange": false,
+            "ajax": {
+                "url": '/MRNote/GetMRNote',
+                "data": function (data) {
+                    data.BillNo = $('#BillNo').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.supplier = $('#ddlSupplier').val();
+                    data.salesperson = $('#ddlEmployee').val();
+                    data.type = $('#Type').val();
+                    data.user = $('#ddlCreatedBy').val();
+                    data.appstat = $('#ApprovalStatus').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [9, 10],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "MRId", "name": "MRId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "BillNo", "name": "BillNo" },
+                { "data": "MRDate", "name": "MRDate", "render": function (data) { return convertToDate(data); } },
+                { "data": "Supplier", "name": "Supplier" },
+                { "data": "RequestedDate", "name": "RequestedDate", "render": function (data) { if (data != null) { return convertToDate(data); } else { return "" } } },
+                { "data": "EmpName", "name": "EmpName" },
+                {
+                    "name": "Type", "data": function (data) {
+                        if (data.Type == "0") {
+                            return 'Against PO';
+                        }
+                        else {
+                            return 'Direct';
+                        }
+                    }
+                },
+                { "data": "user", "name": "user" },
+                {
+                    "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                        var status = "";
+                        var cls = "";
+                        if (data.app.length > 0 || (data.Approval == true && '@ViewBag.MLAMRNote' == 'active')) {
+                            if (data.ApprovalStatus == "0") {
+                                status = '<span class="badge bg-green">Approved</span>';
+                            }
+                            else if (data.ApprovalStatus == "1") {
+                                status = '<span class="badge bg-red">Rejected</span>';
+                            }
+                            else if (data.ApprovalStatus == "2") {
+                                status = '<span class="badge bg-orange">Pending</span>';
+                            }
+                            return '<a  class="Updation" onclick="details(' + data.MRId + ')"  title="View Status">' + status + ' </a>';
+                        } else { return null; }
+                    }
+                },
+                {
+                    "name": "MRId", "data": function (data) {
+                        var rest = "";
+                        @{
+                            string bosMrPrint = "";
+                            if (User.IsInRole("Dev") || User.IsInRole("Invoice Template"))
+                            {
+                                bosMrPrint = "<a href=\"/InvoiceTemplate/Print?invoiceId='+ data.MRId +'&docType=MaterialRequisition\" target=\"_blank\" title=\"Print with a custom template\"><i class=\"fa fa-lg fa-print\" style=\"color:#6366f1\"></i></a> ";
+                            }
+                        }
+                        rest += '@Html.Raw(bosMrPrint)';
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("View MRNote"))
+                            {
+                                actData += "<a class=\"details\" href=\"/MRNote/Details/'+ data.MRId +'\" title=\"View MRNote\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                            }
+                            //if (User.IsInRole("Dev") || User.IsInRole("Edit MRNote"))
+                            //{
+                            //    actData += "<a href=\"/MRNote/Edit/'+ data.MRId +'\" title=\"Edit MRNote\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                            //}
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete MRNote"))
+                            {
+                                actData += "<a class=\"modal-delete\" href=\"/MRNote/Delete/'+ data.MRId +'\" title=\"Delete MRNote\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("Download MRNote"))
+                            {
+                                actData += "<a class=\"modal-link-download\" href=\"/MRNote/Download/'+ data.MRId +'\" title=\"Download MRNote\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                            }
+                        }
+                        rest += '@Html.Raw(actData)';
+                        //Convert To Purchase
+                        if (data.ApprovalStatus == "0" && data.PEConvert == "Purchase" && data.MRNotetToPEntry == true) {
+                            @{
+                                actData = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                {
+
+                                    actData += "<a href=\"/PurchaseEntry/Create/'+ data.MRId+'/MRNote\" title=\"Convert To Purchase Entry\" class=\"text-red\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                }
+                            }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        else {
+                            if (data.ApprovalStatus == "0" && data.MRNotetToPEntry == true) {
+                            @{
+                                actData = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                {
+                                    actData += "<a href=\"/PurchaseEntry/Create/'+ data.MRId+'/MRNote\" title=\"Convert To Purchase Entry\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                }
+                            }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+                        @*if (data.ApprovalStatus != "1" && data.PEConvert == "Purchase" && data.MRNotetToPEntry == true) {
+                            @{
+                                actData = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                {
+
+                                    actData += "<a href=\"/PurchaseEntry/Create/'+ data.MRId+'/MRNote\" title=\"Convert To Purchase Entry\" class=\"text-red\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                }
+                            }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        else {
+                            if (data.ApprovalStatus != "1" && data.MRNotetToPEntry == true) {
+                            @{
+                                actData = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                {
+                                    actData += "<a href=\"/PurchaseEntry/Create/'+ data.MRId+'/MRNote\" title=\"Convert To Purchase Entry\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                }
+                            }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }*@
+                        @*if (data.app.length > 0 || (data.Approval == true && '@ViewBag.MLAMRNote' == 'active')) {
+                            if (data.ApprovalStatus != "0") {*@
+                                    @{
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit MRNote")) {
+
+                                actData = "";
+                                actData += "<a href=\"/MRNote/Edit/'+ data.MRId +'\" title=\"Edit MRNote\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                                }
+                                 rest += '@Html.Raw(actData)';
+                        //    }
+                        //}
+
+                        if (data.Approval == true && '@ViewBag.MLAMRNote' == 'active') {
+                            @{
+                                actData = "";
+                                actData = "<a class=\"modal-edit\"  href=\"/MRNote/EditStatus/'+  data.MRId +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+                            }
+                            rest += '@Html.Raw(actData)';
+                        }
+
+                        if ("@ViewBag.Remind" == "active") {
+                            @{
+                                    actData = "";
+                                    actData += "<a class=\"UpdationRe\" onclick=\"detailsRemind(' + data.MRId + ')\" title=\"View Reminder\"><i class=\"fa-lg fa fa-bell\" ></i></a> ";
+                                    actData += "<a class=\"modal-create\" href=\"/Reminder/AddReminder/'+ data.MRId +'/MRNote\" title=\"Add Reminder\"><i class=\"fa-lg fa fa-sticky-note\" ></i></a> ";
+                                }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        return rest;
+                    }
+                },
+                 {
+                     "name": "MRId", "data": function (data) {
+                         var rest = "";
+                         @{
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete MRNote"))
+                             {
+                                 delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.MRId +'></input>";
+                             }
+                         }
+                         return rest = '@Html.Raw(delchk)';
+                     }
+                 },
+            ],
+            buttons: [
+               'colvis',
+               {
+                   extend: 'print',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Material Receive Note';
+                   },
+                   columnDefs: [
+                       { width: 400, targets: 2 }
+                   ],
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   message: function () {
+                       var head = '<table class="tblcompact table table-bordered"><thead>' +
+                       ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Material Receive Note</h4></th></tr>';
+                       return head;
+                   },
+                   customize: function (win) {
+                       // $(win.document.body)
+                       //.css('font-size', '10pt')
+                       //.css('padding', '1px');
+                       $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                       $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                           .css('font-size', '10pt')
+                           .css('padding', '5px')
+                           .addClass('compact');
+                       $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                           .css('min-width', '80px');
+                       //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                       //    .css('padding', '0px');
+                       $(win.document.body).append('</td></tr></tbody>')
+
+                   }
+               }, 'copy', 'csv', //'excel',
+               {
+                   extend: 'pdf',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Material Receive Note';
+                   },
+                   message: function () {
+                       var head = 'Material Receive Note';
+                       return head;
+                   },
+                   pageSize: 'A4',
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   customize: function (doc) {
+                       doc.pageMargins = [10, 10, 10, 10];
+                       doc.defaultStyle.fontSize = 10;
+                       doc.styles.tableHeader.fontSize = 10;
+                       doc.styles.title.fontSize = 12;
+                       // Header font and bg color
+                       doc.styles.tableHeader.fillColor = '#d3d3d3';
+                       doc.styles.tableHeader.color = 'black';
+                       // Remove spaces around page title
+                       doc.content[0].text = doc.content[0].text.trim();
+
+
+                       doc.styles['td:nth-child(2)'] = {
+                           width: '100%',
+                           'max-width': '100%'
+                       }
+
+                       var objLayout = {};
+                       // Horizontal line thickness
+                       objLayout['hLineWidth'] = function (i) { return .5; };
+                       // Vertikal line thickness
+                       objLayout['vLineWidth'] = function (i) { return .5; };
+                       //// Horizontal line color
+                       //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                       //// Vertical line color
+                       //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                       // Left padding of the cell
+                       objLayout['paddingLeft'] = function (i) { return 4; };
+                       // Right padding of the cell
+                       objLayout['paddingRight'] = function (i) { return 4; };
+                       // Inject the object in the document
+                       doc.content[1].layout = objLayout;
+                       // Footer font and bg color
+                       doc.styles.tableFooter.fillColor = '#d3d3d3';
+                       doc.styles.tableFooter.color = 'black';
+
+                   }
+               },  @Html.Raw(deleteBTn)
+
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#PoTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            }
+        });
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(10);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(10);
+            column1.visible(false);
+        }
+        var statcol = '@ViewBag.MLAMRNote';
+        if (statcol == "active") {
+            var column1 = oTable.column(8);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(8);
+            column1.visible(false);
+        }
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for view detail popup */
+        $('#PoTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            detailsRemind($("#remId").val());
+        });
+
+        /* function for delete popup */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            detailsRemind($("#remId").val());
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+
+                $('#BillNo').val("");
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                $('#ddlSupplier').val(0);
+                $('#ddlEmployee').val(0);
+                oTable.draw();
+            }
+
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            //$('#ToDate').datepicker('setDate', today);
+            //$('#FromDate').datepicker('setDate', priordate);
+
+            CallSupplier();
+            CallEmployee();
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('.table').on('click', '.modal-close-btn', function () {
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        });
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        function details(d) {
+            var MCId = d;
+            var oTable = $('#UserTableInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "ajax": {
+                    "url": '/MRNote/GetAllStatusUpdation',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { MCId: MCId }
+                },
+                "columns": [
+                        {
+                            "name": "ApprovalStatus", "data": function (data) {
+                                var datas = "";
+                                if (data.ApprovalStatus == "Approved") {
+                                    datas += '<span class="badge bg-green">Approved</span>';
+                                }
+                                if (data.ApprovalStatus == "Rejected") {
+                                    datas += '<span class="badge bg-red">Rejected</span>';
+                                }
+                                return datas;
+                            }
+                        },
+                      { "data": "User", "name": "User" },
+                      { "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertDateTime(data); } },
+                      { "data": "Remarks", "name": "Remarks" },
+                ],
+                searching: false
+            });
+            oTable.destroy();
+        }
+
+        $('div').on('click', 'a.UpdationRe', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-containerRe');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            var date = new Date();
+            date.setDate(date.getDate());
+            $('.datepicker').datepicker({
+                startDate: date,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            jQuery.validator.methods["date"] = function (value, element) { return true; }
+            $(".timepicker").timepicker({
+                showInputs: true,
+                defaultTime: false,
+                format: 'dd-mm-yyyy'
+            });
+            $("#ddlAssignedTo").select2({
+                placeholder: 'Search User',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployeeUser",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        function detailsRemind(d) {
+            if (d != "") {
+                $("#remId").val(d);
+                var oTable1 = $('#RemindInfo').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "sortable": true,
+                    "ordering": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": '/Reminder/GetAllReminder',
+                        "type": "POST",
+                        "datatype": "json",
+                        "data": { Id: d, type: "MRNote" }
+                    },
+                    "order": [[0, "desc"]],
+
+                    "columns": [
+                         {
+                             "data": "ReminderId", "name": "ReminderId",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                      { "data": "Note", "name": "Note" },
+                      { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertDateTime(data); } else { return "" } } },
+                               //{
+                      //    "name": "AssignedTo", "data": function (data) {
+                      //        var datas = "";
+                      //        $.each(data.AssignedTo, function (i, item) {
+                      //            if (datas != "") {
+                      //                datas += ", ";
+                      //            }
+                      //            datas += item.FirstName + " " + item.LastName;
+                      //        });
+                      //        return datas;
+                      //    }
+                      //},
+                     // { "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedBy", "name": "CreatedBy" },
+                      { "data": "RStatus", "name": "RStatus" },
+                      {
+                          "name": "ReminderId", "data": function (data) {
+                              var rest = "";
+                              @{
+                                actData = "";
+                                actData += "<a class=\"modal-edit\"  href=\"/Reminder/Edit/'+ data.ReminderId +'\" title=\"Edit Reminder\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                actData += "<a class=\"modal-delete\" href=\"/Reminder/Delete/'+ data.ReminderId +'\" title=\"Delete Reminder\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                              rest += '@Html.Raw(actData)';
+                              return rest;
+                          }
+                      }
+                    ],
+                });
+                oTable1.destroy();
+            }
+        }
+    </script>
+}

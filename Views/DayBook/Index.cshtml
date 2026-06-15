@@ -1,0 +1,90 @@
+﻿@{
+    ViewBag.Title = "Day Book";
+    ViewBag.SubTitle = "Day Book";
+    ViewBag.Active = "MyReports";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Day Book</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("GetData", "DayBook", FormMethod.Post, new { id = "submitform", @class = "form-horizontal" }))
+        {
+            <div class="form-group">
+                <label class="control-label col-md-4">Starting Date</label>
+                <div class="col-sm-4">
+                    <div class="input-group date">
+                        @Html.TextBox("fromdate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @required = "required" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">Ending Date</label>
+                <div class="col-sm-4">
+                    <div class="input-group date">
+                        @Html.TextBox("todate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @required = "required" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        }
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy'
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy'
+            });
+            $('body').on('change', '#AccType', function (e) {
+                $("#AccId").select2("val", "");
+            });
+            $("#AccId").select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/AccountsByType",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: $('#AccType').val()
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+    </script>
+}

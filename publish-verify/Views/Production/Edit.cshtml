@@ -1,0 +1,498 @@
+@model QuickSoft.ViewModel.ProductionViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Production";
+    ViewBag.Active = "Transactions";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Edit", "Production", FormMethod.Post, new { id = "updateForm", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Production Voucher <label id="AlertEditable" class="text-red"></label></h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Production"))
+                    {
+                        <a class="btn bg-black no-border" href="/Production/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Production"))
+                    {
+                        <a class="btn bg-black no-border" href="/Production/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create Production"))
+                    {
+                        <a class="btn bg-black no-border" href="/Production/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Production List"))
+                {
+                    <a class="btn btn-success no-border" href="/Production">
+                        <i class="fa fa-fw fa-history"></i>List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <input type="hidden" id="ProductionId" />
+        <input type="hidden" id="SelApprovedBy" />
+        <input type="hidden" id="VoucherType" value="Production" />
+        <input type="hidden" id="ItemOutOfStock" value="@ViewBag.ItemOutOfStock" />
+        <div class="box-body">
+            <div class="row">
+                <div class="form-group col-md-4">
+                    @Html.LabelFor(model => model.VoucherNo, htmlAttributes: new { @class = "control-label" })*
+                    @if (User.IsInRole("Dev") || User.IsInRole("Invoice Edit Permission"))
+                    {
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @placeholder = "Voucher No", @required = "required" } })
+                    }
+                    else
+                    {
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @placeholder = "Voucher No", @required = "required", @readonly = "@readonly" } })
+                    }
+
+                </div>
+                <div class="col-md-4 form-group">
+                    @Html.LabelFor(model => model.PEDate, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PEDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @*<div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.BOM, htmlAttributes: new { @class = "control-label" })*
+                        @Html.DropDownListFor(model => model.BOM, (SelectList)ViewBag.bom, new { @class = "form-control", @placeholder = "BOM", @required = "required" })
+                    </div>*@
+                    @if (@ViewBag.EnableMCcheck == 0)
+                    {
+                        <div class="form-group col-md-4">
+                            @Html.Label("Material Center", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(model => model.MaterialCenter, (SelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control input-sm" })
+                        </div>
+                    }
+                    @if (@ViewBag.ProjChk == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.LabelFor(m => m.Project, new { @class = "control-label" })
+                            @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                            {
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                                    <span class="input-group-btn">
+                                        <a href="/Project/AddProject" class="modal-project btn btn-success btn-flat" title="Add Project"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                            }
+                        </div>
+                        <div class="form-group col-md-2">
+                            @Html.LabelFor(m => m.ProTask, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "", new { id = "ddlProTask", @class = "form-control select2" })
+                        </div>
+
+                    }
+                   
+                    @if (@ViewBag.MLAProd == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.Label("Approved By", null, new { @class = "control-label" })
+                            @Html.DropDownList("ddlApprovedBy", (MultiSelectList)ViewBag.ApproveBy, new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+
+                        </div>
+
+                    }
+                    @if (@ViewBag.BranchCheck == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.Label("Branch", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        </div>
+                    }
+                
+                <div class="form-group col-md-6">
+                    @Html.TextAreaFor(model => model.Note, new { @class = "form-control", @placeholder = "Narration", @rows = 2 })
+                </div>
+                
+                @*<div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.Item, htmlAttributes: new { @class = "control-label" })*
+                        @Html.DropDownListFor(m => m.Item, new SelectList("", ""), new { id = "ddlItem", @class = "form-control", @required = "required", @readonly = "@readonly" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.Qty, htmlAttributes: new { @class = "control-label" })*
+                        <div class="input-group input-group-sm">
+                            @Html.EditorFor(model => model.Qty, new { htmlAttributes = new { @type = "number", @Value = "1.00", @class = "form-control", @required = "required", @placeholder = "Enter Quantity" } })
+                            <span class="input-group-btn">
+                                <button type="button" id="Unit" class="btn btn-flat"></button>
+                            </span>
+                            <input type="hidden" id="UnitId" />
+                            <input type="hidden" id="QtyVal" />
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.Expense, htmlAttributes: new { @class = "control-label" })*
+                        @Html.EditorFor(model => model.Expense, new { htmlAttributes = new { @class = "form-control", @placeholder = "Expence per unit", @required = "required" } })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.Price, htmlAttributes: new { @class = "control-label" })*
+                        @Html.EditorFor(model => model.Price, new { htmlAttributes = new { @class = "form-control", @placeholder = "Price", @required = "required", @readonly = "@readonly" } })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.Amount, htmlAttributes: new { @class = "control-label" })*
+                        @Html.EditorFor(model => model.Amount, new { htmlAttributes = new { @class = "form-control", @placeholder = "Amount", @required = "required", @readonly = "@readonly" } })
+                    </div>
+                    <div class="form-group col-md-6">
+                        @Html.Label("Description:", null, new { @class = "control-label" })
+                        @Html.TextAreaFor(model => model.Note, new { @class = "form-control", @placeholder = "Description", @rows = 3 })
+                    </div>*@
+
+            </div>
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        var fmap = "";
+                        if (Model.FieldMap[i].Field == "Ref1")
+                        {
+                            fmap = Model.Ref1;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref2")
+                        {
+                            fmap = Model.Ref2;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref3")
+                        {
+                            fmap = Model.Ref3;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref4")
+                        {
+                            fmap = Model.Ref4;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref5")
+                        {
+                            fmap = Model.Ref5;
+                        }
+
+                        <div class="form-group col-sm-2">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="@fmap">
+                        </div>
+                    }
+                }
+            </div>
+            <div class="table-responsive">
+                <hr>
+                <table class="display" style="width:20%" id="bom">
+                    <thead>
+                        <tr>
+                            <th class="text-center">S/N</th>
+                            <th class="text-center">BOM<i class="text-danger">*</i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bombody"></tbody>
+                </table>
+            </div>
+            <div id="tablediv">
+                <div class="table-responsive">
+                    <hr>
+                    <table class="table table-bordered table-hover" id="bomgenerated">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Item Generated<i class="text-danger">*</i></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Qty <i class="text-danger">*</i></th>
+                                <th class="text-center">Expense</th>
+                                <th class="text-center">Unit Price</th>
+                                <th class="text-center">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbomgenerated"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemQty"></label>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td class="text-right">
+                                    <label id="Total"></label>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="table-responsive">
+                    <hr>
+                    <table class="table table-bordered table-hover" id="bomitem">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Item Consumed<i class="text-danger">*</i></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Qty <i class="text-danger">*</i></th>
+                                <th class="text-center">Unit Price</th>
+                                <th class="text-center">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbomitem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemQty"></label>
+                                </td>
+                                <td></td>
+                                <td class="text-right">
+                                    <label id="Total"></label>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="form-group col-md-4">
+                        @Html.Label("Production Cost", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.Productioncost, new { htmlAttributes = new { @class = "form-control", @onchange = "updateexpense()" } })
+
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Labour Cost", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.Labourcost, new { htmlAttributes = new { @class = "form-control", @onchange = "updateexpense()" } })
+
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("Material Cost", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.meterialcost, new { htmlAttributes = new { @class = "form-control", @onchange = "updateexpense()" } })
+
+                    </div>
+                </div>
+                <div class="form-group no-padding text-center">
+                    <div class="checkbox-inline">
+                        <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                        <label class="control-label" for="hideheader">Hide Header In Print</label>
+                    </div>
+                </div>
+                <div class="box-footer text-center clearfix">
+                    <button type="submit" id="update" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+                    <button type="submit" id="updateandprint" class="btn btn-success">
+                        <span class="glyphicon glyphicon-print"></span> Update And Print
+                    </button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Production/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@Html.Partial("_Voucher")
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/prodvoucher")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        function updateexpense() {
+            var procost = $("#Productioncost").val() || 0;
+            var labourcost = $("#Labourcost").val() || 0;
+            var materialcost = $("#meterialcost").val() || 0;
+
+            var totalexp = parseFloat(procost) + parseFloat(labourcost) + parseFloat(materialcost);
+            $("#Expense1").val(totalexp);
+            $("#Expense1").trigger("change")
+        }
+        $(document).ready(function () {
+
+            GetBranch();
+            CallMCUser();
+            bomitem('addbomitem', '', '0');
+            searchItem();
+
+            CallProjectNew();
+            CallTask();
+
+            CallApprovedBy();
+            $("#SelApprovedBy").val($("#ddlApprovedBy").val());
+
+            $("#BOM").select2({
+                placeholder: 'Search Bills of Material ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/BOM/SearchBOM",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            var proId = getQueryString('');
+            if (proId != null) {
+                $.ajax({
+                    url: '/Production/GetProd',
+                    dataType: 'json',
+                    type: "POST",
+                    data: { proId: proId },
+                    cache: true,
+                    success: function (data) {
+                        $("#QtyVal").val(data.prod.Qty);
+                        $("#Unit").text(data.prod.ItemUnitName);
+                        $("#UnitId").val(data.prod.Unit);
+                        $('#addbomitem').html('');
+
+                        //BOM
+                        $.each(data.bom, function (i, item) {
+                            var BOMNamewithcode = (item.BOMName);
+                            funbom('bombody', 'edit', item.BOMName, item.BOMId, BOMNamewithcode);
+                        });
+                        funbom('bombody', '', '0');
+                        //Item
+                        var itemlist=[];
+                        var ProItem = [];
+                        $.each(data.item, function (i, item) {
+                            //if (jQuery.inArray(item.ProItemId,itemlist) == -1)
+                            //alert((jQuery.inArray(item.BOMItemId, itemlist)) + ' f ' + ((jQuery.inArray(item.ProItemId, ProItem))))
+                            if ((jQuery.inArray(item.BOMItemId, itemlist) == -1) && (jQuery.inArray(item.ProItemId, ProItem) == -1))
+                            {
+                                itemlist.push(item.BOMItemId);
+                                ProItem.push(item.ProItemId);
+                                //alert(item.BOMId)
+                                bomitem('addbomitem', 'edit', item.Quantity, item.Unit, item.ItemId, item.ItemWithCode, item, item.BOMId);
+                            }
+                        });
+                        //Generated
+                        $.each(data.prod, function (i, item) {
+                            var price = 0;
+                            var bom = data.prod;
+                            var itemdata = data.item;
+                            bomgenerated('addbomgenerated', 'edit', item, itemdata, item.Price);
+                        });
+                    }
+                });
+            }
+
+            chkEditEditable("@ViewBag.ChkApp");
+        });
+
+
+        $('body').on('change', '#ddlBom', function (e) {
+            var BomID = $(this).val();
+            $.ajax({
+                url: '/BOM/GetBOMDetails',
+                dataType: 'json',
+                type: "POST",
+                data: { BomID: BomID },
+                cache: true,
+                success: function (data) {
+                    $("#Qty").val(data.bom.Quantity);
+                    $("#QtyVal").val(data.bom.Quantity);
+
+                    $("#Unit").text(data.bom.ItemUnitName);
+                    $("#UnitId").val(data.bom.Unit);
+                    $("#Expense").val(parseFloat(data.bom.Expense).toFixed(2));
+
+                    var newOption = $('<option></option>');
+                    newOption.val(data.bom.ItemId).html(data.bom.ItemName);
+                    $('#ddlItem').html('');
+                    $('#ddlItem').append(newOption);
+
+                    //item
+                    $('#addbomitem').html('');
+                    $.each(data.item, function (i, item) {
+                        bomitem('addbomitem', '', item.Quantity, item.Unit, item.ItemId, item.ItemWithCode, item);
+                    });
+                    CalculateTotal();
+                }
+            });
+        });
+
+        $('body').on('change', '#Qty', function (e) {
+            qtychange();
+        });
+        $('body').on('change', '#Expense', function (e) {
+            CalculateTotal();
+        });
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+        });
+        AddItemPopUp();
+        ProjectPopup();
+
+        // form submit
+        $('#updateForm').on('submit', function (e) {
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if ($("#updateForm").valid()) {
+                ProdSubmit(fnval);
+            }
+            else {
+                $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+            }
+        });
+
+    </script>
+}

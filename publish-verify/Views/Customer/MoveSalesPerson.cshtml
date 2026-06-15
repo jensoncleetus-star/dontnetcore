@@ -1,0 +1,597 @@
+@{
+    ViewBag.Title = "Change SalesMan";
+    ViewBag.SubTitle = "ChangeSalesMan";
+    ViewBag.Active = "Reports";
+    var TimeOut = @ViewBag.TMOut;
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Change Sales Person</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+
+            <div class="form-group col-md-4">
+                @Html.Label("Sales Person*", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.Empl, new { @class = "form-control select2", tabindex = 6})
+            </div>
+            <div class="form-group col-md-4" id="creditsale">
+                @Html.Label("Last Transaction In", null, new { @class = "control-label" })
+                @Html.DropDownList("LastUpdated", new SelectList(new List<SelectListItem>
+                            {
+                      new SelectListItem() {Text = "All", Value="0"},
+                                new SelectListItem() {Text = "1 Day ", Value="1"},
+                                new SelectListItem() {Text = "7 Days", Value="7"},
+                                new SelectListItem() {Text = "1 Month ", Value="30"},
+                                new SelectListItem() {Text = "3 Months ", Value="90"},
+                                new SelectListItem() {Text = "6 Months ", Value="180"},
+                                new SelectListItem() {Text = "1 Year", Value="360"},
+                            }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LastUpdated", tabindex = 7 })
+            </div>
+            <div class="form-group col-md-2" id="searchcustomertype" hidden style="margin-bottom:14px;">
+                @Html.Label("Customer Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomerType", (SelectList)ViewBag.CustomerType, "All", new { @class = "form-control" })
+            </div>
+            <div class="form-group col-md-4" id="creditsale">
+                @Html.Label("No Of Rows", null, new { @class = "control-label" })
+                @Html.DropDownList("rows", new SelectList(new List<SelectListItem>
+                            {
+                      new SelectListItem() {Text = "All", Value="0"},
+                                new SelectListItem() {Text = "50 Rows", Value="50"},
+                                new SelectListItem() {Text = "100 Rows", Value="100"},
+                                new SelectListItem() {Text = "200 Rows ", Value="200"},
+                                      }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LastUpdated", tabindex = 7 })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Move To*", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee2", (SelectList)ViewBag.Empl2, new { @class = "form-control select2", tabindex = 6, @required = "required" })
+            </div>
+
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="QReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Customers</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Customer</td>
+                        <td>Current Balance</td>
+                        <td><input type="checkbox" id="select_all" /> Select all <input type="button" class="btn btn-danger" onclick="setItem()" value="Move" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+    $('body').on('change', '#select_all', function () {
+        $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+    });
+
+    //".checkbox" change
+    $('body').on('change', '.checkbox', function () {
+        //uncheck "select all", if one of the listed checkbox item is unchecked
+        if (false == $(this).prop("checked")) { //if this item is unchecked
+            $("#select_all").prop('checked', false); //change "select all" checked status to false
+        }
+        isTicked();
+    });
+    isTicked();
+    $(document).ready(function () {
+        $("#ddlCustomerType").select2({
+            placeholder: 'Search Customer Type',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/CustomerType/SearchType",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        x: "All",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+            //for set default date
+            $('#HireTypeDiv').hide();
+            //$("#SaleType").val(1);
+            $('#SaleType option:contains(POS)').remove();
+
+            $("#SaleType").prop('selectedIndex', 0);
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#QReport').hide();
+            CallRepCustomer();
+            GetBranch();
+           // CallEmployee();
+            $("#ddlEmployee").select2({
+                placeholder: 'Search by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "all"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+        $("#ddlEmployee2").select2({
+            placeholder: 'Search by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "empty"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+    });
+    function setItem() {
+        var values = new Array();
+        var movetoEmp = $('#ddlEmployee2').val();
+        $("input[name='dltcheck']:checked").each(function () {
+            data = $(this).val();
+            values.push(data);
+        });
+
+        $.ajax({
+            async: true,
+            cache: false,
+            dataType: "json",
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
+            url: "/Customer/ChangeSalesperson",
+            data: JSON.stringify({ value: values, NewSalesman: movetoEmp }),
+            success: function (e) {
+                if (e.status == true) {
+                    $('.ajax_response', res_success).text(e.message);
+                    $('.AlertDiv').prepend(res_success);
+                    
+                    setTimeout(function () { window.location.href = '/Customer/MoveSalesPerson'; }, '@TimeOut');
+                } else {
+                    $('.ajax_response', res_danger).text(e.message);
+                    $('.AlertDiv').prepend(res_danger);
+                    
+                }
+            }
+        });
+
+
+    }
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+               "ordering": false,
+                "searching": true,
+                "ajax": {
+                    "url": '/Customer/GetCustomer2',
+                    "data": function (data) {
+                        data.SalesMan = $('#ddlEmployee').val();
+                       // data.branch = $('#ddlBranch').val();
+                        data.rows = $('#rows').val();
+                        data.LastUpdated = $('#LastUpdated').val();
+                        data.Type = $('#ddlCustomerType').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[2, "desc"]],
+                "columns": [
+                     {
+                        "data": "CustomerID", "name": "CustomerID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "CustomerName", "name": "CustomerName" },
+
+                    { "data": "currentbalance", "name": "currentbalance" },
+                    {
+        "width": "5%",
+            "name": "CustomerID", "data": function (data) {
+            var rest = "";
+            @{
+
+                var delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"dltcheck\" value='+ data.CustomerID +'></input>";
+                //onclick =\"setItem(' + data.ItemID + ')\"
+            }
+            return rest = '@Html.Raw(delchk)';
+        }
+    },
+                    //{ "data": "BranchName", "name": "BranchName" }
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                    {
+                        extend: 'print',//
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                  title: "",
+                  footer: true,
+                  filename: function () {
+                      return 'Quotation-Report';
+                  },
+                  message: function () {
+                      var head = '<table class="tblcompact table table-bordered"><thead>' +
+                          ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Quotation Report</h4></th></tr>' +
+                          ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                      return head;
+                      },
+                      customize: function (win) {
+                      // $(win.document.body)
+                      //.css('font-size', '10pt')
+                      //.css('padding', '1px');
+                      $(win.document.body).find('table, th,tr, td ')
+                         // .css('border', 'inherit')
+                          .css('font-size', '10pt')
+                          .css('padding', '5px')
+                          .addClass('compact');
+                      $(win.document.body).append('</td></tr></tbody>')
+
+                  }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Quotation-Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                               '' + $('#caddress').val() + '\n' +
+                               ' Quotation Report \n' +
+                              // 'Quot No : ' + $('#QuotNo').val() + '\n' +
+                               'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+              {
+                  extend: 'pdf',//
+                  title: "",
+                  footer: true,
+                  filename: function () {
+                      return 'Quotation-Report';
+                  },
+                  message: function () {
+                      var head = '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Quotation Report \n' +
+                        // 'Quot No : ' + $('#QuotNo').val() + '\n' +
+                         'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                      return head;
+                  },
+                  pageSize: 'A4',
+                  exportOptions: {
+                      columns: ':visible'
+                  },
+                  customize: function (doc) {
+                      doc.pageMargins = [10, 10, 10, 10];
+                      doc.defaultStyle.fontSize = 10;
+                      doc.styles.tableHeader.fontSize = 10;
+                      doc.styles.title.fontSize = 12;
+                      // Header font and bg color
+                      doc.styles.tableHeader.fillColor = '#d3d3d3';
+                      doc.styles.tableHeader.color = 'black';
+                      // Remove spaces around page title
+                      doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                      doc.content[1].table.widths = [
+                      '10%',
+                      '10%',
+                      '12%',
+                      '15%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '13%'
+                      ]
+
+                      var objLayout = {};
+                      // Horizontal line thickness
+                      objLayout['hLineWidth'] = function (i) { return .5; };
+                      // Vertikal line thickness
+                      objLayout['vLineWidth'] = function (i) { return .5; };
+                      //// Horizontal line color
+                      //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                      //// Vertical line color
+                      //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                      // Left padding of the cell
+                      objLayout['paddingLeft'] = function (i) { return 4; };
+                      // Right padding of the cell
+                      objLayout['paddingRight'] = function (i) { return 4; };
+                      // Inject the object in the document
+                      doc.content[1].layout = objLayout;
+                      // Footer font and bg color
+                      doc.styles.tableFooter.fillColor = '#d3d3d3';
+                      doc.styles.tableFooter.color = 'black';
+                  }
+
+
+              },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+
+                    // Total over all pages
+                    //total = api
+                    //    .column(7)
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //    .column(7, { page: 'current' })
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    // Update footer
+                    //$(api.column(7).footer()).html(
+                    //     pageTotal.toFixed(2)
+                    //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+
+                    //var table = $('#UserTable').DataTable();
+                    //if (!table.data().any()) {
+                    //    $('#UserTable tfoot').hide();
+                    //} else {
+                    //    $('#UserTable tfoot').show();
+                    //}
+                }
+
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#QReport').show();
+            });
+
+
+
+            function reload_table() {
+                oTable.clear().draw();
+                oTable.ajax.reload(null, false); //reload datatable ajax
+            }
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+            //re direct to Quotation edit
+            $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/Quotation/Edit/" + data.QuotationId + "";
+                $(location).attr('href', url);
+            });
+        });
+
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            var customer = $('#ddlCustomer').val();
+            if (customer != 0) {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project Code Or Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProjectByCustomer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                customer: customer,
+                                page: params.page
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                    templateResult: projectFormatResult,
+                    templateSelection: projectFormatSelection,
+                });
+            } else {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project by Name or Code',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProject",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                x: ""
+
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            }
+
+        });
+
+        function HType() {
+            var Type = $('#SaleType').val();
+            if (Type == 2) {
+                $('#HireTypeDiv').show();
+            }
+            else {
+                $('#HireTypeDiv').hide();
+            }
+        }
+        function DateSet() {
+            var ndate = $('#FromDate').val();
+
+            $('#ToDate').datepicker({
+                startDate: ndate,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+        }
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            CallProject();
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+</script>
+}

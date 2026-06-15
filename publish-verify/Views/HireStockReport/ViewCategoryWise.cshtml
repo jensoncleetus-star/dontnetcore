@@ -1,0 +1,499 @@
+﻿@{
+    ViewBag.Title = "View Stock";
+    ViewBag.SubTitle = "Hire Stock Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default" id="StockReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="catname" value="@ViewBag.CatName" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Category Wise</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Item</td>
+                        <td data-priority="5" class="headeralign">Stock In</td>
+                        <td data-priority="5" class="headeralign">Stock Return</td>
+                        <td data-priority="5" class="headeralign">Stock Outside</td>
+                        <td data-priority="5" class="headeralign">Stock In-shop</td>
+                        <td data-priority="2" class="headeralign">Total Stock</td>
+                        <td data-priority="2" class="headeralign">Sale Rate</td>
+                        <td data-priority="5" class="headeralign">Out side Value</td>
+                        <td data-priority="5" class="headeralign">In-shop Value</td>
+                        <td data-priority="2" class="headeralign">Total Stock Value</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script type="text/javascript">
+            $(document).ready(function () {
+                oTable = $('#UserTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": false, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    // "bStateSave": true,
+                    responsive: true,
+                    "bLengthChange": false,
+                    "paging": true,
+                    "pageLength": 5000,
+                    "ordering": false,
+                    "ajax": {
+                        "url": '/StockReport/GetCategoryWise',
+                        "data": { categoryid: getQueryString1('categoryid'), ddmc: getParameterByName('ddmc'), stockable: getParameterByName('stockable') },
+                        "type": "POST",
+                        "datatype": "json"
+                    },
+                    "columns": [
+                     {
+                         "data": "ItemID", "name": "ItemID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    {
+                        "name": "ItemName", "data": function (data) {
+                            return data.ItemCode + " - " + data.ItemName;
+                        }
+                    },
+                    {
+                        "name": "stockIn", "data": function (data) {
+                            var hireStockP = (data.PriRetNote + data.PriHireMiss) * data.ConFactor;
+                            var hireStockS = data.SubRetNote + data.SubHireMiss;
+                            var hireStock = hireStockP + hireStockS;
+
+                            var pricross = data.PriPurchaseCross || 0;
+                            var subcross = data.SubPurchaseCross || 0;
+                            var crossHire = (pricross * data.ConFactor) + subcross;
+
+
+                            var stock = (data.stockIn + data.OpeningStock) - hireStock + crossHire;
+                            var stockIn = StockCalc(stock, data.ConFactor, data.PriUnit, data.SubUnit);
+                            return '<label>' + stockIn + '</label>';
+                        }
+                    },
+                    {
+                        "name": "stockout", "data": function (data) {
+                            ////var hireStock = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            ////var stock = data.stockout - hireStock;
+
+                            var pricross = data.PriRetNoteCross || 0;
+                            var subcross = data.SubRetNoteCross || 0;
+                            var crossReturn = (pricross * data.ConFactor) + subcross;
+                            var stock = crossReturn;
+                            var stockout = StockCalc(stock, data.ConFactor, data.PriUnit, data.SubUnit);
+                            return '<label>' + stockout + '</label>';
+                        }
+                    },
+                    {
+                        "name": "stockoutside", "data": function (data) {
+                            //stock outside
+                            var hireStock = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            var hireReturn = (data.PriRetNote * data.ConFactor) + data.SubRetNote;
+                            var hireMiss = (data.PriHireMiss * data.ConFactor) + data.SubHireMiss;
+
+                            var stock = hireStock - (hireReturn + hireMiss);
+
+                            var stockoutside = StockCalc(stock, data.ConFactor, data.PriUnit, data.SubUnit);
+                            return '<label>' + stockoutside + '</label>';
+                        }
+                    },
+                    {
+                        "name": "stockinshop", "data": function (data) {
+                            //stock in shop
+
+                            //stock in
+                            var hireStockP = (data.PriRetNote + data.PriHireMiss) * data.ConFactor;
+                            var hireStockS = data.SubRetNote + data.SubHireMiss;
+                            var hireStock = hireStockP + hireStockS;
+                            var stockIn = (data.stockIn + data.OpeningStock) - hireStock;
+
+
+                            //stock out
+                            var HStock = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            var stockout = data.stockout - HStock;
+
+
+                            //stock outside
+                            var hireReturn = (data.PriRetNote * data.ConFactor) + data.SubRetNote;
+                            var hireMiss = (data.PriHireMiss * data.ConFactor) + data.SubHireMiss;
+                            var stockOutSide = HStock - (hireReturn + hireMiss);
+
+                            var pricross = data.PriPurchaseCross || 0;
+                            var subcross = data.SubPurchaseCross || 0;
+                            var crossHire = (pricross * data.ConFactor) + subcross;
+                            var pricrosss = data.PriRetNoteCross || 0;
+                            var subcrosss = data.SubRetNoteCross || 0;
+                            var crossReturn = (pricrosss * data.ConFactor) + subcrosss;
+
+
+                            var stockval = stockIn - (stockOutSide + stockout) + (crossHire - crossReturn);
+
+                            var stockinshop = StockCalc(stockval, data.ConFactor, data.PriUnit, data.SubUnit);
+                            return '<label>' + stockinshop + '</label>';
+
+                        }
+                    },
+                    {
+                        "name": "stock", "data": function (data) {
+                            //stock
+
+                            //stock in
+                            var hireStockP = (data.PriRetNote + data.PriHireMiss) * data.ConFactor;
+                            var hireStockS = data.SubRetNote + data.SubHireMiss;
+                            var hireStock = hireStockP + hireStockS;
+                            var stockIn = (data.stockIn + data.OpeningStock) - hireStock;
+
+
+                            //stock out
+                            var HS = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            var stockout = data.stockout - HS;
+
+                            var pricross = data.PriPurchaseCross || 0;
+                            var subcross = data.SubPurchaseCross || 0;
+                            var crossHire = (pricross * data.ConFactor) + subcross;
+                            var pricrosss = data.PriRetNoteCross || 0;
+                            var subcrosss = data.SubRetNoteCross || 0;
+                            var crossReturn = (pricrosss * data.ConFactor) + subcrosss;
+
+
+                            var stockVal = stockIn - stockout + (crossHire - crossReturn);
+                            var Stock = StockCalc(stockVal, data.ConFactor, data.PriUnit, data.SubUnit);
+
+                            return '<label>' + Stock + '</label>';
+                        }
+                    },
+                    { "data": "price", "name": "price", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    {
+                        //stock outside val
+                        "name": "stockoutsidevalue", "data": function (data) {
+                            var HStock = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            var hireReturn = (data.PriRetNote * data.ConFactor) + data.SubRetNote;
+                            var hireMiss = (data.PriHireMiss * data.ConFactor) + data.SubHireMiss;
+                            var stockOutSide = HStock - (hireReturn + hireMiss);
+
+                            var outsideval = (stockOutSide / data.ConFactor) * data.price;
+
+                            return outsideval.toFixed(2);
+                        }
+                    },
+                    {
+                        "name": "stockinshopvalue", "data": function (data) {
+                            //stock inshop value
+
+                            //stock in
+                            var hireStockP = (data.PriRetNote + data.PriHireMiss) * data.ConFactor;
+                            var hireStockS = data.SubRetNote + data.SubHireMiss;
+                            var hireStock = hireStockP + hireStockS;
+                            var stockIn = (data.stockIn + data.OpeningStock) - hireStock;
+
+
+                            //stock out
+                            var HStock = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            var stockout = data.stockout - HStock;
+
+
+                            //stock outside
+                            var hireReturn = (data.PriRetNote * data.ConFactor) + data.SubRetNote;
+                            var hireMiss = (data.PriHireMiss * data.ConFactor) + data.SubHireMiss;
+                            var stockOutSide = HStock - (hireReturn + hireMiss);
+
+                            var stockval = stockIn - (stockOutSide + stockout);
+
+
+                            var inshopval = (stockval / data.ConFactor) * data.price;
+
+                            return inshopval.toFixed(2);
+                        }
+                    },
+                    {
+                        "name": "stockvalue", "data": function (data) {
+                            //stock value
+
+                            //stock in
+                            var hireStockP = (data.PriRetNote + data.PriHireMiss) * data.ConFactor;
+                            var hireStockS = data.SubRetNote + data.SubHireMiss;
+                            var hireStock = hireStockP + hireStockS;
+                            var stockIn = (data.stockIn + data.OpeningStock) - hireStock;
+
+
+                            //stock out
+                            var HS = (data.PriHDNote * data.ConFactor) + data.SubHDNote;
+                            var stockout = data.stockout - HS;
+
+
+                            var stockVal = stockIn - stockout;
+
+                            var stockval = (stockVal / data.ConFactor) * data.price;
+                            return stockval.toFixed(2);
+
+                        }
+                    },
+                    ],
+                    buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                  {
+                      extend: 'print',//
+                      title: "",
+                      footer: true,
+                      filename: function () {
+                          return 'Category Wise-Stock';
+                      },
+                      message: function () {
+                          var head = '<table class="tblcompact table table-bordered"><thead>' +
+                           ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Hire Stock Report (Category Wise)</h4></th></tr>' +
+                           ' <tr><th><span class="text-left">Item Category : ' + $('#catname').val() + '</span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                          return head;
+                      },
+                      exportOptions: {
+                          columns: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10]
+                      },
+                      customize: function (win) {
+                          // $(win.document.body)
+                          //.css('font-size', '10pt')
+                          //.css('padding', '1px');
+                          $(win.document.body).find('table, th,tr, td ')
+                             // .css('border', 'inherit')
+                              .css('font-size', '10pt')
+                              .css('padding', '5px')
+                              .addClass('compact');
+                          $(win.document.body).append('</td></tr></tbody>')
+
+                      }
+                  }, 'copy', 'csv', //'excel',
+                  {
+                      extend: 'excel',//
+                      title: "",
+                      footer: true,
+                      filename: function () {
+                          return 'Category Wise-Stock';
+                      },
+                      message: function () {
+                          var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                              'Hire Stock Report (Category Wise) \n' +
+                            'Item Category : ' + $('#catname').val() + '\n';
+                          return head;
+                      },
+                      pageSize: 'A4',
+                      exportOptions: {
+                          columns: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10]
+                      },
+                  },
+                  {
+                      extend: 'pdf',//
+                      title: "",
+                      footer: true,
+                      filename: function () {
+                          return 'Category Wise-Stock';
+                      },
+                      message: function () {
+                          var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             'Hire Stock Report (Category Wise) \n' +
+                            'Item Category : ' + $('#catname').val() + '\n';
+                          return head;
+                      },
+                      pageSize: 'A4',
+                      exportOptions: {
+                          columns: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10]
+                      },
+                      customize: function (doc) {
+                          doc.pageMargins = [10, 10, 10, 10];
+                          doc.defaultStyle.fontSize = 10;
+                          doc.styles.tableHeader.fontSize = 10;
+                          doc.styles.title.fontSize = 12;
+                          // Header font and bg color
+                          doc.styles.tableHeader.fillColor = '#d3d3d3';
+                          doc.styles.tableHeader.color = 'black';
+                          // Remove spaces around page title
+                          doc.content[0].text = doc.content[0].text.trim();
+
+                          //doc.styles['td:nth-child(2)'] = {
+                          //    width: '100%',
+                          //    'max-width': '100%'
+                          //}
+
+                          doc.content[1].table.widths = [
+                          '5%',
+                          '20%',
+                          '8%',
+                          '8%',
+                          '8%',
+                          '8%',
+                          '8%',
+                          '8%',
+                          '8%',
+                          '8%',
+                          '8%'
+                          ]
+
+
+                          var objLayout = {};
+                          // Horizontal line thickness
+                          objLayout['hLineWidth'] = function (i) { return .5; };
+                          // Vertikal line thickness
+                          objLayout['vLineWidth'] = function (i) { return .5; };
+                          //// Horizontal line color
+                          //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                          //// Vertical line color
+                          //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                          // Left padding of the cell
+                          objLayout['paddingLeft'] = function (i) { return 4; };
+                          // Right padding of the cell
+                          objLayout['paddingRight'] = function (i) { return 4; };
+                          // Inject the object in the document
+                          doc.content[1].layout = objLayout;
+                          // Footer font and bg color
+                          doc.styles.tableFooter.fillColor = '#d3d3d3';
+                          doc.styles.tableFooter.color = 'black';
+                      }
+
+
+                  },
+                    ],
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api(), data;
+
+                        // Remove the formatting to get integer data for summation
+                        var intVal = function (i) {
+                            return typeof i === 'string' ?
+                                i.replace(/[\$,]/g, '') * 1 :
+                                typeof i === 'number' ?
+                                i : 0;
+                        };
+
+
+                        // Total over all pages
+                        total = api
+                            .column(7)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(7, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(7).footer()).html(
+                             pageTotal.toFixed(2)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+
+                        // Total over all pages
+                        total = api
+                            .column(8)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(8, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(8).footer()).html(
+                             pageTotal.toFixed(2)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+
+
+                        total = api
+                            .column(9)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(9, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(9).footer()).html(
+                             pageTotal.toFixed(2)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+
+                        // Total over all pages
+                        total = api
+                            .column(10)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(10, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(10).footer()).html(
+                             pageTotal.toFixed(2)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+
+                        var table = $('#UserTable').DataTable();
+                        if (!table.data().any()) {
+                            $('#UserTable tfoot').hide();
+                        } else {
+                            $('#UserTable tfoot').show();
+                        }
+
+                    }
+                });
+                //var column1 = oTable.column(3);
+                //column1.visible(false);
+            });
+            $('#UserTable tbody').on('click', 'tr', function () {
+                var data = oTable.row(this).data();
+                var url = "/HireStockReport/Details?iditem=" + data.ItemID + "&ddmc=" + getParameterByName('ddmc');
+                $(location).attr('href', url);
+            });
+
+    </script>
+}

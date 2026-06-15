@@ -1,0 +1,124 @@
+@model QuickSoft.ViewModel.ReceiptViewModel
+@{
+    Layout = "~/Views/Shared/_AppLayout.cshtml";
+    ViewBag.Title = "Create Receipt";
+    ViewBag.SubTitle = "Receipt";
+    ViewBag.Active = "Transactions";
+
+}
+@using (Html.BeginForm("Create", "Receipt", FormMethod.Post, new { id = "recform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Receipt</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Receipt List"))
+                {
+                    <a class="btn btn-success no-border" href="/app/receipt/index.html">
+                        <i class="fa fa-fw fa-history"></i> Receipt List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 2 })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @*@Html.HiddenFor(model => model.MOPayment, new { @Value = "0" })*@
+                    @Html.LabelFor(model => model.MOPayment, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.MOPayment, new { @id = "MoPay", @class = "form-control", tabindex = 3 })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("PDCDate", null, htmlAttributes: new { @class = "control-label", @id = "PDC", })
+                    @Html.Label("CDCDate", null, htmlAttributes: new { @class = "control-label", @id = "CDC", })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PDCDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", tabindex = 4 })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.PayTo, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, new { id = "ddlpayto", @class = "form-control select2", @required = "required", tabindex = 5 })
+                    <div id="accbalanceto" class="form-group" style="display:none">
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetailsto"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.PayFrom, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayFrom, (SelectList)ViewBag.Paidfrom, new { id = "ddlpayfrom", @class = "form-control select2", @required = "required", tabindex = 7 })
+                    <div id="accbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetails"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4 form-group" id="checknos">
+                    @Html.LabelFor(model => model.CheckNo, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CheckNo, new { htmlAttributes = new { @class = "form-control", data_msg_required = "Check Number is Required", tabindex = 8 } })
+                </div>
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive hight-250" id="invoice"><hr /></div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Remarks", tabindex = 9 })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.Discount, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Discount, new { htmlAttributes = new { @id = "Discount", @class = "form-control text-right", @value = "0.00", tabindex = 10 } })
+                        </div>
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.GrandTotal, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.GrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 10 } })
+                        </div>
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.Paying, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Paying, new { htmlAttributes = new { @id = "Paying", @class = "form-control text-right", @value = "0.00", @min = "0.01", tabindex = 11 } })
+                        </div>
+                        <div class="form-group col-md-6 no-padding hidden">
+                            @Html.LabelFor(model => model.Balance, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Balance, new { htmlAttributes = new { @id = "Balance", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 12 } })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <hr />
+                    <div class="form-group pull-right">
+                        <input type="hidden" value="" name="submittype" id="submittype" />
+                        <button type="submit" id="save" class="btn btn-info" tabindex="13">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success">
+                            <span class="glyphicon glyphicon-print"></span> Save And Print
+                        </button>
+                        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                        <input type="hidden" value="@ViewBag.BillToReceipt" id="BillToReceipt">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@Html.Partial("_Voucher")

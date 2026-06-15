@@ -1,0 +1,269 @@
+@using QuickSoft.Models
+@model QuickSoft.ViewModel.UserViewModel
+@{
+    ViewBag.Title = "Edit User";
+    ViewBag.SubTitle = "User";
+    ViewBag.Active = "Users";
+}
+<style>
+    .style1 {
+        display: none !important;
+    }
+
+    .style2 {
+        display: block !important;
+        margin-top:5px;
+    }
+</style>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Edit User</h3>
+        <div class="pull-right">
+        @if (User.IsInRole("Dev") || User.IsInRole("User List"))
+        {
+            <a class="btn btn-success no-border" href="/Users/Index">
+                <i class="fa fa-fw fa-history"></i> Users List
+            </a>
+        }
+        </div>
+    </div>
+    @using (Html.BeginForm("Edit", "Users", FormMethod.Post, new { id = "UserCreateForm", role = "form", enctype = "multipart/form-data" }))
+    {
+        @Html.AntiForgeryToken()
+       
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+<div class="box-body">
+    <div class="form-group col-md-4">
+        @Html.LabelFor(model => model.Name, htmlAttributes: new { @class = "control-label " })
+        @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+    </div>
+    <div class="form-group col-md-4">
+        @Html.LabelFor(model => model.Email, htmlAttributes: new { @class = "control-label " })
+        @Html.EditorFor(model => model.Email, new { htmlAttributes = new { @class = "form-control" } })
+    </div>
+    <div class="form-group col-md-4">
+        @Html.LabelFor(model => model.PhoneNumber, htmlAttributes: new { @class = "control-label " })
+        @Html.EditorFor(model => model.PhoneNumber, new { htmlAttributes = new { @class = "form-control" } })
+    </div>
+    @*<div class="form-group col-md-4">
+            @Html.LabelFor(model => model.BranchID, htmlAttributes: new { @class = "control-label " })
+            @Html.DropDownList("BranchID", (SelectList)ViewBag.Branch, "Select Branch", new { @class = "form-control input-sm", required = "required" })
+        </div>*@
+    <div class="form-group col-md-4">
+        @Html.LabelFor(model => model.UserName, htmlAttributes: new { @class = "control-label " })
+        @Html.EditorFor(model => model.UserName, new { htmlAttributes = new { @class = "form-control" } })
+    </div>
+    <div class="form-group col-md-4">
+        @Html.LabelFor(model => model.Password, htmlAttributes: new { @class = "control-label" })
+        @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control" } })
+    </div>
+    <div class="form-group col-md-4">
+        @Html.LabelFor(model => model.ConfirmPassword, htmlAttributes: new { @class = "control-label " })
+        @Html.EditorFor(model => model.ConfirmPassword, new { htmlAttributes = new { @class = "form-control" } })
+    </div>
+    @if (@ViewBag.BranchCheck == 0)
+    {
+        <div class="form-group col-sm-4">
+            @Html.Label("Branch", null, new { @class = "control-label" })
+            @Html.DropDownListFor(model => model.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+        </div>
+    }
+    @if (ViewBag.Discount == 0)
+    {
+        <div class="form-group col-md-4">
+            @Html.Label("Discount Percentage", null, new { @class = "control-label" })
+            @Html.EditorFor(model => model.Discount, new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+    }
+    <div class="form-group col-md-2 col-xs-12 col-sm-4">
+        @Html.Label("Material Center", null, new { @class = "control-label temp2" })
+        @Html.ListBoxFor(m => m.mcid, (MultiSelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control input-sm" })
+    </div>
+    <div class="col-md-2 col-xs-12 col-sm-4 form-group hide1">
+        @Html.Label("Purpose", null, new { @class = "control-label temp2" })
+        <div class="input-group">
+
+
+            @Html.ListBoxFor(m=>m.purpose, (MultiSelectList)ViewBag.purposes, new { @class = "form-control input-sm select2", @name = "Emirate" })
+        </div>
+
+    </div>
+    <div class="form-group col-md-4">
+        <label class="control-label ">Permissions</label>
+        <button type="button" class="btn btn btn-block btn-primary" data-toggle="modal" data-target="#modal-permission"> Customize</button>
+    </div>
+    @*<div class="form-group col-md-4">
+            @Html.LabelFor(model => model.BranchAccess, htmlAttributes: new { @class = "control-label " })
+            @Html.EnumDropDownListFor(model => model.BranchAccess, new { @class = "form-control" })
+        </div>*@
+    @Html.Partial("_Modules")
+</div>
+            <div class="box-body">
+                <!-- Permissions End -->
+                <div class="form-group col-md-12 pull-left">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-info col-sm-offset-5" value="Update" id="btnSubmit" />
+                        <input type="button" class="btn btn-default" value="Cancel" onclick="@("window.location.href='" + @Url.Action("Index", "Users") + "'");" />
+                    </div>
+                </div>
+            </div>
+    }
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        var UsrID = getQueryString('');
+        $('body').on('change', '#Email', function (e) {
+            var email = $('#Email').val();//CustomerCheck
+            $.ajax({
+                url: '/Users/EmailCheck2',
+                type: "GET",
+                dataType: "JSON",
+                data: { Email: email,
+                    usid: UsrID
+                },
+                success: function (rslt) {
+                    if (rslt == true) {
+                        alert("Email already Exists")
+                        $('#Email').val('');
+                    }
+                }
+            });
+
+        });
+        $(document).ready(function () {
+            GetBranch();
+            CallMC();
+            $("#purpose").select2({});
+        });
+        var temp = 0;
+        var temp2 = 0;
+        var temp3 = 0;
+        var temp4 = 0;
+        var temp5 = 0;
+        var temp6 = 0;
+        $('input[type=checkbox]').on('click', function () {
+            if (this.checked) {
+                $(this).closest('li').children('ul').find('input[type=checkbox]').each(function () {
+                    $(this).prop('checked', true);
+                         });
+                $(this).parents('li').children('label').children('input[type=checkbox]').each(function () {
+                    //$(this).attr('checked', true);
+                    $(this).prop("checked", true)
+                   // $(this).parent().children(':nth-child(2)').addClass('theme2');
+                });
+            } else {
+                $(this).closest('li').children('ul').find('input[type=checkbox]').each(function () {
+                    $(this).prop('checked', false);
+                            });
+                
+                $(this).parent().parent().parent().children('li').find('input[type=checkbox]').each(function () {
+                    
+                            if (this.checked) {
+                                temp++;
+                                //alert(temp);
+                            }
+                });
+                $(this).parent().parent().parent().parent().parent().children('li').find('input[type=checkbox]').each(function () {
+                    if (this.checked) {
+                        temp2++;
+                      
+                    }
+                });
+                $(this).parent().parent().parent().parent().parent().parent().parent().children('li').find('input[type=checkbox]').each(function () {
+                    if (this.checked) {
+                        temp3++;
+
+                    }
+                });
+                $(this).parent().parent().parent().parent().parent().parent().parent().parent().parent().children('li').find('input[type=checkbox]').each(function () {
+                    if (this.checked) {
+                        temp4++;
+
+                    }
+                });
+                $(this).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().children('li').find('input[type=checkbox]').each(function () {
+                    if (this.checked) {
+                        temp5++;
+
+                    }
+                });
+                $(this).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().children('li').find('input[type=checkbox]').each(function () {
+                    if (this.checked) {
+                        temp6++;
+
+                    }
+                });
+                if (temp == 0) {
+                    $(this).parent().parent().parent().parent().children(':nth-child(2)').find('input[type=checkbox]').prop("checked", false)
+                }
+                if (temp2 == 1) {
+                    $(this).parent().parent().parent().parent().parent().parent().children(':nth-child(2)').find('input[type=checkbox]').prop("checked", false)
+                }
+                if (temp3 == 2) {
+                    $(this).parent().parent().parent().parent().parent().parent().parent().parent().children(':nth-child(2)').find('input[type=checkbox]').prop("checked", false)
+                }
+                if (temp4 == 3) {
+                    $(this).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().children(':nth-child(2)').find('input[type=checkbox]').prop("checked", false)
+                }
+                if (temp5 == 4) {
+                    $(this).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().children(':nth-child(2)').find('input[type=checkbox]').prop("checked", false)
+                }
+                if (temp6 == 5) {
+                    $(this).parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().parent().children(':nth-child(2)').find('input[type=checkbox]').prop("checked", false)
+                }
+                temp = 0;
+                temp2 = 0;
+                temp3 = 0;
+                temp4 = 0;
+                temp5 = 0;
+                temp6 = 0;
+            }
+           // $(this).parent().parent().find('input[type=checkbox]').prop('checked', this.checked);
+           // $(this).parent().parent().find('input[type=checkbox]').siblings().addClass('theme2');
+        });
+        
+        $('#modal-permission').on('shown.bs.modal', function (e) {
+           
+            //alert('hi');
+            $('.modal-body').children(':nth-child(1)').addClass('sample1');//.css({ "background-color": "red" });
+            var i=0;
+            $('.full').each(function () {
+               
+                    $(this).children(':nth-child(3)').addClass('style1'); //.css({ "background-color": "red" });
+                   
+                
+                
+            });
+           // alert(i);
+            //$('.modal-body').children(':nth-child(1)').children(find('#tasks')).each(function () {
+            //    $(this).css({ "background-color": "red" });
+            //});
+        });
+        $('.fa-caret-right').on('click', function () {
+           // $(this).css({ "color": "red" });
+            if ($(this).parent('li').children(':nth-child(3)').hasClass('style1')) {
+                $(this).parent('li').children(':nth-child(3)').removeClass('style1');
+                $(this).parent('li').children(':nth-child(3)').addClass('style2');
+                if ($(this).parent('li').children(':nth-child(1)').hasClass('fa-caret-right')) {
+                    $(this).parent('li').children(':nth-child(1)').removeClass('fa-caret-right');
+                    $(this).parent('li').children(':nth-child(1)').addClass('fa-caret-down');
+                    $(this).parent('li').children(':nth-child(1)').css({ "color": "red" });
+                }
+                
+            } else if ($(this).parent('li').children(':nth-child(3)').hasClass('style2')) {
+                $(this).parent('li').children(':nth-child(3)').removeClass('style2');
+                $(this).parent('li').children(':nth-child(3)').addClass('style1');
+                if ($(this).parent('li').children(':nth-child(1)').hasClass('fa-caret-down')) {
+                    $(this).parent('li').children(':nth-child(1)').removeClass('fa-caret-down');
+                    $(this).parent('li').children(':nth-child(1)').addClass('fa-caret-right');
+                    $(this).parent('li').children(':nth-child(1)').css({ "color": "black" });
+                }
+                
+            }
+            // alert("hi");
+            // $(this).parent('li').children(':nth-child(3)').css({ "display": "block" });//.css({ "background-color": "red" });//
+
+        });
+    </script>
+}

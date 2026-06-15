@@ -1,0 +1,229 @@
+@model QuickSoft.ViewModel.PayrollVoucherViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Payroll Voucher";
+    ViewBag.Active = "Payroll";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("CreatePayrollVoucher", "PayrollVoucher", FormMethod.Post, new { id = "createForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create Payroll Voucher</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("PayrollVoucher List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/PayrollVoucher">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.PRDate, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PRDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.FromDate, new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.FromDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.ToDate, new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.ToDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" , @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Acccount, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Expense Account"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Acccount, (SelectList)ViewBag.Acc, "", new { id = "ddlAccount", @class = "form-control select2", @required = "required" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/Accounts/Create" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Acccount, (SelectList)ViewBag.Acc, "", new { id = "ddlAccount", @class = "form-control select2", @required = "required" })
+                    }
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Branch", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        </div>
+                }
+                <div class="col-sm-2 form-group lblpadding">
+                    <button type="button" href="/Hr/PayrollVoucher/AutoFill" class="modal-create btn btn-primary"><i class="fa fa-1x fa-plus-circle"></i> Auto Fill</button>
+                </div>
+            </div>
+            <div class="row">
+                <div id="payemptable"></div>
+            </div>
+                <div class="row">
+                    <div class="col-md-12 pull-right">
+                        <div class="form-group col-md-8 no-padding grtoal"></div>
+                        <div class="form-group col-md-4 no-padding grtoal">
+                            @Html.LabelFor(model => model.GrandTotal, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.GrandTotal, new { htmlAttributes = new { @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Note, new { @class = "control-label" })
+                            @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm textarea", rows = 8 })
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Details, new { @class = "control-label" })
+                            @Html.TextAreaFor(model => model.Details, new { @class = "form-control", @placeholder = "Details", @rows = 2 })
+                        </div>
+
+                        <div class="form-group pull-right">
+                            <button type="submit" id="save" class="btn btn-success">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                            </button>
+
+                            <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Hr/PayrollVoucher/Index'");">Cancel</button>
+                            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+}
+
+@{
+    var Modelv = "modal-lg";
+}
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/payrollvoucher")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxmDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxmDate)
+        });
+
+        var d = new Date();
+        var maxdate = (d.getDate() + 30) + '-' + (d.getMonth() + 1) + '-' + d.getFullYear();
+
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            GetAllAccounts(0);
+            $(".grtoal").hide();
+
+            AddEmployee();
+        });
+
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+
+            if ($("#createForm").valid()) {
+                var url = $('#createForm')[0].action;
+                var formData = new FormData(this);
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '@Url.Action("Index", "PayrollVoucher")';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });
+
+        //$('body').on('change', '#FromDate', function (e) {
+        //    var date = $(this).datepicker('getDate');
+        //    if (date) {
+        //        date.setDate(date.getDate());
+        //    }
+        //    alert(date);
+        //    $('#ToDate').datepicker("setStartDate", date);
+        //});
+    </script>
+}
+

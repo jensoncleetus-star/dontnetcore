@@ -1,0 +1,182 @@
+﻿@{
+    ViewBag.Title = "Branch List";
+    ViewBag.SubTitle = "Branch";
+    ViewBag.Active = "Settings";
+    string action = "";
+    string statData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Branch</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Branch"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Branch/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Branch
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr class="bg-gray">
+                    <th data-priority="1">S/N</th>
+                    <th data-priority="1">Code</th>
+                    <th data-priority="4">Name</th>
+                    <th>Address</th>
+                    <th>Land Phone</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                    <th>Main Branch</th>
+                    <th data-priority="3">Status</th>
+                    <th data-priority="2">Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section Scripts {
+    <script type="text/javascript">
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/Branch/GetBranch',
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "columnDefs": [{
+                "targets": [8, 9],
+                "orderable": false
+            }],
+            "columns": [
+                 {
+                     "data": "BranchID", "name": "BranchID",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+                { "data": "BranchCode", "name": "BranchCode" },
+                { "data": "BranchName", "name": "BranchName" },
+                { "data": "DisAddress", "name": "DisAddress" },
+                { "data": "LandLineNumber", "name": "LandLineNumber" },
+                { "data": "MobileNumber", "name": "MobileNumber" },
+                { "data": "EmailId", "name": "EmailId" },
+                {
+                    "name": "MainBranch", "data": function (data) {
+                        if (data.MainBranch == true) {
+                            return 'Yes';
+                        }
+                        else {
+                            return 'No';
+                        }
+                    }
+                },
+                 {
+                     "name": "Status", "data": function (data) {
+                         var rest = "";
+                         if (data.Status == 1) {
+                             @{
+                                 statData = "<a class=\"modal-change\" href=\"/Branch/ChangeStatus/'+ data.BranchID +'/active\" title=\"Click To Active\"><i class=\"badge bg-red\">Inactive</i></a> ";
+
+                                 }
+                             rest = '@Html.Raw(statData)';
+                         }
+                         else {
+                             @{
+                                 statData = "<a class=\"modal-change\" href=\"/Branch/ChangeStatus/'+ data.BranchID +'/inactive\" title=\"Click To InActive\"><i class=\"badge bg-green\">Active</i></a> ";
+                             }
+                             rest = '@Html.Raw(statData)';
+                         }
+                         return rest
+                     }
+                 },
+
+                 {
+                     "name": "Editable", "data": function (data) {
+                         rest = '';
+                         if (data.Editable == 0) {
+                             @{
+                                 action = "";
+                                 //if (User.IsInRole("Dev") || User.IsInRole("Edit Branch"))
+                                 //{
+                                    action += "<a class=\"modal-edit\" href=\"/Branch/Edit/'+ data.BranchID +'\" title=\"Click To Edit Branch\"><i class=\"fa fa-lg fa-edit\"></i></a> ";
+                                 //}
+                             }
+                             rest = '@Html.Raw(action)';
+                             if (data.BranchID != 1) {
+                                 @{
+                                //if (User.IsInRole("Dev") || User.IsInRole("Delete Branch"))
+                                //{
+                                    action += "<a class=\"modal-delete\"  href=\"/Branch/Delete/'+ data.BranchID +'\" title=\"Click To Delete Branch\"><i class=\"fa fa-lg fa-trash\"></i></a> ";
+                                //}
+                                }
+                                 rest = '@Html.Raw(action)';
+                             }
+                         } else {
+                         }
+                         return rest;
+                     }
+                 },
+                //{
+                //    "data": "BranchID", "name": "BranchID", "render": function (data) {
+                //        return '<a class="modal-edit" href="/Branch/Edit/' + data + '" title="Click To Edit Branch"><i class="fa fa-edit" style="font-size: large" ></i></a> ' +
+                //                '<a class="modal-delete" href="/Branch/Delete/' + data + '" title="Click To Delete Branch"><i class="fa fa-trash" style="font-size: large"></i></a> ';
+                //    }
+                //}
+            ]
+        });
+
+
+        /* function for Edit popup */
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+    </script>
+}

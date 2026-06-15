@@ -1,0 +1,194 @@
+﻿@{
+    ViewBag.Title = "View Currency Master";
+    ViewBag.SubTitle = "CurrencyMaster";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Currency</h3>
+        <p class="pull-right">
+           
+                <a href="/CurrencyMaster/Create" class="btn btn-info modal-create"><i class="glyphicon glyphicon-plus"></i> Add New</a>
+           
+        </p>
+    </div>
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="2">S/N</td>
+                    <td data-priority="2">Currency Code</td>
+                    <td data-priority="2">Description</td>
+                    <td data-priority="2">Conv.Rate</td>
+                    <td data-priority="3">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+<div id="modal-container" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@Html.Partial("../Common/_ModalChange")
+@section Scripts {
+@Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        var oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/CurrencyMaster/GetCurrency',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columns": [
+                {
+                    "data": "Id", "name": "Id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "CurrencyCode", "name": "CurrencyCode" },
+                { "data": "Description", "name": "Description" },
+                { "data": "ConvertionRate", "name": "ConvertionRate" },
+
+                //{
+                //    "name": "Id", "data": function (data) {
+                //        if (data.editable == 0) {
+                //            var action = '<a class="modal-edit" href="/CurrencyMaster/Edit/' + data.Id + '" title="Click To Edit CurrencyMaster"><i class="fa fa-edit" style="font-size: large" ></i></a>';
+                //            action += '<a class="modal-delete" href="/CurrencyMaster/Delete/' + data.Id + '" title="Click To Delete CurrencyMaster"><i class="fa fa-trash" style="font-size: large"></i></a>';
+                //           // action += '<a class="modal-change" href="/CurrencyMaster/ChangeChoice/' + data.Id + '" title="Click To Change Choice"><i class="fa fa-bullseye" style="font-size: large"></i></a>';
+                //            return action;
+                //        } else {
+                //            return null;
+                //        }
+                //    }
+                //},
+                {
+                    "name": "Id", "data": function (data) {
+                        if (data.editable == 0) {
+                            var rest = "";
+                            @{
+                                
+                                      actData += "<a class=\"modal-edit\" href=\"/CurrencyMaster/Edit/'+ data.Id +'\" title=\"Edit Currency\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                
+                                      actData += "<a class=\"modal-delete\" href=\"/CurrencyMaster/Delete/'+ data.Id +'\" title=\"Delete Currency\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                
+                              }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                        else
+                        {
+                            return null;
+                        }
+
+                    }
+                },
+            ]
+        })
+
+
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#UserTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            GetBranch();
+        });
+
+        $('#modal-edit').on('shown.bs.modal', function (e) {
+            GetBranch();
+        });
+
+        function RateValidation()
+        {
+                var ConRate = $('#ConvertionRate').val();
+                var MinConRate = $('#MinConvertionRate').val();
+                var MaxConRate = $('#MaxConvertionRate').val();
+
+                if(MaxConRate < ConRate)
+                {
+                        alert("Max Convertion Rate should be Greater than or Equal to Convertion Rate.")
+                        $('#ConvertionRate').val("");
+                        $('#MaxConvertionRate').val("");
+                }
+                else if(MinConRate >= MaxConRate)
+                {
+                    alert("Min Convertion Rate should be Less than Max Convertion Rate.")
+                    $('#MinConvertionRate').val("");
+                    $('#MaxConvertionRate').val("");
+                }
+                else
+                {
+
+                }
+        }
+
+    </script>
+}
+

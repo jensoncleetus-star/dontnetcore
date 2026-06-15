@@ -1,0 +1,675 @@
+
+@{
+    ViewBag.Title = "Outstanding";
+    ViewBag.SubTitle = "Outstanding Recievable";
+    ViewBag.Active = "Reports";
+    string deleteBTn = ""; 
+    string delchk = "";
+    deleteBTn = "{text: 'Allocate', className: 'btn-danger', action: function(e, dt, node, config) {" +
+     "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to allocate this?')) {$('#delallform').submit(); e.preventDefault();} " +
+      "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+}
+<style>
+    #divnames th {
+        background: #0d83dd;
+        color: white;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Outstanding Recievable</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            @*@using (Html.BeginForm("Receivable", "MyReports", FormMethod.Post, new { id = "ReceivableForm" }))
+                {*@
+            @*<input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />*@
+            <div class="form-group col-md-4">
+                @Html.Label("Select Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCSType", (SelectList)ViewBag.CSType, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4" id="CusDiv">
+                @Html.Label("Customer", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.ListCust, new { @class = "form-control input-sm select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-4" id="CusDiv">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.ListCust, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4" id="SupDiv">
+                @Html.Label("Supplier", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.ListSup, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Date Wise", Value="0"},
+                        new SelectListItem() {Text = "Ageing wise", Value="1"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+            </div>
+            <div class="form-group col-md-4" id="ageday">
+                @Html.Label("Days From", null, new { @class = "control-label" })
+                <div class="input-group input-group-sm">
+                    @Html.DropDownList("AgeDays", (SelectList)ViewBag.Agetype, new { @class = "form-control input-sm select2" })
+                    @*<input type="text" class="form-control input-sm" value="30" id="AgeDays" />*@
+                    <span class="input-group-btn">
+                        <button type="button" class="btn btn-flat">Days</button>
+                    </span>
+                </div>
+            </div>
+            <div class="form-group col-md-4" id="agedaytwo">
+                @Html.Label("Days To", null, new { @class = "control-label" })
+                <div class="input-group input-group-sm">
+                    @Html.DropDownList("AgeDaystwo", (SelectList)ViewBag.Agetype, new { @class = "form-control input-sm select2" })
+                    @*<input type="text" class="form-control input-sm" value="30" id="AgeDays" />*@
+                    <span class="input-group-btn">
+                        <button type="button" class="btn btn-flat">Days</button>
+                    </span>
+                </div>
+            </div>
+            <div class="form-group col-md-4" id="fdate">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4" id="todate">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+        @*}*@
+    </div>
+</div>
+@Html.Partial("../Common/_ModalDelete")
+<div class="box box-default" id="StockReport">
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="itemname" value="@ViewBag.ItemName" />
+        <input type="hidden" id="PoNo" value="@ViewBag.PartNoCheck" />
+        <input type="hidden" id="mcname" value="@ViewBag.MCSName" />
+        @using (Html.BeginForm("removeallallocate", "myreports", FormMethod.Post, new { id = "delallform", role = "form" }))
+        {
+            <div class="box-body">
+                <table class="display table table-bordered table-hover" id="UserTable">
+                    <thead>
+
+                        <tr id="divnames">
+                            <th colspan="3">Name: <span id="ShowName"></span></th>
+                            <th colspan="4">From : <span id="showFrom"></span> - To : <span id="showTo"></span></th>
+                        </tr>
+                        <tr>
+                            <td>S/N</td>
+                            <td>Invoice No</td>
+                            <td>LPO Number</td>
+                            <td style="width:100px !important;">Reciept No</td>
+                            <td>Date</td>
+                            <td>Customer</td>
+                            <td class="headeralign">Bill Amount</td>
+                            <td class="headeralign">Paid</td>
+                            <td class="headeralign">Balance To Pay</td>
+                            <td>Days</td>
+                            <td>Action</td>
+                            <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                        </tr>
+                        @*<tr>
+                            <td data-priority="1">S/N</td>
+                            <td>Item Code</td>
+                            <td>Item Name</td>
+                            <td>Unit Price</td>
+                            <td>Net Movement Qty</td>
+                            <td>Current Stock Qty</td>
+                            <td>1week Forecast Qty</td>
+                            <td>1week Purchase Value</td>
+                            <td>1month Forecast Qty</td>
+                            <td>1month Purchase Value</td>
+                            <td>2month Forecast Qty</td>
+                            <td>2month Purchase Value</td>
+                            <td>3month Forecast Qty</td>
+                            <td>3month Purchase Value</td>
+                            <td>1year Forecast Qty</td>
+                            <td>1year Purchase Value</td>
+
+                        </tr>*@
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total:</th>
+
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th class="text-right"><div id="selectedtotal"></div></th>
+                            <th class="text-right"><div id="PaidAmount"></div></th>
+                            <th></th>
+                            <th class="text-right"><div id="balancetopay"></div></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+
+                </table>
+            </div>
+        }
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+        $(document).ready(function () {
+
+            $('#StockReport').hide();
+            CSChange();
+            $('#AgeDays').select2();
+            $('#AgeDaystwo').select2();
+            $('#RReport').hide();
+            $('#ageday').hide();
+            $('#agedaytwo').hide();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+        });
+
+        $("#ddlCSType").select2();
+
+        $('body').on('change', '#ddlType', function (e) {
+            var type = $(this).val();
+            if (type == 1) {
+                $('#fdate').hide();
+                $('#todate').hide();
+                $('#ageday').show();
+                $('#agedaytwo').show();
+            }
+            if (type == 0) {
+                $('#fdate').show();
+                $('#todate').show();
+                $('#ageday').hide();
+                $('#agedaytwo').hide();
+            }
+        });
+
+        CallRepMCUser();
+        CallRepSupplier();
+        CallRepCustomer();
+        CallEmployee();
+        $('body').on('change', '#ddlCSType', function (e) {
+            CSChange();
+        });
+        $('body').on('change', '#ddlCustomer', function (e) {
+
+
+        });
+
+        function CSChange() {
+            var cst = $('#ddlCSType').val();
+            if (cst == "Sup") {
+                $('#SupDiv').show();
+                $('#CusDiv').hide();
+                $('#ddlCustomer').val(0);
+                $('#ddlSupplier').val(0);
+            }
+            else if (cst == "Cus") {
+                $('#CusDiv').show();
+                $('#SupDiv').hide();
+                $('#ddlSupplier').val(0);
+                $('#ddlCustomer').val(0);
+            }
+            else {
+                $('#SupDiv').hide();
+                $('#CusDiv').hide();
+                $('#UserTable').hide()
+            }
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            var supID = $('#ddlSupplier').val();
+            var cusID = $('#ddlCustomer').val();
+            var temp = $('#ddlCSType').val();
+            document.getElementById("ShowName").innerHTML = "";
+            e.preventDefault();
+
+            if (flag == 0) {
+
+                showdatatable();
+
+                flag = 1
+            }
+            else {
+                $('#UserTable').DataTable().destroy();
+
+                    showdatatable();
+
+                //oTable.draw();
+            }
+            $('#StockReport').show();
+
+
+            if (temp == "Cus" && cusID==0) {
+                $('#UserTable thead td:eq(3)').html('Customer');
+            }
+            else if (temp == "Sup" && supID==0) {
+                $('#UserTable thead td:eq(3)').html('Supplier');
+            }
+
+        });
+
+
+
+        function showdatatable() {
+            document.getElementById("ShowName").innerHTML = "";
+            var supID = $('#ddlSupplier').val();
+            var cusID = $('#ddlCustomer').val();
+            var temp = $('#ddlCSType').val();
+
+                $('#divnames').hide();
+                jQuery(function ($) {
+                    var oTable = $('#UserTable').DataTable({
+                        "destroy": true,
+                    "processing": true, // for show progress bar
+                    "serverSide": false, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "paging": true,
+                    "ordering": true,
+                    "orientation": 'landscape',
+                    // "bStateSave": true,
+                    "bLengthChange": false,
+                    "pageLength": 5000,
+                    "timeout": 300000,
+                    "ordering": true,
+                    //"deferLoading": 0,
+                        Responsive: true,
+                        "columnDefs": [ {
+"targets": 11,
+                        "orderable": false
+                    } ],
+                    "ajax": {
+                        "url": '/MyReports/GetReceivableLedger',
+                        "data": function (data) {
+                            data.CSType = $('#ddlCSType').val();
+                            data.Sups = $('#ddlSupplier').val();
+                            data.Cuss = $('#ddlCustomer').val();
+                            data.fromdate = $('#From').val();
+                            data.todate = $('#To').val();
+                            data.agedays = $('#AgeDays').val();
+                            data.agedaystwo = $('#AgeDaystwo').val();
+                            data.TTtype = $('#ddlType').val();
+                            data.empp = $('#ddlEmployee').val();
+                        },
+
+                        "type": "POST",
+                        "datatype": "json",
+
+                    },
+                    "order": [[0, "desc"]],
+                    "columns": [
+                         {
+
+                             "data": "", "name": "",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                        {
+                            "name": "Invoice", "data": function (result) {
+
+
+                                if (result.Ctyp == "Cus") {
+
+
+                                    @{
+
+                                    var urls = "";
+
+                                        urls = "'<a href=\"/CreditSale/Edit/'+  result.id +'\" target=\"_new\">'+ result.Invoice +'</a>' ";
+                            }
+                                    return @Html.Raw(urls);
+                                }
+                                else {
+                                    return result.Invoice;
+                                }
+                            }
+                        },
+                         {
+                            "name": "LPO", "data":"LPO"
+                        },
+                        {
+                              "name": "recieptid", "data": function (result) {
+
+
+                                  if (result.recieptid !="0") {
+
+
+
+                                    @{
+
+                                    var urls3 = "";
+
+                                        urls3 = "'<a href=\"/Receipt/Edit/'+  result.recieptid +'\" target=\"_blank\">'+ result.recieptno +'</a>' ";
+                            }
+                                    return @Html.Raw(urls3);
+                                }
+                                else {
+                                    return "";
+                                }
+                            }
+                        },
+                      { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                        { "data": "Name", "name": "Name" },
+
+                        { "data": "total", "name": "total", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                        { "data": "paid", "name": "paid", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                        {
+                            "name": "Amount", "data": function (data) {
+
+                                    return data.Amount;
+
+                            },    render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright"
+                            },
+                        { "data": "Days", "name": "Days" },
+                         {
+                            "name": "Invoice", "data": function (result) {
+
+
+                                 if (result.Amount > 0) {
+
+
+                                    @{
+
+                                    var urls2 = "";
+
+                                        urls2 = "'<a href=\"/MyReports/DeleteRecivableLedger/'+  result.id +'\" target=\"_new\" class=\"modal-delete\">Non Allocated</a>' ";
+                            }
+                                     return @Html.Raw(urls2);
+                                 }
+                                 else {
+        @{
+
+                                    var urls4 = "";
+
+                                        urls4 = "'<b>Allocated</b>'";
+                            }
+                                     return @Html.Raw(urls4);
+                                 }
+                            }
+                        },
+                           {
+                         "name": "SalesEntryId", "data": function (data) {
+                             var rest = "";
+                             @{
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete Sales Entry"))
+                                 {
+                                     delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id  +'></input>";
+                                 }
+                             }
+                             return rest = '@Html.Raw(delchk)';
+                         }
+                     },
+                    ],
+                    buttons: [
+                        'colvis',
+                   {
+                       extend: 'print',//
+                       title: "",
+                       footer: true,
+                       filename: function () {
+                           return 'Receivable Outstanding-Report';
+                       },
+                       exportOptions: {
+                           columns: ':visible'//[0, 1, 2, 3, 4]
+                       },
+
+                       message: function () {
+                           var head = '<table class="tblcompact table table-bordered"><thead>' +
+                           ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Receivable Outstanding </h4></th></tr>' +
+                           ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                           return head;
+                       },
+                       customize: function (win) {
+                           // $(win.document.body)
+                           //.css('font-size', '10pt')
+                           //.css('padding', '1px');
+                           $(win.document.body).find('table, th,tr, td ')
+                              // .css('border', 'inherit')
+                               .css('font-size', '10pt')
+                               .css('padding', '5px')
+                               .addClass('compact');
+                           $(win.document.body).append('</td></tr></tbody>')
+
+                       }
+                   }, 'copy', 'csv', //'excel',
+                   {
+                       extend: 'excel',//
+                       title: "",
+                       footer: true,
+                       filename: function () {
+                           return 'Receivable Outstanding-Report';
+                       },
+                       message: function () {
+                           var head = '' + $('#cname').val() + '\n' +
+                           '' + $('#caddress').val() + '\n' +
+                           ' Receivable Outstanding \n' +
+                          // 'Account Name : ' + $('#ddlAccountName').text() + '\n' +
+                           'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                           return head;
+                       },
+                       pageSize: 'A4',
+                       exportOptions: {
+                           columns: ':visible'
+                       },
+                   },
+                   {
+                       extend: 'pdf',//
+                       title: "",
+                       footer: true,
+                       filename: function () {
+                           return 'Receivable Outstanding-Report';
+                       },
+                       message: function () {
+                           var head = '' + $('#cname').val() + '\n' +
+                           '' + $('#caddress').val() + '\n' +
+                           ' Receivable Outstanding \n' +
+                          // 'Account Name : ' + $('#ddlAccountName').text() + '\n' +
+                           'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                           return head;
+                       },
+                       pageSize: 'A4',
+                       exportOptions: {
+                           columns: ':visible'
+                       },
+                       customize: function (doc) {
+
+                           doc.pageMargins = [10, 10, 10, 10];
+                           doc.defaultStyle.fontSize = 10;
+                           doc.styles.tableHeader.fontSize = 10;
+                           doc.styles.title.fontSize = 12;
+                           // Header font and bg color
+                           doc.styles.tableHeader.fillColor = '#d3d3d3';
+                           doc.styles.tableHeader.color = 'black';
+                           // Remove spaces around page title
+                           doc.content[0].text = doc.content[0].text.trim();
+
+                           //doc.styles['td:nth-child(2)'] = {
+                           //    width: '100%',
+                           //    'max-width': '100%'
+                           //}
+
+                           doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+
+                           //doc.content[1].table.widths = [
+                           //'15%',
+                           //'18%',
+                           //'18%',
+                           //'25%',
+                           //'20%',
+                           //]
+
+                           var objLayout = {};
+                           // Horizontal line thickness
+                           objLayout['hLineWidth'] = function (i) { return .5; };
+                           // Vertikal line thickness
+                           objLayout['vLineWidth'] = function (i) { return .5; };
+                           //// Horizontal line color
+                           //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                           //// Vertical line color
+                           //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                           // Left padding of the cell
+                           objLayout['paddingLeft'] = function (i) { return 4; };
+                           // Right padding of the cell
+                           objLayout['paddingRight'] = function (i) { return 4; };
+                           // Inject the object in the document
+                           doc.content[1].layout = objLayout;
+                           // Footer font and bg color
+                           doc.styles.tableFooter.fillColor = '#d3d3d3';
+                           doc.styles.tableFooter.color = 'black';
+                       }
+
+
+                   },,  @Html.Raw(deleteBTn)
+
+                    ],
+
+
+
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api(), data;
+
+                        // Remove the formatting to get integer data for summation
+                        var intVal = function (i) {
+                            return typeof i === 'string' ?
+                                i.replace(/[\$,]/g, '') * 1 :
+                                typeof i === 'number' ?
+                                i : 0;
+                        };
+
+
+
+                        // Total over all pages
+                        total = api
+                            .column(5)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(5, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+
+                        //$(api.column(4).footer()).html(
+                        //     pageTotal.toFixed(2)
+                        //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                        //);
+
+                        $('#selectedtotal').html(pageTotal);
+                        $('#initialtotal').html(pageTotal);
+                        total = api
+                            .column(6)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        $('#PaidAmount').html(total);
+                        total = api
+                            .column(8)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        $('#balancetopay').html(total);
+                        var table = $('#UserTable').DataTable();
+                        if (!table.data().any()) {
+                            $('#UserTable tfoot').hide();
+                        } else {
+                            $('#UserTable tfoot').show();
+                        }
+
+                    },
+                    createdRow: function (row, data, dataIndex) {
+                        $(row).addClass('bgtable');
+                    }
+                });
+                });
+
+
+        }
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+    $('div').on('click', '.modal-delete', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-delete');
+    });
+
+    $('#modal-delete').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-delete');
+
+    });
+
+</script>
+}
+

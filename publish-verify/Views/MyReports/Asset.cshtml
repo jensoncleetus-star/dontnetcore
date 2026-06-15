@@ -1,0 +1,529 @@
+@{
+    ViewBag.Title       = "Search Assets";
+    ViewBag.SubTitle    = "Assets";
+    ViewBag.Active      = "Reports";
+
+}
+
+<div class="box box-default">
+
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Assets</h3>
+    </div>
+
+    <div class="box-body">
+
+        <form id="search-form">
+
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="AssetName" />
+
+            <div class="row">
+                <div class="form-group col-md-4">
+                    @Html.Label("Transaction Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlTransType", (SelectList)ViewBag.TransType, new { @class = "form-control input-sm select2 ", @required = "required" })
+                </div>
+
+                <div class="form-group col-md-4 ">
+                    @Html.Label("Asset Account", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlAssetAccount", (SelectList)ViewBag.AssetAccounts, new { @class = "form-control input-sm select2" })
+                </div>
+
+                <div class="form-group col-md-4">
+                    @Html.Label("Asset Name", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlAssets", (SelectList)ViewBag.Assets, new { @class = "form-control input-sm select2" })
+                </div>
+            </div>
+
+            <div class="row">
+
+                <div class="form-group col-md-4">
+                    @Html.Label("Depreciation Account", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlDeprAccnt", (SelectList)ViewBag.DeprctnAccounts, new { @class = "form-control input-sm select2" })
+                </div>
+
+                <div id="perc" class="form-group col-md-4">
+                    @Html.Label("Depreciation Percentage", null, new { @class = "control-label" })
+                    @Html.TextBox("DeprPerc", "", new { @class = "form-control input-sm" })
+                </div>
+
+                <div class="form-group col-md-4 ">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group col-md-4 ">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="box box-default" id="SReport">
+    <div class="box-header with-border">
+        <h3 id="Title" class="box-title">View All Assets</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered" id="UserTable" style="width:100%">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>SI No</td>
+                        <td>Asset Name</td>
+                        <td>Type</td>
+                        <td>Asset Account</td>
+                        <td>Depreciation Account</td>
+                        <td>Depreciation %</td>
+                        <td>Quantity</td>
+                        <td> Unit Price</td>
+                        <td>Total Price</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    <script type="text/javascript">
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            $('#SReport').hide();
+
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+
+            //Load Asset DropDown
+            LoadAssetsForAccounts(0);          
+
+            //DropDown Asset Account
+            $("#ddlAssetAccount").select2({
+                placeholder: 'Search Accounts',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/AssetToInventory/SpecialAccounts",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            //To retrieve Assets, while changing Asset Accounts
+            $('body').on('change', '#ddlAssetAccount', function (e) {
+
+                //Clearing Current value of Asset Dropdown
+                $("#ddlAssets").val("0");
+
+                var AssetAccntID = $(this).val();
+
+                //Calling function to load Assets
+                LoadAssetsForAccounts(AssetAccntID)
+
+            });
+
+            //Function to load Assets corresponding to the Asset Account.
+            function LoadAssetsForAccounts(AssetAccntID) {
+
+                //DropDown Assets
+                $("#ddlAssets").select2({
+                    placeholder: 'Search Asset by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/AssetToInventory/GetAssetsByAccount",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                AccountID: AssetAccntID,
+                                page: params.page,
+                                x: "All"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            }
+
+            //DropDown Depreciation Account
+            $("#ddlDeprAccnt").select2({
+                placeholder: 'Search Accounts',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Assetpurchase/DepreciationSearch",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        jQuery(function ($) {
+
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+                "ordering": false,
+                "ajax": {
+                    "url": '/MyReports/Details',
+                    "data": function (data) {
+                        data.TransType      =   $('#ddlTransType').val();
+                        data.Asset          =   $('#ddlAssets').val();
+                        data.AssetAccount   =   $('#ddlAssetAccount').val();
+                        data.DeprAccnt      =   $('#ddlDeprAccnt').val();
+                        data.DeprPerc       =   $('#DeprPerc').val();
+                        data.From           =   $('#From').val();
+                        data.To             =   $('#To').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "AssetID", "name": "AssetID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+
+                    { "data": "AssetName",    "name": "AssetName" },
+                    { "data": "TransType",    "name": "TransType" },
+                    { "data": "AssetAccount", "name": "AssetAccount" },
+                    { "data": "DeprctnAccnt", "name": "DeprctnAccnt" },
+                    { "data": "DeprctnPerc",  "name": "DeprctnPerc"},
+                    { "data": "Quantity",     "name": "Quantity" },
+                    { "data": "Price",        "name": "Price", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "TotalPrice",   "name": "TotalPrice", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Assets';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                '<tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Assets Report</h4></th></tr>' +
+                                '<tr><th><span class="text-left">Asset : ' + $('#AssetName').val() + '</span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Assets';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Assets \n' +
+                                'Asset : ' + $('#AssetName').val() + '\n' +
+                                'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Assets';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Assets \n' +
+                                'Asset : ' + $('#AssetName').val() + '\n' +
+                                'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            //doc.content[1].table.widths = [
+                            //    '5%',
+                            //    '15%',
+                            //    '10%',
+                            //    '15%',
+                            //    '15%',
+                            //    '10%',
+                            //    '10%',
+                            //    '10%',
+                            //    '10%'
+                            //]
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+                    },
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(6)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(6, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(6).footer()).html(
+                        pageTotal
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(7)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(7, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(7).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    // Total over all pages
+                    total = api
+                        .column(8)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(8, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(8).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+            });
+
+            $('#search-form').on('submit', function (e) {
+                var Type = $("#ddlTransType").val();
+
+                if (Type == 0)
+                    $("#Title").text("View  All Assets");
+                if (Type == 1)
+                    $("#Title").text("View Assets From Inventory");
+                if (Type == 2)
+                    $("#Title").text("View Assets From Purchase");
+
+                e.preventDefault();
+                var data = $('#ddlAssets').select2('data')
+                $("#AssetName").val(data[0].text);
+                oTable.draw();
+                $('#SReport').show();
+            });
+
+        });
+    </script>
+}
+

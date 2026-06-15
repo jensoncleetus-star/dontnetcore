@@ -1,0 +1,547 @@
+
+
+@using QuickSoft.Models
+@{
+    string actData = "";
+}
+<style>
+    @@media only screen and (max-width: 430px) {
+    }
+
+    #ItemWord {
+        border-radius: 0px !important;
+        /*height:30px!important;*/
+        height: 30px !important;
+    }
+
+    .sh-aligns {
+        width: 1100px !important;
+        margin-left: -100px !important;
+    }
+
+</style>
+<div class="modal-header sh-aligns">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Search Invoice</h4>
+</div>
+<div class="modal-body sh-aligns">
+    <form id="search-form">
+        @using (Html.BeginForm("AddItemSearch", "Item", FormMethod.Post, new { id = "popupForm", target = "_new" }))
+            {
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+
+            <div class="row">
+                @*<div class="form-group col-md-3">
+                    @Html.Label("Item Brand", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+                </div>*@
+                @*<div class="form-group col-md-3" id="creditsale">
+                    @Html.Label("Item Category", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+                </div>*@
+                @*<div class="col-md-3 form-group">
+                    @Html.Label("ItemName Contains", null, new { @class = "control-label" })
+                    @Html.TextBox("ItemWord", "", "", new { @class = "form-control", @autocomplete = "off" })
+                </div>*@
+               
+                    <div class="form-group col-md-3">
+                        @Html.Label("Bill No", null, new { @class = "control-label" })
+                        @Html.DropDownList("BillNo2", (SelectList)ViewBag.Billno, new { @class = "form-control input-sm select2" })
+                        @*@Html.ListBox("BillNo2", (MultiSelectList)ViewBag.Billno, new { @class = "form-control input-sm select2" })*@
+                    </div>
+                <div class="form-group col-md-3">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCustomer2", (SelectList)ViewBag.Customr, new { @class = "form-control input-sm select2", @required = "required" })
+                </div>
+                    <div class="row box-footer col-md-12">
+                        <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                        <button type="button" class="btn btn-default" onclick="setItem2()">Cancel</button>
+                    </div>
+                </div>
+        }
+    </form>
+    <div class="box box-default" id="StockReport">
+
+
+
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="4">Bill No</td>
+                        <td data-priority="4">Customer</td>
+                        @*<td data-priority="6">Item Name</td>
+                        <td data-priority="4">Current Stock</td>
+                        <td>Selling Price</td>
+                        <td>Purchase Price</td>
+                        <td>Last Movement</td>*@
+                        <td><input type="button" class="btn btn-danger" onclick="setItem()" value="Select" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        @*<th></th>
+    <th></th>
+    <th></th>
+    <th></th>*@
+                    </tr>
+                </tfoot>
+            </table>
+            @*<div class="row box-footer col-md-12">
+                    <input type="button" class="btn btn-info col-sm-offset-5" onclick="setItem()" value="Select" />
+                    <button type="button" class="btn btn-default" onclick="setItem2()">Cancel</button>
+                </div>*@
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        
+        $("#StockReport").hide();
+
+        $("#BillNo2").select2({
+            placeholder: 'Search Sales Invoice',
+            minimumInputLength: 0,
+            ajax: {
+
+                url: "/WorkCompletion/SearchSalesEntry2",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        customer: $("#ddlCustomer").val(),
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+        $("#ddlCategory").select2({
+            placeholder: 'Search Item Category',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemCategory/SearchCategory",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#ddlBrand").select2({
+            placeholder: 'Search Item Brand',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemBrand/SearchBrand",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#ddlCustomer2").select2({
+            placeholder: 'Search Customer by Name or Code',
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: "/Customer/SearchCustomer",
+                dataType: 'json',
+                delay: 50,
+
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+        var tempCust = $("#ddlCustomer2").val();
+        $('#ddlCustomer option[value=' + tempCust + ']').attr('selected', true);
+        CallCustomer();
+
+
+        var tempMC = $("#ddlMC").val();
+        $('#ddlMC2 option[value=' + tempMC + ']').attr('selected', true);
+
+
+        $("#ddlMC2").select2({
+            placeholder: 'Select Material Center',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/MC/SearchMCUser",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+    });
+    function setItem2() {
+        $('.close').click();
+    }
+    function setItem(id) {
+        var data = 0;
+        var cnt = 0;
+        var data2 = "";
+        var tempMC = $("#ddlMC2").val();
+    if(tempMC!=0){
+        $("input[name='dltcheck']:checked").each(function () {
+            
+            data = $(this).val();
+            $.ajax({
+                url: '/WorkCompletion/GetBillNo',
+                dataType: 'json',
+                data: { ItemId: data },
+                cache: true,
+                success: function (data) {
+                    cnt++;
+                    //data2 = data3;
+                    if (cnt == 1) {
+                        data2 = data;
+                    } else {
+                        data2 += ", " + data;
+                    }
+                    $('#ddlInvoice').val(data2);
+                }
+            });
+            
+            
+            
+            
+            //$('.close').click();
+    
+            
+            
+            var temp = $('#addinvoiceItem tr').length;
+            var action = "sales";
+            //var mc = $("#ddlMC2").val();
+            //$('#ddlMC').removeClass("select2");
+            //$('#ddlMC option[value=' + mc + ']').attr('selected', true);
+            //CallMCUser();
+            
+            //$("#ddlMC").val() = mc;
+            var Stype = $('#SaleType').val();
+            var Hire = $('#ddlHType').val();
+            $.ajax({
+                url: '/WorkCompletion/GetItemById2',
+                dataType: 'json',
+                data: { ItemId: data },
+                cache: true,
+                success: function (data) {
+                    
+
+
+                    $(".item_").remove();
+                    $.each(data, function (i, item) {
+                        var tempCust = item.Customer;
+                        $('#ddlCustomer').removeClass("select2");
+                        $('#ddlCustomer option[value=' + tempCust + ']').attr('selected', true);
+                        CallCustomer();
+
+                        var taxamt = item.SellingPrice * (item.Tax / 100);
+                        addrow('addinvoiceItem', 'sales',1, item.ItemUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, taxamt, 0, item.note, item);
+                    });
+                    addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
+                    // $(".barcode").val("");
+                    //$(".barcode").focus();
+                }
+            });
+        });
+        $('.close').click();
+        oTable2.draw();
+    }
+    else {
+alert("you must select a material center")
+    }
+    }
+
+    function SearchData(data) {
+
+        data.brand = $('#ddlBrand').val();
+        data.customer = $('#ddlCustomer2').val();
+        data.BillNo = $('#BillNo2').val();
+        data.itemWord = $('#ItemWord').val();
+    }
+
+    function showdatatable() {
+        var oTable2 = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "ordering": false,
+            "pageLength": 10000,
+            "paging": true,
+            responsive: true,
+            "bLengthChange": false,
+            "bDestroy": true,
+            "ajax": {
+                "url": '/WorkCompletion/GetAddMultiInvoice',
+                /* calling the function for capturing the datas*/
+                "data": function (data) {
+                    data = SearchData(data);
+                },
+                /*end*/
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [
+                 { "className": "dt-center", "targets": "_all" },
+
+            ],
+
+            "columns": [
+                {
+
+                    "width": "5%",
+                    "data": "SalesEntryId", "name": "SalesEntryId",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                {
+                    "width": "10%",
+                    "data": "BillNo", "name": "BillNo"
+                },
+                {
+                    "width": "10%",
+                    "data": "CustomerName", "name": "CustomerName"
+                },
+    //            {
+    //                "width": "20%",
+    //                "data": "ItemName", "name": "ItemName"
+    //                //actData += "<a class=\"UpdationRe\" onclick=\"detailsRemind(' + data.PurchaseEntryId + ')\" title=\"View Reminder\"><i class=\"fa-lg fa fa-bell\" ></i></a> ";
+    //},
+    @*{
+        "name": "ItemName", "data": function (data) {
+
+             @{
+                 var urls = "";
+                 urls= "'<a class=\"Updati\" title=\"View Reminder\">'+ data.ItemName +'</a> '";
+                // urls = "'<a href=\"/SalesReport/itemDetails?iditem='+  data.ItemID + '&customer=0&from='+fromdate+'&to='+todate+'&saletype='+saletype+'&ddmc='+ddlmc+'\" target=\"_new\">'+ data.Item +'</a>' ";
+
+              }
+            return @Html.Raw(urls);
+
+
+        }
+    },*@
+    //{
+
+    //    "data": "CurrentStock", "name": "CurrentStock"
+    //},
+    //{
+    //    "data": "SellingPrice", "name": "SellingPrice",
+    //    render: $.fn.dataTable.render.number(",", ".", 2),
+    //},
+    //{
+    //    "data": "PurchasePrice", "name": "PurchasePrice",
+    //    render: $.fn.dataTable.render.number(",", ".", 2),
+    //},
+    @*{
+        "name": "PurchasePrice", "data": function (datas) {
+            var dat = datas;
+
+           @{
+               var rest = "";
+               actData = "";
+
+
+               if ( User.IsInRole("ItemPurchasePrice"))
+               {
+                   actData += "<aa   >'+datas.PurchasePrice.toFixed(2)+'</aa> ";
+               }
+               else
+               {
+
+                   actData = "";
+               }
+           }
+            return rest = '@Html.Raw(actData)';
+
+
+        },
+    },*@
+    //{
+
+    //    "name": "days", "data": function (data) {
+    //        if (data.days != null) {
+    //            return data.days + " days before";
+    //        } else {
+    //            return "No Sales Records";
+    //        }
+
+    //    }
+    //},
+    {
+        "width": "5%",
+        "name": "SalesEntryId", "data": function (data) {
+            var rest = "";
+            @{
+
+                var delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"dltcheck\" value='+ data.SalesEntryId +'></input>";
+                //onclick =\"setItem(' + data.ItemID + ')\"
+            }
+            return rest = '@Html.Raw(delchk)';
+        }
+    },
+            ],
+
+
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[30, 100, 100000], [30, 100, "All"]],
+            "footerCallback": function (row, data, start, end, display) {
+                var api = this.api(), data;
+
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                        i : 0;
+                };
+
+                //// Total over all pages
+                //total = api
+                //    .column(5)
+                //    .data()
+                //    .reduce(function (a, b) {
+                //        return intVal(a) + intVal(b);
+                //    }, 0);
+
+                //// Total over this page
+                //pageTotal = api
+                //    .column(5, { page: 'current' })
+                //    .data()
+                //    .reduce(function (a, b) {
+                //        return intVal(a) + intVal(b);
+                //    }, 0);
+
+                //// Update footer
+                //$(api.column(5).footer()).html(
+                //     pageTotal.toFixed(2)
+                //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                //);
+
+
+
+                //var table = $('#UserTable').DataTable();
+                //if (!table.data().any()) {
+                //    $('#UserTable tfoot').hide();
+                //} else {
+                //    $('#UserTable tfoot').show();
+                //}
+            }
+        });
+
+        //for showing the datatable when click the submit button
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable2.draw();
+            $('#StockReport').show();
+            $('#UserTable').show();
+        });
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable2.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+    }
+    var flag = 0;
+    $('#search-form').on('submit', function (e) {
+        e.preventDefault();
+        if (flag == 0) {
+
+            showdatatable();
+            flag = 0;
+        }
+        else
+            oTable2.draw();
+
+        $('#StockReport').show();
+    });
+
+
+
+
+</script>

@@ -1,0 +1,292 @@
+@model QuickSoft.ViewModel.LeadProcessFlowsViewModel
+@using QuickSoft.Models
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Add Lead Process Flow</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Create", "LeadProcessFlow", FormMethod.Post, new { id = "createform" }))
+    {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiFveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.LeadStatus, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.LeadStatus, (SelectList)ViewBag.LeadStatus, "", new { id = "ddlPStatus", @class = "form-control textwidth" })
+                    @*@Html.DropDownListFor(m => m.LeadStatus, Model.LeadStatus, "Select one")*@
+
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.AssignType, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AssignTypeAll, (SelectList)ViewBag.AssignTypes, new { @class = "form-control select2 textwidth", @name = "AssignTypeAll[]", @multiple = "multiple" })
+                </div>
+                <div class="form-group  col-md-12">
+                    @Html.LabelFor(model => model.AssignedUsers, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AssignedUsers, (SelectList)ViewBag.Employee, "", new { @class = "form-control select2", @name = "AssignedMembers[]", @multiple = "multiple", @style = "width:100%" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.CheckBoxFor(m => m.RemoveUpdateUser, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.RemoveUpdateUser, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.CheckBoxFor(m => m.RemoveUpdateUserTeams, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.RemoveUpdateUserTeams, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-12" id="1">
+                    @Html.CheckBoxFor(m => m.ApprovalRequierd, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.ApprovalRequierd, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-12" hidden="hidden" id="abc">
+                    @Html.Label("Approve Users", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AssignUsers, (SelectList)ViewBag.AssignUsers, "", new { @class = "form-control select2", @name = "AssignMembers[]", @multiple = "multiple", @style = "width:100%" })
+                </div>
+                <div class="form-group  col-md-12" id="1">
+                    @Html.CheckBoxFor(m => m.MoveToFieldService, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.MoveToFieldService, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-6" hidden="hidden" id="abd">
+                    @Html.LabelFor(model => model.TaskStatus, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.TaskStatus, (SelectList)ViewBag.TaskStatus, "", new { @class = "form-control textwidth", id = "2" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-info col-sm-offset-4">Save</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <script>
+            $(function () {
+                $("#MoveToFieldService").change(function () {
+                    if ($(this).is(':checked')) {
+                        $("#abd").show();
+                    }
+                    else {
+                        $("#abd").hide();
+                    }
+                });
+                $("#ApprovalRequierd").change(function () {
+                    if ($(this).is(':checked')) {
+                        $("#abc").show();
+                    }
+                    else {
+                        $("#abc").hide();
+                    }
+                });
+
+            });
+           
+            //var newOption = new Option(data.text, data.id, true, true);
+            //    $('#ddlPStatus').append(newOption);
+            $("#ddlPStatus").select2({
+                placeholder: 'Search Lead Status',
+                minimumInputLength: -1,
+                ajax: {
+                    url: "/LeadStatus/SearchLeadStatus",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                      
+                        return {
+
+                            q: params.term,
+                            page: params.page,
+                           
+                        };
+                    },
+                
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                  
+                    cache: true
+                },
+            });
+
+            //    $('#ddlPStatus').append(newOption);
+            //$("#TaskStatus").select2({
+            //    placeholder: 'Search Task Status',
+            //    minimumInputLength: -1,
+            //    ajax: {
+            //        url: "/TaskStatus/SearchTaskStatus",
+            //        dataType: 'json',
+            //        type: "POST",
+            //        delay: 50,
+            //        data: function (params) {
+            //            return {
+
+            //                q: params.term,
+            //                page: params.page,
+
+            //            };
+            //        },
+
+            //        processResults: function (data, params) {
+            //            params.page = params.page || 1;
+
+            //            return {
+            //                results: data
+            //            };
+            //        },
+
+            //        cache: true
+            //    },
+            //});
+
+         
+            $(document).ready(function () {
+                    
+                });                                
+
+            CallTeam();
+            $("#AssignedUsers").select2({
+                placeholder: 'Search Employees by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchTeamMember",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            lead: $('#TeamLead').val()
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            //$("#AssignedUsers").prop("disabled", true);
+            $('body').on('change', '#AssignTypeAll', function (e) {
+                var assign = $("#AssignTypeAll").val();
+                AssignTypeChange(assign);
+            });
+
+            $("#AssignUsers").select2({
+                placeholder: 'Search Employees by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchTeamMember",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            lead: $('#TeamLead').val()
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            //$("#AssignedUsers").prop("disabled", true);
+            $('body').on('change', '#AssignTypeAll', function (e) {
+                var assign = $("#AssignTypeAll").val();
+                AssignTypeChange(assign);
+            });
+
+        </script>
+    }
+</div>
+        @*@section style{
+            @Styles.Render("~/css/bootstrap-datepicker")
+
+        }
+
+        @section scripts{
+            @Scripts.Render("~/js/jqueryval")
+            @Scripts.Render("~/js/Mobile")
+            @Scripts.Render("~/js/bootstrap-datepicker")
+            <script>
+
+                $("#ddlPStatus").select2({
+                    placeholder: 'Search Lead Status',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/LeadStatus/SearchLeadStatus",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                CallTeam();
+                $("#AssignedUsers").select2({
+                    placeholder: 'Search Employees by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchTeamMember",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                lead: $('#TeamLead').val()
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                //$("#AssignedUsers").prop("disabled", true);
+                $('body').on('change', '#AssignTypeAll', function (e) {
+                    var assign = $("#AssignTypeAll").val();
+                    AssignTypeChange(assign);
+                });
+
+            </script>
+        }*@
+    
+   

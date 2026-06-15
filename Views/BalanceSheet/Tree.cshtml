@@ -1,0 +1,80 @@
+@using QuickSoft.ViewModel
+@model QuickSoft.ViewModel.TrialBalanceAccViewModel
+@{
+    ViewBag.Title = "Trial Balance";
+    ViewBag.SubTitle = " Account Wise Trial Balance";
+    ViewBag.Active = "Accounts";
+
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Trial Balance Report</h3>
+    </div>
+    <div class="box-body">
+        <div id="Acctree">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr class="bg-gray">
+                        <td class="text-center" colspan="3">
+                            Date: Date: @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.To))
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <td>Particulars</td>
+                        <td class="text-center">
+                            DEBIT ( AED )
+                        </td>
+                        <td class="text-center">
+                            CREDIT ( AED )
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ TreeView(Model); }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@{ void TreeView(TrialBalanceAccViewModel module, long? parent = 0, string spaces="")
+{
+TrialBalanceAccViewModel sub = new TrialBalanceAccViewModel();
+sub.Data = module.Data;
+var submodule = sub.Data;
+var data = ViewBag.Active;
+foreach (var menus in module.Data)
+{
+    var space = "";
+    var classn = (menus.Type == "Group") ? "glyphicon-hand-right" : "glyphicon-arrow-right";
+    var disables = (menus.Type == "Group") && (menus.text != "Supplier" || menus.text != "Customer" || menus.text != "Customer") ? "" : ", \"disabled\":true";
+
+    if (menus.Parent == parent)
+    {
+        space = spaces + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        var Debit = Convert.ToDecimal(menus.Debit);
+        var Credit = Convert.ToDecimal(menus.Credit);
+        var Sum = Debit - Credit;
+        decimal? Dr = null;
+        decimal? Cr = null;
+        if (Sum > 0)
+        {
+            Dr = Sum;
+        }
+        if (Sum < 0)
+        {
+            Cr = 0 - Sum;
+        }
+
+            <tr>
+                <td>@Html.Raw(spaces)@menus.text</td>
+                <td>@Dr</td>
+                <td>@Cr</td>
+            </tr>
+            if (menus.Type == "Group")
+            {
+                TreeView(sub, menus.ID, space);
+            }
+        }
+    }
+} }

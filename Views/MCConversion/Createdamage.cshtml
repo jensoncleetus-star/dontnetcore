@@ -1,0 +1,242 @@
+
+@model QuickSoft.ViewModel.StockTransferViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "MCConversion";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+}
+
+<div class="box box-default">
+    @using (Html.BeginForm("createdatamages", "MCConversion", FormMethod.Post, new { id = "creForm", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Material Centre To Damage</h3>
+        </div>
+        <div class="box-body">
+            <form id="search-form">
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+                <div class="form-group col-md-2"></div>
+                <div class="form-group col-md-2"></div>
+                <div class="form-group col-md-2 " id="">
+                    @Html.Label("From Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("FromDate", "01-09-2024", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("Material Centre", null, new { @class = "control-label" }) *
+
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownList("ddlMCFrom", (SelectList)ViewBag.MCbag, new { id = "ddlMCFrom", @class = "form-control select2", @required = "required", @onchange = "checkbranch()" })
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="col-sm-2 form-group" id="">
+                    @Html.Label("Only Negative Stock", null, new { @class = "control-label" })
+
+                    <div class="input-group input-group-sm">
+                        @Html.CheckBox("chknegative")
+
+                    </div>
+                    <div class="form-group col-md-12" id="DDlItemwise">
+                        @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                    </div>
+
+                </div>
+
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="save">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            </form>
+        </div>
+    }
+</div>
+
+
+
+
+
+@Styles.Render("~/css/bootstrap-datepicker")
+@Styles.Render("~/css/bootstrap-timepicker")
+
+@Scripts.Render("~/js/bootstrap-datepicker")
+@Scripts.Render("~/js/bootstrap-timepicker")
+
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+
+        });
+    var date = new Date();
+    var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    $('.date').datepicker('setDate', today);
+        $(document).ready(function () {
+            //for set default date
+
+            ItemSearchable();
+            $("#ddlMCFrom").select2({
+                placeholder: 'Search Material Centre by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: ""
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlMCTo").select2({
+                placeholder: 'Search Material Centre by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: ""
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        $('#creForm').on('submit', function (e) {
+
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+
+            var warnmsg=@ViewBag.WarnMsg;
+            if(warnmsg == 0){
+                var WMsg = confirm("Do you want to Save..?");
+                if (WMsg == true) {
+
+                    SaveFunction(fnval);
+                }else{
+                }
+            } else {
+
+                SaveFunction(fnval);
+            }
+        });
+
+        //***** for checking the MCs are same *****
+
+        function checkbranch() {
+            var to = $("#ddlMCFrom").val();
+            var from = $("#ddlMCTo").val();
+
+            if (to != null && from != null) {
+                if (to == from) {
+                    alert("Material Centres are same please select differnet Centre");
+                    $("#ddlMCTo").val(null).trigger("change");
+                }
+            }
+        }
+        //***** end *****
+
+    function SaveFunction(fnval) {
+
+        var MFrom = $('#ddlMCFrom').val();
+
+                var MTo = $('#ddlMCTo').val();
+
+                 var parameters = {};
+                 parameters.q = "";
+                 parameters.mc = MFrom;
+        parameters.frmdate = $("#FromDate").val();
+        parameters.action = fnval;
+        parameters.chknegative = ($("#chknegative").prop("checked")==true)?1:0
+        parameters.itemsel=$("#ddlItem").val();
+                if (fnval == "save") {
+
+                    submitForm(fnval, parameters);
+
+                   }
+
+        }
+
+
+        function submitForm(fnval, parameters) {
+
+            $.ajax({
+                async: true,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/MCConversion/createdatamages",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                    $('.ajax_response', res_success).text("please wait.. until transfer complete");
+                    $('.AlertDiv').prepend(res_success);
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        if (fnval == "print") {
+                            PrintStockTransferInvoice(e,"_Invoice") ;
+                            }
+                       else {
+                             $('.ajax_response', res_success).text(e.message);
+                             $('.AlertDiv').prepend(res_success);
+                             $("button").prop('disabled', false);
+                        }
+
+                            setTimeout(function () { window.location.href = '/MCConversion/Createdamage'; }, '@TimeOut');
+                    }
+                   else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); //enable button
+                        }
+                    }
+
+            });
+        }
+
+
+
+</script>
+
+
+
+
+
+
+

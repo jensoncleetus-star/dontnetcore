@@ -1,0 +1,310 @@
+@model QuickSoft.Models.BillSundry
+    @{
+        string actData2 = "";
+     }
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Bill Sundry</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "BillSundry", FormMethod.Post, new { id = "editform" }))
+            {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.HiddenFor(model => model.BillSundryId)
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group  col-md-12">
+                    @Html.Label("Name", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BSName, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus", @required = "required" } })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.BSType, new { @class = "form-control" })
+                </div>
+                @*<div class="form-group col-md-6">
+            @Html.Label("Bill Sundry Nature", null, new { @class = "control-label" }) *
+            @Html.DropDownListFor(m => m.BSNature, (SelectList)ViewBag.Nature,"", new { @class = "form-control input-sm" })
+        </div>*@
+                <div class="form-group col-md-6">
+                    @Html.Label("Amount Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.AmountType, new { @class = "form-control", @onchange = "changeAmtType" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.Label("Default Value", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.DefaultValue, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus" } })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Status", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.Status, new { @class = "form-control" })
+                </div>
+                @if (@ViewBag.stat == 1)
+                {
+            <div class="form-group col-md-6">
+                @Html.Label("Account In Sale", null, new { @class = "control-label" })
+                @Html.DropDownListFor(m => m.SAccount, (SelectList)ViewBag.SetAccount, "--Select--", new {@id="AccSales", @class = "form-control", @required = "required", @readonly = "readonly" })
+            </div>
+                }
+                else
+                {
+                    <div class="form-group col-md-6">
+                    @Html.Label("Account In Sale", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.SAccount, (SelectList)ViewBag.SetAccount, "--Select--", new { @class = "form-control select2", @required = "required" })
+                    </div>
+                }
+                    @if (@ViewBag.stat == 1)
+                    {
+            <div class="form-group col-md-6">
+                @Html.Label("Account In Purchase", null, new { @class = "control-label" })
+                <div class="input-group input-group-sm">
+                    @Html.DropDownListFor(m => m.PAccount, (SelectList)ViewBag.SetAccount, "--Select--", new { @id = "AccPur", @class = "form-control select2", @required = "required", @readonly = "readonly" })
+                    <span class="input-group-btn">
+                        @*<a class=\"btn btn-icons btn-rounded btn-delete\" href=\"javascript:void(0)\" onclick=\"getcurrstocks('+data.id+')\" title=\"View Used BillSundry\"><i class=\"fa fa-trash\"></i></a>*@
+                        <button type="button" href="javascript:void(0)" class="btn btn-success btn-flat" onclick="getcurrstocks2('@ViewBag.billsId')" tabindex="6"><i class="fa fa-1x fa-question"></i></button>
+                    </span>
+                </div>
+            </div>
+                    }
+                    else
+                    {
+                        <div class="form-group col-md-6">
+                            @Html.Label("Account In Purchase", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.PAccount, (SelectList)ViewBag.SetAccount, "--Select--", new { @class = "form-control select2", @required = "required" })
+                        </div>
+                    }
+                    @if (@ViewBag.BranchCheck == 0)
+                    {
+                        <div class="row">
+                            <div class="form-group col-sm-6">
+                                @Html.Label("Branch", null, new { @class = "control-label" })
+                                @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                            </div>
+                        </div>
+                    }
+                </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-info col-sm-offset-4">Update</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<div id="LastSalePur2"></div>
+<script>
+    $("#SAccount").select2({});
+    $("#PAccount").select2({});
+    $("#AccSales").select2({  });
+    $("#AccPur").select2({  });
+   // $(".select2").css({ "pointer-events": "none", "color": "#ede6e6" });
+       function getcurrstocks2(itemid) {
+        //alert(itemid);
+       // $('.close2').click();
+            $("#LastSalePur2").html("");
+            var result = "";
+        var Modal = "<div id='LastPurSale2' class='modal' role='dialog' aria-hidden='true' style='z-index=0!important;'><div class='modal-dialog modal-large'><div class='modal-content'>" +
+                "<div class='modal-header bg-aqua'><button type='button' class='close' data-dismiss='modal' style='font-size:30px;color:red;'>&times;</button> <h4 class='text-left lastsalepur'>View Used BillSundries </h4><input type='hidden' id='lps_itemName_" + result + "' value='" + result.ItemName + "'></div>" +
+                "<div class='modal-body' style='padding-top:0px;padding-right:0px;'><p class='errormsg'></p>" +
+
+
+                "<div id='lastp-'>" +
+                "<table class='table table-bordered table-hover' id='LPurchase2'><thead><tr class='bg-gray'>" +
+                "<th>S/N</th><th>Voucher No</th><th>Reference</th>" +
+
+                "</tr></thead><tbody></tbody></table></div>" +
+
+                "<div id='salepurmsg' hidden><h4 class='text-red'>Not Found..!!</h4></div>" +
+
+                "<div class='form-actions no-color text-center'>" +
+
+                "</div></div></div></div></div>";
+            $("#LastSalePur2").append(Modal);
+            addstockeachmc2(itemid);
+            $("#LastPurSale2").modal({
+                backdrop: 'static',
+                keyboard: false
+            });
+
+
+    }
+ 
+        function addstockeachmc2(ItemId) {
+            if ($.fn.DataTable.isDataTable('#LPurchase2')) {
+                $('#LPurchase2').DataTable().destroy();
+            }
+
+
+
+            var mcs = $("#ddlMCavailable").val();
+            $('#LPurchase2 tbody').empty();
+
+            var oTable = $('#LPurchase2').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                //"bStateSave": true,
+                "sortable": true,
+                "stateSave": false,
+                "bDestroy": true,
+                "bLengthChange": true,
+                responsive: true,
+                "paging": false,
+                //"pageLength": 100000,
+                "filter": false,
+                //"ordering": true,
+                "ajax": {
+                    "url": '/BillSundry/GetBillSundryUsedList2',
+                    "data": function (data) {
+
+                        data.idd = ItemId;
+
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": "billNo", "name": "billNo",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    //{
+                    //    "data": "billNo", "name": "billNo",
+                    //},
+                    {
+                        "name": "billNo", "data": function (data) {
+                            var rest = "";
+                            if (data.text == "Purchase Entry") {
+                            @{
+                                actData2 = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Entry"))
+                                {
+                                    actData2 += "<a href = \"/PurchaseEntry/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Purchase Entry\">'+data.billNo+'</a> ";
+                                }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            } else if (data.text == "Purchase Return") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Return"))
+                                    {
+                                        actData2 += "<a href = \"/PurchaseReturn/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Purchase Return\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+                            else if (data.text == "Sales Entry") {
+                                if (data.validornot == "valid") {
+                                    @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry"))
+                                    {
+                                        actData2 += "<a href = \"/CreditSale/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Sales Entry\">'+data.billNo+'</a> ";
+                                    }
+                                     }
+                                    rest += '@Html.Raw(actData2)';
+                                } else {
+                                     @{
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry"))
+                                    {
+                                        actData2 = "";
+                                        actData2 += "<a href=\"#\" onclick=\"AlertFunction(' + data.userEditDays + ')\" title=\"Edit Sales Entry\">'+data.billNo+'</a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData2)';
+                                }
+
+                            }
+                            else if (data.text == "Sales Return") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Return"))
+                                    {
+                                        actData2 += "<a href = \"/CreditSaleReturn/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Sales Return\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+                            else if (data.text == "Materials Received From Party Entry") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry"))
+                                    {
+                                        actData2 += "<a href = \"/MtFromParty/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Entry\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+                            else if (data.text == "Materials Issued to Party Entry") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry"))
+                                    {
+                                        actData2 += "<a href = \"/MtToParty/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Entry\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+                            else if (data.text == "Purchase Order") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit PurchaseOrder"))
+                                    {
+                                        actData2 += "<a href = \"/PurchaseOrder/Edit/' + data.id + '\" target=\"_new\" title=\"Edit PurchaseOrder\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+                            else if (data.text == "Quotation") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Quotation"))
+                                    {
+                                        actData2 += "<a href = \"/Quotation/Edit/' + data.id + '\" target=\"_new\" title=\"Edit Quotation\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+                            else if (data.text == "Proforma") {
+                                @{
+                                    actData2 = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit Pro Forma"))
+                                    {
+                                        actData2 += "<a href = \"/ProForma/Edit/' + data.id + '\" target=\"_new\" title=\"Edit ProForma\">'+data.billNo+'</a> ";
+                                    }
+                             }
+                                rest += '@Html.Raw(actData2)';
+                            }
+
+
+
+
+                            return rest;
+
+
+
+                        }
+                    },
+                    {
+                        "data": "text", "name": "text",
+                    },
+
+                ],
+            });
+
+
+        }
+</script>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+}

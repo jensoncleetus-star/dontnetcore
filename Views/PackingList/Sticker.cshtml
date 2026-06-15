@@ -1,0 +1,156 @@
+﻿@{
+    ViewBag.Title = "Print Sticker";
+    ViewBag.SubTitle = "Print Sticker";
+    ViewBag.Active = "Utility";
+}
+<div class="box box-default">
+    <style>
+        #barcodetable body {
+            text-align: center;
+        }
+
+        #barcodetable td {
+            text-align: center;
+            padding-bottom: 0px;
+            padding-top: 7px;
+        }
+
+        #barcodetable h4 {
+            margin-bottom: -6px;
+            z-index: 1;
+            position: relative;
+            font-size: 0.9em;
+        }
+
+        .brcode {
+            width: 150px;
+            height: 60px;
+        }
+
+        #barcodetable {
+            font-size: .9em;
+            margin-bottom: 0px;
+        }
+
+        p {
+            font-size: .65em;
+        }
+    </style>
+    <div class="box-header with-border">
+        <h3 class="box-title">Print Sticker</h3>
+    </div>
+    <div class="box-body">
+        <form class="form-horizontal">
+            <input type="hidden" id="bcvalue" />
+            <input type="hidden" id="itmname" />
+            <input type="hidden" id="itmprice" />
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <div class="form-group">
+                <label class="control-label col-md-4">Packing List</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.ddlItem, new { @*multiple = "multiple",*@ @class = "form-control input-sm", @required = "required" })
+                </div>               
+            </div>           
+            <div class="box-footer col-md-12">
+                <input type="button" class="btn btn-info col-sm-offset-5" value="Print Sticker" id="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "Home") + "'");">Cancel</button>
+                @*<input type="button" class="btn btn-default" value="Reset" data-dismiss="modal" id="btnreset" />*@
+            </div>
+            <div id="cont" class="hidden">
+                <svg id="barcode"></svg>
+            </div>
+        </form>
+    </div>
+</div>
+@Html.Partial("_Stickerprint")
+@section style{
+@Styles.Render("~/css/print")
+
+}
+
+@section Scripts {
+    @Scripts.Render("~/js/JsBarcode")
+    <script type="text/javascript">
+
+        $('body').on('change', '#Unit', function (e) {
+            var textvalue = $("#Unit option:selected").val();
+            var text = $("#Unit option:selected").text();
+            $("#UnitName").val(text);
+            $("#barcodetable tr").remove();
+            showbarcode();
+        });
+
+        $(document).ready(function () {
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Packinglist/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+
+        $("#Submit").click(function () {
+            var packinglist = $('#ddlItem').val();
+            //alert(packinglist)
+            if (packinglist != "") {
+
+                $.ajax({
+                    url: '/Packinglist/GetPack',
+                    dataType: 'json',
+                    type: "POST",
+                    data: { Packinglistid: packinglist },
+                    cache: true,
+                    async: false,
+                    success: function (data) {
+                        //alert(data);
+                        stickerprint(data);
+
+                    }
+                });
+
+            }
+        });
+
+        function stickerprint(data) {
+            var packinglist;
+            $('#lbl').val(data.count);
+
+            //alert(count);
+            var count = 0;
+            $.each(data.data, function (i, item) {
+                var str = "";
+                count++;
+                str = '<div style="padding: 10px;display: inline-block;"><div style="font-size:90%;width:175px;height:110px;line-height: 100%;display: inline-block;padding-top: 10px;padding-left: 10px;padding-bottom: 10px;border:1px solid red;color:red">' + 'SN: ' + item.SN + '<br><h4 style="color:black">' + 'Item No. ' + item.quant + ' ' + item.alph + ' ' + item.itemSticker + '</h4><br><style="color:red">' + item.qty + '</div></div>';
+                $('#sticker').append(str);
+            });
+            //$('#sticker').val(data.data);
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printit').html();
+            $('title').html("Sticker - " + packinglist);
+            $('body').html(printContent);
+            window.print();
+            window.location.href = '@Url.Action("Sticker", "PackingList")';
+        }
+
+
+    </script>
+}

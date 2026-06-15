@@ -1,0 +1,199 @@
+
+@model QuickSoft.Models.DocExpiryReminder
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Optional Fields";
+    ViewBag.Active = "Settings";
+}
+
+@using (Html.BeginForm("documentexpiryreminderset", "FileDocument", FormMethod.Post, new { id = "saleform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Page</h3>
+            <div class="pull-right">
+                @*@if (@ViewBag.LastEntry != 0)
+                    {
+                        if (User.IsInRole("Dev") || User.IsInRole("Edit Checklist"))
+                        {
+                            <a class="btn bg-black no-border" href="/Checklist/Edit/@ViewBag.LastEntry">
+                                <i class="fa fa-step-backward"></i>
+                            </a>
+                        }
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("Checklist"))
+                    {
+                        <a class="btn btn-success no-border" href="/Checklist">
+                            <i class="fa fa-fw fa-history"></i> Checklist List
+                        </a>
+                    }*@
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="row">
+                <div class="form-group col-md-2" id="CusDiv">
+                    @Html.Label("Employee", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(model => model.EmployeeID, (SelectList)ViewBag.Fields, new { @class = "form-control select2",@id= "ddlEmployee" })
+                </div>
+                <div class="clearfix"></div>
+            </div>
+            <div id="tablesection">
+                <div class="table-responsive">
+                    Configuration
+                    <table class="table table-bordered table-hover" id="optionalfields">
+                        <thead>
+                            <tr>
+
+                                <th class="text-left item-lists">Day Before </th>
+
+
+                            </tr>
+                        </thead>
+                        <tbody id="addoption"></tbody>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="col-md-6">
+                            <div class="form-group pull-right">
+                                <button type="submit" id="save" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Checklist/Index'");">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@Html.Partial("../Common/_ModalCreate")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script src="~/Content/js/OptionalField.js?c=22"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#Section').select2();
+            $('#tablesection').hide();
+            CallEmployee();
+            //addopfield('addoption', 'optionalfield', '', '', '');
+        });
+
+        $('body').on('change', '#ddlEmployee', function (e) {
+            $('#tablesection').show();
+            count = 0;
+            var Section = $(this).val(); //alert(CheckID)
+            if (Section != "") {
+                var itnote = false;
+                $.ajax({
+                    url: '/FileDocument/getdocumentexpiryreminderset',
+                    dataType: 'json',
+                    data: { Name: Section },
+                    cache: true,
+                    success: function (data) {
+                        var lengt = data.length;
+                        var checkdata = "";
+                        $('#addoption').html('');
+                        var count = 0;
+                        var row = "";
+
+                        if (data.length > 0) {
+                            var days = data[0].days;
+                           
+
+                            row = "<tr><td><input type='number' value='" + days + "' name='days' id='days'/></tr>";
+                        }
+                            else
+                            row = "<tr><td><input type='number' value='' id='days'/></td></tr>";
+
+                        $('#addoption').html(row);
+
+                        $('#tablesection').show();
+                    }
+
+                });
+            } else {
+                $('#addoption').html('');
+                $('#tablesection').hide();
+            }
+        });
+
+        function converthtml5date(data) {
+            // The 6th+ positions contain the number of milliseconds in Universal Coordinated Time between the specified date and midnight January 1, 1970.
+            var dtStart = new Date(parseInt(data.substr(6)));
+            // Format using moment.js.
+            var dtStartWrapper = moment(dtStart);
+            return dtStartWrapper.format("YYYY-MM-DD");
+        }
+
+        $('#saleform').on('submit', function (e) {
+            e.preventDefault();
+            submitForm();
+
+        });
+
+
+
+        function submitForm() {
+
+            var Section = $('#ddlEmployee').val();
+            var CheckList = Section
+
+            var field = "a";
+            //sales
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+            var data = HTMLtbl.getData($('#optionalfields'));
+
+            var parameters = {};
+            parameters.days = $("#days").val();
+            parameters.employeeid = CheckList;
+            if (field != "") {
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    url: "/FileDocument/CreateDocumentReminder",
+                    data: JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status == true) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            $("button").prop('disabled', false);
+                            window.location.href = '@Url.Action("documentexpiryreminderset", "FileDocument")';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+            else {
+                $('.ajax_response', res_danger).text("Field name is required");
+                $('.AlertDiv').prepend(res_danger);
+                $("button").prop('disabled', false); // enable button
+            }
+        }
+
+    </script>
+}
+

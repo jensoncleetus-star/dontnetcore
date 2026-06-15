@@ -1,0 +1,452 @@
+@model QuickSoft.ViewModel.RemarklistViewModel
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Task Update</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("AddRemark", "ProTaskNonTech", FormMethod.Post, new { id = "createform", role = "form", enctype = "multipart/form-data" }))
+    {
+        <input type="hidden" name="lat" id="lat"/>
+       <input type="hidden" name="log" id="log"/>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.tasktype, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.tasktype, (SelectList)ViewBag.TaskGroups, "All", new { id = "ddlTaskGroup", @class = "form-control textwidth", @required = "required",@disabled="disabled" })
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.TaskStatusID, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.TaskStatusID, (SelectList)ViewBag.Stat, "", new { id = "ddlPStatus2", @class = "form-control textwidth", @required = "required" })
+                    </div>
+                </div>
+                <div class="margin-bottom" id="checklist2">
+                </div>
+                @*<div id="addemployee" style="display:block;">
+            <strong>Add Employee To Task</strong>
+
+            @Html.ListBoxFor(m => m.AssignedMembers, (MultiSelectList)ViewBag.Employee, new { @id = "AssignedUsers2", @class = "form-control select2", @name = "AssignedMembers[]", @multiple = "multiple"})
+
+
+            <div class="form-group col-md-4">
+                <div class="bootstrap-timepicker">
+                    @Html.LabelFor(m => m.starttime, new { @class = "control-label" })
+
+                    <div class="input-group">
+                        @Html.TextBoxFor(m => m.starttime, "{0:hh:mm tt}", new { @class = "form-control timepicker", @autocomplete = "off", @value = "" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-clock-o"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>*@
+                <div class="form-group col-md-12">
+                    <div class="file-loading">
+                        @Html.Label("Documents", null, new { @class = "control-label" })
+                        <input id="fileupload" class="file" name="fileupload" multiple="multiple" type="file" />
+                    </div>
+                </div>
+                <hr />
+                <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button3">Documents Attach &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
+                <br>
+                <br>
+                <div class="form-group input_fields_wrap3">
+                    <table class="table table-condensed table-hover" id="tblDcmnt" style="width:100%">
+                    </table>
+                </div>
+                <div class="form-group col-md-12">
+                    @Html.HiddenFor(model => model.TaskId)
+                    @Html.LabelFor(model => model.Remark, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Enter Remark", tabindex = 20 })
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box-footer">
+                        <input type="submit" value="Save" class="btn btn-info col-sm-offset-4" id="submit" />
+                        <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+}
+
+<script type="text/javascript">
+    //function unselected(obj) {
+    //    alert($(obj).val());
+    //}
+    //function checkmoving(obj) {
+    //    var stat = $(obj).val();
+    //    if (stat == 21) {
+    //       // $("#addemployee").show();
+    //    }
+    //    else {
+    //        //  $("#addemployee").hide();
+    //    }
+    //}
+    var date = new Date();
+    date.setDate(date.getDate());
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+    jQuery.validator.methods["date"] = function (value, element) { return true; }
+    var s = '<option value="">--Select--</option>';
+
+    $(document).ready(function () {
+        $.ajax({
+            type: "GET",
+            url: "/Customer/GetDocTypes",
+            data: "{}",
+            success: function (data) {
+                for (var i = 0; i < data.length; i++) {
+                    s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                }
+            }
+        });
+    });
+    $(document).ready(function () {
+        getLocation();
+        $("#ddlTaskGroup").select2({});
+        var wrapper3 = $(".input_fields_wrap3"); //Fields wrapper
+        var add_button = $(".add_field_button3"); //Add button ID
+        var max_fields = 10;
+
+        var rowno =0;
+        $(add_button).click(function (e) { //on add input button click
+            e.preventDefault();
+            if (rowno < max_fields) { //max input box allowed
+
+               
+
+                //paste here
+                $(wrapper3).append('<div class="row" style="margin-top: 1rem;">' +
+                    '<div class="col-md-3">' +
+                    '<div class="input-group">' +
+                    '<select class="form-control" id="DocumentTypeID" name="TaskDocuments[' + rowno + '].DocumentTypeID" tabindex="30" required>' + s +
+                    '</select>' +
+                    /* '<input type="text" name="LstCutomerDocument[' + rowno + '].DoucumentType" class="form-control" placeholder="Document Type" required>' +*/
+                    '</div>' +
+                    '</div>' +
+                    
+                    '<div class="col-md-5">' +
+                    '<div class="input-group">' +
+                    '<input type="text" name="TaskDocuments[' + rowno + '].Notes" class="form-control" placeholder="Notes" required>' +
+                    ' </div>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                    ' <div class="input-group">' +
+                    '<input type="file" name="TaskDocuments[' + rowno + '].FileName" class="form-control file-upload-info"  placeholder="Choose image" required>' +
+
+                    '</div>' +
+                    '</div>' +
+                    '<a href="javascript:void(0);" class="remove_button"><i style="color:red;" class="fa fa-trash" aria-hidden="true"></i></a></div>');
+
+                x++;
+
+                rowno++;
+                document.getElementById('documentRowcount').value = rowno;
+            }
+        });
+        $(wrapper3).on('click', '.remove_button', function (e) {
+            e.preventDefault();
+
+            $(this).parent('div').remove(); //Remove field html
+            x--; //Decrement field counter
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+        function showPosition(position) {
+           
+            $("#lat").val(position.coords.latitude);
+            $("#log").val(position.coords.longitude);
+        }
+        getLocation();
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+        $("#AssignedUsers2").select2({
+            placeholder: 'Search Employees by Name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        CallTaskStatus2();
+    });
+
+    CallTaskStatus2();
+    function CallTaskStatus2() {
+
+    }
+
+    $("#fileupload").fileinput({
+        maxFilePreviewSize: 10240,
+        autoReplace: true,
+        maxFileCount: 100,
+        showUploadedThumbs: true,
+
+        overwriteInitial: false,
+        showUpload: false,
+        initialPreviewAsData: true,
+        initialPreviewFileType: 'image',
+
+        allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+            'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+        fileActionSettings: {
+            showUpload: false,
+        },
+    }).on('filesorted', function (e, params) {
+        console.log('File sorted params', params);
+    }).on('fileuploaded', function (e, params) {
+        console.log('File uploaded params', params);
+    });
+    $("#ddlPStatus2").select2({
+        placeholder: 'Search Task Status ',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/TaskStatus/SearchTaskStatus2",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page,
+
+                    tasktype: $("#ddlTaskGroup").val()
+
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+    $('body').on('change', '#ddlPStatus2', function (e) {
+        var CheckID = $(this).val();
+        var itnote = false;
+        $.ajax({
+            url: '/Checklist/GetCheckItems',
+            dataType: 'json',
+            data: { CheckID: CheckID },
+            cache: true,
+            success: function (data) {
+                var lengt = data.length;
+                var checkdata = "";
+                $('#checklist2').html('');
+                $.each(data, function (i, item) {
+                    var addnote = "";
+                    checkdata = "<tr>"
+                    var check = "";
+                    var ck = "";
+                    if (item.Note == true) {
+                        checkdata += "<td style='width:50px;'><input name='bstmodel[" + (i) + "].Check' " + check + " id='checkbox_" + item.Id + "' type=\"checkbox\" name=\"note\" onchange='notechange(" + item.Id + ")' ></input></td>" +
+                            "<td><label for='" + item.Id + "'>" + item.Name + "</label></td>" +
+                            "<input type='hidden' name='bstmodel[" + (i) + "].Id' data-name='Id' class='checkid_" + item.Id + "' value='" + item.Id + "' id='checkid_" + item.Id + "'/> " +
+                            "</td>"
+                            ;
+                    }
+                    else {
+                        checkdata += "<td style='width:50px;'></td>" +
+                            "<td><label for='" + item.Id + "'>" + item.Name + "</label></td>" +
+                            "<input type='hidden' name='bstmodel[" + (i) + "].Id' data-name='Id' class='checkid_" + item.Id + "' value='" + item.Id + "' id='checkid_" + item.Id + "'/> " +
+                            "</td>"
+                            ;
+                    }
+                    if (item.Note == true) {
+                        addnote += "<td><textarea style='display:none;height:100px;width:200px;' data-name='Note' name='bstmodel[" + (i) + "].Note' id='addnote_" + item.Id + "' class='addnote_" + item.Id + " form-control text-left addnote' placeholder='Enter note'></textarea></td> "
+                    }
+                    checkdata += addnote + "</tr><br />"
+                    $('#checklist2').append(checkdata);
+                });
+            }
+        });
+    });
+
+    function notechange(arg) {
+        ////$('#addnote_' + arg).prop
+        ////var $input = $(obj);
+        var $input = $('#checkbox_' + arg).prop('checked');
+        if ($input) {
+            $('#addnote_' + arg).show();
+        }
+        else {
+            $('#addnote_' + arg).hide();
+        }
+    }
+
+    /* Create function for Document */
+    //$('div').on('click', '.modal-create', function (e) {
+    //    e.preventDefault();
+    //    var url = $(this).attr('href');
+    //    modalshow(url, '#modal-create');
+    //});
+
+
+    function showPosition(position) {
+
+        $("#lat").val(position.coords.latitude);
+        $("#log").val(position.coords.longitude);
+    }
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition);
+        } else {
+            // x.innerHTML = "Geolocation is not supported by this browser.";
+        }
+    }
+    $('#createform').on('submit', function (e) {
+        e.preventDefault();
+        try {
+            var str2 = window.MyHandler.getpoint();
+
+            var ar = str2.split(",");
+
+            if (ar[0] != "null") {
+                $("#lat").val(ar[0]);
+                $("#log").val(ar[1]);
+
+            }
+        }
+        catch (err) {
+
+        }
+
+
+        //getLocation();
+        //if ($("#lat").val() == "") {
+        //    alert("You Can Not Update work because your location not captured.do following things in your browser")
+        //    window.location = "/Content/img/loc.html"
+           
+        //    return true;
+        //}
+        if ($("#createform").valid()) {
+            var formData = new FormData(this);
+            var files = $("#fileupload").get(0);
+            if (files.length > 0) {
+                for (var i = 0; i < files.length; i++) {
+                    formData.append("fileupload", files[i]);
+                }
+            }
+
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name');
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            cols[itid] = itval
+                            //alert(itid)
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+
+            var checkdata = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.tremark = formData; //formData,//
+            parameters.checkarray = checkdata; //alert(parameters.checkarray)
+            parameters.bstmodel = checkdata;// alert(checkdata)
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                url: "/ProTaskNonTech/AddRemarks",
+                data: formData,//JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                        $('#modal-create').modal('hide');
+                        $('#modal-create .modal-content').html('');
+                        oTable.draw();
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+
+                    }
+                }
+            });
+        }
+       
+        setTimeout(click, 3000);
+        function click() {
+            $('.AlertDiv').fadeOut(500);
+            //window.location.reload();
+        }
+    });
+
+</script>
+
+

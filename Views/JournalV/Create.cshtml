@@ -1,0 +1,634 @@
+@using System.Web.Script.Serialization;
+@model QuickSoft.ViewModel.JournalViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Journal";
+    ViewBag.Active = "Transactions";
+    JavaScriptSerializer jss = new JavaScriptSerializer();
+
+    string output = jss.Serialize(Model.jnlitems);
+}
+@using (Html.BeginForm("Create", "JournalV", FormMethod.Post, new { id = "recform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create Journal Voucher</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Journal"))
+                    {
+                        <a class="btn bg-black no-border" href="/JournalV/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Journal List"))
+                {
+                    <a class="btn btn-success no-border" href="/JournalV">
+                        <i class="fa fa-fw fa-history"></i>List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <input type="hidden" id="procheck" value="@ViewBag.ProjChk" />
+                <input type="hidden" id="accjnlcheck" value="@ViewBag.AccJnl" />
+                <input type="hidden" id="VoucherType" value="Journal" />
+                <div class="col-sm-2 form-group ">
+                    @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 2 })
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.LabelFor(model => model.VATNature, htmlAttributes: new { @class = "control-label " })
+                    @Html.DropDownList("VATNature", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Not Applicable", Value="0"},
+                        new SelectListItem() {Text = "Registered Expense (B2B)", Value="1"},
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "VATNature", tabindex = 3 })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.MOPayment, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.MOPayment, new { @id = "MoPay", @class = "form-control", @onchange = "modechange()", tabindex = 3 })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("PDC Date", null, htmlAttributes: new { @class = "control-label", @id = "PDC", })
+                    @Html.Label("CDC Date", null, htmlAttributes: new { @class = "control-label", @id = "CDC", })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PDCDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 4 })
+                    </div>
+                </div>
+
+                @if (User.IsInRole("Enable Invoice Expense Entry In Voucher"))
+                {
+                    <div class="col-sm-2 form-group ">
+                        @Html.LabelFor(m => m.InvoiceNo, new { @class = "control-label" })
+
+
+                        @Html.DropDownListFor(m => m.InvoiceNo, (SelectList)ViewBag.InvoiceNo, new { id = "ddlInvoiceNo", @class = "form-control select2", tabindex = 7 })
+
+                    </div>
+                }
+                <div class="col-sm-2 form-group" id="checkno">
+                    @Html.LabelFor(model => model.CheckNo, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CheckNo, new { htmlAttributes = new { @class = "form-control", @required = "required", data_msg_required = "Check Number is Required", tabindex = 8 } })
+                </div>
+                <div class="form-group col-sm-2" id="bank">
+                    @Html.LabelFor(model => model.Bank, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.Bank, new { htmlAttributes = new { @class = "form-control", tabindex = 9 } })
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+                <div class="clearfix"></div>
+            </div>
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-sm-2">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="">
+                        </div>
+                    }
+                }
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="normalinvoice">
+                    <thead>
+                        <tr>
+                            <th class="text-center">S/N</th>
+                            <th class="text-center">D/C</th>
+                            <th class="text-center acc-lists">Account <i class="text-danger">*</i></th>
+                            <th class="text-center">Debit</th>
+                            <th class="text-center">Credit</th>
+                            <th class="text-center">Narration</th>
+                            @if (@ViewBag.ProjChk == 0)
+                            {
+                                <th class="text-center">Project</th>
+                                <th class="text-center">Task</th>
+                            }
+                            <th class="text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="addinvoiceItem"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">
+                                Total
+                            </td>
+                            <td class="text-right">
+                                <label id="total_debit"></label>
+                            </td>
+                            <td class="text-right">
+                                <label id="total_credit"></label>
+                            </td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div>
+                <input type="radio" name="selpay" value="payfrom" id="radiopayfrom" class="radiopay" checked="checked" /> Pay from
+                <input type="radio" name="selpay" value="payto" id="radiopayto" class="radiopay" /> Pay to
+
+                <div class="col-sm-3 form-group" id="payfrom1">
+                    @Html.LabelFor(m => m.PayFrom1, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayFrom1, (SelectList)ViewBag.Paidfrom1, new { id = "ddlpayfrom1", @class = "form-control select2", tabindex = 7 })
+                    <div id="accbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetails"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive hight-250" id="invoice"><hr /></div>
+
+
+
+                <div class="col-sm-3 form-group" id="payfrom2">
+                    @Html.LabelFor(m => m.PayFrom2, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayFrom2, (SelectList)ViewBag.Paidfrom2, new { id = "ddlpayfrom2", @class = "form-control select2", tabindex = 7 })
+                    <div id="accbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetails2"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive hight-250" id="invoice2"><hr /></div>
+
+
+                <div class="col-sm-3 form-group payto" id="payto" style="display:none;">
+                    @Html.LabelFor(m => m.PayTo, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, new { id = "ddlpayto", @class = "form-control select2", tabindex = 7 })
+
+                </div>
+                <div class="table-responsive hight-250" id="invoice3" style="display:none;"><hr /></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <div class="form-group col-md-6 col-md-offset-6 no-padding" style="display:none; ">
+                    @Html.LabelFor(model => model.GrandTotal, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.GrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 10 } })
+                </div>
+                <div class="form-group col-md-6 col-md-offset-6 no-padding" style="display:none;">
+                    @Html.LabelFor(model => model.Paying, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.Paying, new { htmlAttributes = new { @id = "Paying", @class = "form-control text-right", @value = "0.00", tabindex = 11 } })
+                </div>
+                <div class="row col-md-12">
+                    @*----------------------For File Attachment----------------------------*@
+                    <div class="form-group">
+                        @Html.Label("Documents", null, new { @class = "control-label" })
+                        <div class="file-loading">
+                            <input id="input-24" name="input24[]" type="file" multiple>
+                        </div>
+                    </div>
+                    @*---------------------------------------------------------------------*@
+
+                    <div class="form-group">
+                        @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Remarks", tabindex = 9, rows = 6 })
+                    </div>
+
+                    <!--<div class="col-md-6">-->
+                    @*<div class="form-group col-md-12 no-paddingleft">
+                            @Html.LabelFor(model => model.Paying, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Paying, new { htmlAttributes = new { @id = "Paying", @class = "form-control text-right", @value = "0.00", tabindex = 11 } })
+                        </div>*@
+                    <!--</div>-->
+                </div>
+                <div class="form-group no-padding text-right">
+                    <div class="checkbox-inline">
+                        <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                        <label class="control-label" for="hideheader">Hide Header In Print</label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <hr />
+                    <div class="form-group pull-right">
+                        <input type="hidden" value="" name="submittype" id="submittype" />
+                        <button type="submit" id="save" class="btn btn-info" tabindex="13">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success" tabindex="14">
+                            <span class="glyphicon glyphicon-print"></span> Save And Print
+                        </button>
+                        <button type="button" tabindex="15" class="btn btn-warning" onclick="window.location.href='/JournalV/Index'">Cancel</button>
+                        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                        <input type="hidden" value="Create" name="Mode" id="Mode">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@Html.Partial("_Voucher")
+
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/journalvoucher")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+<script type="text/javascript">
+
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        //$('.date').datepicker({
+        //    format: 'dd-mm-yyyy',
+        //    autoclose: true,
+        //    allowInputToggle: true,
+        //    startDate: '01-01-2011',
+        //    endDate: '+30d'
+        //});
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            $('#PDCDate').prop('disabled', true);
+            $('#checkno').hide();
+            $('#bank').hide();
+            modechange();
+            GetBranch();
+            InvoiceNo();
+            PaymentFrom();
+            PaymentTo();
+
+            $('#CDC').hide();
+            //JournalFromTo();
+            //$('#ddlpayfrom').val(null).trigger('change');
+            //$('#ddlpayto').val(null).trigger('change');
+            var itemss = @Html.Raw(output);
+        $.each(itemss, function (i, ites) {
+            addrow('addinvoiceItem', ites.AccType, ites.AccountID, ites.Debit, ites.Credit, ites.Narration,ites.AccountName,ites);
+        });
+            addrow('addinvoiceItem', '', '', 0.00, 0.00, '', '', 0.00);
+        });
+        function SelectionInvoice(repo) {
+
+            return repo.id;
+
+        }
+        function InvoiceNo() {
+            // paid to atribute
+            $("#ddlInvoiceNo").select2({
+                placeholder: 'Search InvoiceNo',
+                minimumInputLength: 0,
+                ajax: {
+                    //url: "/Accounts/SearchAccounts",
+                    url: "/JournalV/SearchInvoiceNo",
+                    dataType: 'json',
+
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                /*templateResult: SelectToGroup,*/
+                templateSelection: SelectionInvoice,
+            });
+        }
+
+        // on change function of payto
+        $('body').on('change', '#ddlpayfrom1', function (e) {
+            var accid = $(this).val();
+            accbalance(accid);
+            CheckFromToAcc();
+        });
+
+        // on change function of payto
+
+
+        // onchange function for modpaying
+        $('body').on('change', '#MoPay', function (e) {
+            var MOP = $('#MoPay').val();
+            var hid = (MOP == 2) ? $('#CDC').show() && $('#PDC').hide() : ($('#PDC').show() && $('#CDC').hide());
+            modechange();
+        });
+
+        //$('#recform').on('submit', function (e) {
+        //    e.preventDefault();
+        //    if ($("#recform").valid()) {
+        //        var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+        //        $('#submittype').val(fnval);
+        //        formsubmition(fnval);
+        //    }
+        //});
+
+        /* function for Create popup */
+        $('#modal-create').on('shown.bs.modal', function (e) {
+
+            $("#Group").select2({
+                placeholder: 'Search Account Group Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccInAcc",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('#recform').on('submit', function (e) {
+            if ($("#recform").valid()) {
+                var debit = $("#total_debit").text();
+                var credit = $("#total_credit").text();
+
+                if (debit > 0 && credit > 0) {
+                    if (parseFloat(debit).toFixed(2) == parseFloat(credit).toFixed(2)) {
+                        e.preventDefault();
+
+                        //if ($("#recform").valid()) {
+                        var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                        journalVSubmit(fnval);
+                        //}
+                    }
+                    else {
+                        alert("Total Debit And Credit Should be Same..!!");
+                        e.preventDefault();
+                    }
+                }
+                else {
+                    alert("Total Debit & Credit Should be greater than Zero..!!");
+                    e.preventDefault();
+                }
+            }
+        });
+
+        $('body').on('change', '#VATNature', function (e) {
+            checkvatinput();
+        });
+
+        function checkvatinput() {
+            var Nature = $("#VATNature").val();
+            if (Nature == 0) {
+
+            } else {
+
+            }
+        }
+
+</script>
+    <script type="text/javascript">
+
+        //To attach files
+        $("#input-24").fileinput({
+            maxFilePreviewSize: 10240,
+            autoReplace: true,
+            maxFileCount: 10,
+            showUploadedThumbs: true,
+            showUpload: false,
+            overwriteInitial: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+                'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showUpload: false,
+            },
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        });
+ $('body').on('change', '#ddlpayfrom1', function (e) {
+    var accid = $(this).val();
+    var accidto = $("#ddlpayto").val();
+
+    if (accid != accidto) {
+        var chkReceipt =@ViewBag.BillToReceipt;
+        accbalance(accid, chkReceipt);
+        chkacctype(accid);
+    } else {
+        alert("PayFrom And PayTo Should be Different..!!");
+        $('#ddlpayfrom1').val(null).trigger('change');
+    }
+ });
+       $('body').on('change', '#ddlpayfrom2', function (e) {
+    var accid = $(this).val();
+    var accidto = $("#ddlpayto").val();
+
+    if (accid != accidto) {
+        var chkReceipt =@ViewBag.BillToReceipt;
+        accbalance2(accid, chkReceipt);
+        chkacctype2(accid);
+    } else {
+        alert("PayFrom And PayTo Should be Different..!!");
+        $('#ddlpayfrom1').val(null).trigger('change');
+    }
+       });
+
+
+
+
+
+
+
+
+
+
+
+
+           function PaymentTo() {
+            // paid to atribute
+            $("#ddlpayto").select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    //url: "/Accounts/SearchAccounts",
+                    url: "/Accounts/SearchAccountsPayTo",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: SelectToGroup,
+                templateSelection: ToSetFormatSelection,
+            });
+        }
+        function SelectionInvoice(repo)
+        {
+
+            return repo.id;
+
+        }
+        function InvoiceNo() {
+            // paid to atribute
+            $("#ddlInvoiceNo").select2({
+                placeholder: 'Search InvoiceNo',
+                minimumInputLength: 0,
+                ajax: {
+                    //url: "/Accounts/SearchAccounts",
+                    url: "/JournalV/SearchInvoiceNo",
+                    dataType: 'json',
+
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                /*templateResult: SelectToGroup,*/
+                templateSelection: SelectionInvoice,
+            });
+        }
+
+
+        // on change function of payto
+        $('body').on('change', '#ddlpayto', function (e) {
+            var accid = $(this).val();
+            var accidfr = $("#ddlpayfrom").val();
+
+                var chkPayment=@ViewBag.BillToPayment;
+                //accbalance3(accid,chkPayment);
+            accbalancepay(accid);
+
+        });
+        $('body').on('change', '.radiopay', function (e) {
+            if ($('#radiopayfrom').is(':checked')) {
+                $('#payfrom1').show();
+                $('#payfrom2').show();
+                $('#invoice').show();
+                $('#invoice2').show();
+                $('#payto').hide();
+                $('#invoice3').hide();
+
+            }
+            else {
+                $('#payfrom1').hide();
+                $('#payfrom2').hide();
+                $('#invoice').hide();
+                $('#invoice2').hide();
+                $('#payto').show();
+                $('#invoice3').show();
+
+            }
+
+
+
+
+
+
+        });
+
+    </script>
+}

@@ -1,0 +1,557 @@
+@{
+    ViewBag.Title = "Search Reminder";
+    ViewBag.SubTitle = "Reminder";
+    ViewBag.Active = "Reports";
+    string actData = "";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Reminder</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-2">
+                @Html.Label("Status", null, new { @class = "control-label" })
+                @Html.DropDownList("Status", new SelectList(new List<SelectListItem>
+                {
+                    new SelectListItem() {Text = "All", Value=""},
+                    new SelectListItem() {Text = "Open", Value="Open"},
+                    new SelectListItem() {Text = "Close", Value="Close"},
+                    new SelectListItem() {Text = "Postpone", Value="Postpone"},
+                }, "Value", "Text"), new { @class = "form-control input-sm", @name = "Status" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlRemType", (SelectList)ViewBag.RType, "All", new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="ReminderReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Reminder</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr>
+                        <td>SI No</td>
+                        <td>Type</td>
+                        <td>Note</td>
+                        <td>Date</td>
+                        <td>Time</td>
+                        @*<td>Assigned To</td>*@
+                        @*<td>Requested By</td>*@
+                        <td>Created By</td>
+                        <td>Status</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            //$('#ddlCreditType').select2();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#ReminderReport').hide();
+            var crtype = 2;
+
+            $("#ddlRemType").select2({
+                placeholder: 'Search Type Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Reminder/SearchType",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        // onchange function for credit type
+
+        jQuery(function ($) {
+            oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+                "ordering": false,
+                responsive: true,
+                "ajax": {
+                    "url": '/MyReports/GetReminder',
+                    "data": function (data) {
+                        data.type = $('#ddlRemType').val();
+                        data.status = $('#Status').val();
+                        data.fromdate = $('#From').val();
+                        data.todate = $('#To').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                            {
+                                "data": "ReminderId", "name": "ReminderId",
+                                "render": function (data, type, row, meta) {
+                                    return meta.row + meta.settings._iDisplayStart + 1;
+                                }
+                            },
+                          //{ "data": "Type", "name": "Type" },
+                          {
+                              "name": "Type", "data": function (data) {
+                                  var datas = "";
+                                  var rest = "";
+                                  var tpname = data.Type;
+                                  if (tpname == "Task") {
+
+                                      @{
+                                            actData = "";
+                                            actData = "<a class=\"modal-edit\"  href=\"/ProTask/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+
+                                         }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "Sale") {
+                                      var rest = "";
+                                      @{
+                                          actData = "";
+                                          actData = "<a class=\"modal-edit\"  href=\"/CreditSale/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "SReturn") {
+                                      var rest = "";
+                                      @{
+                                          actData = "";
+                                          actData = "<a class=\"modal-edit\"  href=\"/CreditSaleReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "HReturn") {
+                                      var rest = "";
+                                      @{
+                                          actData = "";
+                                          actData = "<a class=\"modal-edit\"  href=\"/CrossHireReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "DVNote") {
+                                      var rest = "";
+                                      @{
+                                         actData = "";
+                                         actData = "<a class=\"modal-edit\"  href=\"/Deliverynote/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "HReturn") {
+                                      var rest = "";
+                                      @{
+                                         actData = "";
+                                         actData = "<a class=\"modal-edit\"  href=\"/HireReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "JobCard") {
+                                      var rest = "";
+                                      @{
+                                         actData = "";
+                                         actData = "<a class=\"modal-edit\"  href=\"/JobCard/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "MReqn") {
+                                      var rest = "";
+                                      @{
+                                         actData = "";
+                                         actData = "<a class=\"modal-edit\"  href=\"/MaterialRequisition/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                      }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "MRNote") {
+                                      var rest = "";
+                                      @{
+                                        actData = "";
+                                        actData = "<a class=\"modal-edit\"  href=\"/MRNote/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "PKList") {
+                                      var rest = "";
+                                      @{
+                                       actData = "";
+                                       actData = "<a class=\"modal-edit\"  href=\"/PackingList/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "Prod") {
+                                      var rest = "";
+                                      @{
+                                      actData = "";
+                                      actData = "<a class=\"modal-edit\"  href=\"/Production/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "ProForma") {
+                                      var rest = "";
+                                      @{
+                                          actData = "";
+                                          actData = "<a class=\"modal-edit\"  href=\"/ProForma/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "Purchase") {
+                                      var rest = "";
+                                      @{
+                                          actData = "";
+                                          actData = "<a class=\"modal-edit\"  href=\"/PurchaseEntry/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "POrder") {
+                                      var rest = "";
+                                      @{
+                                        actData = "";
+                                        actData = "<a class=\"modal-edit\"  href=\"/PurchaseOrder/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                        }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "PQuot") {
+                                      var rest = "";
+                                      @{
+                                            actData = "";
+                                            actData = "<a class=\"modal-edit\"  href=\"/PurchaseQuotation/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                        }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "PReturn") {
+                                      var rest = "";
+                                      @{
+                                            actData = "";
+                                            actData = "<a class=\"modal-edit\"  href=\"/PurchaseReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+
+                                        }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "Quot") {
+                                      var rest = "";
+                                      @{
+                                            actData = "";
+                                            actData = "<a class=\"modal-edit\"  href=\"/Quotation/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                        }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "SOrder") {
+                                      var rest = "";
+                                      @{
+                                           actData = "";
+                                           actData = "<a class=\"modal-edit\"  href=\"/SalesOrder/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  if (tpname == "StkJnl") {
+                                      var rest = "";
+                                      @{
+                                           actData = "";
+                                           actData = "<a class=\"modal-edit\"  href=\"/StockJournal/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "StkTrans") {
+                                      var rest = "";
+                                      @{
+                                             actData = "";
+                                             actData = "<a class=\"modal-edit\"  href=\"/StockTransfer/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                         }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+
+                                  if (tpname == "Unass") {
+                                      var rest = "";
+                                      @{
+                                        actData = "";
+                                        actData = "<a class=\"modal-edit\"  href=\"/Unassemble/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                       }
+                                      rest = '@Html.Raw(actData)';
+                                  }
+                                  return rest;
+                              }
+                          },
+                           {
+                               "data": "Note", "name": "Note", "render": function (data) {
+                                   return data.length > 100 ? data.substr(0, 100) + '…..' : data;
+                               }
+                           },
+                          { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertToDate(data); } else { return "" } } },
+                          { "data": "RTime", "name": "RTime", "render": function (data) { if (data != null && data != "") { return convertToTime(data); } else { return "" } } },
+                          //{
+                          //    "name": "AssignedTo", "data": function (data) {
+                          //        var datas = "";
+                          //        $.each(data.AssignedTo, function (i, item) {
+                          //            if (datas != "") {
+                          //                datas += ", ";
+                          //            }
+                          //            datas += item.FirstName + " " + item.LastName;
+                          //        })
+                          //        return datas;
+                          //    }
+                          //},
+                          //{ "data": "RequestBy", "name": "RequestBy" },
+                          { "data": "CreatedBy", "name": "CreatedBy" },
+                          {
+                              "name": "validity", "data": function (data) {
+                                  if (data.validity == "Expired") {
+                                      return '<i class="badge bg-red" style="font-size: small" >Expired</i>';
+                                  }
+                                  else {
+                                      return '<i class="badge bg-orange" style="font-size: small" >Upcoming</i></a>';
+                                  }
+                              }
+                          },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Reminder-Report';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Reminder Report</h4></th></tr>' +
+                            ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Reminder-Report';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                           '' + $('#caddress').val() + '\n' +
+                           ' Reminder Report \n' +
+                          // 'Voucher Number : ' + $('#VoucherNumber').val() + '\n' +
+                           'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Reminder-Report';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                           '' + $('#caddress').val() + '\n' +
+                           ' Reminder Report \n' +
+                           'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                        doc.content[1].table.widths = [
+                              '10%',
+                              '10%',
+                              '15%',
+                              '15%',
+                              '15%',
+                              '10%',
+                              '10%'
+                        ]
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+
+
+                },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#ReminderReport').show();
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+
+    </script>
+}

@@ -1,0 +1,388 @@
+@{
+    ViewBag.Title = "Search Customer Summary";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Customer Summery</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="customername" />
+            
+          
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="SReport">
+
+    <div class="box-header with-border">
+        <h3 class="box-title">View Customer Summary</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class=" table table-bordered" id="MyTable">
+                <thead>
+                    <tr style="background-color: #d2d6de">
+                        <td>S/N</td>
+                        <td>Code</td>
+                        <td>Customer</td>
+                        <td class="headeralign">Contacts</td>
+                        <td class="headeralign">Total Sales</td>
+                        <td class="headeralign">No Of Sales</td>
+                        <td class="headeralign">No Of Quotation</td>
+                        <td class="headeralign">Salesman</td>
+                        <td class="headeralign">Source</td>
+                        <td class="headeralign">CustomerType</td>
+                        <td class="headeralign">Last Updated</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+               
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+
+           
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $("#ddlCustomer").select2({
+                placeholder: 'Search Customer by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchCustomer",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+            ItemSearchable();
+            CallRepMCUser();
+        });
+
+
+        jQuery(function ($) {
+
+
+
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": false, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            // "bStateSave": true,
+            //"deferLoading": 0, // disable default ajax loading
+            "bLengthChange": false,
+            "searching": false,
+            "bDestroy": true,
+            "paging": false,
+            "responsive": true,
+            "pageLength": 10000,
+            "timeout": 300000,
+            "ordering": true,
+            "ajax": {
+                "url": '/SalesReport/GetCustomer',
+                "data": function (data) {
+                    data.FromDate = $('#From').val();
+                    data.ToDate = $('#To').val();
+
+
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+
+            "order": [[4, "desc"]],
+            "columns": [
+
+                {
+                    "data": "id", "name": "id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+
+                { "data": "CustomerCode", "name": "CustomerCode" },
+                {
+                    "name": "CustomerName", "data": function (data) {
+                           @{
+                               var datas = "";
+                               //datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                               {
+                                   datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               }
+                               else
+                               {
+                                   datas = "data.CustomerName";
+                               }
+                           }
+                        return @Html.Raw(datas);
+                    }
+                },
+
+
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null) {
+                                 if (datas != "") {
+                                     datas += "<br> ";
+                                 }
+                                 datas += item.Name + '<br>';
+                                 var myno = "http://wa.me/" + "971" + item.Num.replace("+971", "").replace("971", "").replace(" ", "").replace("+5", "+9715") + "?text=hi";
+                                 var numorg = "971" + item.Num.replace("+971", "").replace("971", "").replace(" ", "");
+                                 datas += '<a href="javascript:void(0)" onclick="sendwhatsap(' + numorg + ')"><i class="fa fa-whatsapp" aria-hidden="true"></i></a>' + '<br>';
+                                 datas += '<a href="tel:' + item.Num.replace("+971+971", "+971") + '">' + item.Num.replace("+971+971", "+971").replace("+5","+9715") + '</a>' + '<br>';
+
+                                 datas += '<a href="mailto:' + item.emails + '">' + item.emails + '</a>' + '<br>';
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+
+                {
+                    "name": "totalSales", "data": function (data) {
+
+                        return data.totalSales;
+                        }
+
+                    },
+                { "data": "nofsales", "name": "nofsales" },
+                { "data": "noofqutation", "name": "noofqutation" },
+
+                { "data": "Email", "name": "Email" },
+                { "data": "sourceoflead", "name": "sourceoflead" },
+                { "data": "customertypestr", "name": "customertypestr" },
+                {
+                    "name": "ldate", "data": function (data) {
+                        var result = "";
+                        if (data.ldate != null) {
+                            result = LastUpdatedInnew(data.ldate);
+                        }
+                        return (result);
+                    }
+                },
+
+
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead></thead>' ,
+                         customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Customers",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+
+
+            }
+
+
+
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+
+
+            }
+        });
+            });
+
+            $('#MyTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+
+
+
+
+        });
+        function LastUpdatedInnew(data) {
+
+    var datas = data;
+    // alert(datas);
+    var display = "";
+    if (datas != "") {
+        var normal = convertDateTime(datas);
+        // var ldat1 = convertDateTime(datas, "YYYY-MM-DD hh:mm");
+        var ldat1 = convertDateTimeYMD(datas);
+        var ldat = new Date(ldat1);
+        //var newDate = new Date();
+        //var cdat = new Date(newDate.toLocaleString());
+        var cdat = Date.now();
+        var hours = Math.abs(ldat - cdat) / 36e5;
+        if (hours < 24) {
+            if (hours > 1) {
+                display = Math.round(hours) ;
+            }
+            else {
+                var mins = Math.round(hours * 60);
+                display = mins ;
+
+            }
+        }
+        else {
+            var delta = Math.abs(ldat - cdat) / 1000;
+            var days = Math.floor(delta / 86400);
+            display = (days == 1) ? days  : days ;
+            // display = Math.ceil(hours / (1000 * 60 * 60 * 24)) + "Day Ago";
+        }
+        // display = ldat1;
+    }
+
+    return display;
+}
+</script>
+}
+
+

@@ -1,0 +1,391 @@
+@model QuickSoft.ViewModel.FileDocumentViewModel
+@{
+    ViewBag.Title = "Edit File Documents";
+    ViewBag.SubTitle = "File Documents";
+    ViewBag.Active = "Utility";
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+
+    int di = 0;
+}
+
+<div class="box box-info">
+    @using (Html.BeginForm("Edit", "FileDocument", FormMethod.Post, new { @class = "dropzone", id = "editform", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">FileDocument / Reminder</h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Supplier"))
+                    {
+                        <a class="btn bg-black no-border" href="/Supplier/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit FileDocument"))
+                    {
+                        <a class="btn bg-black no-border" href="/FileDocument/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create FileDocument"))
+                    {
+                        <a class="btn bg-black no-border" href="/FileDocument/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("FileDocument List"))
+                {
+                    <a class="btn btn-success no-border" href="/FileDocument/Index">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        @Html.HiddenFor(model => model.Id)
+<div class="row">
+    <div class="col-md-12">
+        <button style="width: 200px; display:none;" type="button" class="btn btn-light btn-rounded btn-fw add_field_button3">Document details &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
+
+        <div class="form-group input_fields_wrap3">
+            <div class="col-md-4 col-xs-12 form-group">
+                @Html.DropDownListFor(model => model.openclose, (IEnumerable<SelectListItem>)ViewBag.OpnCls, new { @class = "form-control" })
+                @*@Html.DropDownListFor(model => model.OpenClose, (SelectList)ViewBag.OpnCls, new { @class = "form-control" })*@
+                @Html.Label("Open/Close", null, new { @class = "control-label small-standalone-label" })
+            </div>
+            <table class="table table-condensed table-hover" id="tblDcmnt">
+                @{
+
+
+                    if (Model != null && Model.lstrealdoc != null && Model.lstrealdoc.Count > 0)
+                    {
+                        foreach (var item in Model.lstrealdoc.ToList())
+                        {
+                            List<QuickSoft.Models.DocumentType> doclist = ViewBag.DocList;
+
+                            <div class="row" style="margin-top: 1rem;">
+
+                                <div class="col-md-2">
+                                    <label class="control-label">Document Type</label>
+                                    <div class="input-group">
+                                        <select id="Type" class="form-control" name="Documenttype">
+                                            @{
+                                                foreach (var data in doclist)
+                                                {
+                                                    if (data.ID == item.Documenttype)
+                                                    {
+                                                        <option value="@data.ID" selected="selected">@data.Name</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@data.ID">@data.Name</option>
+                                                    }
+                                                }
+                                            }
+
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="control-label">Document Name</label>
+                                    <div class="input-group">
+                                        <input type="text" value="@item.DocumentName" name="DocumentName" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    @Html.Label("Expiry Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBoxFor(model => Model.ExpiryDate, "{0:MM-dd-yyyy}", new { @class = "form-control datepicker input-sm" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    @Html.Label("Reminder Date", null, new { @class = "control-label" })
+                                    <div class="input-group date">
+                                        @Html.TextBoxFor(model => Model.ReminderDate, "{0:MM-dd-yyyy}", new { @class = "form-control datepicker input-sm" })
+                                        <div class="input-group-addon">
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="control-label">Notes</label>
+                                    <div class="input-group">
+                                        <input type="text" value="@item.Note" name="Note" class="form-control">
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+
+
+
+
+                            di++;
+
+                        }
+
+                        <div class="form-group col-md-12">
+
+                            @Html.Label("Repeate", null, htmlAttributes: new { @class = "control-label" })*
+                            @Html.DropDownListFor(m => m.reminderrepeate, new SelectList(new List<SelectListItem>
+                                               {
+                                 new SelectListItem() {Text = "On Reminder date", Value="6"},
+                           new SelectListItem() {Text = "Daily", Value="0"},
+                                 new SelectListItem() {Text = "Saturday", Value="1"},
+                                      new SelectListItem() {Text = "Sunday", Value="2"},
+                                           new SelectListItem() {Text = "Weekly", Value="3"},
+                                                new SelectListItem() {Text = "Monthly", Value="4"},
+                                                     new SelectListItem() {Text = "Yearly", Value="5"},
+
+
+
+                                               }, "Value", "Text"), new { @class = "form-control input-sm" })
+
+                        </div>
+
+
+
+                    }
+                }
+
+
+            </table>
+        </div>
+        @*<div class="col-md-2">
+                @Html.LabelFor(model => model.Documenttype, htmlAttributes: new { @class = "control-label " })
+                @Html.DropDownList("State", new SelectList(new List<QuickSoft.Models.DocumentType>() , "Value", "Text"), new {@id= "DocumentTypeID", @class = "form-control input-sm", @name = "DocumentType", tabindex = 9 })
+            </div>
+            <div class="form-group col-md-3">
+                @Html.Label("Document Name", null, new { @class = "control-label" }) *
+                @Html.EditorFor(model => model.DocumentName, new { htmlAttributes = new { @class = "form-control", required = "required" } })
+            </div>
+            <div class="form-group col-md-3">
+                @Html.Label("Expiry Date", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBoxFor(model => Model.ExpiryDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-3">
+                @Html.Label("Document Note", null, new { @class = "control-label" })
+                @Html.EditorFor(m => m.Note, new { htmlAttributes = new { @class = "form-control ", } })
+            </div>*@
+    </div>
+    <div class="form-group col-md-12">
+        @Html.LabelFor(m => m.AssignedMembers, new { @class = "control-label" }) *
+        @Html.ListBoxFor(m => m.AssignedMembers, (MultiSelectList)ViewBag.team, new { @id = "AssignedUsers", @class = "form-control select2 AsgnUsers", @name = "AssignedMembers[]", @multiple = "multiple" })
+    </div>
+    <div class="form-group col-md-12 point">
+        @Html.Label("Documents", null, new { @class = "control-label" })
+        <div class="file-loading">
+            <input id="input-24" name="input24[]" type="file" multiple>
+        </div>
+    </div>
+
+    @foreach (var arr in @ViewBag.image)
+    {
+        check = "\"/uploads/FileDocuments/" + arr.Document + "\"";
+        strImage += check + ',';
+
+        partialconfig += "{ key:" + arr.Id + " }" + ',';
+
+    }
+
+    @*<button style="width: 200px;" type="submit" class="btn btn-info btn-rounded btn-fw add_field_button4">
+            Add Documents
+            &ensp;<i class="fa fa-plus-circle"></i>
+        </button>
+        <br>
+        <div class="form-group input_fields_wrap4" style="margin-left:2rem;>
+
+        </div>*@
+
+    <div class="row">
+        <div class="form-group pull-right mt-5">
+            <button type="submit" id="Save" class="btn btn-success">
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+            </button>
+
+            <button type="button" class="btn btn-warning" onclick="@("window.location.href='/FileDocument/Index'");">Cancel</button>
+        </div>
+    </div>
+
+</div>
+    }
+    @Html.Partial("../Common/_ModalEdit")
+    @section style{
+        <style>
+            .filewidth {
+                width: 120%;
+            }
+        </style>
+        @Styles.Render("~/css/bootstrap-datepicker")
+        @Styles.Render("~/css/wysihtml5")
+        @Styles.Render("~/css/bootstrap-timepicker")
+        @Styles.Render("~/css/bootstrap-fileinput")
+        @Styles.Render("~/css/bootstrap-fileinput-rtl")
+        @*@Styles.Render("~/css/dropzone")*@
+    }
+    @section scripts{
+        @Scripts.Render("~/js/jqueryval")
+        @Scripts.Render("~/js/bootstrap-datepicker")
+        @Scripts.Render("~/js/jqueryval")
+        @Scripts.Render("~/js/additem")
+        @Scripts.Render("~/js/wysihtml5")
+        @Scripts.Render("~/js/bootstrap-timepicker")
+        @Scripts.Render("~/js/bootstrap-fileinput")
+        @Scripts.Render("~/js/bootstrap-sortable")
+        @Scripts.Render("~/js/bootstrap-purify")
+        @Scripts.Render("~/js/Mobile")
+
+        <script type="text/javascript">
+            
+            /*var s = '<option value="0">--Sel ect--</option>';*/
+                $.ajax({
+                    type: "GET",
+                    url: "/Customer/GetDocTypes",
+                    data: "{}",
+                    success: function (data) {
+                        for (var i = 0; i < data.length; i++) {
+                            s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                        }
+                    }
+                });
+           
+            /*.........tooltip message...........*/
+            $(".point").prop('title', 'Ctrl + select on Browse');
+
+            $(".date").click(function () {
+                var date = new Date();
+                date.setDate(date.getDate());
+                $('.date').datepicker({
+                    format: 'mm-dd-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+
+                });
+                jQuery.validator.methods["date"] = function (value, element) { return true; }
+            });
+
+            $(".remove").on('click', '.remove_button', function (e) {
+                e.preventDefault();
+                    $(this).parent('div').remove(); //Remove field html
+                    x--; //Decrement field counter
+
+            })
+
+            $(document).ready(function () {
+                $("#AssignedUsers").select2();
+                var max_fields = 10; //maximum input boxes allowed
+                var wrapper4 = $(".input_fields_wrap4"); //Fields wrapper
+                var add_button = $(".add_field_button4"); //Add button ID
+                $("#Type").select2({});
+                var x = 1; //initlal text box count
+                $(add_button).click(function (e) { //on add input button click
+                    e.preventDefault();
+                    if (x < max_fields) { //max input box allowed
+
+
+                        if (document.getElementById('documentRowcount').value < @di) {
+                        var rowno = @di;
+                    }
+                    else {
+                            var rowno = document.getElementById('documentRowcount').value;
+                    }
+
+                        //paste here
+                        $(wrapper4).append('<div class="row" style="margin-top: 1rem;">' +
+
+                            '<div class="col-md-3">' +
+                            '<label class="control-label">Choose image</label>' +
+                            ' <div class="input-group">' +
+                            '<input type="file" name="lstMultidocview[' + rowno + '].Document" class="form-control file-upload-info"  placeholder="Choose image" required >' +
+
+                            '</div>' +
+                            '</div>' +
+                            '<div class="col-md-4">' +
+                            '<label class="control-label">Label</label>' +
+                            '<div class="input-group">' +
+                            '<input type="text" name="lstMultidocview[' + rowno + '].DocumentName" class="form-control" placeholder="Enter Name" required>' +
+                            '</div>' +
+                            '</div>' +
+
+                            '<a href="javascript:void(0);" class="remove_button"><i style="color:red; margin-top:2.7rem;" class="fa fa-trash" aria-hidden="true"></i></a></div>');
+
+                        x++;
+
+                        rowno++;
+                        document.getElementById('documentRowcount').value = rowno;
+                    }
+                });
+
+                $(wrapper4).on('click', '.remove_button', function (e) {
+                    e.preventDefault();
+                    $(this).parent('div').remove(); //Remove field html
+                    x--; //Decrement field counter
+                })
+
+            });
+
+
+            $("#input-24").fileinput({
+            initialPreview: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: false,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'pdf',
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png","csv", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+            deleteUrl: "/Filedocument/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+
+
+        </script>
+    }
+

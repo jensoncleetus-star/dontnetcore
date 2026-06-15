@@ -1,0 +1,158 @@
+﻿@model QuickSoft.Models.Payhead
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Payhead List";
+    ViewBag.Active = "Payroll Settings";
+    string actData = "";
+    string action = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Payhead </h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create Payhead"))
+                {*@
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="/Hr/Payhead/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create
+            </a>
+            @*}*@
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">#</td>
+                    <td data-priority="2">Payhead Name</td>
+                    <td data-priority="2">Payhead Type</td>
+                    <td data-priority="2">Account Group</td>
+                    <td data-priority="5">Income Type</td>
+                    <td data-priority="5">Name on Payslip</td>
+                    <td data-priority="2">Calculation Type</td>
+                    <td data-priority="2">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#comp').hide();
+        });
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/Payhead/GetPayhead',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{ orderable: false, targets: -1 }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Name", "name": "Name" },
+                 {
+                     "data": "Type", "name": "Type", "render": function (data) {
+                         if (data == 'EarningsforEmployees') {
+                             return 'Earnings for Employees';
+                         }
+                         else if (data == 'DeductionsfromEmployees') {
+                             return 'Deductions from Employees';
+                         }
+                         else if (data == 'EmployeesStatutoryDeductions') {
+                             return 'Employees Statutory Deductions';
+                         }
+                         else if (data == 'EmployeesStatutoryContributions') {
+                             return 'Employees Statutory Contributions';
+                         }
+                         else if (data == 'EmployersOtherCharges') {
+                             return 'Employers Other Charges';
+                         }
+                         else if (data == 'LoansandAdvances') {
+                             return 'Loans and Advances';
+                         }
+                         else if (data == 'ReimbursmentstoEmployees') {
+                             return 'Reimbursments to Employees';
+                         }
+                         else if (data == 'EarningsInAnnualLeave') {
+                             return 'Earnings In Annual Leave';
+                         }
+                         else if (data == 'DeductionInAnnualLeave') {
+                             return 'Deduction In Annual Leave';
+                         }
+                         else {
+                             return data;
+                         }
+
+                     }
+                 },
+                 { "data": "Group", "name": "Group" },
+                 { "data": "IncomeType", "name": "IncomeType" },
+                 { "data": "Payslip", "name": "Payslip" },
+                 { "data": "CalculationType", "name": "CalculationType" },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+
+                         @{
+                             action = "";
+                             if (User.IsInRole("Dev") || User.IsInRole("Edit Payhead"))
+                             {
+                                 action += "<a href=\"/Hr/Payhead/Edit/'+ data.id +'\" title=\"Edit Payhead\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                             }
+                            }
+                         rest = '@Html.Raw(action)';
+                         if (data.Status == 0) {
+                             if (data.Name != "Basic Salary") {
+                                 @{
+                                 action = "";
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete Payhead"))
+                                 {
+                                     action += "<a class=\"modal-delete\" href=\"/Hr/Payhead/Delete/'+ data.id +'\" title=\"Delete Payhead\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                 }
+                            }
+                                 rest += '@Html.Raw(action)';
+                             }
+                         }
+                         return rest;
+                     }
+                 },
+            ]
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+    </script>
+}

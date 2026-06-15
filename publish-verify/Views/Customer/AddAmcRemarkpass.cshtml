@@ -1,0 +1,110 @@
+@model QuickSoft.Models.AddedRemarksvm
+    @{ 
+        string actData = "";
+    }
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Add password/note</h4>
+    <p>@ViewBag.ErrorMessage</p>
+</div>
+<table class="table table-bordered table-hover" id="RemarkInfooo">
+    <thead>
+        <tr class="bg-gray">
+            <td>#</td>
+            <td>Date & Time</td>
+            <td>Employees</td>
+            <td>Remarks</td>
+            <td>Act</td>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<div class="modal-body">
+    @using (Html.BeginForm("AddRemarkpass", "Customer", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <script type="text/javascript">
+            $('form#createForm').removeData("validator");
+            $('form#createForm').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createForm'));
+        </script>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group col-md-12">
+                    @Html.HiddenFor(model => model.TransactionId)
+                    @Html.Label("Password/Note", null, htmlAttributes: new { @class = "control-label" })*
+                    @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "", tabindex = 1 })
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row text-center">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" value="Save" class="btn btn-info" id="submit" tabindex="2" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" tabindex="3" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<script>
+    var oTable1 = $('#RemarkInfooo').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": true, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "bStateSave": true,
+        "paging": false,
+        "sortable": true,
+        "ordering": true,
+        "searching": true,
+        "ajax": {
+            "url": '/Customer/GetAllRemarksaddedpass',
+            "type": "POST",
+            "datatype": "json",
+            "data": {
+                RequisitionId: @Html.Raw(Model.TransactionId) }
+        },
+        "order": [[0, "desc"]],
+
+        "columns": [
+            {
+                "data": "id", "name": "id",
+                "render": function (data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
+            { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+            { "data": "EmpName", "name": "EmpName" },
+            { "data": "Remarks", "name": "Remarks" },
+            {
+                "name": "id", "data": function (data) {
+                    var rest = "";
+                         @{
+
+                                 if (User.IsInRole("Dev") || User.IsInRole("Edit Password"))
+                                 {
+                                     //actData += "<a href=\"/Customer/Edit/'+ data.id +'\" title=\"Edit Customer\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                     actData = "<a class=\"modal-create btn btn-icons btn-rounded btn-edit\" href=\"/Customer/Editremarks/'+ data.id +'\" title=\"Edit remark\"><i class=\"fa fa-pencil\" ></i></a> ";
+                                 }
+                             }
+                      return rest = '@Html.Raw(actData)';
+                }
+            }
+        ],
+    });
+
+    oTable1.destroy();
+    $("#Remarks").focus();
+    $('#modal-create').on('submit', '#createForm', function (e) {
+        e.preventDefault();
+        var url = $('#createForm')[0].action;
+        var data = $('#createForm').serialize();
+        createajaxnew(url, data, '#modal-create');
+    });
+</script>
+
+
+

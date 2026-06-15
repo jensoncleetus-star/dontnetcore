@@ -1,0 +1,448 @@
+@model QuickSoft.ViewModel.FinalSettlementViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Final Settlement";
+    ViewBag.Active = "Payroll";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("Edit", "FinalSettlement", FormMethod.Post, new { id = "createForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Final Settlement</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("FinalSettlement List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/FinalSettlement">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                @Html.HiddenFor(model => model.FinalSettlementID)
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Date, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Employee, new { @class = "control-label" })*
+                    @Html.DropDownListFor(m => m.Employee, (SelectList)ViewBag.Employ, new { id = "ddlEmployee", @class = "form-control select2", @required = "required", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Type of Settlement", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.TypeofSettlement, (SelectList)ViewBag.Typeofset, new { @class = "form-control select2", @required = "required" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Designation", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.Designation, new { @class = "form-control input-sm", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Joining Date", null, htmlAttributes: new { @class = "control-label" })
+                    @*@Html.TextBoxFor(m => m.JoiningDate, new { @class = "form-control input-sm", @required = "required" })*@
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.JoiningDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @readonly = "readonly" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Last working Date", null, htmlAttributes: new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.LastworkingDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @readonly = "readonly" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Last Duty Date", null, htmlAttributes: new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.LastDutyDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @readonly = "readonly" })
+                    </div>
+                </div>
+                @*<div class="col-sm-2 form-group">
+                    @Html.Label("Deduction Days", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.DeductionDays, new { @class = "form-control input-sm" })
+                </div>*@
+                <div class="col-sm-2 form-group">
+                    @Html.Label("No: of Days Absent", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.NoDaysAbsent, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("No: of Days Worked", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.NoDaysWorked, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Total Days", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.TotalDays, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Gratuity Days", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.GratuityDays, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Gratuity Amount", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.GratuityAmount, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-12">
+                    <div class="col-sm-6">
+                        <table class="display" id="fsaddtable">
+                            <thead>
+                                <tr>
+                                    <th class="item-lists col-md-1">Earnings<i class="text-danger"></i></th>
+                                    <th class="item-lists col-md-1">Amount<i class="text-danger"></i></th>
+                                    <th class="text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="fsaddbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="col-sm-6">
+                        <table class="display" id="fsdedtable">
+                            <thead>
+                                <tr>
+                                    <th class="item-lists">Deduction<i class="text-danger"></i></th>
+                                    <th class="item-lists col-md-1">Amount<i class="text-danger"></i></th>
+                                    <th class="text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="fsdedbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+            @if (@ViewBag.BranchCheck == 0)
+            {
+                <div class="row">
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                </div>
+            }
+            <hr />
+            <div class="col-md-12">
+                <div class="col-sm-2 form-group pull-right">
+                    @Html.Label("Net Amount", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.NetAmount, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                </div>
+            </div>
+            <div class="col-md-12 pull-right">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                </div>
+                <div class="form-group pull-right">
+                    <button type="submit" id="save" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+                    <button type="submit" id="print" class="btn btn-success">
+                        <span class="glyphicon glyphicon-print"></span> Update And Print
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Hr/FinalSettlement/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@{
+    var Modelv = "modal-lg";
+}
+@Html.Partial("_Voucher")
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/attendance")
+    @Scripts.Render("~/js/sheetjs")
+    @Scripts.Render("~/js/FinalSettlement")
+    @Scripts.Render("~/js/num2words")
+
+    <script type="text/javascript">
+        var date = new Date();
+        date.setDate(date.getDate());
+        $('.date').datepicker({
+            startDate: date,
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            //GetBranch();
+            //CallEmployeeFinalApp();
+
+
+            var FSID = getQueryString('');
+            if (FSID != null) {
+                $.ajax({
+                    url: '/Hr/FinalSettlement/GetPayheads',
+                    dataType: 'json',
+                    data: { ID: FSID },
+                    cache: true,
+                    success: function (data) {
+                        var addcount = 0;
+                        var dedcount = 0;
+                        if (data != "") {
+                            $('#fsaddbody').html('');
+                            $.each(data, function (i, item) {
+                                if (item.Type == 9) {
+                                    AddFsadd('fsaddbody', 'edit', item.Payhead, item.Amount, item.Name);
+                                    searchFinalAddType();
+                                    addcount++;
+                                }
+                                else {
+                                    AddFsded('fsdedbody', 'edit', item.Payhead, item.Amount, item.Name);
+                                    searchFinaldedType();
+                                    dedcount++;
+                                }
+                            });
+                        }
+                        if (addcount == 0) {
+                            AddFsadd('fsaddbody', 'edit', "", "", "", "");
+                            searchFinalAddType();
+                        }
+                        if (dedcount == 0) {
+                            AddFsded('fsdedbody', 'edit', "", "", "", "");
+                            searchFinaldedType();
+
+                        }
+                    }
+                });
+            }
+
+        });
+
+        /* function for Create popup */
+
+        $('table').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+        // onchange function for Employee
+        $('body').on('change', '#ddlEmployee', function (e) {
+            TotalWorkingDays();
+        });
+        $('body').on('change', '#TypeofSettlement', function (e) {
+            TotalWorkingDays();
+        });
+
+        CallEmployeeFinalApp();
+        function TotalWorkingDays() {
+            var empid = $('#ddlEmployee').val();
+            if (empid != "") {
+                var TypeofSettlement = $('#TypeofSettlement').val();
+            //var LeaveStart = $("#LeaveStartDate").val();
+            $.ajax({
+                url: '/Hr/FinalSettlement/GetFinalDetails',
+                dataType: 'json',
+                data: { Employee: empid, Termination: TypeofSettlement },
+                cache: true,
+                success: function (data) {
+                    var Jdate = convertToDate(data.Main.JoiningDate);
+                    var Ldate = convertToDate(data.Main.LastworkingDate);
+                    $('#JoiningDate').val(convertToDate(data.Main.JoiningDate));
+                    $('#LastworkingDate').val(convertToDate(data.Main.LastworkingDate));
+                    $('#Reason').val((data.Main.Reason));
+                    $('#Designation').val((data.Main.Designation));
+                    $('#NoDaysAbsent').val((data.Main.Absent));
+                    $('#NoDaysWorked').val((data.Main.Present));
+
+                    $('#TotalDays').val(data.Main.Totaldays);
+
+                    var Jd = new Date(Jdate.split("-").reverse());
+                    var Ld = new Date(Ldate.split("-").reverse());
+                    var diff = monthDiff(Jd, Ld);
+                    var gratdays = 0;
+
+                    if (TypeofSettlement == 1) {
+                        $.each(data.Gratuity, function (i, item) {
+                            if ((item.To > diff || item.To == 0) && item.From < diff) {
+                                $('#GratuityDays').val((item.Days));
+                                if ((diff / 12) < 5) {
+                                    var gratamt = (diff / 12) * item.Days * (data.Main.Basic / item.GratuityDays);
+                                    $('#GratuityAmount').val((gratamt).toFixed(2));
+                                    calculatetotal();
+                                } else {
+                                    var gratamt = (diff / 12) * item.Days * (data.Main.Basic);
+                                    $('#GratuityAmount').val((gratamt).toFixed(2));
+                                    calculatetotal();
+                                }
+                            }
+                        });
+                    } else {
+                        var Gradays=0;
+                        $.each(data.Gratuity, function (i, item) {
+                            Gradays = item.GratuityDays;
+                        });
+                        var totgratdays = 21 * (diff / 12);
+                        $('#GratuityDays').val((21));
+                        var gratamt = (diff / 12) * 21 * (data.Main.Basic / Gradays);
+                        $('#GratuityAmount').val((gratamt).toFixed(2));
+                        calculatetotal();
+                    }
+
+
+                }
+            });
+        }
+
+        }
+
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#createForm").valid()) {
+                var url = $('#createForm')[0].action;
+                var formData = new FormData(this);
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                formData.append('fnval', fnval);
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            if (fnval == "save") {
+                                window.location.href = '@Url.Action("Index", "FinalSettlement")';
+                            }
+                            if (fnval == "print") {
+                                Regprint(e); window.location.href = '@Url.Action("Index", "FinalSettlement")';
+                            }
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+
+        });
+
+        function monthDiff(d1, d2) {
+            var months;
+            months = (d2.getFullYear() - d1.getFullYear()) * 12;
+            months -= d1.getMonth();
+            months += d2.getMonth();
+            return months <= 0 ? 0 : months;
+        }
+
+        function Regprint(e) {
+            var dat = convertToDate(e.Data.JoiningDate);
+            var ldate = convertToDate(e.Data.LastworkingDate);
+            $("#lblEmplCode").text(e.Data.EMPCode);
+            $("#lblEmpName").text(e.Data.EmpName);
+            $("#lblReason").text(e.Data.Reason);
+            $("#lblJoiningDate").text(dat);
+            $("#lblLastworkingDate").text(ldate);
+            $("#lblDeductionDays").text(e.Data.DeductionDays);
+            $("#lblNoDaysAbsent").text(e.Data.NoDaysAbsent);
+            $("#lblNoDaysWorked").text(e.Data.NoDaysWorked);
+            $("#lblTotalDays").text(e.Data.TotalDays);
+            $("#lblGratuityDays").text(e.Data.GratuityDays);
+            $("#lblGratuityAmount").text(e.Data.GratuityAmount);
+            var wordtotal = conNumber(parseFloat(e.Data.NetAmount));
+            //wordtotal =  e.Data.NetAmount + "\n" + wordtotal ;
+            $("#lblNetAmount").text(e.Data.NetAmount);
+            $("#NetAmountWord").text(wordtotal);
+            $("#lblRemarks").text(e.Data.Remarks);
+            $("#lblDesignation").text(e.Data.Designation);
+            $("#lblTypeofSettlement").text(e.Data.TypeofSettlement);
+            $("#lblAddition").text(e.Addition);
+            $("#lblBasic").text(e.bsalary.Rate); 
+            $("#lblDeduction").text(e.Deduction);
+            $.each(e.DedList, function (i, item) {
+                var str = '<tr>';
+                str += '<td>' + item.NameinSlip + '</td>';
+                str += '<td>' + " &nbsp;&nbsp;&nbsp;  " + '</td>';
+                str += '<td>' + item.Amount + '</td>';                
+                str += '</tr>';
+                $('#deduction').append(str);
+            });
+            $.each(e.AddList, function (i, item) {
+                var str = '<tr>';
+                str += '<td>' + item.NameinSlip + '</td>';
+                str += '<td>' + " &nbsp;&nbsp;&nbsp;  " + '</td>';
+                str += '<td>' + item.Amount + '</td>';
+                str += '</tr>';
+                $('#addition').append(str);
+            });
+
+            if (e.ComHeadCheck == 0) {
+                $("#ComHeadCheck").hide();
+            }
+            else {
+                $("#ComHeadCheck").show();
+            }
+
+
+            if ($('#hideheader').prop('checked') == true) {
+                $('#ComHeadCheck').hide();
+                $('#ComfootCheck').hide();
+                //$(".invoice.print").css("margin-top", "100px");
+                $("#comHeader").css("margin-top", "100px");
+            }
+            else {
+                $('#ComHeadCheck').show();
+                $('#ComfootCheck').show();
+            }
+
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printit').html();
+            $('title').html("Final Settlement Voucher - " + e.FinalSettlementID);
+            $('body').html(printContent);
+            window.print();
+        }
+    </script>
+}
+

@@ -1,0 +1,271 @@
+@using QuickSoft.ViewModel
+@model QuickSoft.ViewModel.TrialBalanceAccViewModeltwo
+@{
+    ViewBag.Title = "Trial Balance";
+    ViewBag.SubTitle = " Account Wise Trial Balance";
+    ViewBag.Active = "Accounts";
+    ViewBag.Count = 0;
+    ViewBag.TDr = 0;
+    ViewBag.TCr = 0;
+
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Account Wise Trial Balance Report</h3>
+    </div>
+    <div class="box-body">
+        <div id="Acctree">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.To))" />
+            <table class="table table-bordered table-hover  dtable" id="UserTable" style="width:100%">
+                <thead>
+                    <tr class="bg-gray">
+                        <td class="text-center" colspan="5">
+                            Date: @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.To))
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <td>Particulars</td>
+                        <td>OPENING</td>
+                        <td class="text-center">
+                            DEBIT ( AED )
+                        </td>
+                        <td class="text-center">
+                            CREDIT ( AED )
+                        </td>
+                        <td>CLOSING</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ TreeView(Model); }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@{ void TreeView(TrialBalanceAccViewModeltwo module, long? parent = 0, string spaces = "")
+{
+    ViewBag.Count++;
+    TrialBalanceAccViewModeltwo sub = new TrialBalanceAccViewModeltwo();
+    sub.Data = module.Data;
+    var submodule = sub.Data;
+    var data = ViewBag.Active;
+
+
+    foreach (var menus in module.Data)
+    {
+        var space = "";
+        var classn = (menus.Type == "Group") ? "glyphicon-hand-right" : "glyphicon-arrow-right";
+        var disables = (menus.Type == "Group") && (menus.text != "Supplier" || menus.text != "Customer" || menus.text != "Customer") ? "" : ", \"disabled\":true";
+
+        if (menus.Parent == parent)
+        {
+            space = spaces + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+            var Debit = Convert.ToDecimal(menus.Debit);
+            var Credit = Convert.ToDecimal(menus.Credit);
+            var opening = Convert.ToDecimal(menus.opening);
+            var closing = Convert.ToDecimal(menus.closing);
+            var Sum = Debit - Credit;
+            decimal? Dr = Debit;
+            decimal? Cr = Credit;
+            var dd = "";
+            var s = "";
+            //if (Sum > 0)
+            //{
+            //    Dr = Sum;
+            //}
+            //if (Sum < 0)
+            //{
+            //    Cr = 0 - Sum;
+            //}
+
+            if (menus.Type == "Group")
+            {
+<tr>
+    @if (menus.Parent == 0)
+        {
+        <td class="text-red">@Html.Raw(spaces)@menus.text</td>
+        <td class="text-right"></td>
+        <td class="text-right"></td>
+        <td class="text-right"></td>
+        <td class="text-right"></td>
+    }
+    else
+    {
+        <td class="text-black">@Html.Raw(spaces)@menus.text</td>
+        <td class="text-right"></td>
+        <td class="text-right"></td>
+        <td class="text-right"></td>
+        <td class="text-right"></td>
+
+    }
+</tr>
+            }
+            else if (1==1)
+{
+<tr>
+    <td class="text-blue"><a href="/MyReports/Ledger2?particular=@menus.AccountId" target="_new">@Html.Raw(spaces)@menus.text</a></td>
+    <td class="text-right ">@System.Math.Abs(opening).ToString("0.00")
+    
+    @{
+
+    if (opening < 0)
+    {
+        s = "Cr";
+    }
+    else
+    {
+        s = "Dr";
+    }
+
+}
+    @s;   
+    </td>
+    <td class="text-right ">@Dr.Value.ToString("0.00")</td>
+    <td class="text-right">@Cr.Value.ToString("0.00")</td>
+    <td class="text-right ">
+        @System.Math.Abs(closing).ToString("0.00")
+       
+        @{
+           
+            if (closing < 0)
+            {
+                dd= "Cr";
+            }
+            else
+            {
+                dd = "Dr";
+            }
+        }
+        @dd;
+    </td>
+</tr>
+            }
+            ViewBag.TDr += Dr;
+            ViewBag.TCr += Cr;
+            if (menus.Type == "Group")
+            {
+                TreeView(sub, menus.ID, space);
+            }
+
+        }
+    }
+    ViewBag.Count--;
+    if (ViewBag.Count == 0)
+    {
+        <tr>
+            <td><b>Total</b></td>
+            <td></td>
+            <td class="text-right" id="ddlTCredit"><b>@ViewBag.TDr</b></td>
+            <td class="text-right" id="ddlTDebit"><b>@ViewBag.TCr</b></td>
+            <td></td>
+        </tr>
+
+    }
+} }
+
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            jQuery(function ($) {
+                var oTable = $('#UserTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": false, // for process server side
+                    "filter": false, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bLengthChange": false,
+                    "paging": false,
+                    "deferLoading": 0,
+                    "ordering": false,
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    //"order": [[0, "asc"]],
+                    buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                     {
+                         extend: 'print',//
+                         title: "",
+                         footer: true,
+                         filename: function () {
+                             return 'Trial BalanceAcc';
+                         },
+                         message: '<table class="tblcompact table table-bordered"><thead>' +
+                         ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Trial Balance</h4></th></tr>' +
+                         ' <tr><th class="text-center"><span>  To : ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>',
+                         customize: function (win) {
+
+                             $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                 .css('font-size', '10pt')
+                                 .css('padding', '5px')
+                                 .addClass('compact');
+                             $(win.document.body).append('</td></tr></tbody>')
+
+                         }
+                     }, 'copy', 'csv', 'excel',
+                     {
+                         extend: 'pdf',
+                         title: "",
+                         footer: true,
+                         filename: function () {
+                             return 'Trial Balance';
+                         },
+                         message:
+                             '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Trial Balance \n' +
+                         ' To :  ' + $('#todate').val() + ''
+                         ,
+                         pageSize: 'A4',
+                         exportOptions: {
+                             columns: [0, 1, 2]
+                         },
+                         customize: function (doc) {
+                             doc.pageMargins = [10, 10, 10, 10];
+                             doc.defaultStyle.fontSize = 10;
+                             doc.styles.tableHeader.fontSize = 10;
+                             doc.styles.title.fontSize = 12;
+                             // Remove spaces around page title
+                             doc.content[0].text = doc.content[0].text.trim();
+
+                             doc.content[1].table.widths = [
+                             '40%',
+                             '30%',
+                             '30%',
+                             ]
+
+                             var objLayout = {};
+                             // Horizontal line thickness
+                             objLayout['hLineWidth'] = function (i) { return .5; };
+                             // Vertikal line thickness
+                             objLayout['vLineWidth'] = function (i) { return .5; };
+                             //// Horizontal line color
+                             //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                             //// Vertical line color
+                             //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                             // Left padding of the cell
+                             objLayout['paddingLeft'] = function (i) { return 4; };
+                             // Right padding of the cell
+                             objLayout['paddingRight'] = function (i) { return 4; };
+                             // Inject the object in the document
+                             doc.content[1].layout = objLayout;
+                         }
+
+
+                     },
+
+                    ],
+
+
+                });
+            });
+
+        });
+
+    </script>
+}
+
+
+
+
+

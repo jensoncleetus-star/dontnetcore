@@ -1,0 +1,133 @@
+﻿
+@{
+    ViewBag.Title = "View Table";
+    ViewBag.SubTitle = "Table";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Table</h3>
+        <p class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Table"))
+            {
+            <a href="/Table/Create" class="btn btn-info modal-create"><i class="glyphicon glyphicon-plus"></i> Add Table</a>
+            }
+        </p>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr style="background-color: #d2d6de">
+                    <td data-priority="1">#</td>
+                    <td data-priority="2">Table Name</td>
+                    <td data-priority="2">Area</td>
+                    <td data-priority="3">Max Seats</td>
+                    <td data-priority="4">Table Status</td>
+                    <td data-priority="6">Description</td>
+                    <td data-priority="4">Created By</td>
+                    <td data-priority="5"> Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+<div id="modal-container" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content danger">
+        </div>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalDelete")
+@section Scripts {
+    <script type="text/javascript">
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/Table/GetTable',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "TableName", "name": "TableName" },
+                 { "data": "Area", "name": "Area" },
+                 { "data": "MaxSeats", "name": "MaxSeats" },
+                  {
+                      "name": "TableStatus",
+                      "data": function (data) {
+                          if (data.TableStatus == 0) {
+                              return "In Use";
+                          } else if (data.TableStatus == 1) {
+                              return "Out of Use";
+                          } else if (data.TableStatus == 2) {
+                              return "Available";
+                          } else if (data.TableStatus == 3) {
+                              return "Reserved";
+                          }
+                          else {
+                              return null;
+                          }
+                      }
+                  },
+
+                 { "data": "Description", "name": "Description" },
+                 { "data": "User", "name": "User" },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+
+                         @{
+                             if (User.IsInRole("Dev") || User.IsInRole("Edit Table"))
+                             {
+                                 actData += "<a href=\"/Table/Edit/'+ data.id +'\" title=\"Edit Table\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                             }
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete Table"))
+                             {
+                                 actData += "<a class=\"modal-delete\" href =\"/Table/Delete/'+ data.id +'\" title=\"Delete Table\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                             }
+                             }
+                         rest = '@Html.Raw(actData)';
+
+                         return rest;
+
+                     }
+
+                 },
+
+            ]
+        });
+
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+
+    </script>
+}
+
+
+

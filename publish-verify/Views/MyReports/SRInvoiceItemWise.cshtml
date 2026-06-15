@@ -1,0 +1,115 @@
+@{
+    ViewBag.Title = "Search Invoice Item Wise Sales Return";
+    ViewBag.SubTitle = "Sales Return Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Invoice Item Wise Sales Return</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("SRInvoiceWise", "MyReports", FormMethod.Get))
+        {
+            <div class="form-group col-md-2">
+                @Html.Label("Customer", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, "", new { @class = "form-control input-sm select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Item Category", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItemCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+            </div>
+            if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-2">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                </div>
+            }
+            <div class="form-group col-md-2">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("from", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("to", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        }
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            $('#to').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#from').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $("#ddlItemCategory").select2({
+                placeholder: 'Search Item Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemCategory/SearchItemCategory",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#to').datepicker('setDate', today);
+            $('#from').datepicker('setDate', priordate);
+            CallRepCustomer();
+            ItemSearchable();
+            CallRepMCUser();
+        });
+    </script>
+}

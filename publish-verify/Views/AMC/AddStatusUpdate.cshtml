@@ -1,0 +1,185 @@
+@model QuickSoft.ViewModel.StatusUpdateViewModel
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>AMC Update</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("AddStatusUpdate", "AMC", FormMethod.Post, new { id = "createform", role = "form", enctype = "multipart/form-data" }))
+    {
+        <input type="hidden" name="lat" id="lat" />
+        <input type="hidden" name="log" id="log" />
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="row">
+
+                <div class="form-group col-md-3">
+                    @Html.LabelFor(model => model.AmcStatusId, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AmcStatusId, (SelectList)ViewBag.Dropdowns, "", new { id = "ddlAmcStatus", @class = "form-control textwidth", @required = "required" })
+                </div>              
+                <div class="margin-bottom" id="checklist2">
+                </div>
+                <div class="form-group col-md-12">
+                    <div class="file-loading">
+                        @Html.Label("Documents", null, new { @class = "control-label" })
+                        <input id="fileupload" class="file" name="fileupload" multiple="multiple" type="file" />
+                    </div>
+                </div>
+                <div class="form-group col-md-12">
+                    @Html.HiddenFor(model => model.TransId)
+                    @Html.HiddenFor(model => model.TransType)
+                    @Html.LabelFor(model => model.Remark, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Enter Remark", tabindex = 20 })
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-md-12">
+                    <div class="box-footer">
+                        <input type="submit" value="Save" class="btn btn-info" id="submit" />
+                        <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+}
+
+<script type="text/javascript">
+
+    var date = new Date();
+    date.setDate(date.getDate());
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+    jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+    $(document).ready(function () {
+        getLocation();
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                // x.innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+        function showPosition(position) {
+
+            $("#lat").val(position.coords.latitude);
+            $("#log").val(position.coords.longitude);
+        }
+    });
+
+    //Contract Status
+    $("#ddlAmcStatus").select2({
+        placeholder: 'Search Contract Status',
+        minimumInputLength: 0,
+        dropdownAutoWidth: true,
+        ajax: {
+            url: "/AMC/SearchContractStatus",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page,
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+
+    $("#fileupload").fileinput({
+        maxFilePreviewSize: 10240,
+        autoReplace: true,
+        maxFileCount: 10,
+        showUploadedThumbs: true,
+
+        overwriteInitial: false,
+        showUpload: false,
+        initialPreviewAsData: true,
+        initialPreviewFileType: 'image',
+
+        allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+            'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+        fileActionSettings: {
+            showUpload: false,
+        },
+    }).on('filesorted', function (e, params) {
+        console.log('File sorted params', params);
+    }).on('fileuploaded', function (e, params) {
+        console.log('File uploaded params', params);
+    });
+       
+    /* Submit of pop up for Status Update */
+    $('#createform').on('submit', function (e) {
+        e.preventDefault();
+
+        if ($("#createform").valid()) {
+
+            var formData = new FormData(this);
+            var files = $("#fileupload").get(0);
+            if (files.length > 0) {
+                for (var i = 0; i < files.length; i++) {
+                    formData.append("fileupload", files[i]);
+                }
+            }            
+          
+            var parameters = {};
+            parameters.tremark = formData; //formData,//
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                url: "/AMC/AddStatusUpdate",
+                data: formData,//JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                        $('#modal-create').modal('hide');
+                        $('#modal-create .modal-content').html('');
+                        oTable.draw();
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+    });
+
+</script>
+
+
+

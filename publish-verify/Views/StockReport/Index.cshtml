@@ -1,0 +1,113 @@
+@{
+    ViewBag.Title = "Till Date";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+
+    var dtURL = "'/StockReport/GetStock'";
+}
+<style>
+    table.dataTable.row-border tbody tr:first-child th, table.dataTable.row-border tbody tr:first-child td, table.dataTable.display tbody tr:first-child th, table.dataTable.display tbody tr td {
+        /*text-align: center;*/
+    }
+
+    table.dataTable.row-border tbody tr:first-child th, table.dataTable.row-border tbody tr:first-child td, table.dataTable.display tbody tr:first-child th, table.dataTable.display tr th {
+        /*text-align: center;*/
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Stock Report</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-4">
+                <label class="control-label"><input type="checkbox" value="true" name="stockable" id="stockable" />  Include non-stockable Items</label>
+            </div>
+            @if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-4">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                </div>
+            }
+            <div class="form-group col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Till Date Stock Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            @if (ViewBag.BusinessType == "Scaffold")
+            {
+                @Html.Partial("_Scaffold/index", @dtURL)
+            }
+            else if (ViewBag.BOM != 0)
+            {
+                @Html.Partial("_Common/index", @dtURL)
+            }
+            else
+            {
+                @Html.Partial("_BOM/index", @dtURL)
+            }
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $(document).ready(function () {
+            $('#StockReport').hide();
+            CallRepMCUser();
+        });
+
+        function searchData(data) {
+            data.stockable = $('input[name="stockable"]').prop('checked');
+            data.ddmc = $('#ddlMC').val();
+        }
+        jQuery(function ($) {
+            dtTable();
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#StockReport').show();
+            });
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+
+        $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+            var data = oTable.row(this).data();
+            var url = "/StockReport/Details?iditem=" + data.ItemID + "&ddmc=" + $('#ddlMC').val();
+            $(location).attr('href', url);
+        });
+    </script>
+}

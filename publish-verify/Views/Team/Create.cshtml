@@ -1,0 +1,233 @@
+@model QuickSoft.ViewModel.TeamViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Add Team</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Create", "Team", FormMethod.Post, new { id = "createform", @class = "form-horizontal" }))
+    {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+<div class="box-body">
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamName, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.EditorFor(model => model.TeamName, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamLead, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.DropDownListFor(m => m.TeamLead, (SelectList)ViewBag.Employee, "Select Team Lead", new { @class = "form-control select2 textwidth", @required = "required" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamMembers, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.TeamMembers, (SelectList)ViewBag.Employee, new { @class = "form-control textwidth", @disabled = "disabled" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamTag, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.DropDownListFor(m => m.TeamTag, (SelectList)ViewBag.TagTeam, new { @class = "form-control input-sm select2 textwidth" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.CheckBoxFor(m => m.CustomerRelation, new { @class = "control-label col-sm-", @id = "MyChk", @onchange = "changecheckbox(this)" })
+        @Html.Label("Customer Relation", null, new { @class = "control-label col-sm-4" })
+    </div>
+    <div class="form-group">
+        @Html.CheckBoxFor(m => m.amcteam, new { @class = "control-label col-sm-", @id = "chkamcteacm", @onchange = "changecheckboxamc(this)" })
+        @Html.Label("AMC Team", null, new { @class = "control-label col-sm-4" })
+    </div>
+    <div class="form-group" id="taskstatusid">
+        @Html.LabelFor(m => m.TaskStatus, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.TaskStatus, (SelectList)ViewBag.TaskStat, new { @class = "form-control textwidth" })
+        </div>
+    </div>
+    <div class="form-group" id="leadstatusid" style="display:none;">
+        @Html.LabelFor(m => m.LeadStatus, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.LeadStatus, (SelectList)ViewBag.leadstatus, new { @class = "form-control textwidth" })
+        </div>
+    </div>
+    <div class="form-group" id="amcstatusid" style="display:none;">
+        @Html.LabelFor(m => m.amcstatus, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.amcstatus, (SelectList)ViewBag.amcstat, new { @class = "form-control textwidth" })
+        </div>
+    </div>
+</div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-info col-sm-offset-4">Save</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <script>
+
+
+
+
+            function changecheckbox(obj) {
+                if ($(obj).is(":checked")) {
+                    $("#taskstatusid").hide();
+                    $("#amcstatusid").hide();
+                    $("#leadstatusid").show()
+
+                }
+                else {
+                    $("#taskstatusid").show();
+                    $("#leadstatusid").hide();
+                    $("#amcstatusid").hide();
+                }
+            }
+            function changecheckboxamc(obj) {
+                if ($(obj).is(":checked")) {
+                    $("#taskstatusid").hide();
+                    $("#leadstatusid").hide()
+                    $("#amcstatusid").show();
+
+                }
+                else {
+                    $("#taskstatusid").show();
+                    $("#leadstatusid").hide();
+                    $("#amcstatusid").hide();
+                }
+            }
+            $("#TeamLead").select2({
+                placeholder: 'Search Employee by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#TeamMembers").select2({
+                placeholder: 'Search Employees by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchTeamMember",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            lead: $('#TeamLead').val()
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('#TeamLead').on("change", function (e) {
+                if ($(this).val() != 0) {
+                    $("#TeamMembers").prop("disabled", false);
+                }
+                else {
+                    $("#TeamMembers").prop("disabled", true);
+                }
+                $("#TeamMembers").val(null).trigger('change');
+                //var EmployeeId = $(this).val();
+                //$.ajax({
+                //    url: '/Employee/GetEmployeeName',
+                //    type: "GET",
+                //    dataType: "JSON",
+                //    data: { EmpID: EmployeeId },
+                //    success: function (result) {
+                //        $("#TeamName").val(result.Name);
+                //    }
+                //});
+                //$("#TeamName").val($(this).val());
+            });
+
+            $("#TeamTag").select2({
+                tags: true
+            });
+
+            $("#TaskStatus").select2({
+                placeholder: 'Search Task Status',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/TaskStatus/SearchTaskStatusName",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#amcstatus").select2({});
+            $("#LeadStatus").select2({
+                placeholder: 'Search Task Status',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/TaskStatus/SearchTaskStatusName2",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        </script>
+    }
+</div>

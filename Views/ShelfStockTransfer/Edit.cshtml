@@ -1,0 +1,1346 @@
+@using QuickSoft.Models
+@model QuickSoft.ViewModel.ShelfStockTransferViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Edit Shelf Stock Transfer";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+
+<style>
+    #normalinvoice tfoot > *:nth-child(1) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(5) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(6) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(7) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(8) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(9) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(9) {
+        display: none;
+    }
+
+    #normalinvoice tr > *:nth-child(10) {
+        display: none;
+    }
+</style>
+@using (Html.BeginForm("Edit", "ShelfStockTransfer", FormMethod.Post, new { id = "quotationform", role = "form", enctype = "multipart/form-data" }))
+{
+
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Shelf Stock Transfer <label id="AlertEditable" class="text-red"></label></h3>
+            <div class="pull-right">
+
+                <a class="btn btn-success no-border" href="/ShelfStockTransfer">
+                    <i class="fa fa-fw fa-history"></i>List
+                </a>
+
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="SelApprovedBy" />
+            <input type="hidden" id="VoucherType" value="Quotation" />
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" })
+                    <div class="input-group input-group-sm">
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.createdDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @onchange = "nodays()" })
+                    </div>
+                </div>
+                @if (ViewBag.transtyp == "Purchase Return")
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" checked id="radioPurchaseReturn" value="Purchase Return" /> Purchase Return</label>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" id="radioPurchaseReturn" value="Purchase Return" /> Purchase Return</label>
+                    </div>
+                }
+                @if (ViewBag.transtyp == "Open")
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" checked id="radioOpenStock" value="Open" /> Opening Stock</label>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" id="radioOpenStock" value="Open" /> Opening Stock</label>
+                    </div>
+                }
+                @if (ViewBag.transtyp == "Stock Transfered")
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" checked id="radioStockTransfer" value="StockTransfer" /> Stock Transfer</label>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" id="radioStockTransfer" value="StockTransfer" /> Stock Transfer</label>
+                    </div>
+                }
+                @if (ViewBag.transtyp == "Sales Return")
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" checked id="radioSalesReturn" value="Sales Return" /> Sales Return</label>
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group col-md-2" style="height:34px!important;margin-top:22px;">
+                        <label class="control-label"><input type="radio" class="check" name="checks" id="radioSalesReturn" value="Sales Return" /> Sales Return</label>
+                    </div>
+                }
+                @*@foreach (transType option in Enum.GetValues(typeof(transType)))
+        {
+            <div class="form-group col-md-2"style="height:34px!important;margin-top:22px;">
+                <label>
+                    @Html.RadioButtonFor(model => model.transtyp, option) @option
+                </label>
+            </div>
+        }*@
+            </div>
+            <div class="row">
+                <div class="col-md-5 myDiv" style="border:1px solid black;padding:10px;border-radius:4px;">
+                    <div class="form-group col-md-4">
+                        @Html.Label("Material Center", null, new { @class = "control-label temp2" })
+                        @Html.DropDownListFor(model => model.Frommcid, (SelectList)ViewBag.mc, new { @id = "ddlMC", @class = "form-control select2", @required = "required", tabindex = 2 })
+                    </div>
+                    <div class="col-md-4 form-group">
+                        @Html.Label("Rack", null, new { @class = "control-label temp2" })
+                        @Html.DropDownListFor(model => model.Fromrackid, (SelectList)ViewBag.rk, new { @id = "ddlRack", @class = "form-control select2", @required = "required", tabindex = 2 })
+                    </div>
+                    <div class="col-md-4 form-group">
+                        @Html.Label("Shelf", null, new { @class = "control-label temp2" })
+                        @Html.DropDownListFor(model => model.Fromshelfid, (SelectList)ViewBag.slf, new { @id = "ddlShelf", @class = "form-control select2", @required = "required", tabindex = 2, @onchange = "" })
+                    </div>
+                </div>
+                <div class="col-md-2 text-center myDiv"><i class="fa fa-long-arrow-right fa-4x" aria-hidden="true"></i></div>
+                <div class="col-md-5" style="border:1px solid black;padding:10px;border-radius:4px;">
+                    <div class="form-group col-md-4">
+                        @Html.Label("Material Center", null, new { @class = "control-label temp2" })
+                        @Html.DropDownListFor(model => model.Tomcid, (SelectList)ViewBag.mc2, new { @id = "ddlMC2", @class = "form-control select2", @required = "required", tabindex = 2 })
+                    </div>
+                    <div class="col-md-4 form-group">
+                        @Html.Label("Rack", null, new { @class = "control-label temp2" })
+                        @Html.DropDownListFor(model => model.Torackid, (SelectList)ViewBag.rk2, new { @id = "ddlRack2", @class = "form-control select2", @required = "required", tabindex = 2 })
+                    </div>
+                    <div class="col-md-4 form-group">
+                        @Html.Label("Shelf", null, new { @class = "control-label temp2" })
+                        @Html.DropDownListFor(model => model.Toshelfid, (SelectList)ViewBag.slf2, new { @id = "ddlShelf2", @class = "form-control select2", @required = "required", tabindex = 2 })
+                    </div>
+                </div>
+
+            </div>
+
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists" width="40%">Item <i class="text-danger">*</i></th>
+                                <th class="text-center" width="27%">Unit</th>
+                                <th class="text-center" width="25%">Qty <i class="text-danger">*</i></th>
+                                <th class="text-center">Rate <i class="text-danger">*</i></th>
+                                <th class="text-center">Sub Total</th>
+                                <th class="text-center">Discount</th>
+                                <th class="text-center">TAX</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-center">Warranty</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemQty"></label>
+                                </td>
+                                <td class="text-right"></td>
+                                <td class="text-right">
+                                    <label id="SubTotal"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="ItemDisc"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="total_tax_amount"></label>
+
+                                </td>
+                                <td class="text-right">
+                                    <label id="total"></label>
+
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+
+                    </div>
+                    <div class="col-md-8">
+
+                        <div class="form-group col-md-12" hidden>
+                            @Html.Label("Documents", null, new { @class = "control-label" })
+                            <div class="file-loading">
+                                <input id="input-24" name="input24[]" type="file" multiple>
+                            </div>
+                        </div>
+                        @foreach (var arr in @ViewBag.image)
+                        {
+                            check = "\"/uploads/quotationdocument/" + arr.FileName + "\"";
+                            strImage += check + ',';
+
+                            partialconfig += "{ key:" + arr.qutid + " }" + ',';
+
+                        }
+
+
+
+                        <div class="form-group pull-right">
+                            <button type="submit" id="save" class="btn btn-success">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                            </button>
+
+
+                            <button type="reset" class="btn btn-warning" onclick="@("window.location.href='/WorkCompletion/Index'");">Cancel</button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+@Html.Partial("../Common/_ModalCustomer")
+@*@Html.Partial("_Invoice")*@
+@Html.Action("invoice", "InvoiceLayout", new { type = "WorkCompletion" })
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+
+}
+<style>
+    .itemnote {
+        height: 200px !important;
+    }
+</style>
+
+@section scripts{
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    <script src="~/Content/js/WorkCompletion.js"></script>
+    <script type="text/javascript">
+        var getQueryString = function (field, url) {
+            var href = url ? url : window.location.href;
+            var id = href.substring(href.lastIndexOf('/') + 1);
+            return id ? id : null;
+        }
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        //function temp(obj) {
+        //    var taskid = $(obj).val();
+        //    $.ajax({
+        //        url: '/WorkCompletion/getText',
+        //        dataType: 'json',
+        //        data: { CustId: taskid },
+        //        cache: true,
+        //        success: function (data) {
+        //            $('.wysihtml5-sandbox').contents().find('body').html(data);
+        //        }
+        //    });
+        //    //var taskid = $(obj).val();
+        //    //alert(taskid);
+        //    //var temdata=$("#ddlTemplates").text();
+        //    //$("#TermsCondition").text(temdata);
+        //}
+        $(document).ready(function () {
+            $('#ddlMC2').select2({
+                tags: true,
+                placeholder: 'Select MC',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/RackMC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            var McID2 = $('#ddlMC2').val();
+            var RackID2 = $('#ddlRack2').val();
+            $('#ddlRack2').select2({
+                tags: true,
+                placeholder: 'Select Rack',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchRack",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: McID2,
+                            x: " Select Rack"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('#ddlShelf2').select2({
+                tags: true,
+                placeholder: 'Select shelf',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchShelf",
+                    dataType: 'json',
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: McID2,
+                            RACKid: RackID2,
+                            x: " Select Shelf"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('#ddlMC').select2({
+                tags: true,
+                placeholder: 'Select MC',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/RackMC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            var McID = $('#ddlMC').val();
+            var RackID = $('#ddlRack').val();
+            $('#ddlRack').select2({
+                tags: true,
+                placeholder: 'Select Rack',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchRack",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: McID,
+                            x: " Select Rack"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('#ddlShelf').select2({
+                tags: true,
+                placeholder: 'Select shelf',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchShelf",
+                    dataType: 'json',
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: McID,
+                            RACKid: RackID,
+                            x: " Select Shelf"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            if ('@ViewBag.transtyp' != "Stock Transfered") {
+                $('.myDiv').hide();
+
+            } else {
+                $('.myDiv').show();
+
+            }
+            //nodays();
+            $('#SaleType option:contains(POS)').remove();
+            HType();
+            DateSet();
+            //CKEDITOR.replace('TermsCondition');
+            //$(function () {
+            //    $(".textarea").wysihtml5();
+            //});
+            GetBranch();
+            searchItem();
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+
+            CallCustomer();
+            CallEmployee();
+            CallApprovedBy();
+            $("#SelApprovedBy").val($("#ddlApprovedBy").val());
+
+            $("#ddlCustomer").select2({
+                placeholder: 'Search Customer by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchCustomer",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            y: "quot",
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#ddlTemplates").select2({
+
+                placeholder: 'Search Task Name',
+                minimumInputLength: 0,
+                ajax: {
+
+                    url: "/WorkCompletion/SearchTemplates",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            customer: $("#ddlCustomer").val(),
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlQuote").select2({
+                placeholder: 'Search QuotationType',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/QuotationType/SearchType",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "Select Quotation Type"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            function Getlead() {
+                var CustomerId = $('#ddlCustomer').val();
+                if (CustomerId != null) {
+                    $.ajax({
+                        url: '/Customer/getlead',
+                        type: "GET",
+                        dataType: "JSON",
+                        data: { CustID: CustomerId },
+                        success: function (result) {
+                            $("#ddlcustomer").val(result.customerid);
+                        }
+                    });
+                }
+            }
+            ////bind to project
+            var cust = $("#ddlCustomer").val();
+            if (cust != null) {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project Code Or Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProjectByCustomer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                customer: cust,
+                                x: "--No Project--"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                    templateResult: projectFormatResult,
+                    templateSelection: projectFormatSelection,
+                });
+            }
+
+            var quotID = getQueryString('');
+            if (quotID != null) {
+                $.ajax({
+                    url: '/ShelfStockTransfer/GetItems',
+                    dataType: 'json',
+                    data: { QuoteEntryID: quotID },
+                    cache: true,
+                    success: function (data) {
+                        $.each($.parseJSON(data), function (i, item) {
+                            addrow('addinvoiceItem', 'quot',1, item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+
+                        addrow('addinvoiceItem', 'quot', '', '0.00', '0.00', '0');
+                        $(function () {
+
+                        });
+                        $(function () {
+                            $("#TermsCondition").wysihtml5();
+                        });
+                        $(function () {
+                            //$("#Remarks").wysihtml5();
+                        });
+                    }
+                });
+
+                $.ajax({
+                    url: '/Workcompletion/GetWCBillSundry',
+                    dataType: 'json',
+                    data: { quoteID: quotID },
+                    cache: true,
+                    success: function (data) {
+                        $.each(data, function (i, bs) {
+                            addbillsundry('addbillsundry', 'quot', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
+                        });
+                        addbillsundry('addbillsundry', 'quot', '0.00', '', '0.00', '');
+                        grandtotalcalculation();
+                    }
+                });
+                GetCustomer();
+            }
+
+            chkEditEditable("@ViewBag.ChkApp");
+        });
+        $('body').on('change', '#ddlMC', function (e) {
+            $("#ddlShelf").val("0");
+            $("#ddlRack").html('');
+            $("#ddlShelf").html("");
+            var mcID = $(this).val();
+            $('#ddlRack').select2({
+                tags: true,
+                placeholder: 'Select Rack',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchRack",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: mcID,
+                            x: " Select Rack"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            //Calling function
+            //SortManufacturer(RackID);
+            //SortModel(ShelfID, RackID);
+        });
+        $('body').on('change', '#ddlRack', function (e) {
+            $("#ddlShelf").html("");
+            var rackID = $(this).val();
+            var mcID2 = $("#ddlMC").val();
+            $('#ddlShelf').select2({
+                tags: true,
+                placeholder: 'Select shelf',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchShelf",
+                    dataType: 'json',
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: mcID2,
+                            RACKid: rackID,
+                            x: " Select Shelf"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        $('body').on('change', '#ddlMC2', function (e) {
+            $("#ddlShelf2").val("0");
+            $("#ddlRack2").html('');
+            $("#ddlShelf2").html("");
+            var mcID2 = $(this).val();
+            $('#ddlRack2').select2({
+                tags: true,
+                placeholder: 'Select Rack',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchRack",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: mcID2,
+                            x: " Select Rack"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            //Calling function
+            //SortManufacturer(RackID);
+            //SortModel(ShelfID, RackID);
+        });
+        $('body').on('change', '#ddlRack2', function (e) {
+            $("#ddlShelf2").html("");
+            var rackID2 = $(this).val();
+            var mcID2 = $("#ddlMC2").val();
+            $('#ddlShelf2').select2({
+                tags: true,
+                placeholder: 'Select shelf',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ShelfStockTransfer/SearchShelf",
+                    dataType: 'json',
+                    delay: 50,
+
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            MCid: mcID2,
+                            RACKid: rackID2,
+                            x: " Select Shelf"
+                        };
+                    },
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        $('.check').change(function () {
+            if ($(this).val() != 'StockTransfer') {
+                $('.myDiv').hide();
+            } else {
+                $('.myDiv').show();
+            }
+
+        });
+        function loadtaskitems2() {
+            var rackid2 = $("#ddlRack").val();
+            var mcid2 = $("#ddlMC").val();
+            var shelfid2 = $("#ddlShelf").val();
+
+            // window.location.href = "/ShelfStockTransfer/Create?Rid=" + rackid + "&Sid=" + shelfid + "&MCid=" + mcid;
+
+            $('#normalinvoice').show();
+            $.ajax({
+                url: '/ShelfStockTransfer/GetSSTItems',
+                dataType: 'json',
+                data: { RID: rackid2, SID: shelfid2, MCID: mcid2 },
+                cache: true,
+                success: function (data) {
+                    $(".item_").remove();
+                    $('#addinvoiceItem').html('');
+                    $.each(data, function (i, item) {
+                        var tempCust = item.Customer;
+                        //$('#ddlCustomer').removeClass("select2");
+                        //$('#ddlCustomer option[value=' + tempCust + ']').attr('selected', true);
+                        //CallCustomer();
+
+                        var taxamt = item.SellingPrice * (item.Tax / 100);
+                        addrow('addinvoiceItem', 'sales', 1, item.ItemUnit, 0.00, '', item.itemQuantity, item.ItemID, item.ItemCode, item.ItemName, 0.00, 0.00, item.ItemWithCode, 0.00, 0, "", item);
+                    });
+                    addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
+                    // $(".barcode").val("");
+                    //$(".barcode").focus();
+                }
+            });
+        }
+
+         $('body').on('change', '#ddlCustomer', function (e) {
+
+         Count = 0;
+            var CustId = $('#ddlCustomer').val();
+            CustId = $(this).val();
+            @*var SId ='@ViewContext.RouteData.Values["SId"]';
+            alert(SId);*@
+            if (CustId != null) {
+
+             //Calling function to retrieve PMaintenance details based on AmcID
+             $.ajax({
+                 url: '/Quotation/GetFillDetails',
+                 dataType: 'json',
+                 data: { CustId: CustId  },
+                 cache: true,
+                 success: function (data) {
+
+
+                     CallEmployee();
+
+                    $('#ddlEmployee').select2('destroy');
+
+                         var opt = '<option value="' + data[0].ddlEmployee + '" selected>' + data[0].ddlEmployee + '</option>'
+
+
+                         $("#ddlEmployee").append(opt);
+                     $("#ddlEmployee").val(data[0].ddlEmployee);
+                     CallEmployee();
+
+                 }
+             });
+
+            //To Clear fetched data
+            $("#PDate").val("@ViewBag.NewDate");
+            $("#Notes").val("");
+            $("#AssignTypeAll").val(0);
+            CallTeam();
+            $("#AssignedUsers").val(0);
+            AssignedUsersSelect2();
+
+             oTable.draw();
+         }
+        });
+
+
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            var cust = $("#ddlCustomer").val();
+            if (cust != null) {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project Code Or Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProjectByCustomer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                customer: cust,
+                                x: "--No Project--"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            }
+        });
+        //sales type change
+        $('body').on('change', '#SalesType', function (e) {
+            var type = $(this).val();
+            ptypechange(type);
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+
+
+
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#projectform', function (e) {
+            e.preventDefault();
+            var url = $('#projectform')[0].action;
+            var data = $('#projectform').serialize();
+            createajax(url, data, '#modal-project');
+        });
+
+        function GetCustomer() {
+            var CustomerId = $('#ddlCustomer').val();
+            if (CustomerId != null) {
+                $.ajax({
+                    url: '/Customer/GetCustomerEmailById',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { CustID: CustomerId },
+                    success: function (result) {
+                        $("#CustomerEmail").val(result.EmailId);
+                    }
+                });
+            }
+        }
+        $('#Openingstock').change(function () {
+            // Check if the checkbox is checked
+            if ($(this).is(':checked')) {
+                // If checked, show the div
+                $('.myDiv').hide();
+            } else {
+                // If not checked, hide the div
+                $('.myDiv').show();
+            }
+        });
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        $('#quotationform').on('submit', function (e) {
+            e.preventDefault();
+
+            if ($("#quotationform").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+
+                var parameters = {};
+                var VrNo = $('#VoucherNo').val();
+                var CreatedDate = $('#createdDate').val();
+                var Rack = $('#ddlRack').val();
+                var shelf = $('#ddlShelf').val();
+                var mc = $('#ddlMC').val();
+                var Rack2 = $('#ddlRack2').val();
+                var shelf2 = $('#ddlShelf2').val();
+                var mc2 = $('#ddlMC2').val();
+                var stockable = $('input[id="Openingstock"]').prop('checked');
+                var sstID = getQueryString('');
+                var selectedRadio = $('input[name="checks"]:checked').val();
+                var Layout = $('#ddlPrintlayout').val();
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+                var HTMLtblbs = {
+                    getData: function (table) {
+                        var bsData = [];
+                        table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                            var cols = {};
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                itid = $(this).attr('data-name').split(' ')[0];
+                                itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                                cols[itid] = itval;
+
+                            });
+                            bsData.push(cols);
+                        });
+                        return bsData;
+                    }
+                }
+                var bsData = HTMLtblbs.getData($('#billsundry'));
+                parameters.bsmodel = bsData;
+
+                var quotEntry = [CreatedDate, Rack, shelf, mc, Rack2, shelf2, mc2, stockable, VrNo, sstID, selectedRadio]
+
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+
+                parameters.array = data;
+                parameters.quotdata = quotEntry;
+                parameters.action = fnval;
+
+                if (fnval == "save" || fnval == "print" || fnval == "download" || (fnval == "sendmail" && custMail != "")) {
+                    $.ajax({
+                        async: true,
+                        cache: false,
+                        dataType: "json",
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        url: "/ShelfstockTransfer/Edit",
+                        data: JSON.stringify(parameters),
+                        beforeSend: function () {
+                            $("button").prop('disabled', true); // disable button
+                        },
+                        success: function (e) {
+
+                            var fileUpload = $("#input-24").get(0);
+                            var files = fileUpload.files;
+
+                            // Create FormData object
+                            var fileData = new FormData();
+
+                            // Looping over all files and add it to FormData object
+                            for (var i = 0; i < files.length; i++) {
+                                fileData.append(files[i].name, files[i]);
+                            }
+
+                            fileData.append('id', e.qtnid);
+
+
+                            $.ajax({
+                                url: '/Quotation/UploadFiles',
+                                type: "POST",
+                                contentType: false, // Not to set any content header
+                                processData: false, // Not to process data
+                                data: fileData,
+                                success: function (result) {
+                                    if (fnval == "print") {
+                                        PrintInvoice(e, "", "inactive", "Quotation");
+                                        setTimeout(function () { window.location.href = '/ShelfStockTransfer/ShelfStockTransferCreate'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+
+                                    }
+                                    else if (fnval == "download") {
+                                        if ($('#showzeal').prop('checked') == true) {
+                                            var Item = 1;
+                                            window.location.href = '/ShelfStockTransfer/Download/' + e.qtnid + "?ItemId=" + Item;
+                                        }
+                                        else {
+                                            window.location.href = '/ShelfStockTransfer/Download/' + e.qtnid;
+                                        }
+
+                                        $("button").prop('disabled', false);
+                                    }
+                                    else {
+                                        $('.ajax_response', res_success).text(e.message);
+                                        $('.AlertDiv').prepend(res_success);
+                                        setTimeout(function () { window.location.href = '/ShelfStockTransfer/ShelfStockTransferCreate'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+
+                                    }
+
+                                }
+
+                            });
+
+
+
+
+                            if (e.status == true) {
+                                if (fnval == "print") {
+                                   //printInvoice(e, "", "inactive", "Quotation");
+                                }
+                                else {
+                                  //$('.ajax_response', res_success).text(e.message);
+                                   //('.AlertDiv').prepend(res_success);
+                                }
+                                // window.location.href = '@Url.Action("Create", "Quotation")';
+                             //   setTimeout(function () { window.location.href = '/Quotation/Create'; }, '@TimeOut');//{ location.reload(); }, 'TimeOut');
+
+                            } else {
+                                $('.ajax_response', res_danger).text(e.message);
+                                $('.AlertDiv').prepend(res_danger);
+                                $("button").prop('disabled', false); // enable button
+                            }
+
+                        }
+                    });
+                } else {
+                    $('.ajax_response', res_danger).text("Please Enter Email Address");
+                    $('.AlertDiv').prepend(res_danger);
+                    $('#CustomerEmail').focus();
+                }
+
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //keep stock change
+        function chgkeepstok() {
+            //$('#KeepStock').click(function () {
+            if ($('#KeepStock').prop('checked') == true) {
+                $('.StockSection').show();
+            }
+            else {
+                $('.StockSection').hide();
+            }
+            //  });
+        }
+        AddItemPopUp();
+        ProjectPopup();
+        CustomerPopup();
+
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+        function HType() {
+            var Type = $('#SaleType').val();
+            var method;
+            if (Type == 2) {
+                $('#HireType').show();
+                method = "Hire";
+            }
+            else {
+                $('#HireType').hide();
+                method = "Sale";
+            }
+            saletypechange(Type, method);
+
+            ////hirerate
+            //var Stype = (($('#SaleType').val()) == 1) ? "Sale" : "Hire";
+
+            //$.ajax({
+            //    url: '/Quotation/GetHireInvoiceNum',
+            //    data: { hiretype: Stype },
+            //    type: "POST",
+            //    dataType: "JSON",
+            //    success: function (Hresult) {
+            //        $('#BillNo').val(Hresult);
+            //    }
+            //});
+
+        }
+        //$('body').on('change', '#ddlHType', function (e) {
+        //    //var type = $(this).val();
+        //    var method = "Hire";
+        //    var type = $('#ddlHType').val(); alert(method);
+        //    saletypechange(type, method);
+        //});
+        //function HType() {
+        //    var Type = $('#SaleType').val();
+        //    if (Type == 2) {
+        //        $('#HireType').show();
+        //    }
+        //    else {
+        //        $('#HireType').hide();
+        //    }
+        //    ptypechange(Type);
+        //}
+        //function DateSet() {
+        //    var ndate = $('#FromDate').val();
+
+        //    $('#ToDate').datepicker({
+        //        startDate: ndate,
+        //        format: 'dd-mm-yyyy',
+        //        autoclose: true,
+        //        allowInputToggle: true
+        //    });
+
+        //}
+    </script>
+    <script type="text/javascript">
+
+        function nodays() {
+
+
+            var date1 = $("#QuotDate").val();
+            var dateParts = date1.split("-");
+            var dateObject1 = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+            var date2 = $("#quotationexpdate").val();
+            var dateParts2 = date2.split("-");
+            var dateObject2 = new Date(+dateParts2[2], dateParts2[1] - 1, +dateParts2[0]);
+            //var Difference_In_Time = dateParts2.getTime() - dateObject1.getTime();
+
+
+            // var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+            const diffTime = Math.abs(dateObject2 - dateObject1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            $("#QuotValidity").val(diffDays);
+
+        }
+
+       $("#input-24").fileinput({
+            initialPreview: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: false,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'pdf',
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+            deleteUrl: "/ProTask/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+
+    </script>
+}

@@ -1,0 +1,376 @@
+
+@{
+    ViewBag.Title = "Search Expense";
+    ViewBag.SubTitle = "Report";
+    ViewBag.Active = "Reports";
+
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Expense</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <div class="form-group col-md-4" id="creditsale">
+                @Html.Label("Landlord", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlLandlord", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            </div>
+            <div class="form-group col-md-4" id="creditsale">
+                @Html.Label("Property", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlProperty", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                @*<input type="button" class="btn btn-default" value="Reset" data-dismiss="modal" id="btnreset" />*@
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="SReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Expense Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        @*<td>Landlord</td>*@
+                        <td>Property</td>
+                        <td>Expense</td>
+                        <td>Remark</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                @*<tfoot>
+                        <tr>
+                            <th>Total:</th>
+                                <th colspan="4"></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </tfoot>*@
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/Property")
+
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#SReport').hide();
+            //$('#cashsale').hide();
+            // $('select[name^="ddlType"] option[value="0"]').attr("selected", "selected");
+            
+            $("#ddlProperty").select2({
+                placeholder: 'Search Owner by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/PropertyMain/SearchPropertyAll",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlLandlord").select2({
+                placeholder: 'Search Landlord Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Property/Landlords/SearchLandlordAll",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All",
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+                "ordering": false,
+                //"autoWidth": false,
+                //"columnDefs": [
+                //{ "width": "70px", "targets": 4 }],
+                "ajax": {
+                    "url": '/PropertyReports/GetExpense',
+                    "data": function (data) {
+                        data.landlord = $('#ddlLandlord').val();
+                        data.Property = $('#ddlProperty').val();
+                        data.fromdate = $('#From').val();
+                        data.todate = $('#To').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                     {
+                         "data": "Id", "name": "Id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    //{ "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                    { "data": "Name", "name": "Name" },
+                    { "data": "Expense", "name": "Expense" },
+                    { "data": "Remar", "name": "Remar" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Maintance Contract-Report';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Maintance Contract Report</h4></th></tr>' +
+                        ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Maintance Contract-Report';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Maintance Contract Report \n' +
+                         'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Maintance Contract-Report';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Maintance Contract Report \n' +
+                         'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.content[1].table.widths = [
+                        '10%',
+                        '10%',
+                        '10%',
+                        '10%',
+                        '15%',
+                        '10%',
+                        '15%',
+                        ]
+
+                        //doc.styles['td:nth-child(4)'] = {
+                        //    width: '15%',
+                        //    'max-width': '15%'
+                        //}
+
+                        //doc['styles'] = {
+                        //    tableHeader: {
+                        //        width:'10%',
+                        //        alignment: 'center'
+                        //    }
+                        //};
+
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+
+
+                },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#SReport').show();
+            });
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+
+    </script>
+}

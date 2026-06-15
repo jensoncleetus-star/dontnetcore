@@ -1,0 +1,283 @@
+﻿@model QuickSoft.Models.SalesEntry
+@{
+    ViewBag.Title = "SalesEntryList";
+    ViewBag.SubTitle = "POS";
+    ViewBag.Active = "Customer";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+   
+}
+@if (User.IsInRole("Dev") || User.IsInRole("POS Delete"))
+{
+    userRole = true;
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">SalesEntry</h3>
+        <div class="pull-right">
+        @if (User.IsInRole("Dev") || User.IsInRole("POS Entry"))
+        {
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="/POSRES/Create">
+                <i class="glyphicon glyphicon-plus"></i> POS
+            </a>
+        }
+        </div>
+    </div>
+@using (Html.BeginForm("DeleteAllSales", "POS", FormMethod.Post, new { id = "delallform", role = "form" }))
+{
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="SalesTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">SINo</td>
+                    <td data-priority="1">InvoiceNo</td>
+                    <td data-priority="3">Customer</td>
+                    <td>Date</td>
+                    <td data-priority="5">TaxAmount</td>
+                    <td data-priority="4">TotalAmount</td>
+
+                    <td data-priority="5">Cashier</td>
+                    <td data-priority="5">Payment Type</td>
+                    <td data-priority="5">Order Type</td>
+
+                    <td data-priority="2">Action</td>
+                    <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    if (User.IsInRole("Dev") || User.IsInRole("POS Delete"))
+    {
+        <div class="box-footer text-right col-md-12" id="sub">
+            <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+        </div>
+    }
+}
+</div>
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+        var oTable = $('#SalesTable').DataTable({
+                       "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 5000,
+            "bLengthChange": false,
+            cache: false,
+            responsive: true,
+            "ajax": {
+                "url": '/POSRES/GetSalesEntry',
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[3, "desc"]],
+            
+            "columns": [
+                     {
+                         "data": "SalesEntryId", "name": "SalesEntryId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "BillNo", "name": "BillNo" },
+                 {
+                     "name": "Customer",
+                     "data": function (data) { return data.Customer; }
+                 },
+                { "data": "SEDate", "name": "SEDate", "render": function (data) { return convertToDate(data); } },
+               
+                { "data": "SETaxAmount", "name": "SETaxAmount", render: $.fn.dataTable.render.number(",", ".", 2) },
+                { "data": "SEGrandTotal", "name": "SEGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2) },
+               
+                { "data": "user", "name": "user" },
+                { "data": "paymenttype", "name": "paymenttype" },
+                {
+                    "name": "ordertype", "data": function (data) {
+                        //if (data.ordertype.ot == null)
+                        //    return "";
+                        //else
+                        //    data.ordertype.ot;
+                        return "";
+                    }
+                    },
+
+               
+                {
+                    "name": "SalesEntryId", "data": function (data) {
+                        var rest = "";
+
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("View POS"))
+                            {
+                                actData += "<a class=\"details\" href=\"/POSRES/Details/'+ data.SalesEntryId +'\" title=\"View POS Entry\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("POS Edit"))
+                            {
+                                actData += "<a href=\"/POSRES/Edit/'+ data.SalesEntryId +'\" title=\"Edit POS Entry\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                            }
+                                 if (User.IsInRole("Dev") || User.IsInRole("POS Edit"))
+                            {
+                                actData += "<a href=\"/CreditSale/Edit/'+ data.SalesEntryId +'\" title=\"Edit normal sales entry\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("POS Delete"))
+                            {
+                                actData += "<a class=\"modal-delete\" href=\"/POSRES/Delete/'+ data.SalesEntryId +'\" title=\"Delete POS Entry\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("POS Download"))
+                            {
+                                actData += "<a class=\"modal-link-download\" href=\"/POSRES/Download/'+ data.SalesEntryId +'\" title=\"Download POS Entry\"><i class=\"fa fa-lg fa fa-download\" ></i></a> ";
+                            }
+                        }
+                        return rest = '@Html.Raw(actData)';
+                    }
+                },
+                {
+                    "name": "SalesEntryId", "data": function (data) {
+                        var rest = "";
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("POS Delete"))
+                            {
+                                delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.SalesEntryId +'></input>";
+                            }
+                        }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ], "drawCallback": function (settings) {
+                var table = $('#SalesTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(10);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(10);
+            column1.visible(false);
+        }
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        function isTicked() {
+            //check "select all" if all checkbox items are checked
+            if ($('.checkbox:checked').length == $('.checkbox').length && ($('.checkbox:checked').length > 0)) {
+                $("#select_all").prop('checked', true);
+            }
+            else {
+                $("#select_all").prop('checked', false);
+            }
+        }
+
+        /* function for view detail popup */
+        $('#SalesTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#SalesTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+    </script>
+}

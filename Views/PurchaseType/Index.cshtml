@@ -1,0 +1,158 @@
+﻿@model QuickSoft.Models.PurchaseType
+@{
+    ViewBag.Title = "Purchase Type List";
+    ViewBag.SubTitle = "Purchase Type";
+    ViewBag.Active = "Master";
+    //string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Purchase Types</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create PurchaseType"))
+                {
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border modal-create" href="/PurchaseType/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create Purchase Type
+            </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr>
+                    <td data-priority="2">S/N</td>
+                    <td data-priority="1">Name</td>
+                    <td data-priority="2">Tax Type</td>
+                    <td data-priority="1"> Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/PurchaseType/getData',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [3],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "Id", "name": "Id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Name", "name": "Name" },
+                 { "data": "TaskTypeName", "name": "TaskTypeName" },
+                  {
+                      "name": "editable", "data": function (data) {
+                          if (data.editable == 0) {
+                              var action = "";
+                              //if (User.IsInRole("Dev") || User.IsInRole("Edit PurchaseType")) {
+                                  action += '<a class="modal-edit" href="/PurchaseType/Edit/' + data.Id + '" title="Edit PurchaseType"><i class="fa fa-lg fa-edit" ></i></a> ';
+                              //}
+                              //if (User.IsInRole("Dev") || User.IsInRole("Delete PurchaseType")) {
+                                  action += '<a class="modal-delete" href="/PurchaseType/Delete/' + data.Id + '" title="Delete PurchaseType"><i class="fa fa-lg fa-trash" ></i></a>';
+                              //}
+                              return action;
+                          } else {
+                              return null;
+                          }
+                      }
+                  },
+            ]
+        });
+
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+            //  createajax(url, data, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');            
+        });
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+            Table.draw(false);
+        });
+
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            GetBranch();
+        });
+
+        $('#modal-edit').on('shown.bs.modal', function (e) {
+            GetBranch();
+        });
+
+    </script>
+}

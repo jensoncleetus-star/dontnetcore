@@ -1,0 +1,418 @@
+@model QuickSoft.Models.AssetAdjustments
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Asset Adjustment";
+    ViewBag.Active = "Utility";
+    string actData = "";
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Asset Adjustment - List</h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create Stock Adjustment"))
+            {*@
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/StockAdjustment/Createassetadj">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            @*}*@
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liasset" />Asset Name</li>
+                        <li><input type="checkbox" id="liquantity" />Quantity</li>
+                        <li><input type="checkbox" id="liadjtype" />Adjustment Type</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">                               
+                                <div class="form-group col-md-3 col-xs-12" id="searchasset">
+                                    @Html.Label("Asset Name", null, new { @class = "control-label" })                                   
+                                    @Html.DropDownList("ddlAssets", (SelectList)ViewBag.Assets, new { id = "ddlAssets", @class = "form -control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-3 col-xs-12" id="searchquantity">
+                                    @Html.Label("Quantity", null, new { @class = "control-label" })
+                                    @Html.TextBox("Quantity", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-3 col-xs-12" id="searchadjtype">
+                                    @Html.Label("Adjustment Type", null, new { @class = "control-label" })
+                                    @Html.DropDownList("AdjType", (SelectList)ViewBag.AdjustmentType, new { @class = "form-control" })
+                                </div>
+                                <div class="form-group col-md-2 col-xs-12" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2 col-xs-12" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">#</td>
+                    <td data-priority="1">Asset Name</td>
+                    <td data-priority="2">Date</td>
+                    <td data-priority="3">Quantity</td>
+                    <td data-priority="4">Adjustment Type</td>
+                    <td data-priority="5">Purchase Rate</td>
+                    <td data-priority="6">Reason</td>
+                    <td data-priority="1">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+    </div>
+</div>
+
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+
+@section scripts{
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+
+            //DropDown Assets    
+            $("#ddlAssets").select2({
+                placeholder: 'Search Asset by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/AssetToInventory/GetAllAssets",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x:"All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });  
+        });
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/StockAdjustment/GetAssetAdjustment',
+                "data": function (data) {
+                    data.Asset      =   $('#ddlAssets').val();
+                    data.Quantity   =   $('#Quantity').val();
+                    data.AdjType    =   $('#AdjType').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [7],
+                "orderable": false
+            }],
+            "order": [[0, "desc"]],
+            "columns": [
+                {
+                    "data": "AdjustmentId", "name": "AdjustmentId",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+
+                { "data": "Asset", "name": "Asset" },
+
+                {
+                    "data": "AdjustmentDate", "name": "AdjustmentDate",
+                    "render": function (data) {
+                        var date = convertToDate(data);
+                        return date.toString();
+                    }
+                },
+
+                {
+                    "name": "Quantity", "data": function (data) {
+                        var unit = data.Unit != null ? data.Unit : "";
+                        return data.Quantity + " " + unit;
+                    }
+                },
+
+                 {
+                     "name": "AdjustmentType",  "data": function (data) {
+                         if (data.AdjustmentType == 0) {
+                             return "Less";
+                         } else {
+                             return "Add";
+                         }
+                     }
+                 },
+                 { "data": "PurchaseRate", "name": "PurchaseRate" },
+                 { "data": "Reason", "name": "Reason" },
+                 {
+                     "data": "AdjustmentId", "name": "AdjustmentId", "render": function (data) {
+                         var rest = "";
+                             @{
+                                    //if (User.IsInRole("Dev") || User.IsInRole("Edit Asset Adjustment"))
+                                   // {
+                                        actData += "<a href=\"/StockAdjustment/EditAssetAdjustment/'+ data +'\" title=\"Edit Asset Adjustment\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                   // }
+                                   // if (User.IsInRole("Dev") || User.IsInRole("Delete Asset Adjustment"))
+                                   // {
+                                        actData += "<a class=\"modal-delete\" href =\"/StockAdjustment/DeleteAsset/'+ data +'\" title=\"Delete Asset Adjustment\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                    //}
+                              }
+                                 rest = '@Html.Raw(actData)';
+                                 return rest;
+                     }
+                 },
+            ]
+        });
+
+       //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+
+                /*******  To clear all the data entered  *********/
+                $('#ddlAssets').val(0).trigger("change");
+                $('#Quantity').val("");
+                $('#AdjType').val("").trigger("change");
+                oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+      var checkList = document.getElementById('list1');
+      /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+      checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+          if (checkList.classList.contains('visible'))
+              checkList.classList.remove('visible');
+          else
+              checkList.classList.add('visible');
+      }
+
+      /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+      $("ul li input:checkbox").click(function () {
+
+          var _show = 0;
+
+          //Item Name
+          if ($("#liasset").prop("checked") == true) {
+              $("#searchasset").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlAssets').val(0).trigger("change");
+              $("#searchasset").hide();
+             // oTable.draw();
+          }
+
+          //Quantity
+          if ($("#liquantity").prop("checked") == true) {
+              $("#searchquantity").show();
+              _show = 1;
+          }
+          else {
+              $('#Quantity').val("");
+              $("#searchquantity").hide();
+             // oTable.draw();
+          }
+
+          //Adjustment Type
+          if ($("#liadjtype").prop("checked") == true) {
+              $("#searchadjtype").show();
+              _show = 1;
+          }
+          else {
+              $('#AdjType').val("").trigger("change");
+              $("#searchadjtype").hide();
+             // oTable.draw();
+          }
+
+          if (_show == 1) {
+              $('#advsearchlist').show();
+          }
+          else {
+              $('#advsearchlist').hide();
+          }
+      });
+
+      /******* Function to hide dropdown checklist while clicking outside it ********/
+      $(document).on("click", function (event) {
+
+          var element1 = $("#list1");
+
+          if (element1 !== event.target && !element1.has(event.target).length) {
+              checkList.classList.remove('visible');
+          }
+      });
+
+    </script>
+}
+

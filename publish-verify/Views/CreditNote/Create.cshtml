@@ -1,0 +1,592 @@
+@model QuickSoft.ViewModel.CreditNoteViewModel
+@{
+    ViewBag.Title = "Create Cr.Note";
+    ViewBag.SubTitle = "Cr.Note";
+    ViewBag.Active = "Transactions";
+}
+@using (Html.BeginForm("CreateCreditNote", "CreditNote", FormMethod.Post, new { id = "creditform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Cr.Note</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit CreditNote"))
+                    {
+                        <a class="btn bg-black no-border" href="/CreditNote/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    } 
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("CreditNote List"))
+                {
+                    <a class="btn btn-success no-border" href="/CreditNote">
+                        <i class="fa fa-fw fa-history"></i> Cr.Note List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.CNDate, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.CNDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @*<div class="form-group col-md-4">
+                        @Html.Label("Credit Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCreditType", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "Cr.note Issued Against Sale", Value="2"},
+                            new SelectListItem() {Text = "Dr.note Received Against Purchase", Value="1"},
+                            new SelectListItem() {Text = "Not applicable", Value="0"},
+                        }, "Value", "Text"), new { @class = "form-control input-sm",@id= "ddlCreditType", @name = "ddlCreditType" })
+                    </div>*@
+                <div class="col-sm-4 form-group">
+                    @Html.LabelFor(m => m.PayTo, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Bank Accounts"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, "", new { id = "ddlpayto", @class = "form-control select2", @required = "required", tabindex = 5 })
+                            <span class="input-group-btn">
+                                <button type="button" href="/Master/BankAccountscreate" class="modal-create btn btn-success btn-flat" tabindex="6"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, new { id = "ddlpayto", @class = "form-control select2", @required = "required", tabindex = 5 })
+                    }
+                    <div id="Toaccbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="Toaccdetails"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4 form-group">
+                    @Html.LabelFor(m => m.PayFrom, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayFrom, (SelectList)ViewBag.Paidfrom, new { id = "ddlpayfrom", @class = "form-control select2", @required = "required", tabindex = 7 })
+                    <div id="accbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetails"></label>
+                        </div>
+                    </div>
+                </div>
+                @if (@ViewBag.CheckMail == 0)
+                {
+                    <div class="col-sm-4 form-group">
+                        @Html.Label("Email Address", null, new { @class = "control-label" })
+                        @Html.TextBoxFor(m => m.custEmailId, new { @class = "form-control" })
+                    </div>
+                }
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                        @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                    </div>
+                    <div class="form-group">
+                        @Html.TextAreaFor(model => model.CNNote, new { @class = "form-control", @placeholder = "Terms And Conditions", @rows = 4 })
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group col-md-6 no-paddingleft exp" id="spacediv">
+                    </div>
+                    <div class="form-group col-md-6 no-padding exp">
+                        @Html.Label("Amount", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.SubTotal, new { htmlAttributes = new { @id = "SubTotal", @class = "form-control text-right", @min = "0.01", @value = "0.00", tabindex = 11 } })
+                    </div>
+                    <div class="form-group col-md-6 no-paddingleft exp">
+                        @Html.Label("Tax", null, new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Tax"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(model => model.Tax, new SelectList(Model.Taxs, "TaxID", "TaxName"), new { @class = "form-control", @id = "taxss", tabindex = 12 })
+                                <span class="input-group-btn">
+                                    <a href="/Tax/Create" class="btn btn-default btntaxAdd" title="Add Tax" tabindex="13"><i class="glyphicon glyphicon-plus"></i></a>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(model => model.Tax, new SelectList(Model.Taxs, "TaxID", "TaxName"), new { @class = "form-control", @id = "taxss", tabindex = 12 })
+                        }
+                    </div>
+                    <div class="form-group col-md-6 no-padding exp">
+                        <input type="hidden" value="0.00" id="taxp" name="TaxPer" />
+                        @Html.LabelFor(model => model.TaxAmount, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.TaxAmount, new { htmlAttributes = new { @id = "TaxAmount", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 14 } })
+                    </div>
+                    <div class="form-group col-md-6  col-md-offset-6 no-padding">
+                        @Html.LabelFor(model => model.GrandTotal, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.GrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 15, @required = "required" } })
+                    </div>
+                    <div class="form-group pull-right">
+                        <button type="submit" id="save" class="btn btn-success">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success">
+                            <span class="glyphicon glyphicon-print"></span> Save And Print
+                        </button>
+                        @if (@ViewBag.CheckMail == 0)
+                        {
+                            <button type="submit" id="sendmail" class="btn btn-success">
+                                <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                            </button>
+                        }
+
+                        <button type="button" class="btn btn-warning" onclick="@("window.location.href='/CreditNote/Index'");">Cancel</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-tax" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+}
+@{
+    var Models = "modal-lg";
+    if (@ViewBag.CNBillAdj == 0)
+    {
+        @Html.Partial("../Common/_CNoteInvoiceList")
+    }
+}
+
+@Html.Partial("../Common/_ModalCreate", @Models)
+@Html.Partial("../Common/_ModalEdit", @Models)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("_Invoice")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/sale-invoice")
+    @Scripts.Render("~/js/creditnote")
+    @Scripts.Render("~/js/num2words")
+    <script type="text/javascript">
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            var CNBillAdjust = '@ViewBag.CNBillAdj';//active
+
+            //salesExecPopUp();
+            //customertype();
+            ItemCategory();
+            ItemBrand();
+
+            GetBranch();
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+
+            //CallCustomer();
+            //CallEmployee();
+            //CallMC();
+
+
+            $('#ddlpayto').select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/AllAccountsExpStkAdj",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: SelectToGroup,
+                templateSelection: ToSetFormatSelection,
+            });
+
+            var crtype = 2;//default as 1 //$('#ddlCreditType').val();
+            // paid to atribute
+            $("#ddlpayfrom").select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccountsCNote",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            ctype: crtype,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: SelectToGroup,
+                templateSelection: ToSetFormatSelection,
+            });
+
+            //if (CNBillAdjust == "1")
+            //{
+            //    $("#SubTotal").attr({ "min": .01 });
+            //}
+        });
+        // on change function of payfrom
+        $('body').on('change', '#ddlpayfrom', function (e) {
+            var accid = $(this).val();
+            var payto = $('#ddlpayto').val();
+            if (accid == payto) {
+                alert("Pay From and Pay To should be different..!!");
+            } else {
+                accbalance(accid);
+            }
+            getEmailId();
+
+        });
+        $('body').on('change', '#ddlpayto', function (e) {
+            var accid = $(this).val();
+            var payfrom = $('#ddlpayfrom').val();
+            if (accid == payfrom) {
+                alert("Pay From and Pay To should be different..!!");
+            } else {
+                accbalanceTo(accid);
+            }
+            getEmailId();
+
+        });
+
+
+        // onchange function for paying
+        $('body').on('change', '#Paying', function (e) {
+            cashBalance();
+        });
+
+        // onchange function for credit type
+        $('body').on('change', '#ddlCreditType', function (e) {
+            var crtype = 2; //$(this).val();
+            //$('#ddlpayfrom').val(null).trigger('change');
+            // paid to atribute
+            $("#ddlpayfrom").select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccountsCNote",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            ctype: crtype,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                templateResult: SelectToGroup,
+                templateSelection: ToSetFormatSelection,
+            });
+        });
+
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('div').on('click', '.btntaxAdd', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-tax');
+        });
+        //taxpopup();
+
+        // on change function credit amt
+        $('body').on('change', '#SubTotal', function (e) {
+            FindTaxNTotal();
+        });
+        // on change function taxss
+        $('body').on('change', '#taxss', function (e) {
+            FindTaxNTotal();
+        });
+
+        //cancel button for price updater
+        $('#modal-invoiceList').on('hidden.bs.modal', function () {
+            var fnval = $("#fnvalp").val();
+            //$("#SubTotal").attr({ "min": .01 });
+            //submitForm(fnval);
+        });
+        $('#modal-invoiceList').on('submit', '#PriceUpdater', function (e) {
+            e.preventDefault();
+            var url = $('#PriceUpdater')[0].action;
+            var data = $('#PriceUpdater').serialize();
+            //$("#SubTotal").attr({ "min": .01 });
+            var fnval = "invoice";
+
+            var invoices = $(".invoiceno ").val();
+            if (invoices != "") {
+                var CAmt = 0;
+                var tbody = $("#cninvoiceList tbody");
+                if (tbody.children().length > 0) {
+                    $(".credit_amount").each(function () {
+                        var subtax = $(this).val();
+                        subtax = subtax || 0;
+                        CAmt = parseFloat(CAmt) + parseFloat(subtax);
+                    });
+                }
+
+                var subAmt = $("#SubTotal").val();
+                if (subAmt >= CAmt) {
+                    submitForm(fnval);
+                } else {
+                    alert(" Credit amount should not greater than Total Amount");
+                }
+            } else {
+                submitForm(fnval);
+            }
+        });
+
+
+        $('#creditform').on('submit', function (e) {
+            e.preventDefault();
+            var CNBillAdjust = '@ViewBag.CNBillAdj';//active
+            if ($("#creditform").valid()) {
+                var CSEmail = $('#custEmailId').val();
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                if (fnval == "sendmail" && CSEmail == "") {
+                    $('.ajax_response', res_danger).text("Customer Email Address Not Found..!!");
+                    $('.AlertDiv').prepend(res_danger);
+                }
+                else {
+                    if (CNBillAdjust == "0") {//active
+                        $('#invoiceList').html('');
+                        InvoiceListTable(fnval);
+                    }
+                    else {
+                        submitForm(fnval);
+                    }
+                }
+            }
+        });
+
+        function submitForm(fnval) {
+           
+            var fnvalold = $("#fnvalp").val();
+            fnval = fnvalold == "print" ? "print" : fnval;
+
+            if ($("#creditform").valid()) {
+                var BillNo = $('#BillNo').val();
+                var CNDate = $('#CNDate').val();
+                var CreditType = 2;//$('#ddlCreditType').val();
+                var payto = $('#ddlpayto').val();
+                var payfrom = $('#ddlpayfrom').val();
+                var Remarks = $('#Remarks').val();
+                var CNNote = $('#CNNote').val();
+                var SubTotal = $('#SubTotal').val();
+                var Tax = $('#taxss').val();
+                var taxpercentage = $('#taxp').val();
+                var TaxAmount = $('#TaxAmount').val();
+                var GrandTotal = $('#GrandTotal').val();
+
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+                var parameters = {};
+                var CNEntry = [BillNo, CNDate, CreditType, payfrom, payto,
+                    CNNote, Remarks,
+                    SubTotal, Tax, taxpercentage, TaxAmount, GrandTotal, fnval]
+
+                parameters.cndata = CNEntry;
+
+                var data = HTMLtbl.getData($('#cninvoiceList'));
+                parameters.array = data;
+
+                if (fnval == "save" || fnval == "invoice" || fnval == "print") {
+                    submitFunctions(fnval, parameters);
+                } else {
+                    $('.ajax_response', res_danger).text("Customer Email Address Not Found..!!");
+                    $('.AlertDiv').prepend(res_danger);
+                }
+            }
+        }
+
+
+        function submitFunctions(fnval, parameters) {
+
+            
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/CreditNote/CreateCreditNote",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        if (fnval == "print") {
+                            //var titlename = "CreditNote";
+                            PrintInvoice(e.summary);
+                        }
+                        else {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        window.location.href = '@Url.Action("Create", "CreditNote", new { id = "", type = "" })';
+                    } else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+
+
+        @*function submitInvoice(CNId,fnval) {
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+            var parameters = {};
+            var data = HTMLtbl.getData($('#cninvoiceList'));
+            parameters.array = data;
+            parameters.cnId = CNId;
+            parameters.action = fnval;
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/CreditNote/UpdatePayTrans",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (data) {
+                    if (data.status) {
+
+                        alert(fnval);
+
+                        if (fnval == "print") {
+                            PrintInvoice(data.summary);
+                        } else {
+                            $('.ajax_response', res_success).text(data.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        window.location.href = '@Url.Action("Create", "CreditNote", new { id = "", type = "" })';
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }*@
+    </script>
+}

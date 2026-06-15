@@ -1,0 +1,129 @@
+
+@model QuickSoft.Models.VehicleModel
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Vehicle Model</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "VehicleModel", FormMethod.Post, new { id = "editform" }))
+    {
+        <script type="text/javascript">
+            $('form#popupFormColor').removeData("validator");
+            $('form#popupFormColor').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#popupFormColor'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.ModelId)
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Vehicle Type", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownList("VTId", (SelectList)ViewBag.VehicleType, "", new { id = "ddlVehicleType", @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Vehicle Manufacturer", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownList("MaId", (SelectList)ViewBag.VehicleManufacturer, "", new {id= "ddlVehicleManufacturer", @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Model, new { @class = "control-label" }) *
+                    @Html.TextBoxFor(model => model.Model, new { @class = "form-control", autofocus = "autofocus", @placeholder = "Enter Vehicle Manufaturer", @required = "required" })
+                </div>
+            </div>
+           
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" class="btn btn-info col-sm-offset-4" value="Update" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+}
+<script>
+    $(document).ready(function () {
+
+        var VTypeID = $('ddlVehicleType').val();
+        SortManufacturer(VTypeID);
+
+    $("#ddlVehicleType").select2({
+        placeholder: 'Select Vehicle Type',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/VehicleModel/SearchVehicleType",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page,
+                    x: " Select Vehicle Type"
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+    });
+
+    $('body').on('change', '#ddlVehicleType', function (e) {
+
+        //Clearing Current value of Asset Dropdown, Unit, Asset Rate & Stock Value
+        $("#ddlVehicleManufacturer").val("0");
+        $('#ddlVehicleManufacturer').html('');
+        
+
+        var VehiTypeId = $(this).val();
+
+        //Calling function to load Assets
+        SortManufacturer(VehiTypeId);
+
+    });
+    function SortManufacturer(VehicleTypeID) {
+
+        $("#ddlVehicleManufacturer").select2({
+            placeholder: 'Select Manufacturer',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/VehicleModel/SearchManufacturer",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        VTid: VehicleTypeID,
+                        x: " Select Manufacturer",
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+    }
+</script>
+
+
+

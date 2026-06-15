@@ -1,0 +1,506 @@
+@model QuickSoft.ViewModel.CrossHireReturnViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "CrossHire Return Note";
+    ViewBag.Active = "Transactions";
+    long? chkCust = Model.Supplier;
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+}
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("CreateCrossHireReturn", "CrossHireReturn", FormMethod.Post, new { id = "dvform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create CrossHire Return Note</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit CrossHireReturn"))
+                    {
+                        <a class="btn bg-black no-border" href="/CrossHireReturn/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("CrossHireReturn List"))
+                {
+                    <a class="btn btn-success no-border" href="/CrossHireReturn">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="SelApprovedBy" />
+            <input type="hidden" id="VoucherType" value="CrossHireReturn" />
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("CrossHire Return Note No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })                   
+                    @Html.HiddenFor(model => model.HrNo)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.MaterialCenter, (SelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control input-sm" })
+                    </div>
+                }
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @if (Model.Cashier != null)
+                            {
+                                @Html.DropDownListFor(m => m.Cashier, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.Cashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                            }
+                            <span class="input-group-btn">
+                                <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        if (Model.Cashier != null)
+                        {
+                            @Html.DropDownListFor(m => m.Cashier, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Cashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                        }
+                    }
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Supplier Name", null, new { @class = "control-label" }) *
+                    @if (chkCust.GetValueOrDefault() != 0)
+                        {
+                            @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Custer, new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetCustomerMail()" })
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Custer, "", new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetCustomerMail()" })
+                        }                    
+                </div>
+                @if (@ViewBag.ProjChk == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.Project, new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                                <span class="input-group-btn">
+                                    <a href="/Project/AddProject" class="modal-project btn btn-success btn-flat" title="Add Project"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                        }
+                    </div>
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.ProTask, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "", new { id = "ddlProTask", @class = "form-control select2" })
+                    </div>
+                }
+
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+                <div class="form-group col-md-2">
+                    @Html.Label("Invoice No:", null, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.Invoice, new SelectList("", ""), new { id = "ddlInvoice", @class = "form-control select2" })
+                </div>
+                @if (@ViewBag.BusinessType == "Scaffold")
+                {
+                    <div id="HireType">
+                        <div class="form-group col-sm-2">
+                            @Html.LabelFor(m => m.HireType, new { @class = "control-label" }) *
+                            @Html.DropDownListFor(m => m.HireType, (SelectList)ViewBag.HiType, "", new { id = "ddlHType", @class = "form-control select2", @required = "required", })
+                        </div>
+                    </div>
+                }
+                @if (@ViewBag.MLAHReturn == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Approved By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlApprovedBy", (SelectList)ViewBag.ApproveBy, "", new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                    </div>
+                }
+                <div class="clearfix"></div>
+            </div>
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-sm-2">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="">
+                        </div>
+                    }
+                }
+            </div>
+            <div id="ReturnTable">
+                <div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="normalinvoice">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">S/N</th>
+                                    <th class="text-center">Item <i class="text-danger">*</i></th>
+                                    <th class="text-center">Unit</th>
+                                    <th class="text-center">Qty <i class="text-danger">*</i></th>
+
+                                    <th class="text-center hide">Returned</th>
+                                    <th class="text-center hide">Damage</th>
+                                    <th class="text-center hide">Missing</th>
+
+                                    <th class="text-center hide">Delivered</th>
+                                    <th class="text-center">Received</th>
+                                    <th class="text-center">Balance </th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="addinvoiceItem"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3">
+                                        <b>Total</b>
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="ItemQty"></label>
+                                    </td>
+                                    <td class="text-right hide">
+                                        <label id="recQty"></label>
+                                    </td>
+                                    <td class="text-right hide">
+                                        <label id="damQty"></label>
+                                    </td>
+                                    <td class="text-right hide">
+                                        <label id="misQty"></label>
+                                    </td>
+                                    <td class="text-right hide">
+                                        <label id="ItemRetQty"></label>
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="ItemDvQty"></label>
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="ItemBalance"></label>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                                @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                                <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                            </div>
+                            <div class="form-group">
+                                @Html.Label("Terms and Conditions", null, new { @class = "control-label" })
+                                @Html.TextAreaFor(m => m.TermsCondition, new { @class = "form-control input-sm textarea", @rows = 8 })
+                            </div>
+                            @if (@ViewBag.PrintLayout == 0)
+                            {
+                                <div class="form-group col-sm-5">
+                                    @Html.LabelFor(model => model.PrintLayout, new { @class = "control-label" })
+                                    @Html.DropDownListFor(m => m.PrintLayout, (SelectList)ViewBag.printlay, new { id = "ddlPrintlayout", @class = "form-control select2" })
+                                </div>
+                            }
+                            <div class="form-group pull-right">
+                                <button type="submit" id="save" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                                </button>
+                                <button type="submit" id="print" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-print"></span> Save And Print
+                                </button>
+                                @if (@ViewBag.CheckMail == 0)
+                                {
+                                    <button type="submit" id="sendmail" class="btn btn-success">
+                                        <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                                    </button>
+                                }
+                                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/CrossHireReturn/Index'");">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+
+@*@Html.Partial("_Invoice")*@
+@Html.Action("invoice", "InvoiceLayout", new { type = "Hire Return" })
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+    <style>
+        .chide{
+            display:none;
+        }
+    </style>
+}
+@section scripts{
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/returnnote")
+    @Scripts.Render("~/js/num2words")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            $('#ReturnTable').hide();
+            $('#ddlHType').attr("disabled", true);
+            $("#CustomerType").prop('selectedIndex', 1);
+            searchItem();
+            ItemCategory();
+            ItemBrand();
+            GetBranch();
+            CallSupplier();
+            CallMCUser();
+            $("#ddlMC").prop('selectedIndex', 1);
+            CallEmployee();
+            CallProjectEmpty();
+            CallTask();
+            CallApprovedBy();
+
+            if ('@ViewBag.DefMc' != null && '@ViewBag.DefMc' != 0)
+            {
+                var MCDefid = '@ViewBag.DefMc';
+                $("#ddlMC").val(MCDefid).change();
+                $('#ddlMC').attr("disabled", true);
+            }
+            else
+            {
+                var MCDefid = '@ViewBag.LastMc';
+                $("#ddlMC").val(MCDefid).change();
+                $('#ddlMC').attr("disabled", false);
+            }
+
+        });
+
+        $('body').on('change', '#ddlMC', function (e) {
+            var mcval = $(this).val();
+            searchItem();
+        });
+
+
+
+        $('body').on('change', '#ddlInvoice', function (e) {
+            var invoice = $(this).val() + ',';
+            var arrinv = $(this).val();
+            var lstinv;
+            if (invoice != "") {
+                var str_array = invoice.split(',');
+                var Rev_array = str_array.reverse();
+                var count=Rev_array.length;
+                for (var a in str_array) {
+                    lstinv = str_array[a];
+                } 
+                var array = $(this).val() + ',';
+                if (lstinv != "") {
+                    $('#addinvoiceItem').html('');
+                    BindDataInvoiceCross(str_array[1], count, Rev_array);
+                }
+            }
+
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        $('#dvform').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#dvform").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                var parameters = {};
+                var HrNo = $('#HrNo').val();
+                var BillNo = $('#BillNo').val();
+                var SupplierID = $('#ddlSupplier').val();
+                var CashierId = $('#ddlEmployee').val();
+                var Date = $('#Date').val();
+                //pending
+                var Items = $('#ItemCount').val();
+                var ItemQuantity = $('#ItemQty').text();
+
+                // var tAndc = CKEDITOR.instances.TermsCondition.getData();
+                var tAndc = $('#TermsCondition').val();
+                
+                var Remarks = $('#Remarks').val();
+                var MaterialCenter = $('#ddlMC').val();
+                var Branch = $('#ddlBranch').val();
+                //var RtType = $('#RtType').val();
+                var Invoice = $('#ddlInvoice').val();
+                var Project = $('#ddlProject').val();
+                var Task = $('#ddlProTask').val();
+                var ApprovedBy = $('#SelApprovedBy').val();
+                
+                var Ref1 = "";
+                var Ref2 = "";
+                var Ref3 = "";
+                var Ref4 = "";
+                var Ref5 = "";
+                if ('@Model.FieldMap.Count' > 0) {
+                    Ref1 = $('#Ref1').val();
+                    Ref2 = $('#Ref2').val();
+                    Ref3 = $('#Ref3').val();
+                    Ref4 = $('#Ref4').val();
+                    Ref5 = $('#Ref5').val();
+                }
+                var Layout = $('#ddlPrintlayout').val();
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+                //alert($('#ddlInvoice').val());
+                var dvEntry = [SupplierID, CashierId, Date, Items, ItemQuantity,
+                tAndc,//5
+                HrNo, BillNo, Remarks, MaterialCenter, Branch, Invoice, Project, Task, ApprovedBy,
+                Ref1, Ref2, Ref3, Ref4, Ref5, Layout]
+
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+                parameters.array = data;
+                parameters.dvdata = dvEntry;
+                parameters.action = fnval; 
+                submitForm(fnval, parameters);
+            }
+        });
+
+
+        function submitForm(fnval, parameters) {
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/CrossHireReturn/CreateCrossHireReturn",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        if (fnval == "print") {
+                            PrintInvoice(e, "nobillsundry", '@ViewBag.ItemDataCheck', "CrossHireReturn");
+                        } else {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        setTimeout(function () { location.reload(); }, '@TimeOut');
+                    }
+                    else {
+
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+        });
+        $('body').on('change', '#ddlSupplier', function (e) {
+            var cus = $(this).val();
+            BindInvoicesCrossHire(cus);
+            $('#ReturnTable').hide();
+            $('#ddlProject').val(null).trigger('change');
+            CallProjectEmpty();
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            var cus = $("#ddlSupplier").val();
+            BindInvoicesCrossHire(cus);
+            $('#ReturnTable').hide();
+        });
+
+        ProjectPopup();
+    </script>
+}

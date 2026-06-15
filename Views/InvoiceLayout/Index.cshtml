@@ -1,0 +1,132 @@
+﻿@{
+    ViewBag.Title = "Invoice Field List";
+    ViewBag.SubTitle = "Invoice Field";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Invoice Field</h3>
+        <div class="pull-right">
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="/InvoiceLayout/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create Invoice Field
+            </a>
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">S/N</td>
+                    <td data-priority="2">Type</td>
+                    <td data-priority="2">Section</td>
+                    <td data-priority="2">Position</td>
+                    <td data-priority="2">Value</td>
+                    <td data-priority="4">Order</td>
+                    <td data-priority="4">Language</td>
+                    <td data-priority="4">Status</td>
+                    <td data-priority="5"> Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+    </div>
+</div>
+@*delete modal*@
+<div id="modal-delete" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content danger">
+
+        </div>
+    </div>
+</div>
+
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+                var oTable = $('#MyTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "pageLength": 50,
+                    responsive: false,
+                    "ajax": {
+                        "url": '/InvoiceLayout/getFields',
+                        "type": "POST",
+                        "datatype": "json"
+                    },
+                    "columns": [
+                             {
+                                 "data": "Id", "name": "Id",
+                                 "render": function (data, type, row, meta) {
+                                     return meta.row + meta.settings._iDisplayStart + 1;
+                                 }
+                             },
+                         { "data": "Type", "name": "Type" },
+                         { "data": "Section", "name": "Section" },
+                         { "data": "Position", "name": "Position" },
+                         { "data": "Value", "name": "Value" },
+                         { "data": "Order", "name": "Order" },
+                         { "data": "Lang", "name": "Lang" },
+                         {
+                             "name": "Status", "data": function (data) {
+                                 if (data.Status == 1) {
+                                     return '<a href="/InvoiceLayout/ChangeStatus/' + data.Id + '/active " class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                                 }
+                                 else {
+                                     return '<a href="/InvoiceLayout/ChangeStatus/' + data.Id + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                                 }
+                             }
+                         },
+                          {
+                              "name": "Id", "data": function (data) {
+                                  var rest = "";
+
+                                      @{
+                                              actData += "<a href=\"/InvoiceLayout/Edit/'+ data.Id +'\" title=\"Edit \"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                              actData += "<a class=\"modal-delete\" href=\"/InvoiceLayout/Delete/'+ data.Id +'\" title=\"Delete \"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                      }
+                                  return rest = '@Html.Raw(actData)';
+                              }
+                          },
+                    ]
+                });
+        
+
+                /* function for delete popup */
+                $('.table').on('click', '.modal-delete', function (e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href');
+                    modalshow(url, '#modal-delete');
+                });
+
+                $('#modal-delete').on('submit', '#deleteform', function (e) {
+                    e.preventDefault();
+                    var url = $('#deleteform')[0].action;
+                    var data = $('#deleteform').serialize();
+                    createajax(url, data, '#modal-delete');
+                    Table.draw(false);
+                });
+
+
+                $('.table').on('click', '.modal-change', function (e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href');
+                    modalshow(url, '#modal-change');
+                });
+                $('#modal-change').on('submit', '#changeform', function (e) {
+                    e.preventDefault();
+                    var url = $('#changeform')[0].action;
+                    var data = $('#changeform').serialize();
+                    createajax(url, data, '#modal-change');
+                    Table.draw(false);
+                });
+    </script>
+}

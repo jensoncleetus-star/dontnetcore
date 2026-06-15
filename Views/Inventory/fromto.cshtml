@@ -1,0 +1,921 @@
+@{ ViewBag.Title = "Stock Movement";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+    var url = Model;
+    var file = "";
+    string actData = "";
+    var chk = ""; }
+<style>
+    .dataTable td {
+        text-align: center !important;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Stock Report</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            @*<div class="form-group col-md-4">
+                    <label class="control-label"><input type="checkbox" value="true" name="stockable" id="stockable" />  Include non-stockable Items</label>
+                </div>*@
+            <div class="row">
+            <div class="col-md-4">
+                @Html.Label("Item", null, new { @class = "control-label col-md-4" })
+                @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm" })
+            </div>
+            @if (@ViewBag.EnableMCcheck == 0)
+            {
+<div class="form-group col-md-4">
+    @Html.Label("Material Center", null, new { @class = "control-label" })
+    @Html.ListBox("ddlMC", (MultiSelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+</div>            }
+            <div class="form-group col-md-2">
+                @Html.Label("Date From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("datefrom", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-2">
+                @Html.Label("Date To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("dateto", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                <label class="control-label"><input type="checkbox" value="true" name="zerostockitem" id="zerostockitem" />  Hide Zero Movement Stock</label>
+            </div>
+            </div>
+            <div class="row">
+                <div class="form-group col-md-6">
+                    @Html.Label("Stock Availability", null, new { @class = "control-label" })
+                    @*@Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm", @multiple = "multiple", @name = "ddlMC[]" })*@
+                    @Html.ListBox("ddlMCavailable", (MultiSelectList)ViewBag.mcavail, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-3 col-xs-6" ">
+
+
+                    @Html.Label("Forecast Date From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("datefromforecast", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off",@readonly="readonly",@style= "pointer-events: none;" })
+                        <div class="input-group-addon" style="pointer-events: none;">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-3 col-xs-6" ">
+
+
+                    @Html.Label("Forecast Date To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("datetoforecast", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="form-group col-md-12 lblpadding">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Stock Report</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="itemname" value="@ViewBag.ItemName" />
+        <input type="hidden" id="PoNo" value="@ViewBag.PartNoCheck" />
+        <input type="hidden" id="mcname" value="@ViewBag.MCSName" />
+
+        <div class="box-body">
+            <table class="display table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">S/N</td>
+                        <td data-priority="1">Item</td>
+
+                        <td data-priority="2" class="">Stock IN</td>
+                        <td data-priority="2" class="">Stock Out</td>
+                        <td data-priority="2" class="">Stock Movement</td>
+                        <td data-priority="2" class="">Curr.Stock</td>
+                        <td data-priority="2" class="">ForeCast One Month</td>
+                        <td data-priority="2" class="">ForeCast One Week</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+<div id="LastSalePur"></div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+        $('#datefrom').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#dateto').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+    $('#datefromforecast').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+    $('#datetoforecast').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+
+    $('.date').datepicker({
+        format: 'dd-mm-yyyy',
+        autoclose: true,
+        allowInputToggle: true
+    });
+
+    function getcurrstocks(itemid) {
+        $("#LastSalePur").html("");
+        var result = "";
+        var Modal = "<div id='LastPurSale' class='modal fade' role='dialog' aria-hidden='true'><div class='modal-dialog modal-large'><div class='modal-content'>" +
+            "<div class='modal-header bg-aqua'><button type='button' class='close' data-dismiss='modal' style='font-size:30px;color:red;'>&times;</button> <h4 class='text-left lastsalepur'>Stock </h4><input type='hidden' id='lps_itemName_" + result + "' value='" + result.ItemName + "'></div>" +
+            "<div class='modal-body' style='padding-top:0px;padding-right:0px;'><p class='errormsg'></p>" +
+            
+
+            "<div id='lastp-'>" +
+            "<table class='table table-bordered table-hover' id='LPurchase'><thead><tr class='bg-gray'>" +
+            "<th class='text-center'>S/N</th><th>Item Code</th><th>Item Name</th><th class='text-center'>M.Center</th><th class='text-center'>Primary Stock</th><th class='text-center'>Secondary Stock</th>" +
+
+            "</tr></thead><tbody></tbody></table></div>" +
+
+            "<div id='salepurmsg' hidden><h4 class='text-red'>Not Found..!!</h4></div>" +
+
+            "<div class='form-actions no-color text-center'>" +
+
+            "</div></div></div></div></div>";
+        $("#LastSalePur").append(Modal);
+       addstockeachmc(itemid);
+        $("#LastPurSale").modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+
+
+    }
+    function addstockeachmc(ItemId) {
+        if ($.fn.DataTable.isDataTable('#LPurchase')) {
+            $('#LPurchase').DataTable().destroy();
+        }
+
+        
+        
+        var mcs = $("#ddlMCavailable").val();
+        $('#LPurchase tbody').empty();
+
+        var oTable = $('#LPurchase').DataTable({
+             "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+
+            "bStateSave": true,
+            "pageLength": 50,
+           
+            "bLengthChange": false,
+            "paging": true,
+           
+            "ordering": true,
+                "ajax": {
+                    "url": '/Item/GetItemWisenew',
+                    "data": function (data) {
+
+                        data.itemidd = ItemId;
+                        data.ddmcc = mcs;
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+               "columns": [
+                {
+                    "data": "ItemID", "name": "ItemID",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                {
+                    "data": "itemcode", "name": "itemcode",
+                },
+                {
+                    "name": "itemname", "data": "itemname"
+                },
+                {
+                    "name": "MC", "data": "MC"
+                },
+                {
+                     "name": "pritotal", "data": function (data) {
+                        return (data.total / data.ConFactor +" "+ data.PriUnit);
+                     }
+                },
+                {
+                    "name": "total", "data": function (data) {
+                        return (data.total +" "+ data.SubUnit);
+                    }
+                },
+              
+             
+
+
+
+            ],
+            });
+
+
+        }
+    function openforcast(currstock,itemid) {
+        $("#LastSalePur").html("");
+        var result = "";
+        var Modal = "<div id='LastPurSale' class='modal fade' role='dialog' aria-hidden='true'><div class='modal-dialog modal-large'><div class='modal-content'>" +
+            "<div class='modal-header bg-aqua'><button type='button' class='close' data-dismiss='modal' style='font-size:30px;color:red;'>&times;</button> <h4 class='text-left lastsalepur'>Stock </h4><input type='hidden' id='lps_itemName_" + result + "' value='" + result.ItemName + "'></div>" +
+            "<div class='modal-body' style='padding-top:0px;padding-right:0px;'><p class='errormsg'></p>" +
+
+
+            "<div id='lastp-'>" +
+            "<table class='table table-bordered table-hover' id='LPurchase'><thead><tr class='bg-gray'>" +
+            "<th class='text-center'>S/N</th><th>Item Name</th><th class='text-center'>M.Center</th><th class='text-center'>Forecast</th>" +
+
+            "</tr></thead><tbody></tbody></table></div>" +
+
+            "<div id='salepurmsg' hidden><h4 class='text-red'>Not Found..!!</h4></div>" +
+
+            "<div class='form-actions no-color text-center'>" +
+
+            "</div></div></div></div></div>";
+        $("#LastSalePur").append(Modal);
+        addforcast(currstock,itemid);
+        $("#LastPurSale").modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+
+
+    }
+    function addforcast(currstock,ItemId) {
+        if ($.fn.DataTable.isDataTable('#LPurchase')) {
+            $('#LPurchase').DataTable().destroy();
+        }
+
+
+
+        var mcs = $("#ddlMCavailable").val();
+        $('#LPurchase tbody').empty();
+
+        var oTable = $('#LPurchase').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+
+            "bStateSave": true,
+            "pageLength": 50,
+
+            "bLengthChange": false,
+            "paging": true,
+
+            "ordering": true,
+            "ajax": {
+                "url": '/Inventory/getforcast',
+                "data": function (data) {
+
+                    data.datefromforecaste = $("#datefromforecast").val();
+                    data.datetoforecaste = $("#datetoforecast").val();
+                    data.currstock = currstock;
+                    data.ddmc1 = $("#ddlMCavailable").val();
+                    data.itemid = ItemId;
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columns": [
+                {
+                    "data": "ItemID", "name": "ItemID",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+              
+                {
+                    "name": "itemname", "data": "itemname"
+                },
+                {
+                    "name": "MC", "data": "MC"
+                },
+                {
+                    "name": "MC", "data": function (data) {
+                        var prd = data.datedif;
+                        var dadi = data.datedif;
+                        var onemont = data.onemonth / (prd)
+                        if (data.currstock < 0) {
+                            var currentStock = 0;
+                        }
+                        else {
+                            var currentStock = data.currstock;
+                        }
+                        var moment = Math.abs(prd * onemont);
+                        if (currentStock > moment) {
+                            var purchaseqty = 0;
+                        }
+                        else {
+                            var balacestock = currentStock - (moment);
+
+                            if (balacestock > moment) {
+                                var purchaseqty = 0;
+                            }
+                            else if (balacestock < 0) {
+                                var Revbalancestock = (moment - currentStock);
+
+                                if (Revbalancestock == moment) {
+                                    purchaseqty = Revbalancestock;
+
+
+                                }
+                                else if (Revbalancestock < moment) {
+                                    if ((moment - (prd * currentStock)) == 0) {
+                                        purchaseqty = moment;
+                                    }
+                                    else {
+                                        purchaseqty = moment - (moment - Revbalancestock);
+                                    }
+
+                                }
+                            }
+                            else {
+                                if (balacestock > 0) {
+                                    if (balacestock > moment) {
+                                        var purchaseqty = 0;
+                                    }
+                                    else {
+                                        var purchaseqty = moment - (moment - balacestock);
+                                    }
+                                }
+                                else {
+                                    var purchaseqty = moment;
+                                }
+                            }
+                        }
+                        const format = (num, decimals) => num.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        });
+                        if (purchaseqty == undefined) {
+                            return "0";
+                        }
+                        else {
+                            return format(purchaseqty);
+                        }
+
+                    }
+                },
+
+
+
+
+            ],
+        });
+
+
+    }
+
+
+        $(document).ready(function () {
+
+            $("#ddlMCavailable").select2({
+                placeholder: 'Search Material Center by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMCwithoutall",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+
+
+
+
+
+
+
+        $('#StockReport').hide();
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate()-7);
+        var priordate = new Date(new Date().setDate(today.getDate() +7));
+        $('#datefrom').datepicker('setDate', today);
+            $('#dateto').datepicker('setDate', priordate);
+            var date2 = new Date();
+            var today2 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate2 = new Date(new Date().setDate(today2.getDate() +30));
+            $('#datefromforecast').datepicker('setDate', today2);
+            $('#datetoforecast').datepicker('setDate', priordate2);
+        ItemSearchable();
+        CallMC();
+    });
+
+    function searchData(data) {
+       // data.stockable = $('input[name="stockable"]').prop('checked');
+        data.zerostockitem = $('input[name="zerostockitem"]').prop('checked');
+        data.itemid = $("#ddlItem").val();
+        data.datefrom = $("#datefrom").val();
+        data.dateto = $("#dateto").val();
+        
+        data.datefromforecast = $("#datefromforecast").val();
+        data.datetoforecast = $("#datetoforecast").val();
+        data.ddmc = $('#ddlMC').val();
+        data.period = $("#ddlPeriod").val();
+        data.ddmcavl = $("#ddlMCavailable").val();
+
+    }
+
+    function showdatatable() {
+
+        var itemid = $("#ddlItem").val();
+        var datefrom = $("#datefrom").val();
+        var dateto = $("#dateto").val();
+        var ddmc = $('#ddlMC').val();
+        var period = $("#ddlPeriod").val();
+
+            oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar,
+                retrieve: true,
+                "language": {
+                    'loadingRecords': '&nbsp;',
+                    'processing': '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading..n.</span>'
+                },
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                //"deferLoading": 0, // disable default ajax loading
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": true,
+                "columnDefs": [{
+                    "targets": [4],
+                    "sClass": "numberright"
+                }],
+                "ajax": {
+                    "url": '/Inventory/GetStock2',
+                    "data": function (data) {
+                        data = searchData(data);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": "IItemID", "name": "IItemID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "name": "IItemName", "data": function (data) {
+
+                              @{
+                    var urls = "";
+
+                    urls = "'<a href=\"/StockReport/ViewMoment2/?itemid='+  data.IItemID +'&ddmc='+ddmc+'&datefrom='+datefrom+'&dateto='+dateto+'\" target=\"_new\">'+  data.IItemCode+' '+data.IItemName +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+
+
+
+                        }
+                    },
+                    { "data": "stockin", "name": "stockin", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "stockout", "name": "stockout", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "netvalue", "name": "netvalue", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    {
+                        "name": "currstock", "data":function(data) {
+                              @{
+                    var urls2 = "";
+
+                    urls2 = "'<a href=\"javascript:void(0)\" onclick=\"getcurrstocks('+data.IItemID+')\">'+  data.currstock +'</a>' ";
+                               }
+                            return @Html.Raw(urls2);
+
+                        }
+
+                    },
+                    {
+                        "name": "onemonth",  "data": function(data) {
+                            if (data.currstock < 0) {
+                                var currentStock = 0;
+                            }
+                            else {
+                                var currentStock = data.currstock;
+                            }
+                            var moment = Math.abs(1 * data.onemonth);
+                            if (currentStock > moment) {
+                                var purchaseqty = 0;
+                            }
+
+                            else {
+                                var balacestock = currentStock - (moment);
+
+                                if (balacestock > moment) {
+                                    var purchaseqty = 0;
+                                }
+                                else if (balacestock < 0) {
+                                    var Revbalancestock = (moment - currentStock);
+
+                                    if (Revbalancestock == moment) {
+                                        purchaseqty = Revbalancestock;
+
+
+                                    }
+                                    else if (Revbalancestock < moment) {
+
+                                        purchaseqty = moment - (moment - Revbalancestock);
+
+                                    }
+                                }
+                                else {
+                                    if (balacestock > 0) {
+                                        if (balacestock > moment) {
+                                            var purchaseqty = 0;
+                                        }
+                                        else {
+                                            var purchaseqty = moment - (moment - balacestock);
+                                        }
+                                    }
+                                    else {
+                                        var purchaseqty = moment;
+                                    }
+                                }
+                            }
+                            const format = (num, decimals) => num.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            });
+                            if (purchaseqty == undefined) {
+                                return "0";
+                            }
+                            else {
+                                return format(parseFloat(purchaseqty).toFixed(2));
+                            }
+
+
+                        }
+                    },
+                    {
+                        "name": "onweek", "data": function (data) {
+                            if (data.currstock < 0) {
+                                var currentStock = 0;
+                            }
+                            else {
+                                var currentStock = data.currstock;
+                            }
+                            var chk = Math.abs(data.onweek);
+                            if (chk < 1) {
+                                moment = 0;
+                            }
+                            else {
+                                moment = chk;
+                            }
+                            if (currentStock > moment) {
+                                var purchaseqty = 0;
+                            }
+                            else {
+                                var balacestock = currentStock - (moment);
+
+                                if (balacestock > moment) {
+                                    var purchaseqty = 0;
+                                }
+                                else if (balacestock < 0) {
+                                    var Revbalancestock = (moment - currentStock);
+
+                                    if (Revbalancestock == moment) {
+                                        purchaseqty = Revbalancestock;
+
+
+                                    }
+                                    else if (Revbalancestock < moment) {
+
+                                        purchaseqty = moment - (moment - Revbalancestock);
+
+                                    }
+                                }
+                                else {
+                                    if (balacestock > 0) {
+                                        if (balacestock > moment) {
+                                            var purchaseqty = 0;
+                                        }
+                                        else {
+                                            var purchaseqty = moment - (moment - balacestock);
+                                        }
+                                    }
+                                    else {
+                                        var purchaseqty = moment;
+                                    }
+                                }
+                            }
+                            if (purchaseqty == undefined) {
+                                return "Empty";
+                            }
+                            else {
+                                return parseFloat(purchaseqty).toFixed(2);
+                            }
+
+                        }
+                    },
+                    //{
+                    //    "data": function (data) {
+                    //        return data.stockin-data.stockout
+                    //    }
+                    //},
+                           ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock Movement</h4></th></tr>' +
+                                ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4,5]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4,5]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            //doc.styles['td:nth-child(2)'] = {
+                            //    width: '100%',
+                            //    'max-width': '100%'
+                            //}
+
+                            doc.content[1].table.widths = [
+                                '8%',
+                                '25%',
+                                '10%',
+                                '14%',
+                                '14%',
+                                '14%',
+                                '14%'
+                            ]
+
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+
+
+                    },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 :
+
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(2)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(2, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(2).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+
+                    //// Total over all pages
+                    //total = api
+                    //    .column(8)
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //    .column(8, { page: 'current' })
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Update footer
+                    //$(api.column(8).footer()).html(
+                    //     pageTotal.toFixed(2)
+                    //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+            });
+        }
+        var flag = 0;
+    $('#search-form').on('submit', function (e) {
+
+        e.preventDefault();
+
+        if (flag == 0) {
+            showdatatable();
+            flag = 1
+        }
+        else {
+            $('#UserTable').DataTable().destroy();
+            showdatatable();
+            //oTable.draw();
+        }
+            $('#StockReport').show();
+        });
+
+    function reload_table() {
+        oTable.clear().draw();
+        oTable.ajax.reload(null, false);
+    }
+
+    $('#UserTable tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected');
+        }
+        else {
+            oTable.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            $(this).addClass('dataTables_row');
+        }
+    });
+</script>
+}

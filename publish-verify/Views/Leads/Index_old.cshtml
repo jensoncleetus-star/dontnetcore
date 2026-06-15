@@ -1,0 +1,834 @@
+@model QuickSoft.Models.Customer
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Leads";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Leads"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+             "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+              "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Leads</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Leads"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Leads/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-4">
+                        @Html.Label("Lead Name", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlLeadName", (SelectList)ViewBag.LeadName, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Lead Source", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlLeadSource", (SelectList)ViewBag.LeadSource, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("CreatedBy", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Location", null, new { @class = "control-label" })
+                        @Html.TextBox("TxtLocation", "", "", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Lead Status", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlLeadStatus", (SelectList)ViewBag.LeadStatus, new { @class = "form-control input-sm select2" })
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        @Html.Label("Assigned To", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlAssignedTo", (SelectList)ViewBag.AssignedTo, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.LeadLevel, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownList("LeadLevel", new SelectList(new List<SelectListItem>
+                        {
+                           new SelectListItem(){ Text = "All", Value="All"},
+                            new SelectListItem() {Text = "Small", Value="Small"},
+                            new SelectListItem() {Text = "Medium", Value="Medium"},
+                            new SelectListItem() {Text = "High", Value="High"},
+
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LeadLevel", tabindex = 7 })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Mobile", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlmobile", (SelectList)ViewBag.Mobile, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("LastUpdated", null, new { @class = "control-label" })
+                        @Html.DropDownList("LastUpdated", new SelectList(new List<SelectListItem>
+                        {
+                           new SelectListItem(){ Text = "All", Value="0"},
+                            new SelectListItem() {Text = "1 Day Ago", Value="1"},
+                            new SelectListItem() {Text = "7 Days Ago", Value="7"},
+                            new SelectListItem() {Text = "1 Month Ago", Value="30"},
+                            new SelectListItem() {Text = "3 Months Ago", Value="90"},
+                            new SelectListItem() {Text = "6 Months Ago", Value="180"},
+                            new SelectListItem() {Text = "1 Year Ago", Value="360"},
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LastUpdated", tabindex = 7 })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAllLeads", "Leads", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">#</td>
+                        <td data-priority="4">Code</td>
+                        <td data-priority="3">Name</td>
+                        <td data-priority="10">TRN</td>
+                        <td data-priority="7">Location</td>
+                        <td data-priority="5">Phone</td>
+                        <td data-priority="6">Mobile</td>
+                        <td data-priority="9">Email</td>
+                        @*<td data-priority="9">CreditLimit</td>*@
+
+                        <td data-priority="8">Source Of Lead</td>
+                        <td data-priority="9">Assigned To</td>
+                        <td data-priority="7">LastUpdated</td>
+                        <td data-priority="1"> Action</td>
+                        <td data-priority="4"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete Leads"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Remarks </h4>
+                </div>
+                <div class="modal-body">
+                    <div class="box-body" id="modelview">
+                        <p id="remarkMain"></p>
+                        <table class="table table-bordered table-hover" id="RemarkInfo">
+                            <thead>
+                                <tr class="bg-gray">
+                                    <td data-priority="1">#</td>
+                                    <td data-priority="2">TimeStamp</td>
+                                    <td data-priority="3">Employee</td>
+                                    @*<td>Status</td>*@
+                                    <td data-priority="4">Remark</td>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $(document).ready(function () {
+            $('#advsearch').hide();
+
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+        var oTable = $('#MyTable').DataTable({
+
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/Leads/GetAllLeads',
+                "data": function (data) {
+                    data.LeadName = $('#ddlLeadName').val();
+                    data.LeadSource = $('#ddlLeadSource').val();
+                    data.CreatedBy = $('#ddlCreatedBy').val();
+                    data.Location = $('#TxtLocation').val();
+                    data.LeadStatus = $('#ddlLeadStatus').val();
+                    data.AssignedTo = $('#ddlAssignedTo').val();
+                    data.LeadLevel = $('#LeadLevel').val();
+                    data.Mobile = $('#ddlmobile').val();
+                    data.fromdate = $('#From').val();
+                    data.todate = $('#To').val();
+                    data.LastUpdDays = $('#LastUpdated').val();
+
+
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [11, 12, 9],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                  { "data": "LeadCode", "name": "LeadCode" },
+
+                  {
+                      "name": "LeadName", "data": function (data) {
+                          @{
+                              var datas = "";
+                              if (User.IsInRole("Dev") || User.IsInRole("View Leads"))
+                              {
+                                  datas = "'<a href=\"/Leads/Details/'+ data.id +'\">'+ data.LeadName +'</a>' ";
+                              }
+                              else
+                              {
+                                  datas = "data.LeadName";
+                              }
+                          }
+                          return @Html.Raw(datas);
+                      }
+                  },
+                 { "data": "TaxRegNo", "name": "TaxRegNo" },
+                 { "data": "Location", "name": "Location" },
+                 { "data": "Phone", "name": "Phone" },
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null) {
+                                 if (datas != "") {
+                                     datas += ", ";
+                                 }
+                                 datas += item.Num;
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+                 { "data": "Email", "name": "Email" },
+
+
+
+                   { "data": "SrcLead", "name": "SrcLead" },
+
+                   {
+                       "name": "lead", "data": function (data) {
+                           var datas = "";
+                           $.each(data.lead, function (i, item) {
+                               if (datas != "") {
+                                   datas += ", ";
+                               }
+                               datas += item.emp;
+                           })
+                           return datas;
+                       }
+                   },
+
+                  {
+                      "name": "ldate", "data": function (data) {
+                          var result = "";
+                          if (data.ldate != null) {
+                              result = LastUpdatedIn(data.ldate);
+                          }
+                          return (result);
+                      }
+                  },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         @{
+
+                             if (User.IsInRole("Dev") || User.IsInRole("Edit Leads"))
+                             {
+
+                                 actData += "<a class=\"btn btn-icons btn-rounded btn-edit\" href=\"/Leads/Edit/'+ data.id +'\" title=\"Edit Leads\"><i class=\"fa fa-pencil\" ></i></a> ";
+
+                             }
+                             //actData += "<a class=\"btn btn-icons btn-rounded btn-update\" href=\"/Leads/Edit/'+ data.id +'\" title=\"Edit Leads\"><i class=\"fa fa-refresh\" ></i></a> ";
+                             actData += "<a class=\"btn btn-icons btn-rounded btn-update modal-create\" href=\"/Leads/LeadModal\" title=\"Edit Leads\"><i class=\"fa fa-refresh\" ></i></a> ";
+
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete Leads"))
+                             {
+
+                                 actData += "<a class=\"btn btn-icons btn-rounded btn-warning\" href=\"/Leads/Delete/'+ data.id +'\" title=\"Delete Leads\"><i class=\"fa fa-trash\" ></i></a> ";
+                             }
+                             if (User.IsInRole("Dev") || User.IsInRole("Create PipeLine"))
+                             {
+                                 actData += "<a href=\"/PipeLine/Create/'+ data.id +'/Lead\" title=\"Convert To PipeLine\"><i class=\"fa-lg fa fa-arrows-h\" ></i></a> ";
+                             }
+                             if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                             {
+                                 actData += "<a class=\"btn btn-icons btn-rounded btn-convert\" href=\"/Customer/Create/'+ data.id+'/Lead\" title=\"Convert To Customer\"><i class=\"fa fa-exchange\" ></i></a> ";
+                             }
+
+                             actData += "<a class=\"Updation btn btn-icons btn-rounded btn-remark\" onclick=\"details(' + data.id + ')\"onclick=\"details(' + data.id + ')\" title=\"View Remarks\"><i class=\"fa fa-comments\" ></i></a>";
+
+                             if (User.IsInRole("Dev") || User.IsInRole("Details Leads"))
+                             {
+                                 actData += "<a class=\"Updation\" onclick=\"details(' + data.id + ')\"onclick=\"details(' + data.id + ')\" title=\"View Remarks\"><i class=\"fa-lg fa fa-comments\" ></i></a> ";
+                             }
+
+                             }
+                         return rest = '@Html.Raw(actData)';
+                     }
+                 },
+                  {
+                      "name": "id", "data": function (data) {
+                          var rest = "";
+                          @{
+                              if (User.IsInRole("Dev") || User.IsInRole("Delete Leads"))
+                              {
+                                  delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                              }
+                          }
+                          return rest = '@Html.Raw(delchk)';
+                      }
+                  },
+
+            ],
+            // buttons
+
+            //
+
+
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Leads </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Leads",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                    doc.content[1].table.widths = [
+                          '5%',
+                          '5%',
+                          '10%',
+                          '10%',
+                          '10%',
+                          '10%',
+                          '10%',
+                          '10%',
+                          '10%',
+                          '10%',
+                          '10%',
+                    ]
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+
+
+            },
+            @Html.Raw(deleteBTn)
+
+
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(12);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(12);
+            column1.visible(false);
+        }
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        $('#To').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#From').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        //create leads partial
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#typeform', function (e) {
+            e.preventDefault();
+            var url = $('#typeform')[0].action;
+            var data = $('#typeform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-delete');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        //task name
+        $("#ddlLeadName").select2({
+            placeholder: 'Search Lead Name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchLeads",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        //
+        $("#ddlmobile").select2({
+
+            placeholder: 'Search Mobile/Phone',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchMobileAndPhone",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        //ddlmobile
+        //tasktype
+        $("#ddlTaskType").select2({
+            placeholder: 'Search Task Type',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ProTaskType/SearchTaskType",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        //Lead Source
+        $("#ddlLeadSource").select2({
+            placeholder: 'Search Lead Source',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchLeadSource",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        //CreatedBy
+        $("#ddlCreatedBy").select2({
+            placeholder: 'Search Employee by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Users/SearchUser",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "empty"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        //ddlLeadStatus
+        $("#ddlLeadStatus").select2({
+            placeholder: 'Search User by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchLeadStatus",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //AssignedTo
+        $("#ddlAssignedTo").select2({
+            placeholder: 'Search User by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchAssignedTo",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+        //AssignedTo
+        function details(d) {
+            var CustomerId = d;
+            $.ajax({
+                type: "POST",
+                url: '/Leads/GetData',
+                data: { CustomerId: CustomerId },
+                success: function (data) {
+                    if (data.data.Remark != null) {
+                        $("#remarkMain").html(data.data.Remark);
+                    }
+                    else {
+                        $("#remarkMain").html("");
+                    }
+                }
+            })
+            var oTable1 = $('#RemarkInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+                "paging": false,
+                // "bSort": true,
+                "ajax": {
+                    "url": '/Leads/GetAllRemarks',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { CustomerId: CustomerId }
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                   { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                  { "data": "empnae", "name": "empnae" },
+                  { "data": "Remark", "name": "Remark" },
+                ],
+            });
+            oTable1.destroy();
+
+        }
+
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+
+                $('#ddlLeadSource').val("");;
+                $('#ddlCreatedBy').val("");
+                $('#TxtLocation').val("");
+                $('#ddlLeadStatus').val("");
+                $('#ddlAssignedTo').val("");
+                $('#LeadLevel').val("");
+                $('#ddlmobile').val("");
+                $('#From').val("");
+                $('#To').val("");
+                $('#LastUpdated').val("");
+               // oTable.draw();
+            }
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+</script>
+}
+
+

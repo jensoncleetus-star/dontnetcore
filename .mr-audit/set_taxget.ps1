@@ -1,0 +1,6 @@
+$fd='01-01-2010'; $td='31-12-2026'
+Probe 'GetDetailsVat-GET'    'TaxReports/GetDetailsVat'        @{taxtype='out';fromdate=$fd;todate=$td} 'GET'
+Probe 'GetNewDetailsVat-GET' 'TaxReports/GetNewDetailsVat'     @{taxtype='in';fromdate=$fd;todate=$td} 'GET'
+Probe 'GetGeneratedItems-GET' 'StockJournal/GetGeneratedItems' @{DvID='1'} 'GET'
+Probe 'GetAdjById-GET'       'StockAdjustment/GetAdjById'      @{StkId='1'} 'GET'
+Probe 'GetAssetAdjById-GET'  'StockAdjustment/GetAssetAdjById' @{AdjId='1'} 'GET'

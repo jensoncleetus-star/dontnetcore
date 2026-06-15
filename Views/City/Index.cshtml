@@ -1,0 +1,160 @@
+﻿@{
+    ViewBag.Title = "City List";
+    ViewBag.SubTitle = "Item";
+    ViewBag.Active = "Master";
+    string actData = "";    
+    
+}
+
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Cities</h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create City"))
+                {*@
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border modal-create" href="/City/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create City
+            </a>
+            @*}*@
+        </div>
+    </div>
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="CityList">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">S/N</td>
+                    <td data-priority="2">City Name</td>
+                    <td data-priority="3">Created Date</td>
+                    <td data-priority="4">Created By</td>
+                    <td data-priority="5">Status</td>
+                    <td data-priority="6">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@{var Model = "modal-md";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+@Html.Partial("../Common/_ModalDelete")
+
+@section style{
+        @Styles.Render("~/css/bootstrap-datepicker")
+    }
+
+@section scripts{
+@Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        var oTable = $('#CityList').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/City/GetCity',
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{ orderable: false, targets: -1 }],
+            "columns": [
+                {
+                    "data": "Id", "name": "Id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "CityName", "name": "CityName" },
+                { "data": "CreatedDate", "name": "CreatedDate" ,
+                "render": function (data) {
+                    var date = convertToDate(data);
+                    return date.toString();
+                                           }
+                },
+
+                { "data": "CreatedBy", "name": "CreatedBy" },
+                
+                {
+                    "name": "Status", "data": function (data) {
+                        if (data.Status == 1) {
+                            return '<i class="badge bg-red" style="font-size: small" >Inactive</i>';
+                        }
+                        else {
+                            return '<i class="badge bg-green" style="font-size: small" >Active</i>';
+                        }
+                    }
+                },
+
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+
+                            @{                               
+                               // if (User.IsInRole("Dev") || User.IsInRole("Edit City"))
+                               // {
+                                    actData += "<a class=\"modal-edit\" href=\"/City/Edit/'+ data.Id +'\" title=\"Edit City\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                               // }
+                               // if (User.IsInRole("Dev") || User.IsInRole("Delete City"))
+                               // {
+                                    actData += "<a class=\"modal-delete\" href=\"/City/Delete/'+ data.Id +'\" title=\"Delete City\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                               // }
+                                    }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    }
+            ]
+        })
+
+
+        /* Create function for City */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* Edit function for  City */
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* Delete Function for City */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+    </script>
+}
+
+
+

@@ -1,0 +1,590 @@
+@model  QuickSoft.ViewModel.MaterialRequisitionViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Material Requisition";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+}
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("CreateMaterialRequisition", "MaterialRequisition", FormMethod.Post, new { id = "mrform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create Material Requisition</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit MaterialRequisition"))
+                    {
+                        <a class="btn bg-black no-border" href="/MaterialRequisition/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("MaterialRequisition List"))
+                {
+                    <a class="btn btn-success no-border" href="/MaterialRequisition">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Approvals"))
+                {
+                    <a class="btn btn-success no-border" href="/MaterialRequisition/ApprovalList">
+                        <i class="fa fa-fw fa-history"></i>Approval List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="SelApprovedBy" />
+            <input type="hidden" id="makecheck" value="@ViewBag.Make" />
+            <input type="hidden" id="VoucherType" value="MaterialRequisition" />
+
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    @Html.HiddenFor(model => model.MRNo)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.MRDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-3 form-group">
+                    @Html.Label("Requested By", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.MRCashier, new SelectList("", ""), new { id = "ddlEmployee", @class = "form-control select2" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.MRCashier, new SelectList("", ""), new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Material Required Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.MRValidity, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Reminder Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.ReminderDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="col-sm-2 form-group">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Branch"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                                <span class="input-group-btn">
+                                    <button type="button" href="/Branch/AddBranch" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        }
+
+                    </div>
+                }
+
+                @if (@ViewBag.ProjChk == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.Project, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                    </div>
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.ProTask, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "", new { id = "ddlProTask", @class = "form-control select2" })
+                    </div>
+                }
+
+               @if (@ViewBag.MLAMc == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Approved By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlApprovedBy", (SelectList)ViewBag.ApproveBy, "", new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                    </div>
+               }
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Supplier Name", null, new { @class = "control-label" }) 
+
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.SupplierId, (SelectList)ViewBag.Supp, "", new { id = "ddlSupplier", @class = "form-control select2" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/Supplier/AddSupplier" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+
+
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) 
+                   
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, "", new { id = "ddlCustomer", @class = "form-control select2", @onchange = "GetCustomer()" })
+                            <span class="input-group-btn">
+                                <a href="/Customer/Create" class=" btn btn-success btn-flat" target="_new"><i class="fa fa-1x fa-plus-circle"></i></a>
+                            </span>
+                        </div>
+                    
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Request Status", null, new { @class = "control-label" })
+                    @Html.DropDownList("RequestStatus", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "OPEN", Value="OPEN"},
+                            new SelectListItem() {Text = "CLOSE", Value="CLOSE"},
+                            new SelectListItem() {Text = "PENDING", Value="PENDING"}
+                        }, "Value", "Text"), new { @class = "form-control input-sm select2", })
+                </div>
+                <div class="clearfix"></div>
+
+            </div>
+
+            <div class="row">
+
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-md-2">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            @if (Model.FieldMap[i].Type == "Dropdown")
+                            {
+                                if (Model.FieldMap[i].Field == "Ref1")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef1, new { @id = "Ref1", @class = "form-control input-sm select2 ref", tabindex = 50 })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref2")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef2, new { @id = "Ref2", @class = "form-control input-sm select2 ref", tabindex = 51 })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref3")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef3, new { @id = "Ref3", @class = "form-control input-sm select2 ref", tabindex = 52 })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref4")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef4, new { @id = "Ref4", @class = "form-control input-sm select2 ref", tabindex = 53 })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref5")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef5, new { @id = "Ref5", @class = "form-control input-sm select2 ref", tabindex = 54 })
+                                }
+                            }
+                            else
+                            {
+                                <input class="form-control select2" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="" tabindex=55>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div>
+
+                <div class="row">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="normalinvoice">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">S/N</th>
+                                    <th class="text-center item-lists" style='max-width:400px;'>Item <i class="text-danger">*</i></th>
+                                    <th class="text-center">Unit</th>
+                                    <th class="text-center">Qty <i class="text-danger">*</i></th>
+                                    <th class="text-center">Target Price</th>
+                                    @if (@ViewBag.Make == 0)
+                                    {
+                                        <th class="text-center">Make</th>
+                                    }
+                                    <th class="text-center" style='width:275px;'>Remark</th>
+                                    <th class="text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="addinvoiceItem"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3">
+                                        Total:
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="ItemQty"></label>
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="TotalPrice"></label>
+                                    </td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        @if (ViewBag.CheckMail == 0)
+                        {
+                            <div class="form-group">
+                                @Html.Label("To", null, new { @class = "control-label" })
+                                @Html.TextAreaFor(m => m.SupplierEmail, new { @class = "form-control input-sm", tabindex = 3, rows = 2 })
+                                <span class="help-block" style="color:#f39c12;">Enter multiple email separated by space</span>
+                            </div>
+                            <div class="form-group">
+                                @Html.Label("Cc", null, new { @class = "control-label" })
+                                @Html.TextAreaFor(m => m.CreatedUserEmail, new { @class = "form-control input-sm", tabindex = 3, rows = 2 })
+                                <span class="help-block" style="color:#f39c12;">Enter multiple email separated by space</span>
+                            </div>
+                        }
+                    </div>
+
+                </div>
+                <div class="form-group no-padding text-right">
+                    <div class="checkbox-inline">
+                        <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                        <label class="control-label" for="hideheader">Hide Header In Print</label>
+                    </div>
+                </div>
+                <div class="col-md-8 pull-right">
+
+                    <div class="form-group  col-md-12">
+                        @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                        @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                    </div>
+                    <div class="form-group col-md-12">
+                        @Html.Label("Terms and Conditions", null, new { @class = "control-label" })
+                        @Html.TextAreaFor(m => m.TermsCondition, new { @class = "form-control input-sm textarea", @rows = 8 })
+                    </div>
+                    @if (@ViewBag.PrintLayout == 0)
+                    {
+                        <div class="form-group col-sm-5">
+                            @Html.LabelFor(model => model.PrintLayout, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.PrintLayout, (SelectList)ViewBag.printlay, new { id = "ddlPrintlayout", @class = "form-control select2" })
+                        </div>
+                    }
+                    <div class="form-group pull-right">
+                        <button type="submit" id="save" class="btn btn-success">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success">
+                            <span class="glyphicon glyphicon-print"></span> Save And Print
+                        </button>
+                        @if (@ViewBag.CheckMail == 0)
+                        {
+                            <button type="submit" id="sendmail" class="btn btn-success">
+                                <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                            </button>
+                        }
+                        <button type="button" class="btn btn-warning" onclick="@("window.location.href='/MaterialRequisition/Index'");">Cancel</button>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-container-brand" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+}
+
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("_Invoice");
+
+@*@Html.Action("invoice", "InvoiceLayout", new { type = "Material Requisition" })*@
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+    @Styles.Render("~/css/wysihtml5")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/materialrequisition")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/wysihtml5")
+<style>
+    .itemnote {
+        height: 200px !important;
+    }
+</style>
+    @*<script type="text/javascript" src="/Content/plugins/ckeditor/ckeditor.js"></script>*@
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            addrow('addinvoiceItem', 'purchase', "0.00", "0");
+
+            $(".ref").select2({
+                tags: true
+            });
+
+            searchItem();
+            ItemCategory();
+            ItemBrand();
+            GetBranch();
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            CallCustomer();
+            CallSupplier();
+            CallEmployee();
+            CallProjectAll()
+            CallTask();
+            CallApprovedBy();
+        });
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        $('#mrform').on('submit', function (e) {
+            e.preventDefault();
+
+            if ($("#mrform").valid()) {
+                //var fnval = e.originalEvent.explicitOriginalTarget.id;
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                var parameters = {};
+
+                var MRNo = $('#MRNo').val();
+                var BillNo = $('#BillNo').val();
+                var MRDate = $('#MRDate').val();
+                var MRCashierID = $('#ddlEmployee').val();
+                var SupplierID = $('#ddlSupplier').val();
+                var Customer = $('#ddlCustomer').val();
+
+                //pending
+                var Items = $('#ItemCount').val();
+                var ItemQuantity = $('#ItemQty').text();
+
+                var MRValidity = $('#MRValidity').val();
+                var ReminderDate = $('#ReminderDate').val();
+                var Remarks = $('#Remarks').val();
+
+                //Email
+                var suppMail = $('#SupplierEmail').val();
+                var CreatedUserEmail = $('#CreatedUserEmail').val();
+
+                var Branch = $('#ddlBranch').val();
+                var Project = $('#ddlProject').val();
+                var Task = $('#ddlProTask').val();
+                var ApprovedBy = $('#SelApprovedBy').val();
+
+                var Tandc = $('#TermsCondition').val();
+                var RequestStat = $('#RequestStatus').val();
+                var Ref1 = "";
+                var Ref2 = "";
+                var Ref3 = "";
+                var Ref4 = "";
+                var Ref5 = "";
+                if ('@Model.FieldMap.Count' > 0) {
+                    Ref1 = $('#Ref1').val();
+                    Ref2 = $('#Ref2').val();
+                    Ref3 = $('#Ref3').val();
+                    Ref4 = $('#Ref4').val();
+                    Ref5 = $('#Ref5').val();
+                }
+                var Layout = $('#ddlPrintlayout').val();
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+                var mrEntry = [MRCashierID, MRDate, Items, ItemQuantity, MRValidity, suppMail, CreatedUserEmail, MRNo, BillNo, Remarks,
+                    Branch, Project, Task, ApprovedBy, Tandc,
+                    Ref1, Ref2, Ref3, Ref4, Ref5, Layout, ReminderDate, SupplierID, Customer, RequestStat]
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+
+                parameters.array = data;
+                parameters.mrdata = mrEntry;
+                parameters.action = fnval;
+
+                if (fnval == "save" || fnval == "print") {
+                    submitForm(fnval, parameters);
+                } else if (fnval == "sendmail") {
+                    if ($('#SupplierEmail').val() != "") {
+                        submitForm(fnval, parameters);
+                    } else {
+                        $('.ajax_response', res_danger).text("Supplier Email Address Not Found..!!");
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            }
+        });
+        function GetCustomer() {
+            var CustomerId = $('#ddlCustomer').val();
+            if (CustomerId != null) {
+                $.ajax({
+                    url: '/Customer/GetCustomerEmailById',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { CustID: CustomerId },
+                    success: function (result) {
+                        $("#CustomerEmail").val(result.EmailId);
+                    }
+                });
+            }
+        }
+
+        function submitForm(fnval, parameters) {
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/MaterialRequisition/CreateMaterialRequisition",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        if (fnval == "print") {
+                            PrintInvoiceMRequisition(e, "_Invoice");
+
+                        } else {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+                        @*window.location.href = '@Url.Action("Create", "PurchaseOrder")';*@
+                        setTimeout(function () { window.location.href = '/MaterialRequisition/Create'; }, '@TimeOut');
+                    }
+                    else {
+
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+
+
+        //keep stock change
+        function chgkeepstok() {
+            //$('#KeepStock').click(function () {
+            if ($('#KeepStock').prop('checked') == true) {
+                $('.StockSection').show();
+            }
+            else {
+                $('.StockSection').hide();
+            }
+            //  });
+        }
+
+        AddItemPopUp();
+
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            ItemCategory();
+            ItemBrand();
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+
+        ProjectPopup();
+
+    </script>
+
+}
+
+
+

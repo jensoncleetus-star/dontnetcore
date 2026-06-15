@@ -1,0 +1,573 @@
+
+@model QuickSoft.Models.BillOfMaterialsoffer
+@{
+    ViewBag.Title = "Bundle Offer List";
+    ViewBag.SubTitle = "Bundle Offer";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete BOM"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+              "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+               "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Bundle Offer</h3>
+        <div class="pull-right">
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            @if (User.IsInRole("Dev") || User.IsInRole("Create BOF"))
+            {
+                <a class="btn btn-info no-border" href="/BundleOffer/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Bundle Offer
+                </a>
+            }
+        </div>
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liname" />BOM Name</li>
+                        <li><input type="checkbox" id="liitem" />Item</li>
+                        <li><input type="checkbox" id="liquantity" />Quantity</li>
+                        <li><input type="checkbox" id="liunit" />Unit</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchname">
+                                    @Html.Label("BOM Name", null, new { @class = "control-label" })
+                                    @Html.DropDownList("BName", (SelectList)ViewBag.BOMName, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchitem">
+                                    @Html.Label("Item", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.Itemss, new { @class = "form-control select2" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchquantity">
+                                    @Html.Label("Quantity", null, new { @class = "control-label" })
+                                    @Html.TextBox("Qty", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchunit">
+                                    @Html.Label("Unit", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlUnit", (SelectList)ViewBag.Unitss, new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAll", "BundleOffer", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="BomTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Bundle Offer</td>
+                        <td data-priority="2">Bundle Item</td>
+                       
+                      
+                        <td data-priority="5">Price</td>
+                        <td data-priority="5">Created By</td>
+                        <td data-priority="1">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete BOM"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+        });
+
+        var oTable = $('#BomTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/BundleOffer/GetBOM',
+                "data": function (data) {
+                    data.BName = $('#BName').val();
+                    data.Item = $('#ddlItem').val();
+                    data.Qty = $('#Qty').val();
+                    data.Unit = $('#ddlUnit').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+          
+            "columns": [
+                     {
+                    "data": "BOMOfferId", "name": "BOMOfferId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "BOMName", "name": "BOMName" },
+                { "data": "ItemName", "name": "ItemName" },
+                 { "data": "Price", "name": "Price", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "UserName", "name": "UserName" },
+                    {
+                        "name": "BOMOfferId", "data": function (data) {
+                            var rest = "";
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("View BOF"))
+                                {
+                                    actData += "<a class=\"details\" href=\"/BundleOffer/Details/'+ data.BOMOfferId +'\" title=\"View BOM\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit BOF"))
+                                {
+                                    actData += "<a href=\"/BundleOffer/Edit/'+ data.BOMOfferId +'\" title=\"Edit BOM\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete BOF"))
+                                {
+                                    actData += "<a class=\"modal-delete\" href=\"/BundleOffer/Delete/'+ data.BOMOfferId +'\" title=\"Delete BOM\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                }
+                            }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    },
+                     {
+                         "name": "BOMId", "data": function (data) {
+                             var rest = "";
+                             @{
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete BOF"))
+                                 {
+                                     delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.BOMId +'></input>";
+                                 }
+                             }
+                             return rest = '@Html.Raw(delchk)';
+                         }
+                     },
+            ],
+
+            dom: 'Bfrtip',
+            buttons: ['colvis',
+               {
+                 extend: 'print',//
+                 title: "",
+                 footer: true,
+                 exportOptions: {
+                     columns: ':visible'
+                 },
+                 message: '<table class="tblcompact table table-bordered"><thead>' +
+                     ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>BOM </h4></th></tr>' +
+                     ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                 customize: function (win) {
+                     // $(win.document.body)
+                     //.css('font-size', '10pt')
+                     //.css('padding', '1px');
+                     $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                         .css('font-size', '10pt')
+                         .css('padding', '5px')
+                         .addClass('compact');
+                     $(win.document.body).append('</td></tr></tbody>')
+
+                 }
+               }, 'copy', 'csv', 'excel',
+            {
+                extend: 'pdf',//
+                title: "Items",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+                @Html.Raw(deleteBTn)
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#BomTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var chkcol = '@userRole';
+        
+        /* function for view detail popup */
+        $('#BomTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#BomTable').on('click', 'a.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        //For Item dropdown
+        ItemSearchable();
+
+        //Unit
+        $("#ddlUnit").select2({
+            placeholder: 'Search Item Unit by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemUnit/SearchUnit",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                results: function (data) {
+                    return { results: data };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+       //BOM Name
+        $("#BName").select2({
+            placeholder: 'Search Bundle Offer By Name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/BundleOffer/SearchBOM",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                results: function (data) {
+                    return { results: data };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+
+                /*******  To clear all the data entered  *********/
+                $('#BName').val(0).trigger("change");
+                $('#ddlItem').val(0).trigger("change");
+                $('#Qty').val("");
+                $('#ddlUnit').val(0).trigger("change");
+                oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+      var checkList = document.getElementById('list1');
+      /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+      checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+          if (checkList.classList.contains('visible'))
+              checkList.classList.remove('visible');
+          else
+              checkList.classList.add('visible');
+      }
+
+      /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+      $("ul li input:checkbox").click(function () {
+
+          var _show = 0;
+
+          //BOM Name
+          if ($("#liname").prop("checked") == true) {
+              $("#searchname").show();
+              _show = 1;
+          }
+          else {
+              $('#BName').val(0).trigger("change");
+              $("#searchname").hide();
+              oTable.draw();
+          }
+
+          //Item
+          if ($("#liitem").prop("checked") == true) {
+              $("#searchitem").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlItem').val(0).trigger("change");
+              $("#searchitem").hide();
+              oTable.draw();
+          }
+
+          //Quantity
+          if ($("#liquantity").prop("checked") == true) {
+              $("#searchquantity").show();
+              _show = 1;
+          }
+          else {
+              $('#Qty').val("");
+              $("#searchquantity").hide();
+              oTable.draw();
+          }
+
+          //Unit
+          if ($("#liunit").prop("checked") == true) {
+              $("#searchunit").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlUnit').val(0).trigger("change");
+              $("#searchunit").hide();
+              oTable.draw();
+          }
+
+          if (_show == 1) {
+              $('#advsearchlist').show();
+          }
+          else {
+              $('#advsearchlist').hide();
+          }
+      });
+
+      /******* Function to hide dropdown checklist while clicking outside it ********/
+      $(document).on("click", function (event) {
+
+          var element1 = $("#list1");
+
+          if (element1 !== event.target && !element1.has(event.target).length) {
+              checkList.classList.remove('visible');
+          }
+      });
+
+    </script>
+}

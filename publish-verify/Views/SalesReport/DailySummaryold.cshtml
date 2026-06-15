@@ -1,0 +1,425 @@
+
+@{
+    ViewBag.Title = "Daily Summary";
+    ViewBag.SubTitle = "Sales Reports";
+    ViewBag.Active = "Reports";
+    Decimal Cash = 0;
+    Decimal totalcashsales = 0;
+    Decimal card = 0;
+    Decimal totalcardsale = 0;
+
+}
+@if (!IsPost)
+{
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Daily Summary</h3>
+        </div>
+        <div class="box-body">
+            @using (Html.BeginForm("DailySummaryold", "SalesReport", FormMethod.Post, new { id = "popupForm" }))
+            {
+                <div class="form-group col-md-5" id="creditsale">
+                    @Html.Label("User", null, new { @class = "control-label" })
+                    <select class="form-control input-sm select2" id="ddlCashier" name="Cashier">
+                        <option value="All">All</option>
+                    </select>
+                </div>
+                if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+                <div class="form-group col-md-2">
+                    @Html.Label("Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+    @section style{
+        @Styles.Render("~/css/bootstrap-datepicker")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/bootstrap-datepicker")
+        <script type="text/javascript">
+            $(document).ready(function () {
+                var datetd = new Date();
+                datetd.setDate(datetd.getDate());
+                $('#From').datepicker({
+                    endDate: datetd,
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                $('.date').datepicker({
+                    endDate: datetd,
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                var date = new Date();
+                var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                $('#From').datepicker('setDate', today);
+                $("#ddlCashier").select2({
+                    placeholder: 'Search Cashier by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Users/SearchUser",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                x: "all"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                CallRepMCUser();
+
+            });
+
+        </script>
+    }
+}
+else
+{
+    @model QuickSoft.ViewModel.DailySummary
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Daily Summary</h3>
+            <div class="pull-right">
+                <button class="btn btn-success no-border" id="printthis">
+                    <i class="fa fa-fw fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-md-12 pos-preview">
+                <div id="invoice-POS" class="printit">
+                    <center id="top">
+                        @if (@ViewBag.CLogo != null)
+                        {
+                            <div class="logo"><img class="img-responsive" src="../uploads/company/@ViewBag.CLogo" /></div>
+                        }
+                        <div class="detail">
+                            <h3>@ViewBag.CName</h3>
+                            <h5>
+                                @ViewBag.CAddress<br>
+                                @if (@ViewBag.CPhone != null)
+                                {
+                                    <span>
+                                        @ViewBag.CPhone
+                                    </span>
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span> , @ViewBag.CPMob</span>
+                                    }
+                                    <br />
+
+                                }
+                                else
+                                {
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span>@ViewBag.CPMob</span>
+                                        <br />
+                                    }
+                                }
+                                @ViewBag.CEmail<br>
+                                @if (@ViewBag.CTaxRegNo != null)
+                                {
+                                    <span>TRN: @ViewBag.CTaxRegNo</span>
+                                }
+                            </h5>
+                            @*  <h5>Reading Time :  @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.time)) </h5>
+                                <h5>Reading By   : @Model.by </h5>
+                                <h5>Date : @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.Date)) </h5>
+                            *@
+                        </div>
+                    </center>
+                    <table width="100%">
+                        <tr>
+                            <td>Sessoin No</td>
+                            <td>Session Start On</td>
+                            <td>Session End On</td>
+                        </tr>
+                        <tr>
+                            <td>@Model.cn.cashid</td>
+                            <td>@Model.cn.trasdate.ToString("dd-MM-yyyy hh:mm:tt")</td>
+                            <td>@Model.cno.trasdate.ToString("dd-MM-yyyy hh:mm:tt")</td>
+                        </tr>
+                    </table>
+                    @if (Model.category != null)
+                    {
+                        <div class="text-center">
+                            <h4>
+                                Sales Summary
+                            </h4>
+                        </div>
+                        <div id="mid">
+                            <div class="detail">
+                                <table width="100%">
+                                    <tr>
+                                        <td>Department</td>
+                                        <td>Qty</td>
+                                        <td>Amount</td>
+                                    </tr>
+
+
+                                    @foreach (var catry in Model.category)
+                                    {
+                                        if (catry.quantity != 0)
+                                        {
+
+                                            <tr>
+                                                <td>@catry.name</td>
+                                                <td>@catry.quantity</td>
+                                                <td>@catry.Amount</td>
+                                            </tr>
+                                        }
+                                    }
+                            </div>
+                        </div>
+                    }
+                    <hr />
+                    @*@if (Model.item != null)
+                        {
+                            <div class="text-center">
+                                <h4>
+                                    Sales Summary
+                                </h4>
+                            </div>
+                            <div id="mid">
+                                <div class="detail">|
+                                    <table>
+                                        <tr>
+                                            <td></td>
+                                        </tr>
+                                    </table>
+                                    @foreach (var itm in Model.item)
+                                    {
+                                        <p><b>@itm.name</b> : <span>@itm.quantity</span></p>
+                                    }
+                                </div>
+                            </div>
+                        }*@
+                    <div id="mid">
+                        <div class="detail">
+                            @* <p><b>First Order</b> : <span> @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.first)) </span></p>
+                                <p><b>Last Order </b> : <span> @Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", Model.last))</span></p>
+                                <p><b>First Invoice</b> : <span>@Model.firstInvoice</span></p>
+                                <p><b>Last Invoice</b> : <span>@Model.lastInvoice</span></p>
+
+                                <p><b>No. of Customers</b> : <span>@Model.customers</span></p>
+                                <p><b>Grand Total</b> : <span>@Model.GTotal</span></p>
+                                <p><b>VAT 5%</b> : <span>@Model.Tax</span></p>
+                                <p><b>Discount</b> : <span>@Model.Disc</span></p>
+                                <p><b>No of Sales</b> : <span>@Model.Sales</span></p>
+                            *@
+                            <table width="100%">
+                                <tr>
+                                    <td>Total Excl.Tax</td>
+                                    <td>@Convert.ToDecimal(Model.GTotal - Model.Tax)</td>
+                                </tr>
+                                <tr>
+                                    <td>Discount</td>
+                                    <td>@Model.Disc</td>
+                                </tr>
+                                <tr>
+                                    <td>Tax Amount</td>
+                                    <td>@Model.Tax</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Incl.Tax</td>
+                                    <td>@Model.GTotal</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Customer Count </td>
+                                    <td>@Model.customers</td>
+                                </tr>
+
+
+                            </table>
+
+                        </div>
+                    </div>
+                    @*<div class="text-center">
+                            <h4>
+                                Net Sales <br />
+                                @Model.GTotal AED
+                            </h4>
+                            <h5>
+                                Summary Of Payment
+                            </h5>
+                        </div>*@
+                    <div id="mid">
+                        <div class="detail">
+                            <h5>Payment Type Summary</h5>
+                            <table width="100%">
+                                <tr>
+                                    <td>Payment Type</td>
+                                    <td>Amount</td>
+                                </tr>
+
+                                @if (Model.Payment != null)
+                                {
+
+                                    foreach (var pay in Model.Payment)
+                                    {
+                                        if (pay.name == "Walking")
+                                        {
+                                            totalcashsales = totalcashsales + Convert.ToDecimal(pay.Amount);
+                                            // totalcashsales = Convert.ToDecimal(Model.GTotal);
+
+                                        }
+                                        if (pay.name == "Card")
+                                        {
+                                            totalcardsale = totalcardsale + Convert.ToDecimal(pay.Amount);
+                                            //  totalcashsales = Convert.ToDecimal(Model.GTotal);
+
+                                        }
+
+
+                                        @*if (pay.name == "Cash")
+                {
+                    Cash = Cash + Convert.ToDecimal(pay.quantity);
+                }
+                if (pay.quantity != 0)
+                {
+                    <p><b>@pay.name</b> : <span>@pay.quantity</span></p>
+                }*@
+                                    }
+                                    <tr>
+                                        <td>Cash</td>
+                                        <td>@totalcashsales</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Card</td>
+                                        <td>@totalcardsale</td>
+                                    </tr>
+                                    totalcashsales = Convert.ToDecimal(totalcashsales);
+                                }
+                            </table>
+                        </div>
+                    </div>
+
+
+
+                    <hr />
+                    <h2>Opening Cash :@Model.endsection </h2>
+
+                    <h2>Sales Cash :@totalcashsales </h2>
+                    <h2>Sales Return Cash :-@Model.salesreturn </h2>
+                    <h2>Total Cash:@Convert.ToDecimal(totalcashsales + Model.endsection - Model.salesreturn) </h2>
+
+                    <h2> Physical cash ::@Model.startsection</h2>
+                    <h2>Amount Difference :@Convert.ToDecimal(@Model.startsection - (totalcashsales  + Model.endsection - Model.salesreturn)) </h2>
+                    <!-- <h2>Amount Difference :@Convert.ToDecimal(Model.pysicalcash -(totalcashsales + Model.endsection-Model.salesreturn)) </h2> -->
+                    <table width="100%">
+                        <tr>
+                            <Td>1000</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.thousand</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.thousand * 1000)</Td>
+                        </tr>
+                        <tr>
+                            <Td>500</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.fivehundred</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.fivehundred * 500)</Td>
+                        </tr>
+                        <tr>
+                            <Td>100</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.hundred</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.hundred * 100)</Td>
+                        </tr>
+                        <tr>
+                            <Td>50</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.fifty</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.fifty * 50)</Td>
+                        </tr>
+                        <tr>
+                            <Td>20</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.twenty</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.twenty * 20)</Td>
+                        </tr>
+                        <tr>
+                            <Td>10</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.ten</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.ten * 10)</Td>
+                        </tr>
+                        <tr>
+                            <Td>5</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.five</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.five * 5)</Td>
+                        </tr>
+                        <tr>
+                            <Td>1</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.one</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.one * 1)</Td>
+                        </tr>
+                        <tr>
+                            <Td>0.50</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.half</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.half * .5)</Td>
+                        </tr>
+                        <tr>
+                            <Td>0.25</Td>
+                            <Td>x</Td>
+                            <Td>@Model.cn.quarters</Td>
+                            <Td>@Convert.ToDecimal(Model.cn.quarters * .25)</Td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    @section style{
+        @Styles.Render("~/css/posprint")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/printThis")
+        <script type="text/javascript">
+            $('#printthis').on("click", function () {
+                $(".printit").printThis();
+                setTimeout(function () {
+                    window.location = "/Users/Logoff";
+                }, 2000);
+            });
+            $(document).ready(function () {
+
+            });
+        </script>
+    }
+}

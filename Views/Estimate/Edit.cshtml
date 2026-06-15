@@ -1,0 +1,702 @@
+@model QuickSoft.ViewModel.EstimateViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Estimate";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+
+}
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("UpdateEstimate", "Estimate", FormMethod.Post, new { id = "Estimateform", role = "form", enctype = "multipart/form-data" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create Estimate</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Quotation"))
+                    {
+                        <a class="btn bg-black no-border" href="/Estimate/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Quotation List"))
+                {
+                    <a class="btn btn-success no-border" href="/Estimate/Index">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.EstimateId)
+
+        <input type="hidden" id="VoucherType" value="Quotation" />
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="SelApprovedBy" />
+            <div class="row">
+
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("Estimate No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    @Html.HiddenFor(model => model.QuotNo)
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.EsttDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+
+
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required", @onchange = "GetCustomer()" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/Customer/AddCustomer" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, new { id = "ddlCustomer", @class = "form-control select2", @required = "required", @onchange = "GetCustomer()" })
+                    }
+                </div>
+
+                <div class="form-group col-sm-2">
+                    @Html.Label("Project", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.Proj, new { id = "ddlProject", @class = "form-control select2" })
+                            <span class="input-group-btn">
+                                <a href="/Project/AddProject" class="modal-project btn btn-success btn-flat" title="Add Project"><i class="fa fa-1x fa-plus-circle"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.Proj, new { id = "ddlProject", @class = "form-control select2" })
+                    }
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.ProTask, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "", new { id = "ddlProTask", @class = "form-control select2" })
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.Label("Approved By", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlApprovedBy", (MultiSelectList)ViewBag.ApproveBy, new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("Job order no", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.joborderno, new { htmlAttributes = new { @class = "form-control" } })
+
+                </div>
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("Building No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.buildingno, new { htmlAttributes = new { @class = "form-control" } })
+
+                </div>
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("Site No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.siteno, new { htmlAttributes = new { @class = "form-control" } })
+
+                </div>
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("Flat No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.flatno, new { htmlAttributes = new { @class = "form-control" } })
+
+                </div>
+                <div class="col-sm-1 form-group ">
+                    @Html.Label("Quot Ref No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.quoteref, new { htmlAttributes = new { @class = "form-control" } })
+
+                </div>
+            </div>
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists">Date <i class="text-danger">*</i></th>
+                                <th class="text-center item-lists">Invoice No <i class="text-danger">*</i></th>
+                                <th class="text-center">Description</th>
+                                <th class="text-center">Amount <i class="text-danger">*</i></th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4">
+                                    Total
+                                </td>
+                                <td class="text-right">
+                                    <input type="text" id="total" readonly class="form-control" style="text-align: right;" name="QuotGrandTotals" />
+
+                                </td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <div class="form-group">
+            <div class="row">
+
+                <div class="row">
+                    <div class="form-group col-md-4 no-padding">
+                        @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                        @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.QuotGrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                        <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="billsundry">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">S/N</th>
+                                        <th class="text-center">Bill Sundry</th>
+                                        <th class="text-center">Value</th>
+                                        <th class="text-center">Type</th>
+                                        <th class="text-center">Amount</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="addbillsundry"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-group pull-right">
+                <button type="submit" id="save" class="btn btn-success">
+                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                </button>
+                @if (ViewBag.approvalstatus == true)
+                {
+                <button type="submit" id="print" class="btn btn-success">
+                    <span class="glyphicon glyphicon-print"></span> Save And Print
+                </button>
+                }
+
+                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Estimate/Index'");">Cancel</button>
+
+            </div>
+            <br />
+
+            <br />
+        </div>
+
+
+    </div>
+
+
+
+}
+
+@{var vModel = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @vModel)
+@Html.Partial("../Common/_ModalEdit", @vModel)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+@Html.Partial("../Common/_ModalCustomer")
+@Html.Partial("_voucher")
+
+@*@Html.Partial("_Invoice")*@
+
+
+@section style{
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+
+<style>
+    .itemnote {
+        height: 200px !important;
+    }
+</style>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/commission")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+
+<script type="text/javascript">
+
+        $('.date').datepicker({
+           format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+
+        $(document).ready(function () {
+            $(function () {
+                $(".itemnote").wysihtml5();
+            });
+            $(function () {
+                $("#TermsCondition").wysihtml5();
+            });
+            //$("#SaleType").select2();
+            $('#SaleType option:contains(POS)').remove();
+
+            if ('@ViewBag.Contype' != "Quote" && '@ViewBag.Contype' != "QuotExtend") {
+                $("#SaleType").prop('selectedIndex', 0);
+                $('#HireType').hide();
+            }
+            else {
+                var Type = $('#SaleType').val();
+                if (Type == 2) {
+                    $('#HireType').show();
+                }
+                else {
+                    $('#HireType').hide();
+                }
+            }
+           // HType();
+            GetBranch();
+            CallCustomer();
+            CallEmployee();
+            CallApprovedBy();
+
+            var QType = '@ViewContext.RouteData.Values["type"]';
+            var EntryID = '@ViewContext.RouteData.Values["id"]';
+            //QType != "" && EntryID != ""
+          //  addrowesti(item.estimateid, item.date, item.invoiceno, item.description, item.amount);
+            addrowesti('', '', '', '', '');
+              var QType = '@ViewContext.RouteData.Values["type"]';
+            var EntryID = '@ViewContext.RouteData.Values["id"]';
+            //QType != "" && EntryID != ""
+          //  addrowesti(item.estimateid, item.date, item.invoiceno, item.description, item.amount);
+            var Estimateid = getQueryString('');
+            commcount = 0;
+            $.ajax({
+                url: '/Estimate/GetEstItems',
+                dataType: 'json',
+                data: { Estimateid: Estimateid },
+                cache: true,
+                success: function (data) {
+                    $('#addinvoiceItem').html('');
+                    $.each(data, function (i, item) {
+
+                        addrowesti(item.EstimateItemId, convertToDate(item.invdate), item.invno, item.description, item.amount);
+                       
+                    });
+                    addrowesti('', '', '', '', '');
+                    
+
+                }
+
+            });
+
+            CallTask();
+        });
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            var cust = $("#ddlCustomer").val();
+            if (cust != null) {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project Code Or Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProjectByCustomer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                customer: cust,
+                                x: "--No Project--"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                    templateResult: projectFormatResult,
+                    templateSelection: projectFormatSelection,
+                });
+            }
+
+        });
+    var quotID = getQueryString('');
+    $.ajax({
+        url: '/Estimate/GetEsBillSundry',
+        dataType: 'json',
+        data: { quoteID: quotID },
+        cache: true,
+        success: function (data) {
+            $.each(data, function (i, bs) {
+                addbillsundryES('addbillsundry', 'estimate', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
+            });
+            addbillsundryES('addbillsundry', 'estimate', '0.00', '', '0.00', '');
+            grandtotalcalculation();
+        }
+    });
+
+    
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+        //sales type change
+        $('body').on('change', '#SalesType', function (e) {
+            var type = $(this).val();
+            ptypechange(type);
+        });
+
+
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+            //datepickerInit();
+        });
+        $('#modal-create').on('submit', '#projectform', function (e) {
+            e.preventDefault();
+            var url = $('#projectform')[0].action;
+            var data = $('#projectform').serialize();
+            createajax(url, data, '#modal-project');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+
+        function GetCustomer() {
+            var CustomerId = $('#ddlCustomer').val();
+            if (CustomerId != null) {
+                $.ajax({
+                    url: '/Customer/GetCustomerEmailById',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { CustID: CustomerId },
+                    success: function (result) {
+                        $("#CustomerEmail").val(result.EmailId);
+                    }
+                });
+            }
+        }
+        function Getlead() {
+            var CustomerId = $('#ddlCustomer').val();
+            if (CustomerId != null) {
+                $.ajax({
+                    url: '/Customer/getlead',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { CustID: CustomerId },
+                    success: function (result) {
+                        $("#ddlcustomer").val(result.customerid);
+                    }
+                });
+            }
+        }
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        $('#Estimateform').on('submit', function (e) {
+            e.preventDefault();
+
+            if ($("#Estimateform").valid() ) {
+                var url = $('#Estimateform')[0].action;
+                var formData = new FormData(this);
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                if (fnval == "save" || fnval == "print") {
+                    formData.append('fnval', fnval);
+                    $.ajax({
+                        async: true,
+                        cache: false,
+                        dataType: "json",
+                        type: "POST",
+                        processData: false,
+                        contentType: false,
+                        url: url,
+                        data: formData,//$('#createlandlordForm').serialize(), //formData,//JSON.stringify(parameters),
+                        beforeSend: function () {
+                            $("button").prop('disabled', true); // disable button
+                        },
+                        success: function (e) {
+                            if (e.status) {
+                                $('.ajax_response', res_success).text(e.message);
+                                $('.AlertDiv').prepend(res_success);
+                                if (fnval == "save") {
+                                    window.location.href = '@Url.Action("Create", "Estimate")';
+                                }
+                                if (fnval == "print") {
+                                    printestimate(e); window.location.href = '@Url.Action("Create", "Estimate")';
+                                }
+
+                            }
+                            else {
+                                $('.ajax_response', res_danger).text(e.message);
+                                $('.AlertDiv').prepend(res_danger);
+                                $("button").prop('disabled', false); // enable button
+                            }
+                        }
+                    });
+
+
+                }
+
+            }
+
+        });
+
+
+    function printestimate(e) {
+        var dat = convertToDate(e.data.EsttDate);
+
+
+        $("#lblinvdate").text(dat);
+
+        $("#lblbilno").text(e.data.BillNo);
+
+        $("#lblqtn").text(e.data.quoteref);
+        $("#lbljoborderno").text(e.data.joborderno);
+        $("#lblsite").text(e.data.siteno);
+
+        $("#lblbuilding").text(e.data.buildingno);
+        $("#lblflat").text(e.data.flatno);
+
+        $("#lbltask").text(e.data.TaskName);
+        $("#grandtotal").text(e.data.QuotGrandTotal);
+
+
+
+        var adcount = 1;
+        $.each(e.estitems, function (i, item) {
+            var dat2 = convertToDate(item.invdate);
+            var str = '<tr>';
+            str += '<td>' + dat2 + '</td>';
+            str += '<td>' + item.invno + '</td>';
+            str += '<td>' + item.description + '</td>';
+            str += '<td>' + item.amount + '</td>';
+            str += '</tr>';
+            adcount++;
+            $('#addfield').append(str);
+        });
+        var amttable = bindSundry(e);
+        var dcount = 1;
+        $('#billsundrybottom').append(amttable);
+
+
+
+
+
+
+
+
+
+        var originalpage = document.body.innerHTML;
+        var printContent = $('#printit').html();
+        $('title').html("Estimate - ");
+        $('body').html(printContent);
+        window.print();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //keep stock change
+        function chgkeepstok() {
+            //$('#KeepStock').click(function () {
+            if ($('#KeepStock').prop('checked') == true) {
+                $('.StockSection').show();
+            }
+            else {
+                $('.StockSection').hide();
+            }
+            //  });
+        }
+
+
+        ProjectPopup();
+        CustomerPopup();
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+
+        });
+        function HType() {
+            var Type = $('#SaleType').val();
+            var method;
+            if (Type == 2) {
+                $('#HireType').show();
+                method = "Hire";
+            }
+            else {
+                $('#HireType').hide();
+                method = "Sale";
+            }
+            saletypechange(Type, method);
+
+            //hirerate
+            var Stype = (($('#SaleType').val()) == 1) ? "Sale" : "Hire";
+            //if ($('#SaleType').val() == 1) {
+                $.ajax({
+                    url: '/Quotation/GetHireInvoiceNum',
+                    data: { hiretype: Stype },
+                    type: "POST",
+                    dataType: "JSON",
+                    success: function (Hresult) {
+                        $('#BillNo').val(Hresult);
+                    }
+                });
+            //}
+        }
+        //$('body').on('change', '#ddlHType', function (e) {
+        //    //var type = $(this).val();
+        //    var method = "Hire";
+        //    var type = $('#ddlHType').val(); alert(method);
+        //    saletypechange(type, method);
+        //});
+        //function HType() {
+        //    var Type = $('#SaleType').val();
+        //    if (Type == 2) {
+        //        $('#HireType').show();
+        //    }
+        //    else {
+        //        $('#HireType').hide();
+        //    }
+        //    ptypechange(Type);
+        //}
+        //function DateSet() {
+        //    var ndate = $('#FromDate').val();
+
+        //    $('#ToDate').datepicker({
+        //        startDate: ndate,
+        //        format: 'dd-mm-yyyy',
+        //        autoclose: true,
+        //        allowInputToggle: true
+        //    });
+
+        //}
+</script>
+    <script type="text/javascript">
+
+        function nodays() {
+
+
+            var date1 = new Date($("#QuotDate").val());
+            var date2 = new Date($("#quotationexpdate").val());
+
+            var Difference_In_Time = date2.getTime() - date1.getTime();
+
+
+            var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+            $("#QuotValidity").val(Difference_In_Days);
+
+        }
+
+        $("#input-24").fileinput({
+            maxFilePreviewSize: 10240,
+            autoReplace: true,
+            maxFileCount: 10,
+            showUploadedThumbs: true,
+            showUpload: false,
+            overwriteInitial: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+                'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showUpload: false,
+            },
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        });
+
+    </script>
+}
+

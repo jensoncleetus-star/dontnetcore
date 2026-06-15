@@ -1,0 +1,230 @@
+﻿@model QuickSoft.ViewModel.PayrollStatementViewModel
+@{
+
+    ViewBag.Title = "Search Payroll Statement";
+    ViewBag.SubTitle = "Payroll Statement";
+    ViewBag.Active = "PayrollReport";
+    var count = Model.PheadCount;
+
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Payroll Statement</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            @*<input type="hidden" id="fromdate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))" />
+                <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))" />*@
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>Department</td>
+                        <td>Employee</td>
+                        <td>Employee Code</td>
+                        <td>Bank Details</td>
+                        @foreach (var item in Model.Phead)
+                        {
+                            <td>@item.Name</td>
+                        }
+                        <td>Total</td>
+                        <td>Note</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.PSettle)
+                    {
+                        <tr>
+                            <td>@item.Department</td>
+                            <td>@item.Employee</td>
+                            <td>@item.EmployeeCode</td>
+                            <td>@item.BankDetails</td>
+                            @foreach (var phead in item.PheadVModel)
+                            {
+                                <td>@phead.Rate</td>
+                            }
+                            <td>@item.Total</td>
+                            <td>@item.Note</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>Total</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        @foreach (var item in Model.Phead)
+                        {
+                            <td></td>
+                        }
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                "order": [[0, "asc"]],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                  'colvis', {
+                      extend: 'print',//
+                      title: "",
+                      footer: true,
+                      filename: function () {
+                          return 'Payroll Statement';
+                      },
+                      exportOptions: {
+                          columns: ':visible'
+                      },
+                      message: function () {
+                          var head = '<table class="tblcompact table table-bordered"><thead>' +
+                       ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Payroll Statement</h4></th></tr>' +
+                       ' <tr><th><span class="text-left"></span><span class="text-right pull-right"></span></th></tr></thead><tbody><tr><td>';
+                          return head;
+                      },
+                      customize: function (win) {
+
+                          $(win.document.body).find('table, th,tr, td ')
+                             // .css('border', 'inherit')
+                              .css('font-size', '10pt')
+                              .css('padding', '5px')
+                              .addClass('compact');
+                          $(win.document.body).append('</td></tr></tbody>')
+
+                      }
+                  }, 'copy', 'csv', //'excel',
+                 {
+                     extend: 'excel',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Payroll Statement';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Payroll Statement \n';
+                         return head;
+                     },
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: ':visible'
+                     },
+                 },
+                 {
+                     extend: 'pdf',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Payroll Statement';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Payroll Statement \n';
+                         return head;
+                     },
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: ':visible'
+                     },
+                     customize: function (doc) {
+                         doc.styles['td:nth-child(2)'] = {
+                             width: '100px',
+                             'max-width': '100px'
+                         }
+                         doc.pageMargins = [10, 10, 10, 10];
+                         doc.defaultStyle.fontSize = 10;
+                         doc.styles.tableHeader.fontSize = 10;
+                         doc.styles.title.fontSize = 12;
+                         // Header font and bg color
+                         doc.styles.tableHeader.fillColor = '#d3d3d3';
+                         doc.styles.tableHeader.color = 'black';
+                         // Remove spaces around page title
+                         doc.content[0].text = doc.content[0].text.trim();
+
+                         var objLayout = {};
+                         // Horizontal line thickness
+                         objLayout['hLineWidth'] = function (i) { return .5; };
+                         // Vertikal line thickness
+                         objLayout['vLineWidth'] = function (i) { return .5; };
+                         //// Horizontal line color
+                         //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                         //// Vertical line color
+                         //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                         // Left padding of the cell
+                         objLayout['paddingLeft'] = function (i) { return 4; };
+                         // Right padding of the cell
+                         objLayout['paddingRight'] = function (i) { return 4; };
+                         // Inject the object in the document
+                         doc.content[1].layout = objLayout;
+                         // Footer font and bg color
+                         doc.styles.tableFooter.fillColor = '#d3d3d3';
+                         doc.styles.tableFooter.color = 'black';
+                     }
+
+                 },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    for (i = 4; i <= @count+4; i++) {
+                        // Total over all pages
+                        total = api
+                            .column(i)
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Total over this page
+                        pageTotal = api
+                            .column(i, { page: 'current' })
+                            .data()
+                            .reduce(function (a, b) {
+                                return intVal(a) + intVal(b);
+                            }, 0);
+
+                        // Update footer
+                        $(api.column(i).footer()).html(
+                             pageTotal.toFixed(2)
+                            //'$' + pageTotal + ' ( $' + total + ' total)'
+                        );
+                    }
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+            });
+        });
+    </script>
+}

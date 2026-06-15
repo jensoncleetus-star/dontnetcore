@@ -1,0 +1,104 @@
+@model QuickSoft.ViewModel.ReminderViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Reminder</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("EditRemind", "Reminder", FormMethod.Post, new { id = "editform", role = "form" }))
+    {
+        <script type="text/javascript">
+            $('form#editform').removeData("validator");
+            $('form#editform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#editform'));
+        </script>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                @Html.HiddenFor(model => model.Reference)
+                @Html.HiddenFor(model => model.ReminderId)
+                <div class="form-group col-md-6 ">
+                    @Html.LabelFor(model => model.RDate, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.RDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @autocomplete = "off" })
+                    </div>
+                </div>
+                <div class="form-group col-md-6">
+                    <div class="bootstrap-timepicker">
+                        @Html.LabelFor(m => m.RTime, new { @class = "control-label" })*
+                        <div class="input-group">
+                            @Html.TextBoxFor(m => m.RTime, "{0:hh:mm tt}", new { @class = "form-control timepicker", @required = "required", @autocomplete = "off", @value = "" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-clock-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Assigned To", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AssignedTo, (MultiSelectList)ViewBag.AssignedTos, new { @id = "ddlAssignedTo", @class = "form-control select2 ddlAssign textwidth", @name = "ddlAssignedTo[]", @multiple = "multiple" })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.LabelFor(m => m.RStatus, new { @class = "control-label" })
+                    @Html.DropDownList("RStatus", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Open", Value="Open"},
+                        new SelectListItem() {Text = "Close", Value="Close"},
+                        new SelectListItem() {Text = "Postpone", Value="Postpone"},
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "RStatus", @required = "required", tabindex = 9 })
+                </div>
+                <div class="form-group col-md-12">
+                    @Html.LabelFor(model => model.Note, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.TextAreaFor(model => model.Note, new { @class = "form-control", @placeholder = "Enter Remark", @required = "required", tabindex = 20 })
+                </div>
+            </div>
+        </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box-footer">
+                        <input type="submit" value="Update" class="btn btn-info col-sm-offset-4" />
+                        <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                    </div>
+                </div>
+            </div>
+            <script>
+                $(".ddlAssign").select2({
+                    placeholder: 'Search User',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchEmployeeUserRem",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                var date = new Date();
+                date.setDate(date.getDate());
+                $('.datepicker').datepicker({
+                    startDate: date,
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                jQuery.validator.methods["date"] = function (value, element) { return true; }
+                $(".timepicker").timepicker({
+                    showInputs: true,
+                    defaultTime: false,
+                    format: 'dd-mm-yyyy'
+                });
+            </script>
+    }
+</div>

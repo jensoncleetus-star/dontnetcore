@@ -1,0 +1,225 @@
+@model QuickSoft.Models.uploaditemimage
+@{
+    ViewBag.Title = "Create Upload Image";
+    ViewBag.SubTitle = "Upload Image";
+    ViewBag.Active = "Utility";
+    string partialconfig = "";
+    string check = "";
+    string strImage = "";
+
+
+    int di = 0;
+
+}
+<head>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <style>
+        #loadingImg {
+            display: none;
+        }
+    </style>
+</head>
+<div class="box box-info">
+    @using (Html.BeginForm("Creategooglereviewsave", "FileDocument", FormMethod.Post, new { @class = "dropzone", id = "createform", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Upload Image </h3>
+            
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
+        <input type="hidden" class="form-control" id="MultidocumentRowcount" value="0" placeholder="">
+        
+        <div class="row">
+            <button style="width: 200px;display:none;" type="submit" class="btn btn-light btn-rounded btn-fw add_field_button3">Documents details &ensp;<i class="" aria-hidden="true"></i></button>
+
+            <div class="form-group">
+                <label class="control-label col-md-4">Item Name/Code</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.ddlItem, new { @class = "form-control input-sm", @required = "required" })
+                </div>
+                <div class="col-sm-2">
+                    <select name="Unit" id="Unit" style="height: 30px;"></select>
+                    <input type="hidden" id="UnitName" />
+                    <input type="hidden" id="Cfactor" />
+                </div>
+            </div>
+            <br>
+
+
+            <div class="form-group col-md-12 point">
+                @Html.Label("Documents", null, new { @class = "control-label" })
+                <div class="file-loading">
+                    <input id="input-24" name="input24[]" type="file" multiple>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+        <div class="row">
+            <div class="form-group pull-right">
+                <button type="submit" id="Save" class="btn btn-success">
+                    <span class="glyphicon"></span> Save
+                </button>
+                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/FileDocument/Index'");">Cancel</button>
+            </div>
+
+        </div>
+    }
+</div>
+
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/Mobile")
+
+
+    <script type="text/javascript">
+
+       /*.........tooltip message...........*/
+        $(".point").prop('title', 'Ctrl + select on Browse');
+
+
+    $("#input-24").fileinput({
+            maxFilePreviewSize: 10240,
+            autoReplace: false,
+            maxFileCount: 10,
+            showUploadedThumbs: true,
+            showUpload: false,
+        overwriteInitial: false,
+        enableResumableUpload: true,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png","csv", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+                'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showUpload: false,
+                showZoom: true,
+            },
+              initialPreviewConfig: [
+               @partialconfig
+            ],
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        });
+
+
+
+
+
+        $(document).ready(function () {
+
+
+            ItemSearchable();
+          
+        });
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+
+                 
+                }
+            });
+        });
+        
+
+        /* Create function for File Document */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#createform').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#createform").valid()) {
+                var url = $('#createform')[0].action;
+                var formData = new FormData(this);
+
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '@Url.Action("Creategooglereivew", "FileDocument")';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });
+
+
+        Dropzone.autoDiscover = false;
+
+
+        Dropzone.autoDiscover = false;
+        // Dropzone class:
+        var myDropzone = new Dropzone(".dropzone", {
+            //url: "/file/post",
+            acceptedFiles: ".jpeg,.jpg,.png,.gif,.pdf",
+            uploadMultiple: false,
+            createImageThumbnails: true,
+            addRemoveLinks: true,
+            maxFiles: 10,
+            maxfilesexceeded: function (file) {
+                this.removeAllFiles();
+                this.addFile(file);
+            }, init: function () {
+                this.on('error', function (file, errorMessage) {
+                    var mypreview = document.getElementsByClassName('dz-error');
+                    mypreview = mypreview[mypreview.length - 1];
+                    mypreview.classList.toggle('dz-error');
+                    mypreview.classList.toggle('dz-success');
+                });
+            }
+
+        });
+    </script>
+}
+

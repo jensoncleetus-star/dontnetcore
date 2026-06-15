@@ -1,0 +1,2226 @@
+@model QuickSoft.ViewModel.PurchaseEntryViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Purchase Entry";
+    ViewBag.Active = "Transactions";
+    long? chkSupp = Model.Supplier;
+    var jewschk = ViewBag.JewCheck;
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+    string posfun = "";
+
+}
+<style>
+    input[name="dltcheck"] {
+        visibility: hidden !important;
+    }
+
+    .date {
+        height: 34px !important;
+    }
+</style>
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+<div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            @using (Html.BeginForm("multidvnote", "PurchaseEntry", FormMethod.Post, new { id = "createdvform", role = "form", enctype = "multipart/form-data" }))
+            {
+                <div class="modal-header bg-aqua">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Material Recieve Note</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-hover" id="DvTable">
+                        <thead>
+                            <tr class="bg-gray">
+                                <td><input type="checkbox" disabled id="select_all" /></td>
+                                <td>SI No</td>
+                                <td>MR Note No</td>
+                                <td>Date</td>
+                                <td>Supplier</td>
+                           
+                            
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            
+                                
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="box-footer col-md-12" id="sub">
+                    <button type="button" id="dnotesave" class="btn btn-info col-sm-offset-5" onclick="MultiDV();">Submit</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+@using (Html.BeginForm("CreatePurchase", "PurchaseEntry", FormMethod.Post, new { id = "purchaseform", role = "form" }))
+{
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Create Purchase Entry</h3>
+        <div class="pull-right">
+            @if (@ViewBag.LastEntry != 0)
+            {
+                if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Entry"))
+                {
+                    <a class="btn bg-black no-border" href="/PurchaseEntry/Edit/@ViewBag.LastEntry">
+                        <i class="fa fa-step-backward"></i>
+                    </a>
+                }
+            }
+            <a class="btn bg-black no-border" style="" href="javascript:void(0)" onclick="pullsales()">
+                Pull Sales
+            </a>
+            @if (User.IsInRole("Dev") || User.IsInRole("Purchase List"))
+            {
+                <a class="btn btn-success no-border" href="/PurchaseEntry">
+                    <i class="fa fa-fw fa-history"></i>List
+                </a>
+            }
+        </div>
+    </div>
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+    @Html.HiddenFor(model => model.ConTypeId)
+    @Html.HiddenFor(model => model.ConType)
+    @Html.HiddenFor(model => model.ConvertNo)
+    <input type="hidden" id="chkexcel" value="false" />
+    <input type="hidden" id="SuperUserEdit" value="@ViewBag.SuperUserEditvalue" />
+    <input type="hidden" id="procheck" value="@ViewBag.ProjChk" />
+    <input type="hidden" id="LastSale" value="active" />
+    <input type="hidden" id="LastPurchase" value="active" />
+    <input type="hidden" id="LastSaleCount" value="" />
+    <input type="hidden" id="LastPurchaseCount" value="" />
+    <input type="hidden" id="VoucherType" value="Purchase" />
+    <input type="hidden" id="batchcheck" value="@ViewBag.BatchWiseStock" />
+    <input type="hidden" id="rackcheck" value="@ViewBag.RackWiseStock" />
+    <div class="box-body">
+        <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+        <input type="hidden" id="SelApprovedBy" />
+        <div class="row">
+            @if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.PurchaseHireType, new { @class = "form-control", @onchange = "HType();", @required = "required", data_msg_required = "The Purchase Hire type field is required" })
+                </div>
+            }
+            <div class="col-sm-2 form-group ">
+                @Html.LabelFor(model => model.BillNo, new { @class = "control-label" }) *
+                @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                @Html.HiddenFor(model => model.PENo)
+            </div>
+            <div class="col-sm-2 form-group col-xs-12">
+                @Html.Label("Reference No", null, new { @class = "control-label" })
+                @Html.Editor("ReferenceNo", new { htmlAttributes = new { @class = "form-control" } })
+
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.LabelFor(model => model.PEDate, htmlAttributes: new { @class = "control-label" })*
+                <div class="input-group date">
+                    <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                    @Html.TextBoxFor(m => m.PEDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                </div>
+            </div>
+            @if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-2">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm", @onchange = "getAprovalby()" })
+                </div>
+            }
+            <div class="col-sm-2 form-group">
+                @Html.Label("Purchase Type", null, new { @class = "control-label" }) *
+                @Html.DropDownListFor(m => m.PurchaseType, new SelectList(Model.PurchaseTypes, "Id", "Name"), new { id = "PurchaseType", @class = "form-control" })
+
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                {
+                    <div class="input-group input-group-sm">
+                        @if (Model.PECashier != null)
+                        {
+                            @Html.DropDownListFor(m => m.PECashier, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.PECashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+
+                        }
+                        <span class="input-group-btn">
+                            <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    if (Model.PECashier != null)
+                    {
+                        @Html.DropDownListFor(m => m.PECashier, (SelectList)ViewBag.Cashier, new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.PECashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                }
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.Label("Payment Type", null, new { @class = "control-label" }) *
+                @Html.EnumDropDownListFor(model => model.SupplierType, new { @class = "form-control" }) @*, @onchange = "suppliertype()*@
+            </div>
+            @*<div class="clearfix"></div>*@
+            <div class="col-sm-2 form-group">
+                @Html.Label("Supplier Name", null, new { @class = "control-label" }) *
+                @if (User.IsInRole("Dev") || User.IsInRole("Create Supplier"))
+                {
+                    <div class="input-group input-group-sm">
+                        @if (chkSupp.GetValueOrDefault() != 0)
+                        {
+                            @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Supp, new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetSupplierMail()" })
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Supp, "", new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetSupplierMail()" })
+                        }
+                        <span class="input-group-btn">
+                            <button type="button" href="/Supplier/AddSupplier" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    if (chkSupp.GetValueOrDefault() != 0)
+                    {
+                        @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Supp, new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetSupplierMail()" })
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Supplier, (SelectList)ViewBag.Supp, "", new { id = "ddlSupplier", @class = "form-control select2", @required = "required", @onchange = "GetSupplierMail()" })
+                    }
+                }
+            </div>
+            <div class="col-sm-2 form-group">
+                @Html.Label("Email Address", null, new { @class = "control-label" })
+                @Html.TextBoxFor(m => m.suppEmailId, new { @class = "form-control" })
+            </div>
+
+
+
+            @if (@ViewBag.BranchCheck == 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Branch", null, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                </div>
+            }
+            @if (@ViewBag.EnableCurrency == 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.Currency, new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.Currency, (SelectList)ViewBag.CurrencyVal, new { id = "ddlCurrency", @class = "form-control select2" })
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.ConvertionRate, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.ConvertionRate, new { htmlAttributes = new { @class = "form-control", @onchange = "FCCalculation();" } })
+                </div>
+            }
+            @if (@ViewBag.MLAPEntry == 0 && @ViewBag.StockTrnsfrUpdate == 0)
+            {
+                <div class="form-group col-sm-2" style="pointer-events: none;">
+                    @Html.Label("Approved By", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlApprovedBy", (SelectList)ViewBag.ApproveBy, "", new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                </div>
+            }
+            else if (@ViewBag.MLAPEntry == 0 && @ViewBag.StockTrnsfrUpdate != 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Approved By", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlApprovedBy", (SelectList)ViewBag.ApproveBy, "", new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+                </div>
+            }
+            @if (@ViewBag.DVEnable == 0)
+            {
+                <div class="col-md-1 col-xs-12 col-sm-4 form-group hide1" id="MuDvNt">
+                    <label class="control-label temp2">Select</label>
+                    <button class="btn btn-default btn-full no-border modal-convert">
+                        <i class="fa fa-folder-open"></i>
+                    </button>
+                </div>
+                <div class="col-md-1 col-xs-12 col-sm-4 form-group hide1" id="Invoice-div">
+                    <label class="control-label">MRNote Id:</label>
+                    <label style="font:normal" id="InvoiceId"></label>
+                </div>
+
+            }
+            @if (Model.CMRNoteNo != null && Model.CMRNoteNo != 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("MR Note No", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CMRNoteNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                </div>
+            }
+            @if (Model.CPorderNo != null && Model.CPorderNo != 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Purchase Order", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CPorderNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                </div>
+            }
+            @if (Model.CPQuotNo != null && Model.CPQuotNo != 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("Purchase Quotation No", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CPQuotNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                </div>
+            }
+            @if (Model.CMReqNo != null && Model.CMReqNo != 0)
+            {
+                <div class="form-group col-sm-2">
+                    @Html.Label("MR No", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CMReqNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                </div>
+            }
+            @if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div id="HireType">
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.CrossHireType, new { @class = "control-label" }) *
+                        @Html.DropDownListFor(m => m.CrossHireType, (SelectList)ViewBag.HiType, new { id = "ddlHType", @class = "form-control select2", @required = "required", data_msg_required = "The Hire type field is required" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" }) *
+                        <div class="input-group date">
+                            @Html.TextBoxFor(m => m.FromDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @onchange = "DateSet();", @required = "required", data_msg_required = "The Start Date field is required" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" }) *
+                        <div class="input-group date">
+                            @Html.TextBoxFor(m => m.ToDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required", data_msg_required = "The End Date field is required" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @Html.HiddenFor(model => model.PurchaseHireType, new { @class = "form-control hidden" })
+            }
+
+            @if (Model.convertBill != null && Model.convertBill != "")
+            {
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(m => m.convertFrom, Model.convertFrom, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.convertBill, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+                </div>
+            }
+            <div class="col-md-3 col-xs-12 form-group top-10">
+                <input type="file" id="excelfile" />
+                <div class="pull-right info">
+                    <i class="fa fa-question-circle" aria-hidden="true"></i>
+                    <div class="callout callout-danger info-msg">
+                        <ul>
+                            <li>Maximum Number of Item on an Excel Sheet is '100'</li>
+                            <li>Item Name or Code is Mandatory</li>
+                            <li>Predefined Units on system are Gms., Kgs., Metre, Pcs. and Box</li>
+                            <li>For Item With Vat - 5% mention Tax as 5 other wise it will take tax as "Zero Rated" </li>
+                            <li>All Fields Are Case Sensitive</li>
+                        </ul>
+                    </div>
+
+                </div>
+                <input type="button" id="upexcel" class="btn btn-primary btn-xs" value="Item Excel Upload" onclick="ExportToTable()" />
+                <input type="button" id="dwformat" class="btn btn-default btn-xs" value="Download Format" />
+            </div>
+            <div class="col-md-3 col-xs-12">
+                @Html.Label("Purchase Status", null, new { @class = "control-label" })
+                <div class="input-group">
+
+
+                    @Html.DropDownList("PurchaseStatus", new SelectList(new List<SelectListItem>
+                           {
+                            new SelectListItem() {Text = "Open", Value="0"},
+                            new SelectListItem() {Text = "Closed", Value="1"},
+                           }, "Value", "Text"), new { @class = "form-control input-sm", @name = "Emirate" })
+                </div>
+
+            </div>
+        </div>
+        <div class="row">
+            @if (Model.FieldMap.Count > 0)
+            {
+                for (int i = 0; i < Model.FieldMap.Count; i++)
+                {
+                    <div class="form-group col-sm-2 col-xs-12 hide1">
+                        <label class="control-label temp2" for="FieldName">
+                            @Model.FieldMap[i].FieldName
+                            @if (i == 0)
+                            {
+                                @*<a href="/OptionalFieldUpdate/" target="_new"><i class="fa fa-lg fa-edit"></i></a>*@
+                            }
+
+                        </label>
+                        @if (Model.FieldMap[i].Type == "Dropdown")
+                        {
+                            if (Model.FieldMap[i].Field == "Ref1")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef1, new { @id = "Ref1", @class = "form-control input-sm select2 ref" })
+
+                            }
+                            if (Model.FieldMap[i].Field == "Ref2")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef2, new { @id = "Ref2", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref3")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef3, new { @id = "Ref3", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref4")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef4, new { @id = "Ref4", @class = "form-control input-sm select2 ref" })
+                            }
+                            if (Model.FieldMap[i].Field == "Ref5")
+                            {
+                                @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef5, new { @id = "Ref5", @class = "form-control input-sm select2 ref" })
+                            }
+                        }
+                        else
+                        {
+                            <input class="form-control select2" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="">
+                        }
+                        @*<label class="control-label small-standalone-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>*@
+                    </div>
+                }
+            }
+        </div>
+        <div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="normalinvoice">
+                    <thead>
+                        <tr>
+                            <th class="text-center">S/N</th>
+                            <th class="text-center item-lists">Item <i class="text-danger">*</i></th>
+                            <th class="text-center">Unit</th>
+                            <th class="text-center">Qty <i class="text-danger">*</i></th>
+                            <th class="text-center">Rate <i class="text-danger">*</i></th>
+                            <th class="text-center">Sub Total</th>
+                            <th class="text-center">Discount</th>
+                            <th class="text-center sh-hide-tax">TAX</th>
+                            <th class="text-center">Total</th>
+                            @if (@ViewBag.ProjChk == 0)
+                            {
+                                <th class="text-center">Project</th>
+                                <th class="text-center">Task</th>
+                            }
+                            <th class="text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="addinvoiceItem"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">
+                                Total
+                            </td>
+                            <td class="text-right">
+                                <label id="ItemQty"></label>
+                            </td>
+                            <td class="text-right">
+                                @*<label id="TotRate"></label>*@
+                            </td>
+                            <td class="text-right">
+                                <label id="SubTotal"></label>
+                            </td>
+                            <td class="text-right">
+                                <label id="ItemDisc"></label>
+                            </td>
+                            <td class="text-right">
+                                <label id="total_tax_amount"></label>
+
+                            </td>
+                            <td class="text-right">
+                                <label id="total"></label>
+                            </td>
+                            @if (@ViewBag.ProjChk == 0)
+                            {
+                                <td></td>
+                                <td></td>
+                            }
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            @if (@ViewBag.DisPercheck == 0)
+            {
+                <div class="row">
+                    <div class="form-group col-md-8"></div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.DisPercent, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.DisPercent, new { htmlAttributes = new { @class = "form-control" } })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.LabelFor(model => model.DiscAmount, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.DiscAmount, new { htmlAttributes = new { @class = "form-control" } })
+                    </div>
+                </div>
+            }
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                        @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                    </div>
+                    <div class="form-group">
+                        @Html.TextAreaFor(model => model.PENote, new { @class = "form-control", @placeholder = "Terms And Conditions", @rows = 4 })
+                    </div>
+                    @if (@ViewBag.PrintLayout == 0)
+                    {
+                        <div class="form-group col-sm-5">
+                            @Html.Label("Print Layout", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.PrintLayout, (SelectList)ViewBag.printlay, new { id = "ddlPrintlayout", @class = "form-control select2" })
+                        </div>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="billsundry">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">S/N</th>
+                                    <th class="text-center">Bill Sundry</th>
+                                    <th class="text-center">Value</th>
+                                    <th class="text-center">Type</th>
+                                    <th class="text-center">Amount</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="addbillsundry"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+
+                    @if (@ViewBag.EnableCurrency == 0)
+                    {
+                        <div class="form-group col-md-6 no-padding">
+                            <div class="form-group col-md-6 no-padding">
+                                @Html.Label("FC:", null, new { @class = "control-label" })
+                                @Html.EditorFor(model => model.FCTotal, new { htmlAttributes = new { @id = "FCTotal", @class = "form-control text-right", @readonly = "readonly" } })
+                            </div>
+                        </div>
+                    }
+                    <div class="form-group col-md-6 no-paddingleft"></div>
+                    <div class="form-group col-md-6 no-padding">
+                        @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.PEGrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                    </div>
+                    <div class="form-group col-md-6 hidden no-paddingleft" id="amountpaid">
+                        @Html.Label("Paid Amount:", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.PEPaidAmount, new { htmlAttributes = new { @id = "PaidAmount", @onkeyup = "paidamount_change();", @class = "form-control text-right", @value = "0", @placeholder = "0.00" } })
+
+                    </div>
+                    <div class="form-group col-md-6 hidden no-padding" id="amountdue">
+                        @Html.Label("Due :", null, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.PEDueAmount, new { htmlAttributes = new { @id = "DueAmount", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                        <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                    </div>
+
+                    <div class="form-group col-md-12">
+                        @Html.Label("Documents", null, new { @class = "control-label" })
+                        <div class="file-loading">
+                            <input id="input-24" name="input24[]" type="file" multiple>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group no-padding text-right">
+                    <div class="checkbox-inline">
+                        <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                        <label class="control-label" for="hideheader">Hide Header In Print</label>
+                    </div>
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                    <div class="form-group pull-right">
+                        <button type="submit" id="save" class="btn btn-success">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success">
+                            <span class="glyphicon glyphicon-print"></span> Save And Print
+                        </button>
+                        @if (@ViewBag.CheckMail == 0)
+                        {
+                            <button type="submit" id="sendmail" class="btn btn-success">
+                                <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                            </button>
+                        }
+                        <button type="button" class="btn btn-warning" onclick="@("window.location.href='/PurchaseEntry/Index'");">Cancel</button>
+                        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <div id="cont" class="hidden">
+        <svg id="barcode"></svg>
+    </div>
+    <span class="hidden" id="cname">@ViewBag.CName</span>
+    <div id="RackStock"></div>
+    <div id="batchStock"></div>
+    <div id="LastSalePur"></div>
+}
+
+
+@{
+    var Modelv = "modal-large";
+    if (@ViewBag.ItemPriceInPurchase == 0)
+    {
+        @Html.Partial("../Common/_ItemPriceUpdater")
+    }
+}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("_printBarcode")
+
+@if (ViewBag.POS == 0 && ViewBag.BusinessType == "DeliveryManagement")
+{
+    posfun = "PrintPOSInvoice(e, \"POSInvoice1\");";
+    @Html.Action("POSInvoice", "InvoiceLayout", new { type = "Purchase" })
+}
+else
+{
+    posfun = "PrintInvoice(e, \"sales\",\"inactive\",\"PurchaseEntry\");";
+    @*@Html.Partial("_Invoice")*@
+    @Html.Action("invoice", "InvoiceLayout", new { type = "Purchase" })
+}
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+    @if (!(ViewBag.POS == 0 && ViewBag.BusinessType == "DeliveryManagement"))
+    {
+        @Styles.Render("~/css/print")
+    }
+}
+@section scripts{
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+
+    @Scripts.Render("~/js/sheetjs")
+    <script src="~/Content/js/saleinvoice.js?c=232"></script>
+    <script type="text/javascript">
+        @{
+           var discount = "";
+           if (!User.IsInRole("Delete Purchase Entry"))
+
+           {
+               discount = "1";
+           }
+
+       }
+         readonlydiscount ='@Html.Raw(discount)';
+
+       var ItemPriceInPurchase = '@ViewBag.ItemPriceInPurchase';//active
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+         function getAprovalby() {
+            if ('@ViewBag.StockTrnsfrUpdate' == "active") {
+                var from = $("#ddlMC").val();
+
+
+            $.ajax({
+                url: '/StockTransfer/GetApprovalby',
+                dataType: 'json',
+                data: { mc: from },
+                cache: true,
+                success: function (data) {
+                    //$("#ddlApprovedBy").multiselect('refresh');//.multiselect('refresh');
+                    $("#ddlApprovedBy").val("");
+                    $("#ddlApprovedBy").removeClass("select2");
+                    var values = new Array();
+                    $.each(data, function (i, item) {
+                        values.push(item.ID);
+                        //  $('#ddlApprovedBy option[value=' + item.ID + ']').attr('selected', true);
+
+
+                    });
+                    $('#ddlApprovedBy').val(values).trigger("change");
+                    $("#ddlApprovedBy").select2({
+                        placeholder: 'Search User',
+                        minimumInputLength: 0,
+                        ajax: {
+                            url: "/Employee/SearchEmployeeUser2",
+                            dataType: 'json',
+                            delay: 50,
+                            data: function (params) {
+                                return {
+                                    q: params.term,
+                                    page: params.page
+                                };
+                            },
+                            processResults: function (data, params) {
+                                params.page = params.page || 1;
+                                return {
+                                    results: data
+                                };
+                            },
+                            cache: true
+                        },
+                    });
+                    //var tempCust = $("#ddlCustomer2").val();
+
+                    //$('#addinvoiceItem').html('');
+                    //$.each(data, function (i, item) {
+                    //    addrow('addinvoiceItem', 'foredit', item.Unit, item.Quantity, item.Price, item.Amount, item.Item, item.ItemName, item.ItemWithCode, item.ItemNote, item, item.ConFactor);
+                    //    var j = i + 1;
+                    //    $("#unit_name_" + j).val(item.Unit);
+                    //});
+                    //addrow('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
+                }
+            });
+        }
+        }
+        function fillDeliverynote() {
+            if ($.fn.DataTable.isDataTable('#DvTable')) {
+                $('#DvTable').DataTable().destroy();
+            }
+            var mdvcheck = $("#mdvcheck").val();
+            if (0 == 0) {
+                var oTable = $('#DvTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    retrieve: true,
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+
+                    responsive: true,
+                    "ajax": {
+                        "url": '/MRNote/MultipleDeliverynote',
+                        "type": "POST",
+                        "datatype": "json",
+                        "pageLength": 50,
+                        "data": function (data) {
+                            data.customer = $('#ddlSupplier').val();
+                            data.type = 1;
+                        }
+                    },
+                    "columns": [
+                        {
+                            "data": "MRId", "name": "MRId",
+                            "render": function (data, type, row, meta) {
+                                var box = '<input class="checkbox" type="checkbox" name="bill[]" value="' + data + '"/>';
+                                return box;
+                            }
+                        },
+                        {
+                            "data": "MRId", "name": "MRId",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        { "data": "BillNo", "name": "BillNo" },
+                        { "data": "MRDate", "name": "MRDate", "render": function (data) { return convertToDate(data); } },
+                        { "data": "Customer", "name": "Customer" },
+                 
+                        
+                    ],
+                    buttons: [
+                        'colvis',
+                        {
+                            extend: 'print',//
+                            title: "",
+                            footer: true,
+                            filename: function () {
+                                return 'Delivery';
+                            },
+                            columnDefs: [
+                                { width: 400, targets: 2 }
+                            ],
+                            exportOptions: {
+                                columns: ':visible'
+                            },
+                            message: function () {
+                                var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Delivery</h4></th></tr>';
+                                return head;
+                            },
+                            customize: function (win) {
+                                // $(win.document.body)
+                                //.css('font-size', '10pt')
+                                //.css('padding', '1px');
+                                $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                                $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                                    .css('font-size', '10pt')
+                                    .css('padding', '5px')
+                                    .addClass('compact');
+                                $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                                    .css('min-width', '80px');
+                                //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                                //    .css('padding', '0px');
+                                $(win.document.body).append('</td></tr></tbody>')
+
+                            }
+                        }, 'copy', 'csv', 'excel',
+                        {
+                            extend: 'pdf',//
+                            title: "",
+                            footer: true,
+                            filename: function () {
+                                return 'Delivery';
+                            },
+                            message: function () {
+                                var head = 'Delivery';
+                                return head;
+                            },
+                            pageSize: 'A4',
+                            exportOptions: {
+                                columns: ':visible'
+                            },
+                            customize: function (doc) {
+                                doc.pageMargins = [10, 10, 10, 10];
+                                doc.defaultStyle.fontSize = 10;
+                                doc.styles.tableHeader.fontSize = 10;
+                                doc.styles.title.fontSize = 12;
+                                // Header font and bg color
+                                doc.styles.tableHeader.fillColor = '#d3d3d3';
+                                doc.styles.tableHeader.color = 'black';
+                                // Remove spaces around page title
+                                doc.content[0].text = doc.content[0].text.trim();
+
+                                doc.styles['td:nth-child(2)'] = {
+                                    width: '100%',
+                                    'max-width': '100%'
+                                }
+
+                                var objLayout = {};
+                                // Horizontal line thickness
+                                objLayout['hLineWidth'] = function (i) { return .5; };
+                                // Vertikal line thickness
+                                objLayout['vLineWidth'] = function (i) { return .5; };
+                                //// Horizontal line color
+                                //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                                //// Vertical line color
+                                //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                                // Left padding of the cell
+                                objLayout['paddingLeft'] = function (i) { return 4; };
+                                // Right padding of the cell
+                                objLayout['paddingRight'] = function (i) { return 4; };
+                                // Inject the object in the document
+                                doc.content[1].layout = objLayout;
+                                // Footer font and bg color
+                                doc.styles.tableFooter.fillColor = '#d3d3d3';
+                                doc.styles.tableFooter.color = 'black';
+                            }
+                        }
+
+                    ],
+                    sDom: "lBfr<'datatable-scroll't>ip",
+                    "drawCallback": function (settings) {
+                        //var table = $('#SalesTable').DataTable();
+                        //if (!table.data().any()) {
+                        //    $("#sub").hide();
+                        //} else {
+                        //    $("#sub").show();
+                        //}
+                    },
+                    "footerCallback": function (row, data, start, end, display) {
+                        var api = this.api(), data;
+
+                        // Remove the formatting to get integer data for summation
+                        var intVal = function (i) {
+                            return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 :
+
+                                typeof i === 'number' ?
+                                    i : 0;
+                        };
+
+                    },
+
+
+
+
+
+
+
+
+
+                    "columnDefs": [{ targets: 0, orderable: false }],
+                    "drawCallback": function (settings) {
+
+
+                        //if ($(this).find('tbody tr').length <= 1) {
+                        //    $("#sub").hide();
+                        //}
+                        //else {
+                        //    $("#sub").show();
+                        //}
+                    }, searching: false
+
+
+                });
+                //oTable.destroy();
+            }
+        }
+        $('div').on('click', '.modal-convert', function (e) {
+            fillDeliverynote();
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+    function pullsales() {
+        var billno = prompt("Enter BIll No");
+        window.location = "/PurchaseEntry/pull/?billno=" + billno;
+        }
+
+
+        function MultiDV() {
+            var list = $('#createdvform').serialize();
+            $.ajax({
+                url: '/MRNote/multidvnote',
+                type: "POST",
+                dataType: 'json',
+                data: list,
+                cache: true,
+                success: function (data) {
+
+                    if (data.Result.length != 0) {
+                        $('#addinvoiceItem').html('');
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Customer).attr("selected", "selected");
+                        newOption.html(data.CustName);
+                        $('#ddlCustomer').append(newOption);
+                        $('#ddlCustomer').val(data.Customer).trigger("change");
+
+                        $.each(data.MultiInv, function (i, item) {
+                            var str = "";
+                            str += item.DVInvoice + ', ';
+                            $('#InvoiceId').append(str);
+                        });
+
+                        $("#addinvoiceItem").html("");
+                        $.each($(data.Result), function (i, item) {
+                            $('#ConvertNo').val($('#InvoiceId').text());
+                            $('#ConvertType').val('MRNote');
+                            $('#ConTypeId').val(item.Dvnum);
+                            $('#ConType').val('MRNote');
+
+                            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                addrow2('addinvoiceItem', 'sales', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+
+                            } else {
+                                addrow('addinvoiceItem', 'sales', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+
+                            }
+
+                        });
+                        $('#Invoice-div').show();
+
+                        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                            addrow2('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
+                        } else {
+                            addrow('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
+                        }
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text("You cannot add different customers Delivery note !");
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            });
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        };
+
+        $(document).ready(function () {
+            if ('@ViewBag.DVEnable' != 'inactive')
+            {
+         // fillDeliverynote();
+            }
+            //$('#ddlMC').val(values).trigger("change");
+            $("#input-24").fileinput({
+                maxFilePreviewSize: 10240,
+                autoReplace: true,
+                maxFileCount: 10,
+                showUploadedThumbs: true,
+                showUpload: false,
+                overwriteInitial: false,
+                initialPreviewAsData: true,
+                initialPreviewFileType: 'image',
+
+                allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+                    'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+                fileActionSettings: {
+                    showUpload: false,
+                },
+            }).on('filesorted', function (e, params) {
+                console.log('File sorted params', params);
+            }).on('fileuploaded', function (e, params) {
+                console.log('File uploaded params', params);
+            });
+
+
+            //for clients set bill no equals null
+            var Purch = ('@ViewBag.PurchaseInvoice');
+            if (Purch == "inactive") {
+                $("#BillNo").val("");
+            }
+
+            searchItem();
+            GetBranch();
+            ItemCategory();
+            ItemBrand();
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            CallSupplier();
+            CallEmployee();
+            CallMCUser()
+            CallApprovedBy();
+            $("#ddlMC").prop('selectedIndex', 0);
+            $('#ddlMC').trigger("change");
+            $("#ddlBillSundry").select2({
+                placeholder: 'Search BillSundry',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/BillSundry/SearchBillSundry",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            //convertion factor
+            var chkCurrency = '@ViewBag.EnableCurrency';
+            if (chkCurrency == 'active') {
+                var currency = $("#ddlCurrency").val();
+                CurrencyConvertRate(currency);
+            }
+
+            var pullfrom = getQueryString1("billno");
+            if (pullfrom != "" && pullfrom!=null) {
+
+                $.ajax({
+                    url: '/PurchaseEntry/GetSalesEntrys',
+                    dataType: 'json',
+                    data: { billno: pullfrom },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each($.parseJSON(data), function (i, item) {
+                            addrow('addinvoiceItem', 'quot', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+                        addrow('addinvoiceItem', 'quot', "", "0.00", "0.00", "0");
+                    }
+                });
+            }
+            var purfrom = '@ViewContext.RouteData.Values["type"]';
+            var EntryID = '@ViewContext.RouteData.Values["id"]';
+            if (purfrom == "POrder") {
+                GetSupplierMail();
+                $.ajax({
+                    url: '/PurchaseOrder/GetPOItems',
+                    dataType: 'json',
+                    data: { POrderID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each($.parseJSON(data), function (i, item) {
+                            addrow('addinvoiceItem', 'quot', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+                        addrow('addinvoiceItem', 'quot', "", "0.00", "0.00", "0");
+                    }
+                });
+            }
+            else if (purfrom == "PQuote") {
+                GetSupplierMail();
+                $.ajax({
+                    url: '/PurchaseQuotation/GetPQEItems',
+                    dataType: 'json',
+                    data: { PQuoteEntryID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each($.parseJSON(data), function (i, item) {
+                            addrow('addinvoiceItem', 'quot', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+                        addrow('addinvoiceItem', 'quot', "", "0.00", "0.00", "0");
+                    }
+                });
+            }
+            else if (purfrom == "MOrder") {
+                GetSupplierMail();
+                $.ajax({
+                    url: '/MaterialRequisition/GetMRItems',
+                    dataType: 'json',
+                    data: { MReqID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each($.parseJSON(data), function (i, item) {
+                            var ItemTaxAmount = item.ItemSubTotal.toFixed(2) * item.ItemTax.toFixed(2);
+                            item.ItemTotalAmount = item.ItemTaxAmount.toFixed(2) + ItemTaxAmount.toFixed(2);
+                            addrow('addinvoiceItem', '', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+                        addrow('addinvoiceItem', '', "", "0.00", "0.00", "0");
+                    }
+                });
+            }
+            else if (purfrom == "MRNote") {
+                GetSupplierMail();
+                $.ajax({
+                    url: '/MRNote/GetMRNItems',
+                    dataType: 'json',
+                    data: { MRNID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each($.parseJSON(data), function (i, item) {
+
+                            var ItemTaxAmount = item.ItemSubTotal.toFixed(2) * item.ItemTax.toFixed(2);
+                            item.ItemTotalAmount = item.ItemTaxAmount.toFixed(2) + ItemTaxAmount.toFixed(2);
+                            addrow('addinvoiceItem', '', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                        });
+                        addrow('addinvoiceItem', '', "", "0.00", "0.00", "0");
+                    }
+                });
+            }
+
+            //$('#PurchaseHireType').select2();
+            $('#ddlHType').select2();
+            $('#HireType').hide();
+            if ('@ViewBag.BusinessType' == "Scaffold") {
+                $('#PurchaseHireType').select2();
+                HType();
+            }
+
+
+            var purchasefrom = '@ViewContext.RouteData.Values["type"]';
+            var EntryID = '@ViewContext.RouteData.Values["id"]';
+
+            if (purchasefrom == "PurchaseExtend") {
+                $.ajax({
+                    url: '/PurchaseEntry/GetPEItemsHire',
+                    dataType: 'json',
+                    data: { PurchaseEntryID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each($(data), function (i, item) {
+                            var RetItemQuantity = (item.RetItemQuantity != null) ? item.RetItemQuantity : 0;
+                            var DvItemQuantity = (item.DvItemQuantity != null) ? item.DvItemQuantity : 0;
+                            var itmbalance = (parseFloat(DvItemQuantity) - parseFloat(RetItemQuantity)).toFixed(2);
+                            if (itmbalance > 0) {
+                                addrow('addinvoiceItem', 'foredit', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, itmbalance, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item);
+                            }
+                        });
+                        addrow('addinvoiceItem', 'purchase', "", "0.00", "0.00", "0");
+                    }
+                });
+
+                $.ajax({
+                    url: '/PurchaseEntry/GetPEBillSundry',
+                    dataType: 'json',
+                    data: { PurchaseEntryID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addbillsundry').html('');
+                        $.each(data, function (i, bs) {
+                            addbillsundry('addbillsundry', 'purchase', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
+                        });
+
+                        addbillsundry('addbillsundry', 'purchase', '0.00', '', '0.00', '');
+                        grandtotalcalculation();
+                    }
+                });
+
+            }
+            addrow('addinvoiceItem', 'purchase', "", "0.00", "0.00", "0");
+            addbillsundry('addbillsundry', 'purchase', '0.00', '', '0.00', '');
+
+        });
+
+        $('body').on('change', '#ddlMC', function (e) {
+            var mcval = $(this).val();
+            searchItem();
+        });
+
+        $('body').on('change', '#PurchaseType', function (e) {
+            var type = $(this).val();
+            ptypechange(type);
+            //vatvoucher
+            VatVoucherWisePurchase();
+            bspcalculate();
+        });
+
+        $('body').on('change', '#ddlCurrency', function (e) {
+            var currency = $(this).val();
+            CurrencyConvertRate(currency);
+        });
+
+
+        //cancel button for price updater
+        $('#modal-itempriceupdater').on('hidden.bs.modal', function () {
+            var fnval = $("#fnvalp").val();
+            submitForm(fnval);
+        });
+        // update button for price updator
+        $('#modal-itempriceupdater').on('submit', '#PriceUpdater', function (e) {
+            e.preventDefault();
+            var url = $('#PriceUpdater')[0].action;
+            var data = $('#PriceUpdater').serialize();
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: data,
+                success: function (data) {
+                    if (data.status) {
+                        var fnval = $("#fnvalp").val();
+                        submitForm(fnval);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            });
+        });
+
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+        $('#purchaseform').on('submit', function (e) {
+            e.preventDefault();
+            //check if exists VAT in Bill-Sundry
+            var vatexist = 0;
+            $("#addbillsundry tr").each(function (e) {
+                var type = parseFloat($(this).find('.bsname').val());
+                if (type == "4") { vatexist++; } else { vatexist = vatexist; }
+            });
+            var stype = $("#PurchaseType").val();
+            if (stype == 3 && vatexist == 0)//
+            {
+                alert("Please Select VAT in Bill-Sundry..!!");
+            } else {
+
+
+                if ($("#purchaseform").valid()) {
+                    var CSEmail = $('#suppEmailId').val();
+                    var chkexcel = $("#chkexcel").val();
+
+                    var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                    if (fnval == "sendmail" && CSEmail == "") {
+                        $('.ajax_response', res_danger).text("Customer Email Address Not Found..!!");
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    else {
+                        if (ItemPriceInPurchase == "active" && chkexcel == "false") {
+                            GeneratePriceTablenew(fnval);
+                        }
+                        else {
+                            submitForm(fnval);
+                        }
+                    }
+                }
+            }
+        });
+
+
+    function GeneratePriceTablenew(fnval) {
+        $("#fnvalp").val(fnval);
+        var cols = [];
+        var purprice = [];
+        var unitpri = [];
+        $("#normalinvoice").find('tr').not(':first, .item_').each(function (rowIndex, r) {
+            var iiD = $(this).find('select.item_name').val();
+
+            var pupr = $(this).find('input.totrate').val();
+            var units = $(this).find('select.units').val();
+            if (pupr > 0) {
+                if (typeof iiD !== "undefined") {
+                    cols.push(iiD);
+                    purprice.push(pupr);
+                    unitpri.push(units);
+                }
+            }
+
+        });
+        var items = cols.filter(function (itm, i, cols) {
+            return i == cols.indexOf(itm);
+        });
+        $.ajax({
+            url: '/Item/ItemDetails',
+            dataType: 'json',
+            type: "POST",
+            data: { items: items, purprices: purprice, unitpri: unitpri },
+            cache: true,
+            success: function (data) {
+                var ittable = "";
+                var promises = [];
+                //  $.when(
+                var count = -1;
+                $.each(data.data, function (i, item) {
+                    var ipp = 0;
+                    var PricingStrategy = item.PricingStrategy;
+                    ipp = purprice[i];
+                    ippprev = item.PurchasePrice;
+                    pprice = data.pri[i][0];
+                    sprice = data.pri[i][1]
+                    if (item.SellingPrice == "0") {
+                        item.SellingPrice = ipp;
+                        item.cashprice = ipp;
+                        item.creditprice = ipp;
+                    }
+                    //promises.push($.ajax({
+                    //    url: '/PurchaseEntry/GetPricePurchase',
+                    //    type: "GET",
+                    //    dataType: "JSON",
+                    //    data: { itemid: item.ItemID, purchaseprice: ipp },
+                    //    success: function (pricedata) {
+                    if (PricingStrategy == true) {
+                        ittable = "<tr><td>" + (i + 1) + "</td>" +
+                            "<td>" + item.ItemCode + "-" + item.ItemName + "<input type='hidden' data-name='ItemId' name='Addon[" + i + "].ItemId' class='iitemid' value='" + item.ItemID + "'/> </td>" +
+                            "<td><input type='number' step=any data-name='SellingPrice' name='Addon[" + i + "].SellingPrice' id='SellingPrice_" + i + "' value='" + sprice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required ' readonly/>" + "</td>" +
+                            "<td><input type='number' step=any data-name='cashprice' name='Addon[" + i + "].cashprice' id='cashprice" + i + "' value='" + item.cashprice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+                            "<td><input type='number' step=any data-name='creditprice' name='Addon[" + i + "].creditprice' id='creditprice" + i + "' value='" + item.creditprice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+
+                            "<td><input type='number' step=any data-name='PurchasePrice' name='Addon[" + i + "].PurchasePrice' id='PurchasePrice_" + i + "' value='" + pprice + "'  class='PurchasePrice_" + i + " form-control text-right pprice' data-msg-required='Purchase Price is Required' readonly/>" + "</td>" +
+
+                            "<td><input type='number' step=any data-name='BasePrice' name='Addon[" + i + "].BasePrice' id='BasePrice_" + i + "' value='" + item.BasePrice + "'  class='BasePrice_" + i + " form-control text-right bprice' data-msg-required='Base Price is Required' readonly/>" + "</td>" +
+                            "<td><input type='number' step=any data-name='MRP' name='Addon[" + i + "].MRP' id='MRP_" + i + "' value='" + item.MRP + "'  class='MRP_" + i + " form-control text-right mprice' data-msg-required='MRP is Required' readonly/>" + "</td></tr>";
+
+                    }
+                    else {
+                        ittable = "<tr><td>" + (i + 1) + "</td>" +
+                            "<td>" + item.ItemCode + "-" + item.ItemName + "<input type='hidden' data-name='ItemId' name='Addon[" + i + "].ItemId' class='iitemid' value='" + item.ItemID + "'/> </td>" +
+                            "<td><input type='number' step=any data-name='SellingPrice' name='Addon[" + i + "].SellingPrice' id='SellingPrice_" + i + "' value='" + item.SellingPrice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required'/>" + "</td>" +
+                            "<td><input type='number' step=any data-name='cashprice' name='Addon[" + i + "].cashprice' id='cashprice" + i + "' value='" + item.cashprice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+                            "<td><input type='number' step=any data-name='creditprice' name='Addon[" + i + "].creditprice' id='creditprice" + i + "' value='" + item.creditprice + "'  class='SellingPrice_" + i + " form-control text-right sprice' data-msg-required='Selling Price is Required ' />" + "</td>" +
+
+                            "<td><input type='number' step=any data-name='PurchasePrice' name='Addon[" + i + "].PurchasePrice' id='PurchasePrice_" + i + "' value='" + ipp + "'  class='PurchasePrice_" + i + " form-control text-right pprice' data-msg-required='Purchase Price is Required'/>" + "</td>" +
+                            "<td><input type='number' step=any data-name='BasePrice' name='Addon[" + i + "].BasePrice' id='BasePrice_" + i + "' value='" + item.BasePrice + "'  class='BasePrice_" + i + " form-control text-right bprice' data-msg-required='Base Price is Required'/>" + "</td>" +
+                            "<td><input type='number' step=any data-name='MRP' name='Addon[" + i + "].MRP' id='MRP_" + i + "' value='" + item.MRP + "'  class='MRP_" + i + " form-control text-right mprice' data-msg-required='MRP is Required'/>" + "</td></tr>";
+
+                    }
+                    $("#itempriceupdaters").append(ittable);
+
+
+                    count = i;
+
+                    //}))
+
+                });
+                var actualcount = $("#addinvoiceItem tr").length - 2;
+                if (count != actualcount) {
+                    alert("miss match items.check duplication or inactive item in purchase list");
+                    $("#itempriceupdaters").html("");
+                }
+                //).done(function () {
+                //    $("#modal-itempriceupdater").modal({ show: true, backdrop: "static" });
+                //});
+
+                Promise.all(promises)
+                    .then(responseList => {
+                        $("#modal-itempriceupdater").modal({ show: true, backdrop: "static" });
+                    })
+
+            }
+        });
+    }
+
+
+        function submitForm(fnval, parameters) {
+
+            var SupplierID = $('#ddlSupplier').val();
+            var EmployeeID = $('#ddlEmployee').val();
+            var PEDate = $('#PEDate').val();
+            //pending
+            var PEItems = $('#ItemCount').val();
+            var PEItemQuantity = $('#ItemQty').text();
+            var PESubTotal = $('#SubTotal').text();
+            var PETax = $('#total_tax_amount').text();
+
+            var TotalTax = $('#total_tax_amount').text();
+            var Discount = $('#ItemDisc').text();
+            var GrandTotal = $('#GrandTotal').val();
+            var PaidAmount = $('#PaidAmount').val();
+
+            var PENote = $('#PENote').val();
+
+            var PENo = $('#PENo').val();
+            var BillNo = $('#BillNo').val();
+            var ReferenceNo=$('#ReferenceNo').val();
+            var SuppType = $('#SupplierType').val();
+            var suppEMail = $('#suppEmailId').val();
+
+            var PurchaseType = $('#PurchaseType').val();
+            var Remarks = $('#Remarks').val();
+            var MaterialCenter = $('#ddlMC').val();
+            var ConTypeId = $('#ConTypeId').val();
+            var ConType = $('#ConType').val();
+            var Branch = $('#ddlBranch').val();
+            var Currency = $('#ddlCurrency').val();
+            var ConvertRate = $('#ConvertionRate').val();
+            var FCTotal = $('#FCTotal').val() || $('#GrandTotal').val();
+
+            var ApprovedBy = $('#SelApprovedBy').val();
+
+            var CMRNoteNo = $('#CMRNoteNo').val();
+            var CPorderNo = $('#CPorderNo').val();
+            var CPQuotNo = $('#CPQuotNo').val();
+            var CMReqNo = $('#CMReqNo').val();
+
+            var PurchaseHireType = $('#PurchaseHireType').val();
+            var Start = $('#FromDate').val();
+            var End = $('#ToDate').val();
+            var CrossHireType = $('#ddlHType').val();
+            var Purchassestatus = $("#PurchaseStatus").val();
+            var ConvertFrom = "@Model.ConType";
+            var ConvertBill = $('#convertBill').val();
+            var convertno = $('#ConvertNo').val();
+
+            var Ref1 = "";
+            var Ref2 = "";
+            var Ref3 = "";
+            var Ref4 = "";
+            var Ref5 = "";
+            if ('@Model.FieldMap.Count' > 0) {
+                Ref1 = $('#Ref1').val();
+                Ref2 = $('#Ref2').val();
+                Ref3 = $('#Ref3').val();
+                Ref4 = $('#Ref4').val();
+                Ref5 = $('#Ref5').val();
+            }
+            var Layout = $('#ddlPrintlayout').val();
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                        var cols = [];
+
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+
+            var HTMLtblbs = {
+                getData: function (table) {
+                    var bsData = [];
+                    table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            cols[itid] = itval;
+
+                            //cols.push({ name: itid, index: itval });
+                        });
+                        bsData.push(cols);
+                    });
+                    return bsData;
+                }
+            }
+            var bsData = HTMLtblbs.getData($('#billsundry'));
+            // batch stock
+            var HTMLtblbst = {
+                getData: function (table) {
+                    var bstData = [];
+                    var order = 0;
+                    var lastOne = 0;
+                    table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            if (itid == "order") {
+                                if (order == 0) {
+                                    order = 1;
+                                    lastOne = itval;
+                                }
+                                if (lastOne != itval) {
+                                    order++;
+                                    lastOne = itval;
+                                }
+                                itval = order;
+                            }
+                            cols[itid] = itval;
+                        });
+                        //if (!jQuery.isEmptyObject(cols) && cols.BatchNo != "") {
+                        //    bstData.push(cols);
+                        //}
+                        if (!jQuery.isEmptyObject(cols) && cols.StockIn != 0) {
+                            bstData.push(cols);
+                        }
+                    });
+                    return bstData;
+                }
+            }
+            var bstdata = HTMLtblbst.getData($('.batchtbl'));
+            var HTMLtblrack = {
+                getData: function (table) {
+                    var bsData = [];
+                    table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                        var cols = {};
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            cols[itid] = itval;
+
+                            //cols.push({ name: itid, index: itval });
+                        });
+                        if (!jQuery.isEmptyObject(cols) && cols.StockOut != 0) {
+                            bsData.push(cols);
+                        }
+                      //  bsData.push(cols);
+                    });
+
+                    return bsData;
+                }
+            }
+            var bsrackData = HTMLtblrack.getData($('.racktbl'));
+
+            var purchaseEntry = [SupplierID, EmployeeID, PEDate, PEItems, PEItemQuantity,
+                TotalTax, Discount, GrandTotal, PESubTotal, PETax, PaidAmount, PENote, fnval,
+                PENo, BillNo, SuppType, suppEMail, PurchaseType, Remarks, MaterialCenter, ConTypeId, ConType, Branch,
+                Currency, ConvertRate, FCTotal, ApprovedBy, CMRNoteNo, CPorderNo, CPQuotNo, CMReqNo,
+                Ref1, Ref2, Ref3, Ref4, Ref5, PurchaseHireType, Start, End, CrossHireType, ConvertFrom, ConvertBill, Layout, Purchassestatus, ReferenceNo, convertno]
+
+            var data = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.array = data;
+            parameters.purchasedata = purchaseEntry;
+            parameters.bsmodel = { 'pebsundrys': bsData };
+            parameters.bstmodel = bstdata;
+            parameters.bsrackData = bsrackData;
+            $.ajax({
+                async: true,
+                cache: false,
+
+                type: "POST",
+                url: '/PurchaseEntry/validdate',
+
+                data: { fdate: $("#PEDate").val() },
+                success: function (result) {
+                    //if (result.CustomerType == 1) {
+                    //    $("[id$=CustomerType]").val(1);
+                    //} else {
+                    //    $("[id$=CustomerType]").val(0);
+                    //}
+                    if (result == "False")
+                        {
+
+
+                        if ($("#SuperUserEdit").val() == "active") {
+
+                            $.ajax({
+                                url: '/CreditSale/getotp/?salesEntryId=0&purpose=Purchase&fdate=' + $("#PEDate").val() + '&mcpass=' + $("#ddlMC").val(),
+                                type: "GET",
+                                contentType: false, // Not to set any content header
+                                processData: false, // Not to process data
+                                async: true,
+                                success: function (e) {
+                                    if (e.status == true) {
+                                        var otp = prompt("Enter otp");
+                                        //if (e.status == true) {
+                                        //    if (e.otp == prompt("Enter otp")) {
+                                        //        setTimeout(function () { window.location.href = '/CreditSale/Edit/' + SalesEntryId; }, '5000');//{ location.reload(); }, 'TimeOut');
+                                        //    }
+                                        //    else {
+                                        //        alert("Invalid otp");
+                                        //    }
+                                        //}
+                                        //else {
+                                        //    alert("Your Superviser edit days over");
+                                        //}
+                                        $.ajax({
+                                            url: '/CreditSale/confirmotp/?salesEntryId=0&otp=' + otp + '&purpose=Purchase&fdate=' + $("#PEDate").val(),
+                                            type: "GET",
+                                            contentType: false, // Not to set any content header
+                                            processData: false, // Not to process data
+
+                                            success: function (e) {
+                                                if (e.status == true) {
+                                                    $.ajax({
+                                                        async: true,
+                                                        cache: false,
+                                                        dataType: "json",
+                                                        type: "POST",
+                                                        contentType: "application/json; charset=utf-8",
+                                                        url: "/PurchaseEntry/CreatePurchase",
+                                                        data: JSON.stringify(parameters),
+                                                        beforeSend: function () {
+                                                            $("button").prop('disabled', true); // disable button
+
+                                                        },
+                                                        success: function (e) {
+                                                            var mybody = $("body").html();
+
+
+                                                            if (e.status == true) {
+
+
+
+                                                                var fileUpload = $("#input-24").get(0);
+                                                                var files = fileUpload.files;
+
+                                                                // Create FormData object
+                                                                var fileData = new FormData();
+
+                                                                // Looping over all files and add it to FormData object
+                                                                for (var i = 0; i < files.length; i++) {
+                                                                    fileData.append(files[i].name, files[i]);
+                                                                }
+
+
+                                                                fileData.append('id', e.purid);
+
+
+
+
+                                                                $.ajax({
+                                                                    url: '/PurchaseEntry/UploadFiles',
+                                                                    type: "POST",
+                                                                    contentType: false, // Not to set any content header
+                                                                    processData: false, // Not to process data
+                                                                    data: fileData,
+                                                                    success: function (result) {
+
+
+                                                                        if (fnval == "print") {
+                            @Html.Raw(posfun)
+                                                                        }
+                                                                        else {
+                                                                            $('.ajax_response', res_success).text(e.message);
+                                                                            $('.AlertDiv').prepend(res_success);
+                                                                        }
+                                                                        if (e.barcode == 0 && '@jewschk' != 'active') {
+                                                                            //var r = confirm("Do you want to print Barcode ?");
+                                                                            //if (r == true) {
+                                                                            //    // PrintBarcode(e);
+                                                                            //    bindbarcode();
+                                                                            //}
+
+
+                                                                            if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                                                                // setTimeout(function () { window.location.href = '/PurchaseEntry/Edit/'+e.purid; }, '@TimeOut');
+                                                                                setTimeout(function () { window.location.href = '/PurchaseEntry/index'; }, '@TimeOut');
+                                                                            }
+                                                                        }
+                                                                         else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                                                                // setTimeout(function () { window.location.href = '/PurchaseEntry/Edit/'+e.purid; }, '@TimeOut');
+                                                                                setTimeout(function () { window.location.href = '/PurchaseEntry/index'; }, '@TimeOut');
+                                                                            }
+                                                                        else {
+                                                                            $('.ajax_response', res_danger).text(e.message);
+                                                                            $('.AlertDiv').prepend(res_danger);
+                                                                            $("button").prop('disabled', false); // enable button
+                                                                        }
+
+                                                                    }
+
+
+                                                                });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                            }
+                                                                 else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                                                                // setTimeout(function () { window.location.href = '/PurchaseEntry/Edit/'+e.purid; }, '@TimeOut');
+                                                                                setTimeout(function () { window.location.href = '/PurchaseEntry/index'; }, '@TimeOut');
+                                                                            }
+                                                            else {
+                                                                $('.ajax_response', res_danger).text(e.message);
+                                                                $('.AlertDiv').prepend(res_danger);
+                                                                $("button").prop('disabled', false); // enable button
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                                else {
+                                                    alert(e.message);
+                                                }
+                                            }
+                                        });
+                                    }
+                                    else {
+
+                                        alert("You can't Edit this contact supervisor");
+
+
+                                    }
+                                }
+
+
+                            });
+                        }
+                        else {
+                            alert("contact superviser");
+                        }
+                    }
+
+                            else {
+
+
+
+
+                          $.ajax({
+                            async: true,
+                            cache: false,
+                            dataType: "json",
+                            type: "POST",
+                            contentType: "application/json; charset=utf-8",
+                            url: "/PurchaseEntry/CreatePurchase",
+                            data: JSON.stringify(parameters),
+                            beforeSend: function () {
+                                $("button").prop('disabled', true); // disable button
+
+                            },
+                            success: function (e) {
+                                var mybody = $("body").html();
+
+
+                                if (e.status == true) {
+
+
+
+                                    var fileUpload = $("#input-24").get(0);
+                                    var files = fileUpload.files;
+
+                                    // Create FormData object
+                                    var fileData = new FormData();
+
+                                    // Looping over all files and add it to FormData object
+                                    for (var i = 0; i < files.length; i++) {
+                                        fileData.append(files[i].name, files[i]);
+                                    }
+
+
+                                    fileData.append('id', e.purid);
+
+
+
+
+                                    $.ajax({
+                                        url: '/PurchaseEntry/UploadFiles',
+                                        type: "POST",
+                                        contentType: false, // Not to set any content header
+                                        processData: false, // Not to process data
+                                        data: fileData,
+                                        success: function (result) {
+
+
+                                            if (fnval == "print") {
+                            @Html.Raw(posfun)
+                                            }
+                                            else {
+                                                $('.ajax_response', res_success).text(e.message);
+                                                $('.AlertDiv').prepend(res_success);
+                                            }
+                                            if (e.barcode == 0 && '@jewschk' != 'active') {
+                                                //var r = confirm("Do you want to print Barcode ?");
+                                                //if (r == true) {
+                                                //    // PrintBarcode(e);
+                                                //    bindbarcode();
+                                                //}
+
+
+                                                if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                                    // setTimeout(function () { window.location.href = '/PurchaseEntry/Edit/'+e.purid; }, '@TimeOut');
+                                                    setTimeout(function () { window.location.href = '/PurchaseEntry/index'; }, '@TimeOut');
+                                                }
+                                            }
+                                                 else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                                                                // setTimeout(function () { window.location.href = '/PurchaseEntry/Edit/'+e.purid; }, '@TimeOut');
+                                                                                setTimeout(function () { window.location.href = '/PurchaseEntry/index'; }, '@TimeOut');
+                                                                            }
+
+                                            else {
+                                                $('.ajax_response', res_danger).text(e.message);
+                                                $('.AlertDiv').prepend(res_danger);
+                                                $("button").prop('disabled', false); // enable button
+                                            }
+
+                                        }
+
+
+                                    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                }
+                                     else if ('@ViewBag.BusinessType' != 'DeliveryManagement' || '@ViewBag.POS' != 'active' || fnval != "print") {
+                                                                                // setTimeout(function () { window.location.href = '/PurchaseEntry/Edit/'+e.purid; }, '@TimeOut');
+                                                                                setTimeout(function () { window.location.href = '/PurchaseEntry/index'; }, '@TimeOut');
+                                                                            }
+                                else {
+                                    $('.ajax_response', res_danger).text(e.message);
+                                    $('.AlertDiv').prepend(res_danger);
+                                    $("button").prop('disabled', false); // enable button
+                                }
+                            }
+                        });
+
+
+
+
+
+
+
+
+                            }
+
+                }
+            });
+
+        }
+
+        //function PrintBarcode(e) {
+        //    //var count = e.item.PCount;
+        //    var CName = $("#cname").text();
+        //    var table = "";
+        //    $.each(e.item, function (i, item) {
+        //        if (item.Barcode != null) {
+        //            printSticker('barcode', item.Barcode);
+        //            var image = $("#cont").html();
+        //            if (image != 'undefined') {
+        //                var str = '<h4>' + CName + '</h4><div>' + image + '</div><p style="margin-top: -12px;line-height: 10px;position: relative;">' + item.ItemName + '<br> DHS    ' + item.ItemPrice + '</p>';
+
+        //                var count = item.ItemQuantity;
+        //                var i = 0;
+        //                while (i < count) {
+        //                    table += "<tr><td> " + str + "</td></tr>";
+        //                    i++;
+        //                }
+        //            }
+        //        }
+        //    });
+        //    $('#bartable').append(table);
+        //    var originalpage = document.body.innerHTML;
+        //    var printContent = $('#printBarcode').html();
+        //    $('body').html(printContent);
+        //    $('title').html("Barcode Print");
+        //    window.print();
+        //}
+
+        /*for item category,,color etc.... pop up*/
+        //keep stock change
+        function chgkeepstok() {
+            if ($('#KeepStock').prop('checked') == true) {
+                $('.StockSection').show();
+            }
+            else {
+                $('.StockSection').hide();
+            }
+        }
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        AddItemPopUp();
+
+        //On Modal Create
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+
+        //---------excel uploads-----------------
+        $("#dwformat").click(function () {
+            window.location.href = '@Url.Action("DownloadExcel", "PurchaseEntry")';
+        });
+
+        function ExportToTable() {
+
+            $("#chkexcel").val("true");
+            //var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;
+            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+            /*Checks whether the file is a valid excel file*/
+            if (regex.test($("#excelfile").val())) {
+                // if (regex.test($("#excelfile").val().toLowerCase())) {
+                var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
+                if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
+                    xlsxflag = true;
+                }
+                /*Checks whether the browser supports HTML5*/
+                if (typeof (FileReader) != "undefined") {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        ///*Converts the excel data in to object*/
+                        var data = new Uint8Array(reader.result);
+
+                        //if (xlsxflag) {
+                        var workbook = XLSX.read(data, { type: 'array' });
+                        //}
+                        //else {
+                        //    var workbook = XLS.read(data, { type: 'array' });
+                        //}
+                        /*Gets all the sheetnames of excel in to a variable*/
+                        var sheet_name_list = workbook.SheetNames;
+                        var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
+                        sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
+                            /*Convert the cell value to Json*/
+                            //if (xlsxflag) {
+                            var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y], { defval: '' })
+                            //}
+                            //else {
+                            //    var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
+                            //}
+
+                            if (exceljson.length > 0 && cnt == 0) {
+                                BindTable(exceljson, '#exceltable');
+                                cnt++;
+                            }
+                        });
+                        $('#exceltable').show();
+                    }
+                    if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
+                        reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+                    }
+                    else {
+                        reader.readAsBinaryString($("#excelfile")[0].files[0]);
+                    }
+                }
+                else {
+                    alert("Sorry! Your browser does not support HTML5!");
+                }
+            }
+            else {
+                alert("Please upload a valid Excel file!");
+            }
+        }
+        var excelcount = 0;
+        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
+            var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/
+            var data = [];
+            $('#addinvoiceItem').html('');
+            $.each(jsondata, function (i, item1) {
+                //console.log(item1);
+                var Prefix = ((typeof item1.Prefix === "undefined") ? "" : item1.Prefix)
+                var ItemCode = ((typeof item1.ItemCode === "undefined") ? "" : item1.ItemCode)
+                var ItemName = (typeof item1.Item === "undefined") ? (typeof item1.Description === "undefined" ? "" : item1.Description) : item1.Item;
+                var Item = (typeof item1.Item === "undefined") ? (typeof item1.Description === "undefined" ? "" : item1.Description) : item1.Item;
+                var Division = ((typeof item1.Division === "undefined") ? "G" : item1.Division)
+                var Category = (typeof item1.Category === "undefined") ? (typeof item1['Sub Category'] === "undefined" ? "General" : item1['Sub Category']) : item1.Category;
+                var Brand = ((typeof item1.Brand === "undefined") ? "General" : item1.Brand)
+                var Supplier = (typeof item1.Category === "undefined") ? (typeof item1['Supplier Ref'] === "undefined" ? "General" : item1['Supplier Ref']) : item1.Supplier;
+                var Qty = parseFloat(((typeof item1.Qty === "undefined") ? "0" : item1.Qty)) || 0;
+                var PurchasePrice = parseFloat(((typeof item1.PurchasePrice === "undefined") ? (typeof item1.Cost === "Undefined" ? "0" : item1.Cost) : item1.PurchasePrice)) || 0;
+                var MRP = parseFloat((typeof item1.MRP === "undefined") ? (typeof item1['Tag Price'] === "undefined" ? "0" : item1['Tag Price']) : item1.MRP) || 0;
+                var BasePrice = parseFloat(((typeof item1.BasePrice === "undefined") ? (typeof item1.Cost === "Undefined" ? "0" : item1.Cost) : item1.BasePrice)) || 0;
+                var SellingPrice = parseFloat((typeof item1.SellingPrice === "undefined") ? (typeof item1['Tag Price'] === "undefined" ? "0" : item1['Tag Price']) : item1.SellingPrice) || 0;
+                //var SellingPrice = ((typeof (item1.SellingPrice || item1['Tag Price']) === "undefined") ? "0" : (item1.SellingPrice || item1['Tag Price']))
+                var Tagline1 = (typeof item1.Tagline1 === "undefined") ? (typeof item1['Tag Line 1'] === "undefined" ? "0" : item1['Tag Line 1']) : item1.Tagline1;
+                var Tagline2 = (typeof item1.Tagline2 === "undefined") ? (typeof item1['Tag Line 2'] === "undefined" ? "0" : item1['Tag Line 2']) : item1.Tagline2;
+                var Tagline3 = (typeof item1.Tagline3 === "undefined") ? (typeof item1['Tag Line 3'] === "undefined" ? "0" : item1['Tag Line 3']) : item1.Tagline3;
+                var Tagline4 = (typeof item1.Tagline4 === "undefined") ? (typeof item1['Tag Line 4'] === "undefined" ? "0" : item1['Tag Line 4']) : item1.Tagline4;
+                var Tagline5 = (typeof item1.Tagline5 === "undefined") ? (typeof item1['Tag Line 5'] === "undefined" ? "0" : item1['Tag Line 5']) : item1.Tagline5;
+                var Tax = parseFloat(((typeof item1.Tax === "undefined") ? "0" : item1.Tax)) || 0;
+                var Unit = ((typeof item1.Unit === "undefined") ? "" : item1.Unit);
+                var ItemWithCode = ItemCode != "" ? ItemCode + "-" + Item : Item;
+
+
+                if (ItemCode != "" && excelcount < 1000) {
+                    function chkpre() {
+                        $.ajax({
+                            url: '/Item/ItemPrefixCheck',
+                            type: 'POST',
+                            dataType: "JSON",
+                            data: { Prefix: Prefix },
+                            success: function (result) {
+
+                                return result.Prefixchk;
+
+                            }
+                        })
+                    }
+                    function chkcode() {
+                        $.ajax({
+                            url: '/Item/ItemCodeCheck',
+                            type: 'POST',
+                            dataType: "JSON",
+                            data: { ItemCode: ItemCode },
+                            success: function (result) {
+                                result = result.Itemdata
+                                // return result.Itemcode;
+                          
+                              
+                              
+                                addrow('addinvoiceItem', 'purchase', result.ItemUnitID, result.TaxID, 0, Qty, result.ItemID, result.ItemCode, result.ItemName, PurchasePrice, 0, result.ItemCode + "-" + result.ItemName, 0, 0, "", result);
+                               createUnitList(result, excelcount, 'quot'); 
+                            }
+                        })
+                    }
+                    var pref = chkpre();
+                    var cod = chkcode();
+
+                    if ( cod == false) {
+                      //  addrow('addinvoiceItem', 'purchase', '', 5, PurchasePrice, Qty, 0, ItemCode, Item, MRP, Division, ItemWithCode, 0, 0, '', null, Category, Brand, PurchasePrice, MRP, SellingPrice, BasePrice, Tagline1, Tagline2, Tagline3, Tagline4, Tagline5, Prefix, Division, Supplier)
+
+                    }
+                    if (cod == true) {
+                      //  alert("ItemCode Exists");
+                    }
+                    else {
+                       //addrow('addinvoiceItem', 'purchase', '', 5, PurchasePrice, Qty, 0, ItemCode, Item, MRP, Division, ItemWithCode, 0, 0, '', null, Category, Brand, PurchasePrice, MRP, SellingPrice, BasePrice, Tagline1, Tagline2, Tagline3, Tagline4, Tagline5, Prefix, Division, Supplier)
+                    }
+                    excelcount++;
+                }
+            })
+           
+
+        }
+
+        function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/
+            var columnSet = [];
+            var headerTr$ = $('<tr />');
+            for (var i = 0; i < jsondata.length; i++) {
+                var rowHash = jsondata[i];
+                for (var key in rowHash) {
+                    if (rowHash.hasOwnProperty(key)) {
+                        if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/
+                            columnSet.push(key);
+                            headerTr$.append($('<th />').html(key));
+                        }
+                    }
+                }
+            }
+            $(tableid).append(headerTr$);
+            return columnSet;
+        }
+
+        function HType() {
+            var Type = $('#PurchaseHireType').val();
+            var method;
+            if (Type == 1) {
+                $('#HireType').show();
+                method = "Hire";
+                $("#ddlMC").prop('selectedIndex', 1);
+            }
+            else {
+                $('#HireType').hide();
+                method = "Purchase";
+            }
+            STypeForMC(Type);
+            //saletypechange(Type, method);
+
+
+            //hirerate
+            var Stype = (($('#PurchaseHireType').val()) == 0) ? "Purchase" : "Hire";
+
+            $.ajax({
+                url: '/PurchaseEntry/GetHireInvoiceNum',
+                data: { hiretype: Stype },
+                type: "POST",
+                dataType: "JSON",
+                success: function (Hresult) {
+                    $('#BillNo').val(Hresult);
+                }
+            });
+
+        }
+
+        function STypeForMC(Type) {
+            if (Type == 1 && '@ViewBag.DefMc' != null && '@ViewBag.DefMc' != 0) {
+                var MCDefid = '@ViewBag.DefMc';
+                $("#ddlMC").val(2).change();
+                $('#ddlMC').attr("disabled", true);
+            }
+            else if (Type == 0 && '@ViewBag.DefMc' != null && '@ViewBag.DefMc' != 0) {
+                //if ($("#ddlMC").find('option[value="3"]').text() == 'Sale') {
+                $("#ddlMC").val(1).change();
+                $('#ddlMC').attr("disabled", false);
+                //}
+            }
+            else {
+                var MCDefid = '@ViewBag.LastMc';
+                $("#ddlMC").val(MCDefid).change();
+                $('#ddlMC').attr("disabled", false);
+            }
+        }
+
+        //On change of Discount Percentage
+        $('body').on('change', '#DisPercent', function (e) {
+            var DiscVal = $(this).val();
+            if (DiscVal == "") {
+                $("#DisPercent").val("0.00");
+            }
+            DiscAmt();
+        });
+
+        // change disc amount
+        $('body').on('change', '#DiscAmount', function (e) {
+            var DiscVal = $(this).val();
+            if (DiscVal == "") {
+                $("#DiscAmount").val("0.00");
+            }
+            DiscPer();
+        });
+
+
+    </script>
+}
+
+

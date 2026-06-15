@@ -1,0 +1,276 @@
+@model QuickSoft.Models.MC
+@{
+    ViewBag.Title = "Material Center List";
+    ViewBag.SubTitle = "Material Center";
+    ViewBag.Active = "Master";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Material Center</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create MC"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/MC/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Material Center
+                </a>
+            }
+        </div>
+    </div>
+    @*<div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.TextBox("MCText", "", new { @class = "form-control input-sm" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>*@
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="GroupTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">#</td>
+                    <td data-priority="2">Name</td>
+                    <td data-priority="2">Assigned User</td>
+                    <td data-priority="2">Code</td>
+                    <td data-priority="5">Note</td>
+                    <td data-priority="4">Status</td>
+                    <td data-priority="3"> Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+@Scripts.Render("~/js/jqueryval")
+
+    <script type="text/javascript">
+        
+        ///*Bind for tax group*/
+        $(document).ready(function () {
+            $('#advsearch').hide();
+        });
+
+            jQuery(function ($) {
+            var oTable = $('#GroupTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,                
+                responsive: true,
+                "ajax": {
+                    "url": '/MC/GetData',
+                    "data": function (data) {
+                        data.Mcs = $('#MCText').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                         {
+                             "data": "id", "name": "id",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                     { "data": "MCName", "name": "MCName" },
+                     { "data": "AsUser", "name": "AsUser" },
+                     { "data": "MCCode", "name": "MCCode" },
+                     { "data": "Note", "name": "Note" },
+
+                     {
+                         "name": "Status", "data": function (data) {
+                             if (data.Status == 1) {
+                                 return '<a href="/MC/ChangeStatus/' + data.id + '/active" class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                             }
+                             else {
+                                 return '<a href="/MC/ChangeStatus/' + data.id + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                             }
+                         }
+                     },
+                      {
+                          "name": "id", "data": function (data) {
+                              if (data.Editable == 0) {
+                                  var rest = "";
+                                  @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit MC"))
+                                  {
+                                      actData += "<a class=\"modal-edit\" href=\"/MC/Edit/'+ data.id +'\" title=\"Edit MC\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                  }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete MC"))
+                                  {
+                                      actData += "<a class=\"modal-delete\" href=\"/MC/Delete/'+ data.id +'\" title=\"Delete MC\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                                  return rest = '@Html.Raw(actData)';
+                              }
+                              else {
+                                  return "";
+                              }
+                          }
+                      },
+                ]
+            })
+
+            $('#srch, .search-box .btn-close').on('click', function (e) {
+                $('#advsearch').toggle();
+
+                if ($('#srch').hasClass('btn-primary')) {
+                    $('#srch').addClass('btn-danger');
+                    $('#srch').removeClass('btn-primary');
+                }
+                else if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+
+                    $('#MCText').val("");
+
+                    oTable.draw();
+                }
+            });
+
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+            });
+
+            $('div').on('click', '.modal-create', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            });
+            $('#modal-create').on('submit', '#createform', function (e) {
+                e.preventDefault();
+                var url = $('#createform')[0].action;
+                var data = $('#createform').serialize();
+                createajax(url, data, '#modal-create');
+                oTable.draw();
+            });
+
+            $('div').on('click', '.modal-edit', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-edit');
+            });
+            $('#modal-edit').on('submit', '#editform', function (e) {
+                e.preventDefault();
+                var url = $('#editform')[0].action;
+                var data = $('#editform').serialize();
+                createajax(url, data, '#modal-edit');
+                oTable.draw();
+            });
+
+            $('.table').on('click', '.modal-delete', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-delete');
+            });
+            $('#modal-delete').on('submit', '#deleteform', function (e) {
+                e.preventDefault();
+                var url = $('#deleteform')[0].action;
+                var data = $('#deleteform').serialize();
+                createajax(url, data, '#modal-delete');
+                oTable.draw();
+            });
+
+            $('.table').on('click', '.modal-change', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-change');
+            });
+            $('#modal-change').on('submit', '#changeform', function (e) {
+                e.preventDefault();
+                var url = $('#changeform')[0].action;
+                var data = $('#changeform').serialize();
+                createajax(url, data, '#modal-change');
+                oTable.draw();
+            });
+
+        });        
+
+        $.fn.modal.Constructor.prototype.enforceFocus = function () { };
+        $('#modal-create').on('shown.bs.modal', function (e) {
+
+            $("#ddlAssignedUser").select2({
+                placeholder: 'Search User by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Users/SearchUserMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+
+        $('#modal-edit').on('shown.bs.modal', function (e) {
+
+            $("#ddlAssignedUser").select2({
+                placeholder: 'Search User by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Users/SearchUserMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+        });
+        $('#ddlAssignedUser').select2({
+            dropdownParent: $('#modal-create')
+        });
+
+    </script>
+}

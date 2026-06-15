@@ -1,0 +1,232 @@
+﻿@model QuickSoft.Models.FinancialYear
+@{
+    ViewBag.Title = "Financial Year";
+    ViewBag.SubTitle = "Financail Year";
+    ViewBag.Active = "Settings";
+}
+
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Set Financial Year</h3>
+    </div>
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+    <div class="box-body">
+        @using (Html.BeginForm("create", "FinancialYear", FormMethod.Post, new { id = "brform", role = "form" }))
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <tr>
+                        <td>
+                            Start New Financial Year
+                        </td>
+                        <td>
+                            <label id="FinYear" class="btn btn-info lblpadding" onclick="StartFinYr();");">Set New Financial Year</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Reset Financial Year for this Session
+                        </td>
+                        <td>
+                            @Html.DropDownList("ddlFinYear", (SelectList)ViewBag.FinYear, "Select Financial Year", new { @class = "form-control" })
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <label id="FinYear" class="btn btn-info lblpadding" onclick="ChangeFinYr();">Submit</label>
+                            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                            <div id="imgload">
+                                <img src="/img/loading.gif" alt="this slowpoke moves" width="20" />
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                
+            </div>
+        }
+    </div>
+</div>
+@Html.Partial("../Common/_ModalEdit")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/sweetalert2")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/sweetalert2")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            $("#Start").datepicker();
+            $("#imgload").hide();
+        });
+        function StartFinYr() {
+            if (minDate == "") {
+                Swal.fire({
+                    title: 'Enter a Financial Date',
+                    input: 'text',
+                    inputAttributes: {
+                        autocapitalize: 'off'
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: 'Enter',
+                    showLoaderOnConfirm: true,
+                    setPlaceHolder: ('MM/dd/yyyy'),
+                    text: 'MM/dd/yyyy',
+                    //preConfirm: (login) => {
+                    //    return fetch(`//api.github.com/users/${login}`)
+                    //      .then(response => {
+                    //          if (!response.ok) {
+                    //              throw new Error(response.statusText)
+                    //          }
+                    //          return response.json()
+                    //      })
+                    //      .catch(error => {
+                    //          Swal.showValidationMessage(
+                    //            `Request failed: ${error}`
+                    //          )
+                    //      })
+                    //},
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.value) {
+                        
+                        $.ajax({
+                            url: '/FinancialYear/AddFinYear',
+                            type: "POST",
+                            dataType: "JSON",
+                            data: { SetDate: result.value },
+                            success:
+                                function (e) {
+                                    if (e.status == true) {                                        
+                                        $('.ajax_response', res_success).text(e.message);
+                                        $('.AlertDiv').prepend(res_success);
+                                        window.location.href = '@Url.Action("Index", "Home")';
+                                    } else {
+                                        $('.ajax_response', res_danger).text(e.message);
+                                        $('.AlertDiv').prepend(res_danger);
+                                        $("button").prop('disabled', false); // enable button
+                                    }
+                                }
+                        })
+
+
+
+                    }
+                })
+
+                //Swal.fire(
+                //    {
+                //        icon: 'error',
+                //        title: 'Failed',
+                //        text: 'There is no Financial Year to start new!!',
+                //        //footer: '<a href>Why do I have this issue?</a>'
+                //    }
+                //    //"There is no Financial Year to start a new Financial Year!!"\
+                //    )
+            }
+            else {
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You Want to Reset Financial Year?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, Reset it!'
+                }).then((result) => {
+                    $('#imgload').show();
+                    if (result.value) {
+                        $.ajax({
+                            url: '/FinancialYear/SetNewFinancialYear',
+                            type: "POST",
+                            dataType: "JSON",
+                            success:
+                                function (e) {
+                                    if (e.status == true) {
+                                        $('#imgload').hide();
+                                        $('.ajax_response', res_success).text(e.message);
+                                        $('.AlertDiv').prepend(res_success);
+                                        window.location.href = '@Url.Action("Index", "Home")';
+                                    } else {
+                                        $('#imgload').hide();
+                                        $('.ajax_response', res_danger).text(e.message);
+                                        $('.AlertDiv').prepend(res_danger);
+                                        $("button").prop('disabled', false); // enable button
+                                    }
+                                }
+                        })
+                    }
+                })
+            }
+        }
+        function ChangeFinYr() {
+            var selectedyear = $('#ddlFinYear').val();
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You Want to Change Financial Year?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Change it!'
+            }).then((result) => {
+                if (result.value) {
+                    $.ajax({
+                        url: '/FinancialYear/TempFinancialYear',
+                        type: "POST",
+                        dataType: "JSON",
+                        data: { TempYear: selectedyear },
+                        success: function (e) {
+                            if (e.status == true) {
+                                $('.ajax_response', res_success).text(e.message);
+                                $('.AlertDiv').prepend(res_success);
+                                window.location.href = '@Url.Action("Index", "Home")';
+                            } else {
+                                $('.ajax_response', res_danger).text(e.message);
+                                $('.AlertDiv').prepend(res_danger);
+                                $("button").prop('disabled', false); // enable button
+                            }
+                        }
+                    })
+                }
+            })
+        }
+
+        function cal() {
+            $('.date').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            })
+        }
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            //alert(data);
+            createajax(url, data, '#modal-edit');
+        });
+        /* function for view detail popup */
+        $('#brsitem').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        })
+    </script>
+}

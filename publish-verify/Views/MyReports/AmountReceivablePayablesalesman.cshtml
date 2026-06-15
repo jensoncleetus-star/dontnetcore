@@ -1,0 +1,257 @@
+﻿@{ 
+    string actData = "";
+}
+<div class="box-body">
+    <div class="box-body">
+        @{
+            var url = Model;
+            var file = "";
+            var chk = "";
+
+            if (url == "'/Item/GetItemWise'")
+            {
+                file = "Stock Report (Item Wise)";
+            }
+        }
+
+        <table class="display table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">S/N</td>
+                    <td data-priority="1">Sales Man</td>
+                    <td data-priority="1">Amount</td>
+
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <th>Total:</th>
+                    <th></th>
+                    <th id="total"></th>
+
+
+
+                </tr>
+            </tfoot>
+        </table>
+     
+        <script>
+                $(document).ready(function () {
+                    var oTable = $('#UserTable').DataTable({
+                        "processing": true, // for show progress bar
+                        "serverSide": true, // for process server side
+                        "filter": true, // this is for disable filter (search box)
+                        "orderMulti": false, // for disable multiple column at once
+
+                        "bStateSave": true,
+                        "pageLength": 50,
+            @*@Html.Raw(chk)*@
+                        "bLengthChange": false,
+                        "paging": true,
+                        stateSave: true,
+                        responsive: true,
+
+                        "ordering": true,
+
+                        "ajax": {
+                            "url": "/MyReports/GetAmountReceivablePayablessalesman",
+                            //"data": function (data) {
+                            //   // data=searchData(data);
+                            //},
+                            "type": "POST",
+                            "datatype": "json"
+                        },
+                        "columns": [
+                            {
+                                "data": "empid", "name": "empid",
+                                "render": function (data, type, row, meta) {
+                                    return meta.row + meta.settings._iDisplayStart + 1;
+                                }
+                            },
+                            {
+                                "name": "FirstName", "data": function (data) {
+                                     var rest = "";
+                        @{
+                             actData += "<a  href=\"/MyReports/ViewAmountReceivablePayable/?pdc=True&emp='+data.empid +'\" title=\"View Details\" target=\"_new\">'+data.FirstName+'</a> ";
+                           }
+                        return rest = '@Html.Raw(actData)';
+                                }
+                            },
+                            {
+                                "name": "Amount", "data": "Amount"
+                            },
+
+
+
+                        ],
+                        buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                            'colvis',
+                            {
+                                extend: 'print',//
+                                exportOptions: {
+                                    columns: ':visible'
+                                },
+                                title: "",
+                                footer: true,
+                                filename: function () {
+                                    return '@file';
+                                },
+                                message: function () {
+                                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>@file</h4></th></tr>' +
+                                        ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                                    return head;
+                                },
+                                customize: function (win) {
+                                    // $(win.document.body)
+                                    //.css('font-size', '10pt')
+                                    //.css('padding', '1px');
+                                    $(win.document.body).find('table, th,tr, td ')
+                                        // .css('border', 'inherit')
+                                        .css('font-size', '10pt')
+                                        .css('padding', '5px')
+                                        .addClass('compact');
+                                    $(win.document.body).append('</td></tr></tbody>')
+
+                                }
+                            }, 'copy', 'csv', //'excel',
+                            {
+                                extend: 'excel',//
+                                title: "",
+                                footer: true,
+                                filename: function () {
+                                    return '@file';
+                                },
+                                message: function () {
+                                    var head = '' + $('#cname').val() + '\n' +
+                                        '' + $('#caddress').val() + '\n' +
+                                        '@file';
+                                    return head;
+                                },
+                                pageSize: 'A4',
+                                exportOptions: {
+                                    columns: ':visible'
+                                },
+                            },
+                            {
+                                extend: 'pdf',//
+                                title: "",
+                                footer: true,
+                                filename: function () {
+                                    return '@file';
+                                },
+                                message: function () {
+                                    var head = '' + $('#cname').val() + '\n' +
+                                        '' + $('#caddress').val() + '\n' +
+                                        '@file';
+                                    return head;
+                                },
+                                pageSize: 'A4',
+                                exportOptions: {
+                                    columns: ':visible'
+                                },
+                                customize: function (doc) {
+                                    doc.pageMargins = [10, 10, 10, 10];
+                                    doc.defaultStyle.fontSize = 10;
+                                    doc.styles.tableHeader.fontSize = 10;
+                                    doc.styles.title.fontSize = 12;
+
+                                    // Header font and bg color
+                                    doc.styles.tableHeader.fillColor = '#d3d3d3';
+                                    doc.styles.tableHeader.color = 'black';
+                                    // Remove spaces around page title
+                                    doc.content[0].text = doc.content[0].text.trim();
+
+
+                                    doc.styles['td:nth-child(1)'] = {
+                                        width: '100%',
+                                        'max-width': '100%'
+                                    }
+
+                                    //doc.content[1].table.widths = [
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //'8%',
+                                    //]
+
+
+                                    var objLayout = {};
+                                    // Horizontal line thickness
+                                    objLayout['hLineWidth'] = function (i) { return .5; };
+                                    // Vertikal line thickness
+                                    objLayout['vLineWidth'] = function (i) { return .5; };
+                                    //// Horizontal line color
+                                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                                    //// Vertical line color
+                                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                                    // Left padding of the cell
+                                    objLayout['paddingLeft'] = function (i) { return 4; };
+                                    // Right padding of the cell
+                                    objLayout['paddingRight'] = function (i) { return 4; };
+                                    // Inject the object in the document
+                                    doc.content[1].layout = objLayout;
+                                    // Footer font and bg color
+                                    doc.styles.tableFooter.fillColor = '#d3d3d3';
+                                    doc.styles.tableFooter.color = 'black';
+                                }
+
+
+                            },
+
+                        ],
+
+
+
+                        sDom: "lBfr<'datatable-scroll't>ip",
+                        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                        "footerCallback": function (row, data, start, end, display) {
+                            var api = this.api(), data;
+
+                            // Remove the formatting to get integer data for summation
+                            var intVal = function (i) {
+                                return typeof i === 'string' ?
+                                    i.replace(/[\$,]/g, '') * 1 :
+                                    typeof i === 'number' ?
+                                        i : 0;
+                            };
+
+                            total = api
+                    .column(2)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                    .column(2, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    
+                    $("#total").text(pageTotal.toFixed(2));
+
+
+
+                            var table = $('#UserTable').DataTable();
+                            if (!table.data().any()) {
+                                $('#UserTable tfoot').hide();
+                            } else {
+                                $('#UserTable tfoot').show();
+                            }
+                        }
+                    });
+                });
+        </script>

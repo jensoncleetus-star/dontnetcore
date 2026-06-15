@@ -1,0 +1,508 @@
+@model QuickSoft.ViewModel.BoqViewModel
+@{
+    var TimeOut = @ViewBag.TMOut;
+    ViewBag.Title = "Create Bill Of Quantity";
+    ViewBag.SubTitle = "Bill Of Quantity";
+    ViewBag.Active = "Master";
+}
+<style>
+
+    .itemnote {
+        height: 200px !important;
+    }
+
+</style>
+<div class="box box-info">
+
+    @using (Html.BeginForm("CreateBoq", "Boq", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Bill Of Quantity</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev"))
+                    {
+                        <a class="btn bg-black no-border" href="/Boq/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+
+                <a class="btn btn-success no-border" href="/Boq">
+                    <i class="fa fa-fw fa-history"></i>List
+                </a>
+
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        @Html.HiddenFor(model => model.ConTypeId)
+        @Html.HiddenFor(model => model.ConType)
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Boq No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @readonly = "readonly" } })
+
+                </div>
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Quot No", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.QuotNo, new { htmlAttributes = new { @class = "form-control" } })
+
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.BoqDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+
+
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(model => model.Customer, (SelectList)ViewBag.Customr, "All", new { id = "ddlCustomer", @class = "form-control input-sm select2", @required = "required" })
+                            <span class="input-group-btn">
+                                <a href="/Customer/Create" class=" btn btn-success btn-flat" target="_new"><i class="fa fa-1x fa-plus-circle"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(model => model.Customer, (SelectList)ViewBag.Customr, "All", new { id = "ddlCustomer", @class = "form-control input-sm select2", @required = "required" })
+                    }
+                </div>
+
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(model => model.SalesExecutive, (SelectList)ViewBag.Cashier, "All", new { id = "ddlEmployee", @class = "form-control input-sm select2" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(model => model.SalesExecutive, (SelectList)ViewBag.Cashier, "All", new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                </div>
+
+
+                @*@if (@ViewBag.BusinessType == "ProjectBasedBusiness")
+                    {
+                        <div class="col-sm-2 form-group">
+                            @Html.LabelFor(model => model.BoqDate, htmlAttributes: new { @class = "control-label" })
+                            <div class="input-group date">
+                                <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                                @Html.TextBoxFor(m => m.BoqDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            </div>
+                        </div>
+                    }*@
+
+                @*@if (@ViewBag.BranchCheck == 0)
+                    {
+                        <div class="row">
+                            <div class="form-group col-sm-2">
+                                @Html.Label("Branch", null, new { @class = "control-label" })
+                                @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                            </div>
+                        </div>
+                    }*@
+
+                @if (@ViewBag.PrintLayout == 0)
+                {
+                    <div class="form-group col-sm-5">
+                        @Html.Label("Print Layout", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.PrintLayout, (SelectList)ViewBag.printlay, new { id = "ddlPrintlayout", @class = "form-control select2" })
+                    </div>
+                }
+
+            </div>
+
+            <div>
+                <div class="table-responsive bomtable">
+                    <hr>
+                    <table class="table table-bordered table-hover" id="bomtable">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Item <i class="text-danger">*</i></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Quantity <i class="text-danger">*</i></th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbomitem"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group no-padding text-right">
+            <div class="checkbox-inline">
+                <input class="checkbox" data-val="true" id="showzeal" name="showzeal" type="checkbox" value="false">
+                <label class="control-label" for="showzeal">Show Zeal In Print</label>
+            </div>
+        </div>
+        <div class="box-footer text-center clearfix">
+            @*<button type="submit" id="save" class="btn btn-info">
+                Save
+                </button>*@
+            <button type="submit" id="save" class="btn btn-success" tabindex="26">
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+            </button>
+
+            <button type="submit" id="print" class="btn btn-success">
+                <span class="glyphicon glyphicon-print"></span> Save And Print
+            </button>
+            <button type="button" class="btn btn-success" onclick="@("window.location.href='/Boq/Index'");">Cancel</button>
+            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+        </div>
+    }
+
+</div>
+@Styles.Render("~/css/wysihtml5")
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Action("Invoice", "InvoiceLayout", new { type = "Boq" })
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/sale-invoice")
+    @Scripts.Render("~/js/wysihtml5")
+
+
+    @*@Scripts.Render("~/js/boq")*@
+    <script src="~/Content/js/boq.js"></script>
+
+    @*@Scripts.Render("~/js/sale-invoice")*@
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            ////startDate: new Date(minDate),
+            ////endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            $("#PrUnit").text("");
+            GetBranch();
+
+            addbomitem('addbomitem', '', '0');
+
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+            //function GetCustomer() {
+            //    var CustomerId = $('#ddlCustomer').val();
+            //    if (CustomerId != null) {
+            //        $.ajax({
+            //            url: '/Customer/GetCustomerEmailById',
+            //            type: "GET",
+            //            dataType: "JSON",
+            //            data: { CustID: CustomerId },
+            //            success: function (result) {
+            //                $("#CustomerEmail").val(result.EmailId);
+            //            }
+            //        });
+            //    }
+            //}
+        });
+
+
+    function submitForm(fnval, parameters)
+    {
+
+        $.ajax({
+
+        async: true,
+        cache: false,
+        dataType: "json",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        url: "/Boq/CreateBoq",
+        data: JSON.stringify(parameters),
+        beforeSend: function () {
+            $("button").prop('disabled', true); // disable button
+        },
+        success: function (e) {
+            if (e.status == true) {
+
+
+                if (fnval == "print")
+                {
+
+                    PrintInvoiceBOQ(e, "sales", "inactive", "ProForma");
+                }
+                else {
+
+                    $('.ajax_response', res_success).text(e.message);
+                    $('.AlertDiv').prepend(res_success);
+                }
+                setTimeout(function () { window.location.href = '/Boq/Create'; }, '@TimeOut');
+               @*/* window.location.href = '@Url.Action("Create", "ProForma", new { id = "", type = "" })';*/*@
+            }
+            else {
+
+                $('.ajax_response', res_danger).text(e.message);
+                $('.AlertDiv').prepend(res_danger);
+                $("button").prop('disabled', false); // enable button
+            }
+        }
+    });
+}
+
+        $("#ddlCustomer").select2({
+            placeholder: 'Search Customer by Name or Code',
+            minimumInputLength: 0,
+            dropdownAutoWidth: true,
+            ajax: {
+                url: "/Customer/SearchCustomer",
+                dataType: 'json',
+                delay: 50,
+
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#ddlEmployee").select2({
+            placeholder: 'Search Executive by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+                    var newOption = $('<option></option>');
+                    if ((data.PriUnit != data.SubUnit) && data.SubUnitId != null) {
+                        newOption.val(data.ItemUnitID).html(data.PriUnit);
+                        var newOption1 = $('<option></option>');
+                        newOption1.val(data.SubUnitId).html(data.SubUnit);
+                        if (data.ItemUnit) {
+                            if (data.ItemUnit == data.ItemUnitID)
+                                newOption.attr("selected", "selected");
+                            if (data.ItemUnit == c.SubUnitId)
+                                newOption1.attr("selected", "selected");
+                        }
+                        $('#Unit').html('');
+                        $('#Unit').append(newOption);
+                        $('#Unit').append(newOption1);
+
+                    } else {
+                        $('#Unit').html('');
+                        newOption.val(data.ItemUnitID).html(data.PriUnit);
+                        $('#Unit').append(newOption);
+                    }
+                    $("#PrUnit").text("/ " + data.PriUnit);
+                }
+            });
+        });
+
+        $('body').on('change', '#Unit', function (e) {
+            var textvalue = $("#Unit option:selected").text();
+            $("#PrUnit").text("/ " + textvalue);
+        });
+
+        $('body').on('change', '#BOMDate', function (e) {
+            var bomdate = $(this).val();
+            var MC = $("#ddlMC").val();
+            searchbomItem(bomdate, MC);
+        });
+        $('body').on('change', '#ddlMC', function (e) {
+            var MC = $(this).val();
+            var bomdate = $("#BOMDate").val();
+            searchbomItem(bomdate, MC);
+        });
+
+
+    var EntryType = '@ViewContext.RouteData.Values["type"]';
+
+    var EntryID = '@ViewContext.RouteData.Values["id"]';
+
+    if (EntryType == "Quote")
+    {
+        $.ajax({
+            url: '/Quotation/GetQEItems',
+            data: { QuoteEntryID: EntryID },
+            cache: true,
+            success: function (data) {
+
+                $('#addbomitem').html('');
+                $.each($.parseJSON(data), function (i, item)
+                {
+
+                    addbomitem('addbomitem', '', item.ItemQuantity, item.ItemUnit, item.Item, item.ItemWithCode, item.ItemNote, item);
+                   
+                });
+                addbomitem('addbomitem', '', '0');
+            }
+        });
+    }
+
+
+                  //  $.ajax({
+                  //      url: '/Quotation/GetQEItems',
+                  //      dataType: 'json',
+                  //      data: { QuoteEntryID: EntryID },
+                  //      cache: true,
+                  //      success: function (data) {
+                  //          $('#addbomitem').html('');
+                  //          //$.each($.parseJSON(data), function (i, item) {
+                  //          //    addrow('addbomitem', '', item.Unit, item.Quantity, item.ItemName, item.itemdata);
+                  //          //});
+                  //          //addrow('addbomitem', '', '0');
+                  //      }
+                  //  });
+
+        AddItemPopUp();
+        ItemCategory();
+        ItemBrand();
+
+
+
+
+        //On Modal Create
+
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+            //ItemTax();
+            //ItemUnit();
+            //ItemSubUnit();
+            Itemtype();
+
+            //var ItemName =
+            addbatsaleItem('addbatchItem', 'sale', ItemName, "0.00", "0.00", "");
+        });
+
+
+
+
+
+
+        // form submit
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+
+
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if ($("#createForm").valid()) {
+                BOMSubmit(fnval);
+            }
+            else {
+                $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+            }
+        });
+
+
+
+
+        $('span').on('click', '.modal-create-lg', function (e) {
+          /*  e.preventDefault();*/
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create-lg');
+        });
+                                    //$('#modal-create-lg').on('submit', '#createitemform', function (e) {
+                                    //    e.preventDefault();
+                                    //    var url = $('#createitemform')[0].action;
+                                    //    var data = $('#createitemform').serialize();
+                                    //    createajax(url, data, '#modal-create-lg');
+                                    //});
+
+    </script>
+}
+
+

@@ -1,0 +1,337 @@
+@{
+    ViewBag.Title = "Search Customer ItemWise Summary";
+    ViewBag.SubTitle = "Customer ItemWise Summary Report";
+    ViewBag.Active = "Report";
+}
+<div class="box box-default">
+    <form id="search-form">
+        <div>
+            <div class="box-header with-border">
+                <h3 class="box-title">Customer ItemWise Summary Report</h3>
+            </div>
+            <div class="box-body">
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+                <div class="form-group col-md-4">
+                    @Html.Label("Customer", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-4" id="creditsale">
+                    @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control select2" })
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="box box-default" id="Showtable">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Customer ItemWise Summary Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">#</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="2">Customer Code</td>
+                        <td data-priority="2">Customer Name</td>
+                        <td data-priority="4">Product Code</td>
+                        <td data-priority="5">Sales in PC</td>
+                        <td data-priority="3">Wastage in PC</td>
+                        <td data-priority="2">Sales Value</td>
+                        <td data-priority="2">Wastage Value</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $(document).ready(function () {
+            //$("#VoucherNo").select2();
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            $('#Showtable').hide();
+
+            ItemSearchable();
+            CallRepCustomer();
+            CallRepMCUser();
+        });
+
+        jQuery(function ($) {
+            oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+                "ordering": false,
+                "ajax": {
+                    "url": '/MyReports/GetCustomerItemWise',
+                    "data": function (data) {
+                        data.Cust = ($('#ddlCustomer').val());
+                        data.Item = $('#ddlItem').val();
+                        data.fromdate = $('#From').val();
+                        data.todate = $('#To').val();
+                        data.MC = $('#ddlMC').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                         {
+                             "data": "id", "name": "id",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                     {
+                         "data": "Date", "name": "Date",
+                         "render": function (data) {
+                             if (data != null) {
+                                 var date = convertToDate(data);
+                                 return date.toString();
+                             }
+                         }
+                     },
+                     { "data": "CustomerCode", "name": "CustomerCode" },
+                     { "data": "CustomerName", "name": "CustomerName" },
+                     { "name": "ItemCode", "data": "ItemCode" },
+                     {
+                          "name": "SQty", "data": function (data) {
+                              if (data.ItemUnitID != data.SubUnitId && data.ItemUnitID != null && data.SubUnitId != null) {
+                                  if ((data.SQty == 0))
+                                      return data.PQty + " " + data.PriUnit;
+                                  else
+                                      return data.PQty + " " + data.PriUnit + ", " + data.SQty + " " + data.SubUnit
+                              }
+                              else
+                                  return data.PQty + " " + data.PriUnit;
+                          }, "sClass": "numberright"
+                      },
+                       {
+                           "name": "SRQty", "data": function (data) {
+                               if (data.ItemUnitID != data.SubUnitId && data.ItemUnitID != null && data.SubUnitId != null) {
+                                   if ((data.SRQty == 0))
+                                       return data.PRQty + " " + data.PriUnit;
+                                   else
+                                       return data.PRQty + " " + data.PriUnit + ", " + data.SRQty + " " + data.SubUnit
+                               }
+                               else
+                                   return data.PRQty + " " + data.PriUnit;
+                           }, "sClass": "numberright"
+                       },
+                     
+                     { "data": "SValue", "name": "SValue", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                     { "data": "SRValue", "name": "SRValue", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                ],
+                buttons: [
+                {
+                    extend: 'print',
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'CustomerItemWiseSummary';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                         ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Customer ItemWise Summary Report</h4></th></tr>' +
+                         ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'CustomerItemWiseSummary';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                       '' + $('#caddress').val() + '\n' +
+                        ' Customer ItemWise Summary Report \n' +
+                        'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible' //[0, 1, 2, 3, 4, 5, 6]
+                    },
+                },
+                {
+                    extend: 'pdf',
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'CustomerItemWiseSummary';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                       '' + $('#caddress').val() + '\n' +
+                        ' Customer ItemWise Summary Report\n' +
+                        //'Item Name/Code : ' + $('#ddlItem').val() + '\n' +
+                        'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'//[0, 1, 2, 3, 4, 5, 6]
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        //doc.content[1].table.widths = [
+                        //'5%',
+                        //'10%',
+                        //'20%',
+                        //'20%',
+                        //'15%',
+                        //'15%',
+                        //'15%'
+                        //]
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+                },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                            i : 0;
+                    };
+                }
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#Showtable').show();
+            });
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+    </script>
+}

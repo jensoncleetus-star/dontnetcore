@@ -1,0 +1,241 @@
+﻿@model QuickSoft.ViewModel.AssetAdjustmentViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Asset Adjustment";
+    ViewBag.Active = "Utility";
+
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Createassetadj", "StockAdjustment", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+
+        <div class="box-header with-border">
+            <h3 class="box-title">Asset Adjustment - Create</h3>
+            <div class="pull-right">
+         
+                    <a class="btn bg-black no-border" href="/StockAdjustment/EditAssetAdjustment/@ViewBag.LastEntry">
+                        <i class="fa fa-step-backward"></i>
+                    </a>           
+            
+                    <a class="btn btn-success no-border" href="/StockAdjustment/IndexAsset">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+            
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+
+        <div class="box-body">
+           
+            <div class="row">
+                <div class="form-group col-md-2 col-xs-12">
+                    @Html.LabelFor(model => model.AdjustmentNo, htmlAttributes: new { @class = "control-label" })*
+                    @Html.EditorFor(model => model.AdjustmentNo, new { htmlAttributes = new { @class = "form-control", @placeholder = "Voucher No", @required = "required", @readonly = "@readonly" } })
+                </div>
+
+                <div class="form-group col-md-2 col-xs-12 ">
+                    @Html.LabelFor(model => model.AdjustmentDate, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.AdjustmentDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @tabindex = 1 })
+                    </div>
+                </div>
+
+                <div class="form-group col-md-3 col-xs-12">
+                    @Html.LabelFor(model => model.AssetAccountId, htmlAttributes: new { @class = "control-label" })*
+                    @Html.DropDownListFor(model => model.AssetAccountId, (SelectList)ViewBag.Assets, new { id = "ddlAssetAccount", @class = "form -control input-sm select2", @required = "required", @tabindex = 2 })
+               </div>
+
+                <div class="form-group col-md-4 col-xs-12">
+                    @Html.LabelFor(model => model.AssetId, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group">
+                        @Html.DropDownListFor(model => model.AssetId, (SelectList)ViewBag.Assets, new { id = "ddlAssets", @class = "form -control input-sm select2", @required = "required", @tabindex = 3 })
+
+                        <div class="input-group-addon ">
+                            <select name="AssetUnitId" id="AssetUnitId"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+
+                <div class="form-group col-md-2 col-xs-12">
+                    @Html.LabelFor(model => model.AdjustmentType, htmlAttributes: new { @class = "control-label" })
+                    @Html.EnumDropDownListFor(model => model.AdjustmentType, new { @class = "form-control", @tabindex = 4 })
+                </div>
+
+                <div class="form-group col-md-2 col-xs-12 ">
+                    @Html.LabelFor(model => model.AssetQuantity, htmlAttributes: new { @class = "control-label" })*
+                    @Html.EditorFor(model => model.AssetQuantity, new { htmlAttributes = new { @type = "number", @Value = 1, @class = "form-control", @placeholder = "Enter Asset Quantity", @tabindex = 5, @required = "required" } })
+                </div>
+
+                <div class="form-group col-md-2 col-xs-12 ">
+                    @Html.LabelFor(model => model.PurchaseRate, htmlAttributes: new { @class = "control-label" })*
+                    @Html.EditorFor(model => model.PurchaseRate, new { htmlAttributes = new { @type = "number", @Value = "1.00", @class = "form-control", @placeholder = "Enter Rate", @tabindex = 6 } })
+                </div>
+
+                <div class="form-group col-md-2 col-xs-12 ">
+                    <label class="control-label">Stock Value</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" readonly id="stockvalue" />
+                        <div class="input-group-addon no-padding">
+                            <span id="stockType">Cr.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row ">
+                <div class="form-group col-md-8 col-xs-12 ">
+                    @Html.LabelFor(model => model.Reason, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Reason, new { @class = "form-control", @placeholder = "Enter Reason for Adjustment", @tabindex = 7 })
+                </div>
+            </div>
+        </div>
+
+        <div class="row ">
+            <div class="box-footer clearfix text-center">
+                <button type="submit" id="save" class="btn btn-info" tabindex="28">Save</button>
+                <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='/StockAdjustment/IndexAsset'");">Cancel</button>
+            </div>
+        </div>
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/StockAdjustment")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(document).ready(function () {
+            AssetStockValue();
+
+            //Calling function to load Assets
+            LoadAssetsForAccounts();
+
+            //DropDown Asset Account
+            $("#ddlAssetAccount").select2({
+                placeholder: 'Search Asset Accounts',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/AssetToInventory/SpecialAccounts",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });               
+        });
+       
+        //To retrieve Assets, while changing Asset Accounts
+        $('body').on('change', '#ddlAssetAccount', function (e) {
+
+            //Clearing Current value of Asset Dropdown, Unit, Asset Rate & Stock Value
+            $("#ddlAssets").val("0");
+            $('#AssetUnitId').html('');          
+            $("#PurchaseRate").val("1.00");
+            $("#stockvalue").val("1.00");
+           
+            var AssetAccntID = $(this).val();
+
+            //Calling function to load Assets
+            LoadAssetsForAccounts(AssetAccntID);
+
+        });
+
+        //Function to load Assets corresponding to the Asset Account.
+        function LoadAssetsForAccounts(AssetAccntID) {
+
+            //DropDown Assets
+            $("#ddlAssets").select2({
+                placeholder: 'Search Asset by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/AssetToInventory/GetAssetsByAccount",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            AccountID: AssetAccntID,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        }
+
+        //To set The Asset Unit
+        $('body').on('change', '#ddlAssets', function (e) {
+            var AssetId = $(this).val();
+            GetAssetUnit(AssetId);
+        });      
+       
+        //To set The Stock value
+        $('body').on('change', '#PurchaseRate, #AssetQuantity', function (e) {
+
+            var Rate    =   $("#PurchaseRate").val();
+            var Qty     =   $("#AssetQuantity").val();
+
+            if (Rate != "" && Qty != "")
+                AssetStockValue();
+        });
+
+        //To set The 'Debit' or 'Credit'
+        $('body').on('change', '#AdjustmentType', function (e) {
+            var type = $(this).val();
+            if (type == "0") {
+                $("#stockType").text("Cr.");
+            }
+            else {
+                $("#stockType").text("Dr.");
+            }
+            stTypeChange();
+        });
+      
+        
+    </script>
+}
+
+
+
+
+

@@ -1,0 +1,124 @@
+﻿
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Checklist List";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List</h3>
+        <p class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Checklist"))
+            {
+                <a class="btn btn-info no-border" href="/Checklist/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </p>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr style="background-color: #d2d6de">
+                    <td>SI No</td>
+                    <td>Stage</td>
+                    <td>Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+
+    var oTable = $('#UserTable').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": true, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "bStateSave": true,
+        "ajax": {
+            "url": '/Checklist/GetCheck',
+            "type": "POST",
+            "datatype": "json"
+
+        },
+        "columns": [
+                 {
+                     "data": "ChecklistID", "name": "ChecklistID",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+             { "data": "Stage", "name": "Stage" },
+             {
+                 "name": "ChecklistId", "data": function (data) {
+                     var rest = "";
+                     @{
+                         if (User.IsInRole("Dev") || User.IsInRole("Edit Checklist"))
+                         {
+                             actData += "<a href=\"/Checklist/Edit/'+ data.ChecklistId +'\" title=\"Edit CheckList\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                         }
+                         if (User.IsInRole("Dev") || User.IsInRole("Delete Checklist"))
+                         {
+                             actData += "<a class=\"modal-delete\" href=\"/Checklist/Delete/'+ data.ChecklistId +'\" title=\"Delete Checklist\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                         }
+                    }
+                     return rest = '@Html.Raw(actData)';
+                 }
+             },
+        ]
+    });
+
+
+    /* function for Create popup */
+
+    $('div').on('click', '.modal-create', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+    $('#modal-create').on('submit', '#pstatform', function (e) {
+        e.preventDefault();
+        var url = $('#pstatform')[0].action;
+        var data = $('#pstatform').serialize();
+        createajax(url, data, '#modal-create');
+    });
+
+
+    /* function for Edit popup */
+
+    $('#UserTable').on('click', '.modal-edit', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-edit');
+        //  createajax(url, data, '#modal-edit');
+    });
+    $('#modal-edit').on('submit', '#editform', function (e) {
+        e.preventDefault();
+        var url = $('#editform')[0].action;
+        var data = $('#editform').serialize();
+        createajax(url, data, '#modal-edit');
+    });
+
+    /* function for delete popup */
+    $('#UserTable').on('click', '.modal-delete', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-delete');
+    });
+    $('#modal-delete').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-delete');
+    });
+
+
+    </script>
+}

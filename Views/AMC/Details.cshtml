@@ -1,0 +1,460 @@
+@using QuickSoft.Models
+@model QuickSoft.ViewModel.ViewAMCViewModel
+@{
+    ViewBag.Title = "Amc Details";
+    ViewBag.SubTitle = "Amc Details";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string actStatus = "";
+    string actEdit = "";
+    string actDelete = "";
+    var Loc = "";
+    string Priority = (Model.ContractLevel == "High") ? "text-danger" : (Model.ContractLevel == "Low") ? "text-info" : "text-warning";
+    if (Model.Location != null || Model.Location != "")
+    {
+        Loc = "<iframe src=\"" + Model.Location + "\" width=\"100%\" height=\"150\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>";
+    }
+
+}
+<div class="box">
+    <div class="box-header">
+        <h2 class="box-title">@Html.DisplayFor(m => m.AmcNo) : @Html.DisplayFor(m => m.CustomerName)</h2>
+        <div class="pull-right">
+            <a class="btn btn-success no-border" href="/AMC">
+                <i class="fa fa-fw fa-history"></i> AMC List
+            </a>
+            <a class="btn btn-primary no-border" href="/AMC/MyAmc">
+                <i class="fa fa-fw fa-history"></i> My AMC
+            </a>
+            <a class="btn btn-info no-border" href="/AMC/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create AMC
+            </a>
+        </div>
+    </div>
+    <div class="box-body">
+        <section class="content">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="box box-primary">
+                        <div class="box-body box-profile">
+                            <h4 class="profile-username text-center">@Html.DisplayFor(m => m.AmcNo)</h4>
+                            @*<p class="text-muted text-center">@Html.DisplayFor(m => m.ContractType)</p>*@
+                            <h4 class="text-center"><span class="label label-info">@Html.DisplayFor(m => m.AmcStatus)</span></h4>
+                            <p class="text-center @Priority"> @Html.DisplayFor(m => m.ContractLevel) Priority</p>
+                            <ul class="list-group list-group-unbordered">
+                                <li class="list-group-item">
+                                    <b>Customer</b>:
+                                    @Html.DisplayFor(m => m.CustomerName)
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Contract Name</b>:
+                                    @Html.DisplayFor(m => m.ContractName)
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Contract Type</b>:
+                                    @Html.DisplayFor(m => m.ContractType)
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Assigned To</b>:
+                                    @foreach (var upd in Model.AssignTo)
+                                    {
+                                        @upd.Empname
+                                    }
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Created By</b> : <a class="pull-right"> @Html.DisplayFor(m => m.CreatedBy) </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Last Updated </b> : <a class="pull-right"> @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.UpDate)) </a>
+                                </li>
+                                @if (Model.FieldMap != null && Model.FieldMap.Count > 0)
+                                {
+                                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                                    {
+                                        var fmap = "";
+                                        if (Model.FieldMap[i].Field == "Ref1")
+                                        {
+                                            fmap = Model.Ref1;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref2")
+                                        {
+                                            fmap = Model.Ref2;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref3")
+                                        {
+                                            fmap = Model.Ref3;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref4")
+                                        {
+                                            fmap = Model.Ref4;
+                                        }
+                                        if (Model.FieldMap[i].Field == "Ref5")
+                                        {
+                                            fmap = Model.Ref5;
+                                        }
+                                        if (@Model.FieldMap[i].FieldName != null && @fmap != null)
+                                        {
+                                            <li class="list-group-item">
+                                                <b> @Model.FieldMap[i].FieldName : </b> @fmap
+                                            </li>
+                                        }
+                                    }
+                                }
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> Start Date</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.StartDate))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> End Date</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.EndDate))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b><i class="fa fa-clock-o"></i> Created On</b>
+                                    <a class="pull-right">@Convert.ToString(string.Format("{0:dd-MM-yyyy hh:mm tt}", Model.CreatedDate))</a>
+                                </li>
+                                <li class="list-group-item">
+                                    <b>Location</b> <a class="pull-right"> @Model.Location </a>
+                                </li>
+                            </ul>
+                            <a class="btn btn-info btn-block" href="/AMC/Edit/@Model.AmcId">
+                                <i class="fa fa-edit"></i> <b>Edit</b>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-9">
+                    <div class="nav-tabs-custom">
+                        <ul class="nav nav-tabs">
+                            <li class="active"><a href="#Customer" data-toggle="tab">Customer Details</a></li>
+                            <li><a href="#attach" data-toggle="tab">Attachments</a></li>
+                            <li><a href="#remarks" data-toggle="tab">Remarks</a></li>
+                            <li><a href="#pDetails" data-toggle="tab">Periodic Details</a></li>
+                        </ul>
+                        <div class="tab-content">
+
+                            @************************ Customer Tab ***********************@
+                            <div class="active tab-pane" id="Customer">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+                                            <div class="box-body">
+                                                @if (Model != null)
+                                                {
+                                                    <div class="form-group col-md-12">
+                                                        <ul class="list-group list-group-unbordered">
+                                                            <li class="list-group-item">
+                                                                <h5 class="box-title"><b>Customer Name</b> &nbsp;&nbsp;:  @Html.DisplayFor(m => m.CustomerName)</h5>
+                                                                <h6><b>Customer Code </b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: @Html.DisplayFor(m => m.CustomerCode)</h6>
+                                                                <h6><b>Customer Tax RegNo </b>: @Html.DisplayFor(m => m.TaxRegNo)</h6>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="form-group col-md-12">
+                                                        @Html.Label("Location :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.CustLocation)
+                                                    </div>
+                                                    <div class="form-group col-md-12">
+                                                        @Html.Label("Country :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Country)
+                                                    </div>
+                                                    <div class="form-group col-md-12">
+                                                        @Html.Label("Address :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.Address)
+                                                    </div>
+                                                    <div class="form-group col-md-12">
+                                                        @Html.Label("No Of Periodic Maintenance :", null, new { @class = "control-label" })
+                                                        @Html.DisplayFor(m => m.NoOfPMaint)
+                                                    </div>
+                                                    <div class="form-group col-md-12">
+                                                        @Html.Label("AMC Details : ", null, new { @class = "control-label" })
+                                                        @Html.Raw(Model.AmcDetails)
+                                                    </div>
+                                                    <div class="form-group col-md-12">
+                                                        @Html.Label("Note: ", null, new { @class = "control-label" })
+                                                        @Html.Raw(Model.Notes)
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @********************* Attachments Tab ************************@
+                            <div class="tab-pane" id="attach">
+                                <h4>Documents</h4>
+                                @if (Model.AmcDocuments != null)
+                                {
+                                    if (Model.AmcDocuments.Any())
+                                    {
+                                        var Acount = 0;
+
+                                        <div class="row">
+                                            @foreach (var item in Model.AmcDocuments)
+                                            {
+                                                Acount++;
+                                                if (item.FileNameAmc != "")
+                                                {
+                                                    var x = item.FileNameAmc.Split('.');
+                                                    var extn = x[1];
+
+                                                    var extnf = "";
+                                                    if (item.FileNameAmc.Contains("resize_"))
+                                                    {
+                                                        var filez = item.FileNameAmc.Split('_');
+                                                        extnf = filez[1];
+                                                    }
+                                                    else
+                                                    {
+                                                        extnf = item.FileNameAmc;
+                                                    }
+                                                    if (extn == "jpg" || extn == "jfif" || extn == "png" || extn == "jpeg")
+                                                    {
+                                                        <div class="form-group col-md-2">
+                                                            <a href="~/uploads/AmcDocuments/@Html.DisplayFor(modelItem => item.FileNameAmc)" ID="ImgBtn1" data-lightbox='@Html.DisplayFor(modelItem => @item.FileName)'>
+                                                                <img alt="@Html.DisplayFor(modelItem => item.FileNameAmc)" title="Click to Open" src="~/uploads/AmcDocuments/thumb_@extnf" ID="ImgBtn1" class="img-responsive img-fluid thumblimit" />
+                                                            </a>
+                                                            <a href="~/uploads/AmcDocuments/@Html.DisplayFor(modelItem => item.FileNameAmc)" ID="ImgBtn1" download class="btn btn-primary btn-xs" style="width:70px;"> download</a>
+                                                            <a class="modal-delete text-red" href="/AMC/DeleteImage/@Html.DisplayFor(modelItem => item.DocumentId)" title="Delete Image"><i class="fa fa-lg fa-trash"></i></a>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="form-group col-md-2">
+                                                            @if (extn == "pdf")
+                                                            {
+                                                                <span>
+                                                                    <a class="modal-create" href="/AMC/DocView/@Html.DisplayFor(modelItem => item.DocumentId)" ID="ImgBtn1">
+                                                                        <img width="100" height="100" src="~/uploads/AmcDocuments/docavatar.png" ID="ImgBtn1" class="img-responsive" />
+                                                                    </a>
+                                                                </span>
+                                                            }
+                                                            else if (extn == "ogv" || extn == "M4A" || extn == "FLAC" || extn == "MP3" || extn == "MP4" || extn == "WAV" || extn == "WMA" || extn == "AAC" || extn == "ogg" || extn == "opus" || extn == "mpg" || extn == "mpeg")
+                                                            {
+                                                                <span>
+                                                                    <a class="fa fa-microphone fa-5x docwidthfile">
+                                                                    </a>
+                                                                </span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <img width="100" height="100" src="~/uploads/AmcDocuments/docavatar.png" ID="ImgBtn1" class="img-responsive" />
+                                                            }
+                                                            <a href="~/uploads/AmcDocuments/@Html.DisplayFor(modelItem => item.FileNameAmc)" ID="ImgBtn1" download class="btn btn-primary btn-xs" style="width:70px;"> download</a>
+                                                            <a class="modal-delete text-red" href="/AMC/DeleteImage/@Html.DisplayFor(modelItem => item.DocumentId)" title="Delete Image"><i class="fa fa-lg fa-trash"></i></a>
+
+                                                        </div>
+                                                    }
+                                                }
+                                            }
+                                        </div>
+                                    }
+
+                                }
+                                @*<hr />*@
+                            </div>
+
+                            @************************ Remarks Tab ***********************@
+                            <div class="tab-pane" id="remarks">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Remarks</h4>
+                                            </div>
+                                            <div class="box-body">
+                                                <table class="table table-bordered table-hover" id="RemarkInfo">
+                                                    <thead>
+                                                        <tr class="bg-gray">
+                                                            <td data-priority="2">#</td>
+                                                            <td data-priority="2">Time</td>
+                                                            <td data-priority="1">Employee</td>
+                                                            <td data-priority="1">Remark</td>
+                                                            <td data-priority="1">Amc Status</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                           @************************ Periodic Maintenance Tab ***********************@
+                             <div class="tab-pane" id="pDetails">
+                                <div class="post">
+                                    <div class="user-block">
+                                        <div class="row">
+                                            <div class="box-header with-border">
+                                                <h4 class="box-title">Periodic Details</h4>
+                                            </div>
+                                            <div class="box-body">
+                                                <table class="table table-bordered table-hover" id="PeriodicInfo">
+                                                    <thead>
+                                                        <tr class="bg-gray">
+                                                            <td data-priority="1">Sl No.</td>
+                                                            <td data-priority="1">Periodic Date</td>
+                                                            <td data-priority="1">Notes</td>
+                                                            <td data-priority="1">Status</td>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <!-- /.tab-content -->
+                    </div>
+                    <!-- /.nav-tabs-custom -->
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/lightbox")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/lightbox")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+<script type="text/javascript">
+   $(document).ready(function () {
+            var ID = getQueryString('');
+
+          /* For Remarks Tab */
+          var pTable = $('#RemarkInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/AMC/GetAllRemarks',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { AmcId: ID}
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                     { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                    { "data": "EmpName", "name": "EmpName" },
+                  { "data": "Remark", "name": "Remark" },
+                  { "data": "Status", "name": "Status" },
+                ],
+            });
+          pTable.destroy();
+
+          /* For Periodic Tab */
+          var oTable = $('#PeriodicInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/AMC/GetAllPeriodic',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { AmcId: ID}
+                },
+                /*"order": [[1, "desc"]],*/
+                "columns": [
+                      {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                      },
+                     {
+                        "data": "PDate", "name": "PDate", "render": function (data)
+                        {
+                            if (data != null) { return convertDateTime(data); }
+                            else { return "" }
+                        }
+                     },
+                      { "data": "Notes", "name": "Notes" },
+                      { "data": "Status", "name": "Status" },
+                ],
+            });
+          oTable.destroy();
+
+             /* function for delete popup (for images in attachments tab)*/
+             $('div').on('click', '.modal-delete', function (e) {
+                 e.preventDefault();
+                 var url = $(this).attr('href');
+                 modalshow(url, '#modal-delete');
+             });
+
+             $('#modal-delete').on('submit', '#deleteform', function (e) {
+                 e.preventDefault();
+                 var url = $('#deleteform')[0].action;
+                 var data = $('#deleteform').serialize();
+                 createajax(url, data, '#modal-delete');
+                 location.reload();
+             });
+
+             /*(for images in attachments tab)*/
+             $('span').on('click', '.modal-create', function (e) {
+                 e.preventDefault();
+                 var url = $(this).attr('href');
+                 modalshow(url, '#modal-create');
+             });
+
+             $('div').on('click', '.modal-create', function (e) {
+                 e.preventDefault();
+                 var url = $(this).attr('href');
+                 modalshow(url, '#modal-create');
+             });
+
+             $('#modal-create').on('submit', '#createform', function (e) {
+                 e.preventDefault();
+                 var url = $('#createform')[0].action;
+                 var data = $('#createform').serialize();
+                 createajax(url, data, '#modal-create');
+                 window.location.reload();
+             });
+
+             $('#modal-create,#modal-edit').on('shown.bs.modal', function (e) {
+                 $('.date').datepicker({
+                     format: 'dd-mm-yyyy',
+                     autoclose: true,
+                     allowInputToggle: true
+                 });
+                 $(".timepicker").timepicker({
+                     showInputs: true,
+                     defaultTime: false,
+                     format: 'dd-mm-yyyy'
+                 });
+             });
+   });
+
+</script>
+}

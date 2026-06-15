@@ -1,0 +1,274 @@
+﻿
+@{
+    ViewBag.Title = "Generate Barcode";
+    ViewBag.SubTitle = "Generate Barcode";
+    ViewBag.Active = "Utility";
+}
+<div class="box box-default">
+    <style>
+        #barcodetable body {
+            text-align: center;
+        }
+
+        #barcodetable td {
+            text-align: center;
+            padding-bottom: 0px;
+            padding-top: 7px;
+        }
+
+        #barcodetable h4 {
+            margin-bottom: -6px;
+            z-index: 1;
+            position: relative;
+            font-size: 0.9em;
+        }
+
+        .brcode {
+            width: 150px;
+            height: 60px;
+        }
+
+        #barcodetable {
+            font-size: .9em;
+            margin-bottom: 0px;
+        }
+
+        p {
+            font-size: .65em;
+        }
+    </style>
+    <div class="box-header with-border">
+        <h3 class="box-title">Generate Barcode of Item</h3>
+    </div>
+    <div class="box-body">
+        <form class="form-horizontal">
+            <input type="hidden" id="bcvalue" />
+            <input type="hidden" id="itmname" />
+            <input type="hidden" id="itmprice" />
+            <input type="hidden" id="itemprice"/>
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <div class="form-group">
+                <label class="control-label col-md-4">Item Name/Code</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.ddlItem, new { @class = "form-control input-sm", @required = "required" })
+                </div>
+                <div class="col-sm-2">
+                    <select name="Unit" id="Unit" style="height: 30px;"></select>
+                    <input type="hidden" id="UnitName" />
+                    <input type="hidden" id="Cfactor" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">Print Quantity</label>
+                <div class="col-sm-2">
+                    <input type="number" value="1" class="form-control input-sm" id="labelRows" />
+                </div>
+                <div class="col-sm-4 no-print" id="brdiv">
+                    <table class="table" id="barcodetable"></table>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="button" class="btn btn-info col-sm-offset-5" value="Print Barcode" id="Submit" />
+                 Item Contain<input type="text" value="" id="itcontain" />
+                <input type="button" class="btn btn-info col-sm-offset-5" value="Print all Barcode" id="printall" />
+           
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "Home") + "'");">Cancel</button>
+                @*<input type="button" class="btn btn-default" value="Reset" data-dismiss="modal" id="btnreset" />*@
+            </div>
+            <div id="cont" class="hidden">
+                <svg id="barcode"></svg>
+            </div>
+        </form>
+    </div>
+</div>
+@Html.Partial("_printBarcode")
+@section style{
+
+}
+
+@section Scripts {
+    @Scripts.Render("~/js/JsBarcode")
+    <script type="text/javascript">
+   $("#printall").click(function () {
+
+        bindbarcodeall();
+              //  window.location.href = '@Url.Action("Index", "Barcode")';
+
+
+        });
+        function bindbarcodeall() {
+    var table = "";
+    var itcon = $("#itcontain").val();
+    $.ajax({
+        url: '/Item/GetItemall',
+        type: "GET",
+        data: { itemcontain: itcon },
+        dataType: "JSON",
+
+        success: function (data) {
+
+            $.each(data, function (i, da) {
+                $("#Cfactor").val(da.ConFactor);
+
+                $("[id$=bcvalue]").val(da.Barcode);
+                $("[id$=itmname]").val(da.ItemName);
+                $("[id$=itmprice]").val(da.ItemCode);
+                $("[id$=itemprice]").val(da.SellingPrice);
+                $("[id$=color]").val(da.color);
+                $("[id$=size]").val(da.size);
+                var CName = $('#cname').val();
+                printSticker('barcode', da.Barcode);
+                var image = $('#cont').html();
+                var size = da.size;
+                var color = da.color
+                var str = '<div>' + image + '</div><p style="margin-top: -12px;line-height: 10px;position: relative;">' + da.ItemName  + '</p>' + "<div style=font-size:15px>" + da.ItemCode + "</div>";
+    
+               // var str = '<p style="margin: 0px;position: relative;padding:0px;height:41px;">' + image + '</p><div style="margin-top: -4px;"><p style="margin: 0px;position: relative;"><p style="margin: 0px;position: relative;"><br></p><span style="font-size: 6px;">KALAKARI FASHION</span>' + "<p style=font-size: 5px;line-height:5px;width: 66px;margin-left: 3px;margin-top: ;/* break-inside: auto; */word-break: break-all;>" + da.ItemName + "-" + size + "-" + color + "</p></div>" + "<p style='margin-top: -12px;position: relative;' > AED : " + parseFloat(da.SellingPrice).toFixed(2) + '</p>';
+                var i = 0;
+                while (i < 1) {
+                    var items = 1;
+                    table += "<tr><td> " + str + "</td></tr>";
+                    i++;
+                }
+
+            });
+
+            $('#bartable').append(table);
+
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printBarcode').html();
+            $('body').html(printContent);
+            $('title').html("Barcode Print");
+            window.print();
+        }
+    });
+
+}
+        //$('body').on('change', '#ddlItem', function (e) {
+        //    var itemId = $(this).val();
+        //    if (itemId != null) {
+        //        $.ajax({
+        //            url: '/Barcode/GetBarcode',
+        //            type: "GET",
+        //            dataType: "JSON",
+        //            data: { ItemId: itemId },
+        //            success: function (result) {
+        //                if (result.Barcode != null) {
+        //                    $("[id$=bcvalue]").val(result.Barcode);
+        //                    $("[id$=itmname]").val(result.ItemName);
+        //                    //$("[id$=itmprice]").val(result.ItemPrice);
+        //                    printSticker('barcode', result.Barcode);
+
+        //                } else {
+        //                    alert("Barcode Not Found");
+        //                    $('#ddlItem').select2('close');
+        //                    $("#ddlItem").val(null).trigger("change");
+        //                }
+        //            }
+        //        });
+        //    }
+        //});
+
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+
+                    $("#barcodetable tr").remove();
+                    if (data.Barcode != null) {
+                      
+                        //add unit
+                        var newOption = $('<option></option>');
+                        if ((data.PriUnit != data.SubUnit) && data.SubUnitId != null) {
+                            newOption.val(data.ItemUnitID).html(data.PriUnit);
+                            var newOption1 = $('<option></option>');
+                            newOption1.val(data.SubUnitId).html(data.SubUnit);
+                            if (data.ItemUnit) {
+                                if (data.ItemUnit == data.ItemUnitID)
+                                    newOption.attr("selected", "selected");
+                                if (data.ItemUnit == c.SubUnitId)
+                                    newOption1.attr("selected", "selected");
+                            }
+                            $('#Unit').html('');
+                            $('#Unit').append(newOption);
+                            $('#Unit').append(newOption1);
+
+                        } else {
+                            $('#Unit').html('');
+                            newOption.val(data.ItemUnitID).html(data.PriUnit);
+                            $('#Unit').append(newOption);
+                            $("#UnitName").val(data.PriUnit);
+                        }
+
+                        //set price and cfactor
+                        $("#Cfactor").val(data.ConFactor);
+
+                        $("[id$=bcvalue]").val(data.Barcode);
+                        $("[id$=itmname]").val(data.ItemName);
+                        $("[id$=itmprice]").val(data.ItemCode);
+                        $("[id$=itemprice]").val(data.SellingPrice);
+                        printSticker('barcode', data.Barcode);
+                        showbarcode();
+                        $("#brdiv").show();
+
+                    } else {
+                        alert("Barcode Not Found");
+                        $('#ddlItem').select2('close');
+                        $("#ddlItem").val(null).trigger("change");
+                        $('#Unit').empty();
+                        $("#brdiv").hide();
+                    }
+                }
+            });
+        });
+        $('body').on('change', '#Unit', function (e) {
+            var textvalue = $("#Unit option:selected").val();
+            var text = $("#Unit option:selected").text();
+            $("#UnitName").val(text);
+            $("#barcodetable tr").remove();
+            showbarcode();
+        });
+
+        $(document).ready(function () {
+            ItemSearchable();
+
+        });
+        function showbarcode() {
+            var itemName = $('#itmname').val();
+            var cfactor = $('#Cfactor').val();
+
+            var itemPrice = $('#itmprice').val();
+            if ($("#Unit").prop('selectedIndex') == 0) {
+                itemPrice = itemPrice;
+            } else {
+
+                itemPrice = (itemPrice / cfactor);
+            }
+
+            var CName = $('#cname').val();
+            var image = $('#cont').html();
+            var table = "";
+            var str = '<div>' + image + '</div><p style="margin-top: -12px;line-height: 10px;position: relative;">' + itemName + '<br>' + $('#itmprice').val() + '</p>';
+            table = "<tr><td> " + str + "</td></tr>";
+            $('#barcodetable').append(table);
+        }
+        $("#Submit").click(function () {
+            var item = $('#ddlItem').val();
+            if (item != "") {
+                bindbarcode();
+                window.location.href = '@Url.Action("Index", "Barcode")';
+            }
+
+        });
+      
+        
+    </script>
+}
+
+
+
+

@@ -1,0 +1,361 @@
+﻿@model QuickSoft.Models.EmpAttendance
+@{
+    ViewBag.Title = "Employee Attendance";
+    ViewBag.SubTitle = "Employee Attendance";
+    ViewBag.Active ="Utility";
+
+    string actData = "";
+    string actImg = "";
+    string delchk = "";
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Delete FileDocument"))
+    {
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+               "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+                "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+
+
+}
+<style type="text/css">
+    /* If you want you can use font-face */
+
+    .center {
+        margin: auto;
+    }
+
+    .clock {
+        width: 100%;
+        text-align: center;
+        margin: 0 auto;
+        padding: 30px;
+        color: black;
+    }
+
+    #Date {
+        font-family: 'BebasNeueRegular', Arial, Helvetica, sans-serif;
+        font-size: 20px;
+        text-align: center;
+    }
+
+    .ul {
+        width: 200px;
+        margin: 0 auto;
+        padding: 0px;
+        list-style: none;
+        text-align: center;
+    }
+
+        .ul .li {
+            display: inline;
+            font-size: 25px;
+            text-align: center;
+            font-family: 'BebasNeueRegular', Arial, Helvetica, sans-serif;
+        }
+
+    #point {
+        position: relative;
+        -moz-animation: mymove 1s ease infinite;
+        -webkit-animation: mymove 1s ease infinite;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .current {
+        color: dimgray;
+        font-size: 10px;
+    }
+</style>
+<script src="/path/to/cdn/jquery.min.js"></script>
+<div class="box box-info ">
+    @using (Html.BeginForm("Createatt", "Table", FormMethod.Post, new { @class = "dropzone", id = "createform", role = "form", enctype = "multipart/form-data" }))
+    {
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="box-header with-border">
+            <h3 class="box-title">Employee Attendance</h3>
+            <input type="hidden" name="lat" id="lat" />
+            <input type="hidden" name="log" id="log" />
+            <div class="pull-right">
+                <a class="btn bg-blue no-border" href="/Employeeattendance/Index">
+                    <i class="fa fa-step-backward"></i>  Daily Register
+                </a>
+                @*<a class="btn bg-aqua no-border" href="/Employeeattendance/Report">
+            <i class="fa fa-step-backward"></i>  Report
+        </a>*@
+                <a class="btn bg-blue no-border" href="/AMC/imageaddnew">
+                    <i class="fa fa-step-backward"></i>  geophoto
+                </a>
+                <a href="" id="currlocation" target="_new" style="">Current Location</a>
+
+
+            </div>
+        </div>
+        <br />
+
+        <div class="row justify-content-center">
+            <div class="col-md-12 mx-auto" style="margin:auto;">
+                <div class="clock">
+                    <div class="current"> Current date and time</div>
+                    <div id="Date"></div>
+                    <ul class="ul">
+
+                        <li class="li" id="hours"></li>
+                        <li class="li" id="point">:</li>
+                        <li class="li" id="min"></li>
+                        <li class="li" id="point">:</li>
+                        <li class="li" id="sec"></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-4 col-lg-offset-4">
+                    <input type="text" class="form-control" value="@ViewBag.lastname" readonly style="text-align:center;font-size:larger;">
+                    <br />
+                    <h3>Login Duration<i class="fa fa-clock-o" aria-hidden="true"></i> </h3>
+                    <input type="text" class="form-control duration" id="duration" readonly style="text-align:center; font-size:large; background-color:white;color:blue;">
+                    <input type="text" value="0.00" id="duraduplicate" name="dura" hidden />
+                    @*--------to get value of login and logout--------------------------------------*@
+                    <input type="hidden" class="form-control" value="@ViewBag.laststatus" name="status">
+                    <input type="hidden" name="fromapp" id="fromapp" value="" />
+
+                    <br />
+                </div>
+            </div>
+
+
+
+            <div class="row text-center">
+
+                <button class="btn btn-success btn-lg active login" name="login" type="submit">Start</button>
+
+
+                <button class="btn btn-danger btn-lg active logout" name="logout" type="submit">Stop</button>
+                <br />
+                <img class="loading" src="~/Content/img/loadingicon.gif">
+            </div>
+
+
+
+
+
+        </div>
+        <br>
+        <br>
+
+
+
+
+
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section Scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+
+    <script type="text/javascript">
+
+
+
+    var lst = '@ViewBag.laststatus';
+
+    if (lst != "Expired" ) {
+        $(".login").hide();
+        $(".logout").show();
+    }
+    else {
+
+        $(".login").show();
+        $(".logout").hide();
+        $(".loading").hide();
+    }
+
+
+
+
+    </script>
+
+    </script>
+    <script>
+        $('.btn').on("click", function (e) {
+            $('.btn').hide();
+            var str2 = window.MyHandler.getpoint();
+
+            setposfromclick(str2);
+            $('createform').submit();
+
+        });
+        $(document).ready(function () {
+            var str2 = window.MyHandler.getpoint();
+
+            setposfromclick(str2);
+            $("#fromapp").val("valid");
+            setTimeout(function () { window.location.reload(); }, 600000);
+            $("#fromapp").val(getQueryString1("fromapp"));
+            if ($("#fromapp").val() != "valid") {
+                var str = window.MyHandler.getpoint();
+                setposfromclick(str);
+                $("#fromapp").val("valid");
+            }
+
+            $("#alert").each(function () {
+                if ($(this).html().indexOf("Attendance Registered") > -1) {
+                    //alert("close App and open again");
+                    //localStorage.setItem("app", "");
+                    //$("#fromapp").val(localStorage.getItem("app"));
+                    //navigator.app.exitApp();
+                }
+            });
+        });
+        /*------------------date and time widget---------------------*/
+
+
+        // Create two variable with the names of the months and days in an array
+        var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+        // Create a newDate() object
+        var newDate = new Date();
+        // Extract the current date from Date object
+        newDate.setDate(newDate.getDate());
+        // Output the day, date, month and year
+        $('#Date').html(dayNames[newDate.getDay()] + " " + newDate.getDate() + ' ' + monthNames[newDate.getMonth()] + ' ' + newDate.getFullYear());
+
+        setInterval(function () {
+            // Create a newDate() object and extract the seconds of the current time on the visitor's
+            var seconds = new Date().getSeconds();
+            // Add a leading zero to seconds value
+            $("#sec").html((seconds < 10 ? "0" : "") + seconds);
+        }, 1000);
+
+        setInterval(function () {
+            // Create a newDate() object and extract the minutes of the current time on the visitor's
+            var minutes = new Date().getMinutes();
+            // Add a leading zero to the minutes value
+            $("#min").html((minutes < 10 ? "0" : "") + minutes);
+        }, 1000);
+
+        setInterval(function () {
+            // Create a newDate() object and extract the hours of the current time on the visitor's
+            var hours = new Date().getHours();
+            if (hours > 12) {
+                hours -= 12;
+            } else if (hours === 0) {
+                hours = 12;
+            }
+            // Add a leading zero to the hours value
+            $("#hours").html((hours < 10 ? "0" : "") + hours);
+        }, 1000);
+
+
+
+        getLocation();
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition);
+            } else {
+                // x.innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+        function showPosition(position) {
+
+            $("#lat").val(getQueryString1("lat"));
+            $("#log").val(getQueryString1("log"));
+            var str = "https://maps.google.com/?q=" + $("#lat").val() + "," + $("#log").val();
+
+            $("#currlocation").attr("href", str);
+        }
+        function setpos() {
+            $("#lat").val(getQueryString1("lat"));
+            $("#log").val(getQueryString1("log"));
+            var str = "https://maps.google.com/?q=" + $("#lat").val() + "," + $("#log").val();
+
+           // $("#currlocation").attr("href", str);
+        }
+        function setposfromclick(va) {
+            var ar = va.split(",");
+
+            if (ar[0] != "null") {
+                $("#lat").val(ar[0]);
+                $("#log").val(ar[1]);
+                //alert($("#lat").val());
+
+                var str = "https://maps.google.com/?q=" + va;
+
+                $("#currlocation").attr("href", str);
+            }
+            else {
+                //alert("your phone location permission not set");
+               // window.location.reload();
+            }
+        }
+
+
+    </script>
+    <script>
+
+    </script>
+    <script>
+        $(document).ready(function () {
+
+            //setpos();
+
+            setInterval(function () {
+            if ('@ViewBag.duration' == "0") {
+                $('.duration').val("press start to begin");
+            }
+            else {
+                var logdate = '@ViewBag.duration';
+                var Expdate = '@ViewBag.now';
+                /*Expdate = Date.parse(Expdate);*/
+
+
+                /*today = Date.parse(today);*/
+                var convertedexpdate = Date.parse(Expdate);
+                var convertedlogdate = Date.parse(logdate);
+                var dif = convertedexpdate - convertedlogdate
+
+                function msToTime(duration) {
+                    var milliseconds = Math.floor((duration % 1000) / 100),
+                        seconds = Math.floor((duration / 1000) % 60),
+                        minutes = Math.floor((duration / (1000 * 60)) % 60),
+                        hours = Math.floor((duration / (1000 * 60 * 60)) );
+
+                    hours = (hours < 10) ? "0" + hours : hours;
+                    minutes = (minutes < 10) ? "0" + minutes : minutes;
+                    seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+                    return hours + " Hours  :  " + minutes + " Minutes  :  " + seconds + " seconds";
+                }
+                document.getElementById('duration').value = msToTime(dif);
+                function msToTimenostring(duration) {
+                    var milliseconds = Math.floor((duration % 1000) / 100),
+                        seconds = Math.floor((duration / 1000) % 60),
+                        minutes = Math.floor((duration / (1000 * 60)) % 60),
+                        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+                    hours = (hours < 10) ? "0" + hours : hours;
+                    minutes = (minutes < 10) ? "0" + minutes : minutes;
+                    seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+                    return hours + "." + minutes;
+                }
+                document.getElementById('duraduplicate').value = msToTimenostring(dif);
+
+                }
+            }, 1000);
+
+        });
+    </script>
+}

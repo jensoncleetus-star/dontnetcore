@@ -1,0 +1,1203 @@
+﻿@model QuickSoft.ViewModel.HomeViewModel
+@{
+    ViewBag.Title = "Dashboard";
+    ViewBag.SubTitle = "";
+    ViewBag.Active = "Dashboard";
+    string actData = "";
+}
+
+<link rel="stylesheet" href="@Url.Content("~/Content/css/dashboard-futuristic.css")?v=20260615a" />
+<script>
+    (function () {
+        try {
+            document.body.classList.add('bosx-on');
+            document.body.setAttribute('data-bostheme', localStorage.getItem('bosxTheme') || 'dark');
+        } catch (e) { document.body.setAttribute('data-bostheme', 'dark'); }
+    })();
+</script>
+
+<div class="bosx-dash">
+    <div class="bosx-hero">
+        <div>
+            <div class="bosx-hero-title">Dashboard</div>
+            <div class="bosx-hero-sub"><i class="fa fa-calendar-o"></i> @ViewBag.lastdate &ndash; @ViewBag.today</div>
+        </div>
+        <button type="button" class="bosx-toggle" onclick="bosxToggleTheme()" title="Toggle dark / light theme">
+            <i class="fa fa-moon-o"></i><span class="bosx-toggle-lbl">Theme</span>
+        </button>
+    </div>
+
+<div class="row">
+
+    @if (@ViewBag.BusinessType != "Scaffold")
+    {
+        if (User.IsInRole("Dev") || (User.IsInRole("POS List")) && (User.IsInRole("Sales Return List")) || (User.IsInRole("Sales Entry List") && User.IsInRole("Sales Return List")))
+        {
+            <div class="col-md-4">
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Sales Chart</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
+                                <i class="fa fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <canvas id="salesChart" style="height:250px"></canvas>
+                        <ul class="chart-legend clearfix list-inline">
+                            <li><i class="fa fa-circle-o text-aqua"></i> Sales Entry</li>
+                            <li><i class="fa fa-circle-o text-blue"></i> Sales Return</li>
+                        </ul>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+            </div>
+        }
+        if (User.IsInRole("Dev") || (User.IsInRole("Purchase List") && User.IsInRole("Purchase Return List")))
+        {
+            <div class="col-md-4">
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Purchase Chart</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
+                                <i class="fa fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <canvas id="purchaseChart" style="height:250px"></canvas>
+                        <ul class="chart-legend clearfix list-inline">
+                            <li><i class="fa fa-circle-o text-green"></i> Purchase Entry</li>
+                            <li><i class="fa fa-circle-o text-gray"></i> Purchase Return</li>
+                        </ul>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+            </div>
+        }
+        if (User.IsInRole("Dev") || (User.IsInRole("Receipt List") && User.IsInRole("Payment List")))
+        {
+            <div class="col-md-4">
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Payment and Receipt</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
+                                <i class="fa fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <canvas id="payAndRec" style="height:250px"></canvas>
+                        <ul class="chart-legend clearfix list-inline">
+                            <li><i class="fa fa-circle-o text-gray"></i> Payment</li>
+                            <li><i class="fa fa-circle-o text-maroon"></i> Receipt</li>
+                        </ul>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+            </div>
+        }
+    }
+    <div class="col-md-8">
+
+        @if (@ViewBag.BusinessType == "Scaffold")
+        {
+            <div class="box box-danger top-10">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Expiring Hire Invoices</h3>
+                    @if (User.IsInRole("Dev") || User.IsInRole("HireExpire Report"))
+                    {
+                        <div class="box-tools pull-right">
+                            <a href="@Url.Action("HireExpire", "MyReports", new { id = "" })" class="btn btn-flat btn-danger btn-sm"> Hire Expiry Report</a>
+                        </div>
+                    }
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="HireTable">
+                            <thead>
+                                <tr>
+                                    <th>Bill No:</th>
+                                    <th>Customer</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="box box-danger top-10">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Expiring Cross Hire Invoices</h3>
+                    @if (User.IsInRole("Dev") || User.IsInRole("CrossHireExpire Report"))
+                    {
+                        <div class="box-tools pull-right">
+                            <a href="@Url.Action("CrossHireExpire", "MyReports", new { id = "" })" class="btn btn-flat btn-danger btn-sm"> Cross Hire Expiry Report</a>
+                        </div>
+                    }
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="CrossHireTable">
+                            <thead>
+                                <tr>
+                                    <th>Bill No:</th>
+                                    <th>Supplier</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        }
+
+        @if (User.IsInRole("Dev") || User.IsInRole("PDC Regularise"))
+        {
+            <div class="box box-primary top-10" id="pdcDiv">
+                <div class="box-header with-border">
+                    <h3 class="box-title">PDC Regularize</h3>
+                    @if (User.IsInRole("Dev") || User.IsInRole("PDC Regularise"))
+                    {
+                        <div class="box-tools pull-right">
+                            <a href="@Url.Action("Index", "PDCRegularise", new { id = "" })" class="btn btn-flat btn-primary btn-sm"><i class="glyphicon glyphicon-plus"></i> PDC Regularise</a>
+                        </div>
+                    }
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="PDCTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Voucher</th>
+                                    <th>Account</th>
+                                    <th>PDC Issued</th>
+                                    <th>PDC Receipt</th>
+                                    <th>Check No.</th>
+                                    <th>Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="box box-primary top-10" id="reminderDiv">
+            <div class="box-header with-border">
+                <h3 class="box-title">Reminders</h3>
+                <div class="box-tools pull-right">
+                    <a href="@Url.Action("Reminder", "MyReports", new { id = "" })" class="btn btn-flat btn-primary btn-sm"><i class="glyphicon glyphicon-plus"></i>All Reminders</a>
+                </div>
+            </div>
+            <div class="box-body" style="">
+                <div class="table-responsive">
+                    <table class="table no-margin" id="remTable">
+                        <thead>
+                            <tr>
+                                <th>SI No</th>
+                                <th>Type</th>
+                                <th>Note</th>
+                                <th>Date</th>
+                                @*<td>Assigned To</td>*@
+                                @*<td>Requested By</td>*@
+                                <th>Created By</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+        @if (User.IsInRole("Dev") || User.IsInRole("Quotation List"))
+        {
+            <div class="box box-info top-10">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Latest Quotations</h3>
+                    @if (User.IsInRole("Dev") || User.IsInRole("Quotation Entry"))
+                    {
+                        <div class="box-tools pull-right">
+                            <a href="@Url.Action("Create", "Quotation", new { id = "" })" class="btn btn-flat btn-info btn-sm"><i class="glyphicon glyphicon-plus"></i> Add Quotation</a>
+                        </div>
+                    }
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="QuotTable">
+                            <thead>
+                                <tr>
+                                    <th>Quote No</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="box-footer clearfix">
+                    <a href="@Url.Action("Index", "Quotation")" class="btn btn-sm btn-default btn-flat pull-right">View All Quotations</a>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Sales Entry List") || User.IsInRole("POS List"))
+        {
+            <div class="box box-warning top-10">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Latest Sales Entry</h3>
+                    @if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                    {
+                        <div class="box-tools pull-right">
+                            <a href="@Url.Action("Create", "CreditSale", new { id = "" })" class="btn btn-flat btn-warning btn-sm"><i class="glyphicon glyphicon-plus"></i> Add Sales Entry</a>
+                        </div>
+                    }
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="SalesTable">
+                            <thead>
+                                <tr>
+                                    <th>Invoice</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                @if (User.IsInRole("Dev") || User.IsInRole("Sales Entry List"))
+                {
+                    <div class="box-footer clearfix">
+                        <a href="@Url.Action("Index", "CreditSale")" class="btn btn-sm btn-default btn-flat pull-right">View All Sales Entry</a>
+                    </div>
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("POS List"))
+                {
+                    <div class="box-footer clearfix">
+                        <a href="@Url.Action("Index", "POS")" class="btn btn-sm btn-default btn-flat pull-right">View POS List</a>
+                    </div>
+                }
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Purchase List"))
+        {
+            <div class="box box-danger top-10">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Latest Purchase Entry</h3>
+                    @if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                    {
+                        <div class="box-tools pull-right">
+                            <a href="@Url.Action("Create", "PurchaseEntry", new { id = "" })" class="btn btn-flat btn-danger btn-sm"><i class="glyphicon glyphicon-plus"></i> Add Purchase Entry</a>
+                        </div>
+                    }
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="PurchaseTable">
+                            <thead>
+                                <tr>
+                                    <th>Invoice</th>
+                                    <th>Supplier</th>
+                                    <th>Purchase</th>
+                                    <th>Total</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="box-footer clearfix">
+                    <a href="@Url.Action("Index", "PurchaseEntry")" class="btn btn-sm btn-default btn-flat pull-right">View All Purchase Entry</a>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Report ApprovalHistory"))
+        {
+            <div class="box box-danger top-10">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Approval Report</h3>
+                </div>
+                <div class="box-body" style="">
+                    <div class="table-responsive">
+                        <table class="table no-margin" id="ApprovalTable">
+                            <thead>
+                                <tr>
+                                    <th>Invoice No</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="box-footer clearfix">
+                    <a href="@Url.Action("Approval", "MyReports")" class="btn btn-sm btn-default btn-flat pull-right">View Approval History</a>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="col-md-4 top-10">
+        @if (ViewBag.MCUser == false)
+        {
+            <div class="info-box top-10">
+                <span class="info-box-icon bg-aqua"><i class="fa fa-briefcase"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Cash In Hand</span>
+                    <span class="info-box-number">@Html.DisplayFor(m => m.cashinhand)</span>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Customer"))
+        {
+            <div class="info-box">
+                <span class="info-box-icon bg-green"><i class="fa fa-users"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Customers</span>
+                    <span class="info-box-number">@Html.DisplayFor(m => m.totCustomerCount)</span>
+                    <a href="@Url.Action("Index", "Customer")" class="label label-success">View All Customers</a>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Supplier"))
+        {
+            <div class="info-box">
+                <span class="info-box-icon bg-yellow"><i class="fa fa-users"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Supplier</span>
+                    <span class="info-box-number">@Html.DisplayFor(m => m.totSupplierCount)</span>
+                    <a href="@Url.Action("Index", "Supplier")" class="label label-success">View All Supplier</a>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Sales Executives List"))
+        {
+            <div class="info-box">
+                <span class="info-box-icon bg-olive"><i class="fa fa-user-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Sales Executive</span>
+                    <span class="info-box-number">@Html.DisplayFor(m => m.totSalesExecCount)</span>
+                    <a href="@Url.Action("Index", "SalesExecutive")" class="label label-success">View All Sales Executive</a>
+                </div>
+            </div>
+        }
+        <div class="box box-widget widget-user">
+            <div class="widget-user-header bg-red">
+                <h3 class="widget-user-username">This Month </h3>
+                <h5 class="widget-user-desc">details in a nutshell (<span>@ViewBag.lastdate to @ViewBag.today</span>)</h5>
+            </div>
+            <div class="box-footer no-padding">
+                <ul class="nav nav-stacked">
+                    @if (User.IsInRole("Dev") || User.IsInRole("Customer"))
+                    {
+                        <li><a href="javascript:void(0)">Customers <span class="pull-right badge bg-green">@Html.DisplayFor(m => m.todCustomerCount)</span></a></li>
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("Supplier"))
+                    {
+                        <li><a href="javascript:void(0)">Suppliers <span class="pull-right badge bg-navy">@Html.DisplayFor(m => m.todVendorCount)</span></a></li>
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("Quotation List"))
+                    {
+                        <li><a href="javascript:void(0)">Quotations <span class="pull-right badge bg-red">@Html.DisplayFor(m => m.todQuotationCount)</span></a></li>
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("Sales Entry List"))
+                    {
+                        <li><a href="javascript:void(0)">Sales Entry<span class="pull-right badge bg-yellow">@Html.DisplayFor(m => m.todSalesEntryCount)</span></a></li>
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("POS List"))
+                    {
+                        <li><a href="javascript:void(0)">POS Entry<span class="pull-right badge bg-yellow">@Html.DisplayFor(m => m.todSalesEntryCount)</span></a></li>
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("Purchase List"))
+                    {
+                        <li><a href="javascript:void(0)">Purchase Entry<span class="pull-right badge bg-purple">@Html.DisplayFor(m => m.todPurchaseEntryCount)</span></a></li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <!-- /.widget-user -->
+        @if (User.IsInRole("Dev") || User.IsInRole("Sales Entry List") || User.IsInRole("POS List"))
+        {
+            <div class="info-box bg-yellow top-10">
+                <span class="info-box-icon"><i class="fa fa-shopping-bag"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Sales</span>
+                    <span class="progress-description">
+                        Total Credits
+                    </span>
+                    <span class="info-box-number">
+                        <span>AED</span>
+                        @Html.DisplayFor(m => m.SalesCredit)
+                    </span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 98%"></div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Purchase List"))
+        {
+            <div class="info-box bg-green">
+                <span class="info-box-icon"><i class="fa fa-shopping-cart"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Purchase</span>
+                    <span class="progress-description">
+                        Total Credits
+                    </span>
+                    <span class="info-box-number">
+                        <span>AED</span>
+                        @Html.DisplayFor(m => m.PurchaseCredit)
+                    </span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 98%"></div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Payment List"))
+        {
+            <div class="info-box bg-blue">
+                <span class="info-box-icon"><i class="fa fa-money"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Payments</span>
+                    <span class="progress-description">
+                        Total Payments
+                    </span>
+                    <span class="info-box-number">
+                        <span>AED</span>
+                        @Html.DisplayFor(m => m.totPayments)
+                    </span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 98%"></div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (User.IsInRole("Dev") || User.IsInRole("Receipt List"))
+        {
+            <div class="info-box bg-blue">
+                <span class="info-box-icon"><i class="fa fa-money"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Receipts</span>
+                    <span class="progress-description">
+                        Total Receipts
+                    </span>
+                    <span class="info-box-number">
+                        <span>AED</span>
+                        @Html.DisplayFor(m => m.totReciepts)
+                    </span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 98%"></div>
+                    </div>
+                </div>
+            </div>
+        }
+
+
+    </div>
+</div>
+</div>@* /.bosx-dash *@
+@section scripts{
+    @Scripts.Render("~/js/chartjs")
+    <script>
+
+    
+        $(document).ready(function () {
+            var getUrlParameter = function getUrlParameter(sParam) {
+                var sPageURL = window.location.search.substring(1),
+                    sURLVariables = sPageURL.split('&'),
+                    sParameterName,
+                    i;
+
+                for (i = 0; i < sURLVariables.length; i++) {
+                    sParameterName = sURLVariables[i].split('=');
+
+                    if (sParameterName[0] === sParam) {
+                        return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+                    }
+                }
+                return false;
+            };
+            var storage = getUrlParameter('app');
+            localStorage.setItem("app", storage);
+           // $("#fromapp").val(storage);
+        });
+    </script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+
+            // Quotation Table
+            var qTable = $('#QuotTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering" : false,
+                "ajax": {
+                    "url": '/Home/GetQuotEntry',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "QuotNo", "name": "QuotNo" },
+                    { "data": "Customer", "name": "Customer" },
+                    { "data": "QuotDate", "name": "QuotDate", "render": function (data) { return convertToDate(data); } },
+                    { "data": "QuotGrandTotal", "name": "QuotGrandTotal" },
+                    { "data": "validity", "name": "validity" }
+                ]
+            });
+            // Sales Table
+            var sTable = $('#SalesTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Home/GetSalesEntry',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "Customer", "name": "Customer" },
+                    { "data": "SEDate", "name": "SEDate", "render": function (data) { return convertToDate(data); } },
+                    { "data": "SEGrandTotal", "name": "SEGrandTotal" },
+                    { "data": "SEPaidAmount", "name": "SEPaidAmount" },
+                    { "data": "SEBalanceAmount", "name": "SEBalanceAmount" },
+                ]
+            });
+            // Purchase Table
+            var pTable = $('#PurchaseTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Home/GetPurchaseEntry',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "Supplier", "name": "Supplier" },
+                    { "data": "PEDate", "name": "PEDate", "render": function (data) { return convertToDate(data); } },
+                    { "data": "PEGrandTotal", "name": "PEGrandTotal" },
+                    { "data": "PEPaidAmount", "name": "PEPaidAmount" },
+                    { "data": "PEBalanceAmount", "name": "PEBalanceAmount" },
+                ]
+            });
+
+
+            // Approval Reports
+            var pTable = $('#ApprovalTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/MyReports/GetApproval',
+                    "data": function (data) {
+                        data.FromDate = "";
+                        data.ToDate = "";
+                        data.invoice = "";
+                        data.type = "0";
+                        data.appstat = null;
+                        data.sortfive = true;
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "columns": [
+                    { "data": "BillNo", "name": "BillNo" },
+                    {
+                        "data": "SDate", "name": "SDate",
+                        "render": function (data) {
+                            var date = convertToDate(data);
+                            return date.toString();
+                        }
+                    },
+                    { "data": "Type", "name": "Type" },
+                    {
+                        "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                            var status = "";
+                            if (data.ApprovalStatus == "0") {
+                                status = '<span class="badge bg-green">Approved</span>';
+                            }
+                            else if (data.ApprovalStatus == "1") {
+                                status = '<span class="badge bg-red">Rejected</span>';
+                            }
+                            else if (data.ApprovalStatus == "2") {
+                                status = '<span class="badge bg-orange">Pending</span>';
+                            }
+                            return '<a  class="Updation"   title="View Status">' + status + ' </a>';
+                        }
+                    },
+                ]
+            });
+            // Hire Table
+            var pTable = $('#HireTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Home/GetHireExp',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "Customer", "name": "Customer" },
+                    { "data": "StartDate", "name": "StartDate", "render": function (data) { return convertToDate(data); } },
+                    { "data": "EndDate", "name": "EndDate" , "render": function (data) { return convertToDate(data); }},
+                    {
+                        "name": "SalesEntryId", "data": function (data) {
+                            var rest = "";
+                            rest += '@Html.Raw(actData)';
+
+                            if (data.SaleType == "2") {
+                                if (data.HExtent == "SaleExtend") {
+                                    @{
+                                        actData = "";
+                                        if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                        {
+                                            actData += "<a href=\"/CreditSale/Create/'+ data.SalesEntryId +'/SaleExtend\"  title=\"Create Extention\" class=\"text-red\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                        }
+                                    }
+                                    rest += '@Html.Raw(actData)';
+                                }
+                                else {
+                                    @{
+                                        actData = "";
+                                        if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                        {
+                                            actData += "<a href=\"/CreditSale/Create/'+ data.SalesEntryId +'/SaleExtend\"  title=\" Create Extention \"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                        }
+                                    }
+                                    rest += '@Html.Raw(actData)';
+                                }
+
+                            }
+                            return rest;
+                        }
+                    }
+                ]
+            });
+
+            var pTable = $('#CrossHireTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Home/GetCrossHireExp',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "Supplier", "name": "Supplier" },
+                    { "data": "StartDate", "name": "StartDate", "render": function (data) { return convertToDate(data); } },
+                    { "data": "EndDate", "name": "EndDate" , "render": function (data) { return convertToDate(data); }},
+                    {
+                        "name": "PurchaseEntryId", "data": function (data) {
+                            var rest = "";
+                            rest += '@Html.Raw(actData)';
+
+                            if (data.SaleType == "2") {
+                                if (data.HExtent == "PurchaseExtend") {
+                                    @{
+                                        actData = "";
+                                        if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                        {
+                                            actData += "<a href=\"/PurchaseEntry/Create/'+ data.PurchaseEntryId +'/PurchaseExtend\"  title=\"Create Extention\" class=\"text-red\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                        }
+                                    }
+                                    rest += '@Html.Raw(actData)';
+                                }
+                                else {
+                                    @{
+                                        actData = "";
+                                        if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                        {
+                                            actData += "<a href=\"/PurchaseEntry/Create/'+ data.PurchaseEntryId +'/PurchaseExtend\"  title=\" Create Extention \"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                        }
+                                    }
+                                    rest += '@Html.Raw(actData)';
+                                }
+
+                            }
+                            return rest;
+                        }
+                    }
+                ]
+            });
+
+
+            // PDC Regularize Table
+            var pdcTable = $('#PDCTable').DataTable({
+                responsive: true,
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Home/GetPDC',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                    { "data": "Voucher", "name": "Voucher" },
+                    { "data": "Account", "name": "Account" },
+                    { "data": "Issued", "name": "Issued", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "Receipt", "name": "Receipt", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "check", "name": "check" },
+                    { "data": "remark", "name": "remark" },
+                ],
+                "fnInitComplete": function(oSettings) {
+                    if (oSettings.aiDisplayMaster.length <= 0) {
+                        $("#pdcDiv").hide();
+                    }
+                }
+            });
+
+            // Reminder Table
+            var remTable = $('#remTable').DataTable({
+                "filter": false,
+                "paging": false,
+                "bInfo": false,
+                "ordering": false,
+                "ajax": {
+                    "url": '/Home/GetReminder',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    {
+                        "data": "ReminderId", "name": "ReminderId",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                                           {
+                                               "name": "Type", "data": function (data) {
+                                                   var datas = "";
+                                                   var rest = "";
+                                                   var tpname = data.Type;
+                                                   if (tpname == "Task") {
+
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/ProTask/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "Sale") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/CreditSale/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "SReturn") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/CreditSaleReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "HReturn") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/CrossHireReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "DVNote") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/Deliverynote/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "HReturn") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/HireReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "JobCard") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/JobCard/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "MReqn") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/MaterialRequisition/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "MRNote") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/MRNote/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "PKList") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/PackingList/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "Prod") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/Production/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "ProForma") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/ProForma/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "Purchase") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/PurchaseEntry/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "POrder") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/PurchaseOrder/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "PQuot") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/PurchaseQuotation/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "PReturn") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/PurchaseReturn/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "Quot") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/Quotation/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "SOrder") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/SalesOrder/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   if (tpname == "StkJnl") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/StockJournal/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "StkTrans") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/StockTransfer/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+
+                                                   if (tpname == "Unass") {
+                                                       var rest = "";
+                                                       @{
+                                                           actData = "";
+                                                           actData = "<a class=\"modal-edit\"  href=\"/Unassemble/Edit/'+ data.Reference +'\">'+data.Type+'</a> ";
+                                                       }
+                                                       rest = '@Html.Raw(actData)';
+                                                   }
+                                                   return rest;
+                                               }
+                                           },
+                  { "data": "Note", "name": "Note" ,"render": function (data) {
+                      return data.length > 30 ? data.substr( 0, 30 ) +'…..' :data;
+                    }
+                  },
+                   { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertDateTime(data); } else { return "" } } },
+                    //{
+                  //    "name": "AssignedTo", "data": function (data) {
+                  //        var datas = "";
+                  //        $.each(data.AssignedTo, function (i, item) {
+                  //            if (datas != "") {
+                  //                datas += ", ";
+                  //            }
+                  //            datas += item.FirstName + " " + item.LastName;
+                  //        })
+                  //        return datas;
+                  //    }
+                  //},
+                  //{ "data": "RequestBy", "name": "RequestBy" },
+                  { "data": "CreatedBy", "name": "CreatedBy" },
+                  {
+                      "name": "validity", "data": function (data) {
+                          if (data.validity == "Expired") {
+                              return '<i class="badge bg-red" style="font-size: small" >Expired</i>';
+                          }
+                          else {
+                              return '<i class="badge bg-orange" style="font-size: small" >Upcoming</i></a>';
+                          }
+                      }
+                  },
+                ],
+                "fnInitComplete": function(oSettings) {
+                    if (oSettings.aiDisplayMaster.length <= 0) {
+                        $("#reminderDiv").hide();
+                    }
+                    else{
+                        $("#reminderDiv").show();
+                    }
+                }
+            });
+
+        });
+
+
+        $(function () {
+            //-------------
+            //- Purchase CHART -
+            //-------------
+            var purChartCanvas = $('#purchaseChart').get(0).getContext('2d')
+            var purChart = new Chart(purChartCanvas)
+            var purData = [
+              {
+
+                  value: @Html.DisplayFor(m => m.totPurchaseReturnCount),
+                  color: '#64748b',
+                  highlight: '#64748b',
+                  label: 'Purchase Return'
+              },
+              {
+                  value: @Html.DisplayFor(m => m.totPurchaseEntryCount),
+                  color: '#34d399',
+                  highlight: '#34d399',
+                  label: 'Purchase Entry'
+              }
+            ]
+            var purOptions = {
+                //Boolean - Whether we should show a stroke on each segment
+                segmentShowStroke: true,
+                //String - The colour of each segment stroke
+                segmentStrokeColor: 'rgba(148,163,184,0.30)',
+                //Number - The width of each segment stroke
+                segmentStrokeWidth: 2,
+                //Number - The percentage of the chart that we cut out of the middle
+                percentageInnerCutout: 50, // This is 0 for Pie charts
+                //Number - Amount of animation steps
+                animationSteps: 100,
+                //String - Animation easing effect
+                animationEasing: 'easeOutBounce',
+                //Boolean - Whether we animate the rotation of the Doughnut
+                animateRotate: true,
+                //Boolean - Whether we animate scaling the Doughnut from the centre
+                animateScale: false,
+                //Boolean - whether to make the chart responsive to window resizing
+                responsive: true,
+                // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
+                maintainAspectRatio: true,
+                //String - A legend template
+                legendTemplate: '<ul class="<%=name.toLowerCase()%>-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="background-color:<%=segments[i].fillColor%>"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>'
+            }
+            //Create pie or douhnut chart
+            // You can switch between pie and douhnut using the method below.
+            purChart.Doughnut(purData, purOptions)
+            // Get context with jQuery - using jQuery's .get() method.
+            var pieChartCanvas = $('#salesChart').get(0).getContext('2d')
+            var pieChart = new Chart(pieChartCanvas)
+            var PieData = [
+              {
+                  value: @Html.DisplayFor(m => m.totSaleEntryCount),
+                  color: '#22d3ee',
+                  highlight: '#22d3ee',
+                  label: 'Sales Entry'
+              },
+              {
+                  value: @Html.DisplayFor(m => m.totSalesReturnCount),
+                  color: '#6366f1',
+                  highlight: '#6366f1',
+                  label: 'Sales Return'
+              }
+            ]
+            var pieOptions = {
+                //Boolean - Whether we should show a stroke on each segment
+                segmentShowStroke: true,
+                //String - The colour of each segment stroke
+                segmentStrokeColor: 'rgba(148,163,184,0.30)',
+                //Number - The width of each segment stroke
+                segmentStrokeWidth: 2,
+                //Number - The percentage of the chart that we cut out of the middle
+                percentageInnerCutout: 50, // This is 0 for Pie charts
+                //Number - Amount of animation steps
+                animationSteps: 100,
+                //String - Animation easing effect
+                animationEasing: 'easeOutBounce',
+                //Boolean - Whether we animate the rotation of the Doughnut
+                animateRotate: true,
+                //Boolean - Whether we animate scaling the Doughnut from the centre
+                animateScale: false,
+                //Boolean - whether to make the chart responsive to window resizing
+                responsive: true,
+                // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
+                maintainAspectRatio: true,
+                //String - A legend template
+                legendTemplate: '<ul class="<%=name.toLowerCase()%>-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="background-color:<%=segments[i].fillColor%>"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>'
+            }
+            //Create pie or douhnut chart
+            // You can switch between pie and douhnut using the method below.
+            pieChart.Doughnut(PieData, pieOptions)
+
+            //payment and receipt chart
+            var pieChartPay = $('#payAndRec').get(0).getContext('2d')
+            var payChart = new Chart(pieChartPay)
+            var payData = [
+              {
+                  value: @Html.DisplayFor(m => m.totPayment),
+                  color: '#8b5cf6',
+                  highlight: '#8b5cf6',
+                  label: 'Payment'
+              },
+              {
+                  value: @Html.DisplayFor(m => m.totReceipt),
+                  color: '#f472b6',
+                  highlight: '#f472b6',
+                  label: 'Receipt'
+              }
+            ]
+            var payOptions = {
+                //Boolean - Whether we should show a stroke on each segment
+                segmentShowStroke: true,
+                //String - The colour of each segment stroke
+                segmentStrokeColor: 'rgba(148,163,184,0.30)',
+                //Number - The width of each segment stroke
+                segmentStrokeWidth: 2,
+                //Number - The percentage of the chart that we cut out of the middle
+                percentageInnerCutout: 50, // This is 0 for Pie charts
+                //Number - Amount of animation steps
+                animationSteps: 100,
+                //String - Animation easing effect
+                animationEasing: 'easeOutBounce',
+                //Boolean - Whether we animate the rotation of the Doughnut
+                animateRotate: true,
+                //Boolean - Whether we animate scaling the Doughnut from the centre
+                animateScale: false,
+                //Boolean - whether to make the chart responsive to window resizing
+                responsive: true,
+                // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
+                maintainAspectRatio: true,
+                //String - A legend template
+                legendTemplate: '<ul class="<%=name.toLowerCase()%>-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="background-color:<%=segments[i].fillColor%>"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>'
+            }
+            //Create pie or douhnut chart
+            // You can switch between pie and douhnut using the method below.
+            payChart.Doughnut(payData, payOptions)
+
+        });
+    </script>
+    <script>
+        function bosxToggleTheme() {
+            var b = document.body, t = (b.getAttribute('data-bostheme') === 'dark') ? 'light' : 'dark';
+            b.setAttribute('data-bostheme', t);
+            try { localStorage.setItem('bosxTheme', t); } catch (e) { }
+            bosxSyncToggleIcon();
+        }
+        function bosxSyncToggleIcon() {
+            var ic = document.querySelector('.bosx-toggle i');
+            if (!ic) return;
+            ic.className = (document.body.getAttribute('data-bostheme') === 'light') ? 'fa fa-sun-o' : 'fa fa-moon-o';
+        }
+        bosxSyncToggleIcon();
+    </script>
+}

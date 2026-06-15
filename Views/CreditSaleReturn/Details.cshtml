@@ -1,0 +1,268 @@
+@model QuickSoft.ViewModel.SalesReturnViewModel
+@{
+    Layout = null;
+    decimal GdTotal = 0;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Sales Return Details</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-body">
+            <div class="row">
+                @Html.HiddenFor(m => m.CustomerType)
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.SaleTypeName)
+                </div>
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.BillNo)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Bill Date :", null, new { @class = "control-label" })
+                    @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.SRDate))
+                    @*@Html.DisplayFor(m => m.SEDate)*@ 
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Sales Executive :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.EmployeeName)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.CustomerName)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Payment Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.PayType)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Sale Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.SalesTypeName)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Email Id :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.EmailId)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Return Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.ReturnTypeName)
+                </div>
+                 <div class="col-sm-12 form-group">
+                    @if (Model.Emp != null && Model.Emp.Count() > 0)
+                    {
+                        @Html.Label("Approved By:", null, new { @class = "control-label" })
+                        bool CHECK = true;
+                        foreach (var Ext in Model.Emp)
+                        {
+                            var EmpName = "";
+                            if (CHECK == true)
+                            {
+                                EmpName = @Ext.EmpName;
+                                CHECK = false;
+                            }
+                            else
+                            {
+                                EmpName = ", "+ @Ext.EmpName ;
+                            }
+
+                            @Html.Label(@EmpName, new { @style = "font-weight:normal" })
+                        }
+                    }
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="col-md-2 form-group">
+                            @Html.Label("Material Center : ", null, new { @class = "control-label" })
+                            @Html.DisplayFor(m => m.MCName)
+                    </div>
+                }
+
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        <div class="form-group col-sm-2">
+
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref1")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref1)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref2")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref2)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref3")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref3)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref4")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref4)
+                            }
+                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref5")
+                            {
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
+                                @Html.DisplayFor(m => m.Ref5)
+                            }
+                        </div>
+                    }
+                }
+                <div class="clearfix"></div>
+            </div>
+
+            <div>
+                <div class="table-responsive">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Items</h3>
+                        </div>
+                        <div class="box-body">
+                            <table class="table table-bordered table-hover">
+                                <tr class="bg-gray">
+                                    @if (ViewBag.PartNoCheck == 0)
+                                    {
+                                        <th>Part No</th>
+                                    }
+                                    <th>Item</th>
+                                    <th>Item Unit</th>
+                                    <th>Unit Price</th>
+                                    <th>Quantity</th>
+                                    <th>Sub Total</th>
+                                    <th>Tax</th>
+                                    <th>Tax Amount</th>
+                                    <th>Total Amount</th>
+                                </tr>
+                                @foreach (var salesum in Model.SRItemss)
+                                {
+                                    var itemnote = "";
+                                    if (@salesum.itemNote != "")
+                                    {
+                                        itemnote = "<br /><small>" + @salesum.itemNote + "</small>";
+                                    }
+                                    if (@salesum.bundleitem != null && @salesum.bundleitem.Count() > 0)
+                                    {
+                                        var desc = "<br/>[<span class='descr' data-name='itemNote'>";
+                                        foreach (var saleitem in @salesum.bundleitem)
+                                        {
+                                            desc += saleitem.ItemCode + " - " + saleitem.ItemName;
+                                            desc += " - " + saleitem.ItemQuantity + " ";
+                                            desc += (saleitem.ItemUnit != null) ? saleitem.ItemUnit : "";
+                                            desc += "<br/>";
+                                        }
+                                        desc += "</span>]";
+                                        itemnote = itemnote + desc;
+                                    }
+                                    <tr>
+                                        @if (ViewBag.PartNoCheck == 0)
+                                        {
+                                            <td>@salesum.PartNumber</td>
+                                        }
+                                        <td>@salesum.ItemCode - @salesum.ItemName @Html.Raw(itemnote)</td>
+                                        <td>@salesum.ItemUnit</td>
+                                        <td>@salesum.ItemUnitPrice</td>
+                                        <td>@salesum.ItemQuantity</td>
+                                        <td>@salesum.ItemSubTotal</td>
+                                        <td>@salesum.ItemTax</td>
+                                        <td>@salesum.ItemTaxAmount</td>
+                                        <td>@salesum.ItemTotalAmount</td>
+                                    </tr>
+                                    GdTotal += @salesum.ItemTotalAmount;
+                                }
+                                <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>Total</td>
+                                        <td>@GdTotal</td>
+                                    </tr>
+                            </table>
+                        </div>
+                </div>
+                <div class="row">
+                    @if (Model.SRbs.Any())
+                    {
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <div class="box box-info">
+                                    <div class="box-header with-border">
+                                        <h3 class="box-title">Bill Sundry</h3>
+                                    </div>
+                                    <div class="box-body">
+                                        <table class="table table-bordered table-hover">
+                                            <tr class="bg-gray">
+                                                <th>Bill Sundry</th>
+                                                <th>Value</th>
+                                                <th>Type</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                            @foreach (var bs in Model.SRbs)
+                                            {
+                                                <tr>
+                                                    <td>@bs.Type : @bs.BillSundry</td>
+                                                    <td>@bs.BsValue</td>
+                                                    <td>@bs.AmtType</td>
+                                                    <td>@bs.BsAmount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <strong>Remarks </strong><br />
+                            @Html.Raw(Model.Remarks)
+                        </div>
+                        <div class="form-group">
+                            <strong>Terms And Conditions </strong><br />
+                            @Html.Raw(Model.SRNote)
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        @*<div class="form-group col-md-6 no-paddingleft">
+                                @Html.Label("Discount :", null, new { @class = "control-label" })
+                                @Html.DisplayFor(m => m.SRDiscount)
+                            </div>*@
+                        <div class="form-group col-md-6 no-padding">
+                            @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                            @Html.DisplayFor(m => m.SRGrandTotal)
+                        </div>
+                        <div class="form-group col-md-6 no-paddingleft" id="paidamt">
+                            @Html.Label("Paid Amount :", null, new { @class = "control-label" })
+                            @Html.DisplayFor(m => m.SReturnAmount)
+                        </div>
+                        <div class="form-group col-md-6 no-padding" id="dueamt">
+                            @Html.Label("Due Amount :", null, new { @class = "control-label" })
+                            @Html.DisplayFor(m => m.SRDueAmount)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section scripts{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            //var custtype = $('#CustomerType').val();
+            //if (custtype == 0) {
+            //    $('#paidamt').show();
+            //    $('#dueamt').show();
+            //}
+            //if (custtype == 1) {
+            //    $('#paidamt').hide();
+            //    $('#dueamt').hide();
+            //}
+        });
+    </script>
+}

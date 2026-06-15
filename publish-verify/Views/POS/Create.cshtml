@@ -1,0 +1,810 @@
+﻿@model QuickSoft.ViewModel.POSEntryViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "POS";
+    ViewBag.Active = "Customer";
+    ViewBag.PActive = "POS";
+
+}
+@using (Html.BeginForm("Create", "POS", FormMethod.Post, new { name = "myposforms", id = "myposforms", role = "form", autocomplete = "off" }))
+{
+    <div class="row">
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "AlertDiv alert alert-danger alert-message" })
+        <div class="col-sm-6 lpos">
+            <div id="leftdiv">
+                <div id="lefttop">
+                    <div class="col-sm-2 form-group ">
+                        @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                        @Html.HiddenFor(model => model.SENo)
+                        <input type="hidden" name="OrderId" id="OrderId" value="" />
+                    </div>
+                    <div class="col-sm-4 form-group">
+                        <div class="input-group date">
+                            <div class="input-group-addon disabled"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.SEDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @readonly = "readonly" })
+                        </div>
+                    </div>
+                    <div class="col-sm-6 form-group hidden">
+                        @Html.DropDownListFor(m => m.SECashier, new SelectList("", ""), new { id = "ddlSalesPerson", @class = "form-control qwerty select2" })
+                    </div>
+                    <div class="col-sm-5 form-group ">
+                        @Html.EnumDropDownListFor(model => model.CustomerType, new { @class = "form-control", @onchange = "customertype()" })
+                    </div>
+                    <div class="col-sm-12 form-group creditsale">
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.Customer, new SelectList("", ""), new { id = "ddlCustomer", @class = "form-control qwerty select2" })
+                                <span class="input-group-btn">
+                                    <button type="button" href="/Customer/AddCustomer" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Customer, new SelectList("", ""), new { id = "ddlCustomer", @class = "form-control qwerty select2" })
+                        }
+                    </div>
+                    @if (@ViewBag.KBEnable == 0)
+                    {
+                        <div class="col-sm-6 form-group cashsale">
+                            @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { @class = "form-control qwerty", placeholder = "Customer Name" } })
+                        </div>
+                        <div class="col-sm-6 form-group cashsale">
+                            @Html.EditorFor(model => model.MobileNo, new { htmlAttributes = new { @class = "form-control numbers", placeholder = "Mobile No" } })
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-sm-6 form-group cashsale">
+                            @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { @class = "form-control", placeholder = "Customer Name" } })
+                        </div>
+                        <div class="col-sm-6 form-group cashsale">
+                            @Html.EditorFor(model => model.MobileNo, new { htmlAttributes = new { @class = "form-control", placeholder = "Mobile No" } })
+                        </div>
+                    }
+                </div>
+                <div class="fixed-table-container">
+                    <div id="list-table-div">
+                        <div class="price_h">
+                            <div class="col-sm-1"><b>#</b></div>
+                            <div class="col-sm-3"><b>Product</b></div>
+                            <div class="col-sm-1"><b>Unit</b></div>
+                            <div class="col-sm-2"><b>Price</b></div>
+                            <div class="col-sm-1"><b>Qty</b></div>
+                            <div class="col-sm-1"><b>Tax</b></div>
+                            <div class="col-sm-2"><b>Subtotal</b></div>
+                            <div class="col-sm-1"><i class="fa fa-trash-o tip pointer posdel" title="Remove"></i></div>
+                        </div>
+                        <div class="scroll-box" id="POSForm">
+                            <div class="spin"><i class="fa fa-spinner fa-3x fa-spin"></i></div>
+                            @*added products shows here*@
+                        </div>
+                    </div>
+                    <div id="totaldiv">
+                        <div class="price_tot">
+                            <div class="col-sm-6">Sub Total</div>
+                            <div class="col-sm-6"><input type="text" readonly id="total" value="0.00"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 rpos">
+            <div class="col-sm-9">
+                <div id="totaldiv" class="col-sm-12">
+                    <div class="col-sm-3"><b class="control-label">Disc %</b></div>
+                    <div class="col-sm-3"><input type="text" class="form-control inlineTarget" id="disc_p" value="0.00"></div>
+                    <div class="col-sm-3"><b class="control-label">Disc Amount</b></div>
+                    <div class="col-sm-3"><input type="text" class="form-control inlineTarget" id="disc_m" value="0.00"></div>
+                    <div class="col-sm-12"><label class="control-label"><input type="checkbox" value="1" id="tax_disc" /> Calculate Tax After Disc.</label></div>
+
+                    <div class="col-sm-6 hidden"><b class="control-label">Item Count</b></div>
+                    <div class="col-sm-6 hidden"><input type="text" class="form-control" readonly id="ItemCount" value="0"></div>
+                    <div class="col-sm-6 hidden"><b class="control-label">Item Qty</b></div>
+                    <div class="col-sm-6 hidden"><input type="text" class="form-control" readonly id="ItemQty" value="0.00"></div>
+
+
+                    <div class="col-sm-6"><b class="control-label">Amount</b></div>
+                    <div class="col-sm-6"><input type="text" class="form-control subtotal" readonly value="0"></div>
+                    <div class="col-sm-6"><b class="control-label">Tax Amount</b></div>
+                    <div class="col-sm-6"><input type="text" class="form-control total_tax" id="total_tax" readonly value="0.00"></div>
+                    <div class="col-sm-6"><b class="control-label">Discount Amount</b></div>
+                    <div class="col-sm-6"><input type="text" class="form-control disc-am" readonly value="0.00"></div>
+                    <div class="col-sm-6"><b class="control-label">Net Amount</b></div>
+                    <div class="col-sm-6"><input type="text" class="form-control net-amount" readonly value="0.00"></div>
+                    <div class="col-sm-6"><b class="control-label">Round Off(-)</b></div>
+                    <div class="col-sm-6"><input type="text" class="form-control round-Off inlineTarget" id="round-Off" value="0.00"></div>
+                    <div class="tot_sec">
+                        <div class="col-sm-6"><b class="control-label">Grand Total</b></div>
+                        <div class="col-sm-6"><input type="text" class="form-control" readonly value="0.00" min="0.01" id="total_payable"></div>
+                    </div>
+
+                </div>
+                <div class="col-sm-12 form-group">
+                    <select class="form-control qwerty item-search" placeholder="Search product by code or name, you can scan barcode too"></select>
+                </div>
+                @if (@ViewBag.BCEnable == 0)
+                {
+                    <div class="form-group col-sm-12 item-group">
+                        <div class="input-group">
+                            <input type="text" class="form-control inlineTarget barcode" id="bar-code" placeholder="Scan Barcode Here">
+                            <span class="input-group-addon "><input type="text" class="inlineTarget form-control" name="quantity" id="qua-ntity" value="1"></span>
+                        </div>
+                    </div>
+                }
+                <div class="col-sm-8 inn">
+                    <span id="inlineKeypad"></span>
+                </div>
+                <div class="col-sm-4 inn">
+                    <div class="btn-groups">
+                        <button type="button" class="btn btn-warning btn-flat btn-2x" id="hold"><i class="fa fa-hand-stop-o"></i> Hold</button>
+                        <button type="button" class="btn btn-success btn-flat btn-2x" id="payment"><i class="fa fa-money"></i> Payment</button>
+                        <button type="button" class="btn btn-info btn-flat btn-2x" id="payprint"><i class="fa fa-print"></i> Pay & Print</button>
+                        <button type="button" class="btn btn-flat btn-danger btn-2x" id="resets"><i class="fa fa-refresh"></i> Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3 side-btn">
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" onclick="location.href='/home/index/';"><i class="fa fa-dashboard"></i> Dashboard</button>
+                </div>
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" onclick="location.href='/pos/index/';"><i class="fa fa-shopping-cart"></i> Sales List</button>
+                </div>
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" data-toggle="modal" id="duplicatebill" data-target="#duplicate-bill" data-backdrop="false"><i class="fa fa-files-o"></i> Duplicate Bill</button>
+                </div>
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" data-toggle="modal" id="orderhold" data-target="#hold-orders" data-backdrop="false"><i class="fa fa-hand-stop-o"></i> Hold Orders</button>
+                </div>
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" data-toggle="modal" data-target="#calculator" data-backdrop="false"><i class="fa fa-calculator"></i> Calculator</button>
+                </div>
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" onclick="location.href = '/Item/PriceSearch/';" id="pricesearch"><i class="fa fa-money"></i> Price search</button>
+                </div>
+                <div class="btn-group-vertical btn-block btn-full">
+                    <button type="button" class="btn btn-flat btn-2x" onclick="location.href = '/StockReport/Index/';" id="stockreport"><i class="fa fa-table"></i> Stock</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--modelpop for unit selection -->
+    <div id="modal-itemunit" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="selectitem" />
+                    <div class="form-group text-center"><label id="selitemname"></label></div>
+                        <div class="form-group text-center"><select class="form-control" id="ItemUnitSelect"></select></div>
+                    </div>
+                <div class="modal-footer">
+                    <div class="text-center"><button class="btn btn-primary btn-full" id="btnitemunit" type="button" data-dismiss="modal"> Add </button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @Html.Partial("_posPayment")
+}
+
+@Html.Partial("_duplicateBILL")
+@Html.Partial("_holdOrders")
+@Html.Partial("_POSInvoice")
+@Html.Partial("_printBill")
+@{var Model = "modal-large";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/pos")
+    @Styles.Render("~/css/dineinpos")
+    <link href="~/Content/plugins/jquery.keypad.package/jquery.keypad.css" rel="stylesheet" />
+}
+@section scripts{
+    @Scripts.Render("~/js/mixitup")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/pos")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/scaner")
+    <script type="text/javascript" src="~/Content/js/orders.js"></script>
+    <script type="text/javascript" src="~/Content/plugins/jquery.keypad.package/jquery.plugin.js"></script>
+    <script type="text/javascript" src="~/Content/plugins/jquery.keypad.package/jquery.keypad.js"></script>
+    <script type="text/javascript">
+        var BCEnable = "@ViewBag.BCEnable";
+        var Portno = "@ViewBag.Portno";
+        var CFDURL = "@ViewBag.CFDURL";
+        $(window).on("load", function () {
+            if (BCEnable == "active") {
+                $("#bar-code").focus();//focus barcode
+            }
+            resetfiled();
+            bindPayMethod();
+            customertype();
+        });
+        //$(window).bind('beforeunload', function () {
+        //    return 'Are you sure you want to leave?';
+        //});
+
+
+        // add slim scroll
+        $('.scroll-box').slimScroll({
+            alwaysVisible: true
+        });
+
+        /* function for Create customer popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; };
+
+        // customer search
+        $("#ddlCustomer").select2({
+            placeholder: 'Search Customer by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Customer/SearchCustomer",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        //bind to employee
+        $("#ddlSalesPerson").select2({
+            placeholder: 'Search Staff by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "empty"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+
+        // item search
+        var selecteditem = new Array();
+        $(".item_name").each(function () {
+            selecteditem.push($(this).val());
+        });
+        $(".item-search").select2({
+            placeholder: 'Search Item by Name or Code',
+            minimumInputLength: 1,
+            ajax: {
+                url: "/ItemBundle/searchitempos",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        ItemID: selecteditem,
+                        page: params.page
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+        // onclick right side icon function
+        $(document).on('click', '.portfolio', function (event) {
+            $('.spin').show();
+            dataid = $(this).attr('data-id');
+            itemDetails(dataid, 1);
+            $('.spin').hide();
+        });
+        // select items via search box
+        $(document).on('change', '.item-search', function (event) {
+            if ($(".item-search").val() != null) {
+                $('.spin').show();
+                dataid = $(".item-search").val();
+                itemDetails(dataid, 1);
+                $('.spin').hide();
+                $('.item-search').select2('close');
+                $(".item-search").val(null).trigger("change");
+            }
+        });
+
+        // delete row
+        $(document).on('click', '.rowtrash', function (event) {
+            $(this).closest('.price_main').remove();
+            itemTotal();
+        });
+        // change quantity
+        $(document).on('change', '.price_q', function (event) {
+            var divid = $(this).closest(".price_main").prop("id");
+            rowSubTotal(divid);
+        });
+        // reset fields on click cancel button
+        $(document).on('click', '#resets', function (event) {
+            resetfiled();
+        });
+        // change disc percentage
+        $(document).on('change', '#disc_p', function (event) {
+            discAmount();
+        });
+        // change disc amount
+        $(document).on('change', '#disc_m', function (event) {
+            discPerc();
+        });
+        // round off update
+        $(document).on('change', '.round-Off', function (event) {
+            itemTotal();
+        });
+        // calculate payment balance
+        $(document).on('change', '.amount', function (event) {
+            cashBalance();
+        });
+
+        // calculate tax based on
+        $(document).on('click', '#tax_disc', function (event) {
+            itemDisc();
+            itemTotal();
+        });
+        // hold order
+        $("#hold").click(function () {
+            if (checkForm()) {
+                holdOrder();
+            }
+        });
+        // onclick right side icon function
+        $(document).on('click', '.pftable', function (event) {
+            $('.spin').show();
+            dataid = $(this).attr('data-id');
+            tableDetails(dataid);
+            $('.spin').hide();
+        });
+
+
+        // payment type change function
+        $(document).on('change', '#PayMethod', function (event) {
+            paymethodchange();
+            cashBalance();
+        });
+
+        $("#payprint").click(function () {
+            if (checkForm()) {
+                $("button").prop('disabled', true);
+                FormSubmit("payprint");
+                
+            }
+        });
+
+        // validation on click payment button
+        //Payment button
+        $("#payment").click(function () {
+            if (checkForm()) {
+                paymethodchange();
+                $('#payModal').modal("show");
+            }
+        });
+
+        // payment save or save and print
+        $('#myposforms').on('submit', function (e) {
+            e.preventDefault();
+            if (payCheck()) {
+                subtype = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                $("button").prop('disabled', true);
+                FormSubmit(subtype);
+            }
+        });
+
+        //list duplicate bill
+        $('#duplicate-bill').on('shown.bs.modal', function (e) {
+            $('#dupbillorder').val("");
+            $('#dupbilldate').val("");
+            $('#duplicatebilllist').html("");
+            $('#duplicate-bill').modal("show");
+        });
+
+
+        //duplicate print bill search
+        $(document).on('click', '#dupsearch', function (event) {
+            duplicatebill();
+            $("#printkot").prop('disabled', false);
+            $("#saveorder").prop('disabled', false);
+        });
+
+        //duplicate print bill select order
+        $(document).on('click', '.printdbill', function (event) {
+            dataid = $(this).attr('data-id');
+            printdupbill(dataid);
+            $('#duplicate-bill').modal("hide");
+        });
+
+        $(".qwerty").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+        $(".select2-search__field").keypad({ keypadOnly: false, layout: $.keypad.qwertyLayout });
+        $.keypad.addKeyDef('DELT', 'delt', function (inst) {
+            this.val(this.val().slice(0, -1)).focus();
+        });
+        $(".numbers").keypad({
+            target: $('.inlineTarget:first'),
+            keypadOnly: false,
+            separator: '|',
+            deltText: 'BACK',
+            deltStatus: 'BACK SPACE',
+            layout: ['7|8|9|' + $.keypad.CLOSE,
+                    '4|5|6|' + $.keypad.DELT,
+                    '1|2|3|' + $.keypad.CLEAR,
+                    '.|0|00'
+            ]
+        });
+
+        // list hold orders in model
+        $('#hold-orders').on('shown.bs.modal', function (e) {
+            holdorders();
+        });
+
+        //paymethod cash/card/credit
+        function bindPayMethod() {
+            $.ajax({
+                url: '/PaymentMethod/GetPayMethod',
+                type: "GET",
+                dataType: "JSON",
+                data: "",
+                success: function (result) {
+                    var select = $("#PayMethod");
+                    if (result != "") {
+                        select.children().remove();
+                        $.each(result, function (i, item) {
+                            select.append($("<option>").val(item).text(item));
+                        });
+                    } else {
+                        select.append($("<option>").val('Cash').text('Cash'));
+                    }
+                }
+            });
+        }
+
+        //hold order select
+        $(document).on('click', '.holdmakepay', function (event) {
+            dataid = $(this).attr('data-id');
+            fillorder(dataid, 2);
+            $('#hold-orders').modal("hide");
+        });
+        //hold order delete
+        $(document).on('click', '.holddelete', function (event) {
+            dataid = $(this).attr('data-id');
+            var r = confirm("Do you want to Delete Order ?");
+            if (r == true) {
+                deleteorder(dataid, "holdor_");
+            }
+        });
+        //binditem by barcode scanner
+        $(".barcode").scannerDetection({
+            timeBeforeScanTest: 200, // wait for the next character for upto 200ms
+            avgTimeByChar: 40, // it's not a barcode if a character takes longer than 100ms
+            preventDefault: true,
+            endChar: [13],
+            onComplete: function (barcode, qty) {
+                validScan = true;
+                var me = $(".barcode");
+                var i = $('#qua-ntity').val();
+                readBarcode(barcode, i, me);
+            },
+            onError: function (barcode, qty) {
+                var me = $(".barcode");
+                var i = $('#qua-ntity').val();
+                readBarcode(barcode, i, me);
+            }
+        });
+        // tested with on change function
+        //$(".barcode").on('change', function () {
+        //    var q = $(this).val();
+        //    var i = $('#qua-ntity').val();
+        //    var me = $(this);
+
+        //    $.ajax({
+        //        url: "/Item/BarcodeRead",
+        //        dataType: 'json',
+        //        type: "POST",
+        //        delay: 50,
+        //        data: { q: q },
+        //        success: function (e) {
+        //            var me = $(".barcode");
+        //            var i = $('#qua-ntity').val();
+        //            if (e.status == true) {
+        //                var itemtype =e.item.type;
+        //                var itemId = e.item.id;
+        //                if (itemtype == "Direct") {
+        //                    if (itemId != null) {
+        //                        i = parseFloat(i) || 1;
+        //                        itemDetails(itemId, i, "scan");
+        //                    }
+        //                }
+        //                else {
+        //                    createRowWeigh(e.item)
+        //                }
+        //            }
+        //            $("#barcode").val("");
+        //            $('#qua-ntity').val(1);
+        //        },
+        //        complete: function () {
+        //            me.data('requestRunning', false);
+        //        },
+        //        cache: true
+        //    });
+        //});
+        //$('.barcode').keypress(function (e) {
+        //    var q = $('.barcode').val();
+        //    var i = $('#qua-ntity').val();
+        //    var key = e.which;
+        //    alert(key);
+        //    if (key == 13)  // the enter key code
+        //    {
+        //        var me = $(this);
+        //        if (me.data('requestRunning')) {
+        //            $(".barcode").val("");
+        //            $(".barcode").focus();
+        //            return;
+        //        }
+        //        me.data('requestRunning', true);
+        //    }
+        //});
+        $.keypad.addKeyDef('DELT', 'delt', function (inst) {
+            this.val(this.val().slice(0, -1)).focus();
+        });
+        $('#inlineKeypad').keypad({
+            target: $('.inlineTarget:first'),
+            keypadOnly: false,
+            separator: '|',
+            deltText: 'BACK',
+            deltStatus: 'BACK SPACE',
+            layout: ['7|8|9',
+                    '4|5|6',
+                    '1|2|3',
+                    '.|0|00',
+                    $.keypad.CLEAR + '|' + $.keypad.DELT + '|' + $.keypad.ENTER
+            ],
+            onKeypress: function (key, value, inst) {
+                subtype = $(':focus').attr('id');
+                if (key == "\n" || key == "\r") {
+                    if (subtype == 'bar-code' || subtype == 'qua-ntity') {
+                        var q = $('#bar-code').val();
+                        var i = $('#qua-ntity').val();
+                        var me = $(".barcode");
+                        readBarcode(q, i, me);
+                    }
+                    else if (subtype == "disc_p") {
+                        discAmount();
+                    }
+                    else if (subtype == "disc_m") {
+                        discPerc();
+                    }
+                    else if (subtype == "round-Off") {
+                        itemTotal();
+                    }
+                }
+            }
+        });
+
+        var keypadTarget = null;
+        $('.inlineTarget').focus(function () {
+            if (keypadTarget != this) {
+                keypadTarget = this;
+                $('#inlineKeypad').keypad('option', { target: this });
+            }
+        });
+
+        function readBarcode(q, i, me) {
+            $.ajax({
+                url: "/Item/BarcodeRead",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: { q: q },
+                success: function (e) {
+                    var me = $(".barcode");
+                    var i = $('#qua-ntity').val();
+                    if (e.status == true) {
+                        var itemtype = e.item.type;
+                        var itemId = e.item.id;
+                        if (itemtype == "Direct") {
+                            if (itemId != null) {
+                                i = parseFloat(i) || 1;
+                                itemDetails(itemId, i, "scan");
+                            }
+                        }
+                        else {
+                            createRowWeigh(e.item)
+                        }
+                    }
+                    $("#bar-code").val("");
+                    $('#qua-ntity').val(1);
+                },
+                complete: function () {
+                  //  me.data('requestRunning', false);
+                },
+                cache: true
+            });
+            //$.ajax({
+            //    url: "/Item/GetByBarcode",
+            //    dataType: 'json',
+            //    type: "POST",
+            //    delay: 50,
+            //    data: { q: q },
+            //    success: function (e) {
+            //        if (e.length == 1) {
+            //            var itemId = e[0]['id'];
+            //            if (itemId != null) {
+            //                i = parseFloat(i) || 1;
+            //                itemDetails(itemId, i,"scan");
+            //            }
+            //        }
+            //        $("#barcode").val("");
+            //        $('#qua-ntity').val(1);
+            //    },
+            //    complete: function () {
+            //        me.data('requestRunning', false);
+            //    },
+            //    cache: true
+            //});
+        }
+        $("#btnitemunit").click(function () {
+            var dataid = $("#selectitem").val();
+            var itemunit = $("#ItemUnitSelect").val();
+            if (dataid != null) {
+                $.ajax({
+                    url: '/ItemBundle/GetItem',
+                    type: "POST",
+                    dataType: "JSON",
+                    data: { itemID: dataid },
+                    success: function (result) {
+                        createRow(result, 1, "sales", itemunit);
+                    }
+                });
+            }
+        });
+
+
+        function DisplayBoard(arg) {
+            var items = "";
+            var HTMLtbl = {
+                getData: function (divid) {
+                    //divid.find('.price_main').each(function (rowIndex, r) {
+                    //    var Iitems = "";
+                    //    $(this).find('.item-name,.gtotal').each(function (colIndex, c) {
+                    //        itid = $(this).attr('data-name').split(' ')[0];
+                    //        itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                    //        Iitems = (Iitems != "") ? Iitems + " : " + itval : itval;
+                    //    });
+                    //    items += (rowIndex != 0) ? ", " + Iitems : Iitems;
+                    //});
+                        var Iitems = "";
+                        $("#" + divid).find('.item-name,.gtotal').each(function (colIndex, c) {
+                            itid = $(this).attr('data-name').split(' ')[0];
+                            itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                            var ilength = (Iitems != "") ? (Iitems + " : " + itval).length : 0;
+                            
+                            if (ilength<=20)
+                                Iitems = (Iitems != "") ? Iitems + " : " + itval : itval;
+                            else {
+                                var amountlength = itval.length + 5;
+                                var actuallength = ilength - amountlength;
+                                var maxLength = 20 - amountlength;
+                                var newStr = Iitems.substring(0, maxLength);
+                                Iitems = newStr + ".. : " + itval;
+                            }
+                        });
+                        items = Iitems
+                    return items;
+                }
+            }
+
+            //var item = HTMLtbl.getData($('#POSForm'));
+            var item = (arg != "") ? HTMLtbl.getData(arg) : "";
+            if (CFDURL != "") {
+                var Total = $("#total_payable").val();
+                var count = $(".price_main").length;
+                var myurl = CFDURL + "?Total=" + Total + "&Count=" + count + "&Portno=" + Portno ;//+ "&" + item
+                if (Total != null) {
+                    $.ajax({
+                       //url: '/POS/GetDisplayBoard',
+                        //url: CFDURL + "&Total=" + Total + "&Count=" + count + "&Portno=" + Portno + "&item=" + item,
+                        url: CFDURL,
+                        type: "GET",
+                        dataType: "JSON",
+                        data: { Total: Total, Count: count, Portno: Portno, item},
+                        //data: JSON.stringify(parameters),
+                        success: function (result) {
+                        }
+                    });
+                    //alert(myurl);
+                    //$.ajax({
+                    //    url: myurl,
+                    //    type: 'GET',
+                    //    dataType: "jsonp",
+                    //    crossDomain: true,
+                    //    cors: true,
+                    //    contentType: 'application/javascript',
+                    //    secure: true,
+                    //    jsonp: false,
+                    //    jsonpCallback: 'alertResponse',
+                    //    headers: {
+                    //        'Access-Control-Allow-Origin': '*',
+                    //    },
+                    //    //data: { Total: Total, Count: count, Portno: Portno, item},
+                    //    success: function (result) {
+                    //    }
+                    //});
+                }
+            }
+            function alertResponse(data, status) {
+                alert("data: " + data + ", status: " + status);
+            }
+        }
+    </script>
+}
+

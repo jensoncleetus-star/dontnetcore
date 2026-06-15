@@ -1,0 +1,825 @@
+@model QuickSoft.Models.Customer
+@{
+    ViewBag.Title = "Customer List";
+    ViewBag.SubTitle = "Customer";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+   
+}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<style type="text/css">
+    input[type="search"] {
+        border-radius: 17px;
+    }
+
+    body {
+        font-family: 'Open Sans', sans-serif;
+        line-height: 1.25;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: #2196f3;
+        border-color: #2196f3;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        padding: 5px;
+    }
+
+    .btn-warning {
+        color: #fff;
+        background-color: #f44336;
+        border-color: #f44336;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        padding: 5px;
+    }
+
+    /**/
+    .dropdown-check-list {
+        display: inline-block;
+        /*  position: absolute;*/
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    /* .select2 {
+        width: 150px;
+        padding: 5px 50px 5px 10px;
+        border: 1px solid #ccc;
+        height: 33px;
+        font-size: 15px;
+        font-family: 'Open Sans', sans-serif;
+    }*/
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+<div class="box box-default">
+    <div class="box box-info">
+        <div class="box box-default">
+            <div class="box-header with-border">
+                <h3 class="box-title">Search Customer</h3>
+            </div>
+            <div class="box-body">
+                <form id="search-form">
+                    <br />
+
+                    <div class="form-group col-md-4" id="creditsale">
+                        @Html.Label("Customer Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCustomerType", (SelectList)ViewBag.Customer, new { @class = "form-control input-sm select2" })
+                    </div>
+
+
+                    <div class="form-group col-md-4" id="creditsale">
+                        @Html.Label("Last Transaction In", null, new { @class = "control-label" })
+                        @Html.DropDownList("LastUpdated", new SelectList(new List<SelectListItem>
+                                    {
+
+                                        new SelectListItem() {Text = "1 Day ", Value="1"},
+                                        new SelectListItem() {Text = "7 Days", Value="7"},
+                                        new SelectListItem() {Text = "1 Month ", Value="30"},
+                                        new SelectListItem() {Text = "3 Months ", Value="90"},
+                                        new SelectListItem() {Text = "6 Months ", Value="180"},
+                                        new SelectListItem() {Text = "1 Year", Value="360"},
+                                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LastUpdated", tabindex = 7 })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                    <br /><br />
+
+                    <div class="box-footer col-md-12">
+                        <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                        <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <div class="box box-default" id="StockReport">
+            <div class="box-header with-border">
+                <h3 class="box-title">View Customers</h3>
+            </div>
+            <div class="box-body">
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+                <input type="hidden" id="custname" value="@ViewBag.custName" />
+                
+                <input type="hidden" id="Salety" value="@ViewBag.Salety" />
+                <div class="col-md-12">
+                   
+                        <table class="customer-table" id="UserTable" width="100%">
+                            <thead>
+                                <tr style="background-color: #acd6e9">
+                                    <th scope="col" width="4%" data-priority="1">S/N</th>
+                                    <th scope="col" width="15%" data-priority="1">Customer code</th>
+                                    <th scope="col" width="30%" data-priority="1">Customer Name</th>
+                                    <th scope="col" width="7%" data-priority="3">trn</th>
+                                    <th scope="col" width="18%" data-priority="3">address</th>
+                                    <th scope="col" width="7%" data-priority="3">phone</th>
+                                    <th scope="col" width="30%" data-priority="2">Contacts</th>
+                                    <th scope="col" width="10%" data-priority="2">Email</th>
+                                    <th scope="col" width="7%" data-priority="3">credit limit</th>
+                                    <th scope="col" width="5%" data-priority="3">credit period</th>
+                                    <th scope="col" width="5%" data-priority="2">Opening balance</th>
+                                    <th scope="col" width="5%" data-priority="2">Current Balance</th>
+                                    <th scope="col" width="7%" style="min-width:80px" data-priority="1">Action</th>
+                                    <td scope="col" width="2%">
+                                        <input type="checkbox" id="select_all" />
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                  
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+   
+<div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4>Remarks</h4>
+            </div>
+            <div class="modal-body">
+                <div class="box-body" id="modelview">
+                    <table class="table table-bordered table-hover" id="RemarkInfo">
+                        <thead>
+                            <tr class="bg-gray">
+                                <td>#</td>
+                                <td>Date & Time</td>
+                                <td>Employees</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+  
+   @Html.Partial("../Common/_ModalCreate")
+    @Html.Partial("../Common/_ModalDelete")
+    @section scripts{
+        @Scripts.Render("~/js/Mobile")
+<script type="text/javascript">
+
+
+            $(document).ready(function () {
+
+                $('#StockReport').hide();
+
+                /*******  To uncheck all the checkboxes in the Select List  ************/
+                var checkboxes = document.querySelectorAll("input[type='checkbox']");
+                checkboxes.forEach(function (Checkbox) {
+                    Checkbox.checked = false;
+                });
+                CallMC();
+
+            });
+
+            //$('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //    addmobile('mobilebody', 'contact', "");
+            //    //alert("dss");
+            //});
+            $("ul li input:checkbox").click(function () {
+                var _show = 0;
+
+                //if ($("#licode").prop("checked") == true) {
+                //    $("#searchccode").show();
+                //    _show = 1;
+                //}
+                //else {
+                //    $("#ddlCustomerCode").val("");
+                //    $("#searchccode").hide();
+                //    oTable.draw();
+                //}
+
+                //if ($("#liname").prop("checked") == true) {
+                //    $("#searchcname").show();
+                //    _show = 1;
+                //}
+                //else {
+                //    $("#ddlCustomer").select2("val", "");
+                //    $("#searchcname").hide();
+                //    oTable.draw();
+                //}
+
+               
+
+
+
+
+            });
+
+
+
+            //for showing the datatable when click the submit button
+
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+                if ($.fn.dataTable.isDataTable('#UserTable')) {
+                    $('#UserTable').dataTable().fnClearTable();
+                    $('#UserTable').dataTable().fnDestroy();
+                }
+                  var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+
+                responsive: true,
+                "ajax": {
+                    "url": '/CustomerReport/GetCustomer',
+                    "data": function (data) {
+                        data.Customer = $('#ddlCustomerType').val();
+                        data.LastUpdDays = $('#LastUpdated').val();
+                        data.mc = $('#ddlMC').val();
+
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columnDefs": [{
+                    "targets": [12, 13],
+                    "orderable": false
+                }],
+                "order": [[1, "desc"]],
+                "columns": [
+
+                         {
+                             "data": "id", "name": "id",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+
+                     { "data": "CustomerCode", "name": "CustomerCode" },
+                     {
+                         "name": "CustomerName", "data": function (data) {
+                             @{
+                               var datas = "";
+                               //datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                               {
+                                   datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
+                               }
+                               else
+                               {
+                                   datas = "data.CustomerName";
+                               }
+                           }
+                             return @Html.Raw(datas);
+                         }
+                     },
+                     { "data": "TaxRegNo", "name": "TaxRegNo" },
+                     { "data": "Address", "name": "Address" },
+                     { "data": "Phone", "name": "Phone" },
+                     {
+                         "name": "Mobile", "data": function (data) {
+                             var datas = "";
+                             $.each(data.mobmodel, function (i, item) {
+                                 if (item.Num != null) {
+                                     if (datas != "") {
+                                         datas += "<br> ";
+                                     }
+                                     datas += item.Name + '<br>';
+                                     datas += '<a href="tel:' + item.Num + '">' + item.Num + '</a>' + '<br>';
+                                     datas += '<a href="mailto:' + item.emails + '">' + item.emails + '</a>' + '<br>';
+                                 }
+                             });
+                             return datas;
+                         }
+                     },
+                     { "data": "Email", "name": "Email" },
+                     { "data": "CreditLimit", "name": "CreditLimit" },
+                     {
+                         "data": "CreditPeriod", "name": "CreditPeriod", "render": function (data) {
+                             return data + " Days";
+                         }
+                     },
+                     { "data": "OpnBalance", "name": "OpnBalance" },
+                    { "data": "currentbalance", "name": "currentbalance" },
+                            //{
+                            //    "data": function (data) {
+                            //        var CurBalance;
+                            //        CurBalance = (data.Debit > data.Credit) ? (data.currentbalance + " Dr") : (data.currentbalance + " Cr.");
+                            //        return CurBalance;
+                            //    }
+                            //},
+
+                     {
+                         "name": "id", "data": function (data) {
+                             var rest = "";
+                             @{
+
+
+                             actData += "<a class=\"btn btn-icons btn-rounded btn-edit modal-create\" href=\"/CustomerReport/AddCustomerRemark/'+ data.id +'\" title=\"Add Remarks\"><i class=\" fa fa-plus\" ></i></a> ";
+                             actData += "<a class=\"btn btn-icons btn-rounded btn-remark Updation\" onclick=\"details(' + data.id + ')\" title=\"View Remarks\"><i class=\" fa fa-eye\" ></i></a> ";
+
+
+                             }
+                             return rest = '@Html.Raw(actData)';
+                         }
+                     },
+                      //{
+                      //    "data": "id", "name": "id",
+                      //    "render": function (data, type, row, meta) {
+                      //        var box = '<input class="checkbox" type="checkbox" name="bill[]" value="' + data + '"/>';
+                      //        return box;
+                      //    }
+                      //},
+                      {
+                          "name": "id", "data": function (data) {
+                              var rest = "";
+                              @{
+                              if (User.IsInRole("Dev") || User.IsInRole("Delete Customer"))
+                              {
+                                  delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                              }
+                          }
+                              return rest = '@Html.Raw(delchk)';
+                          }
+                      },
+                ],
+                dom: 'Bfrtip',
+                buttons: ['colvis', {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Customers </h4></th></tr>' +
+                        ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', 'excel',
+
+
+                {
+                    extend: 'pdf',//
+                    title: "Customers",
+                    footer: true,
+                    orientation: 'landscape',
+
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                    }
+
+
+                }
+                ]
+
+
+            });
+
+                $('#UserTable').show();
+                 var column1 = oTable.column(3);
+            column1.visible(false);
+            var column1 = oTable.column(4);
+            column1.visible(false);
+            var column1 = oTable.column(5);
+            column1.visible(false);
+            var column1 = oTable.column(7);
+            column1.visible(false);
+            var column1 = oTable.column(8);
+            column1.visible(false);
+            var column1 = oTable.column(9);
+            column1.visible(false);
+            var column1 = oTable.column(10);
+            column1.visible(false);
+
+            var chkcol = '@userRole';
+            if (chkcol == "True") {
+                var column1 = oTable.column(11);
+                column1.visible(true);
+            } else {
+                var column1 = oTable.column(11);
+                column1.visible(false);
+                var column1 = oTable.column(13);
+                column1.visible(false);
+            }
+
+
+
+            });
+            var flag = 0;
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                if (flag == 0) {
+
+                    $('#UserTable').show();
+                    flag = 0;
+                }
+                else
+
+                    oTable.draw();
+
+                $('#StockReport').show();
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+
+
+
+
+            //select all checkboxes
+            $('body').on('change', '#select_all', function () {
+                $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+            });
+
+            //".checkbox" change
+            $('body').on('change', '.checkbox', function () {
+                //uncheck "select all", if one of the listed checkbox item is unchecked
+                if (false == $(this).prop("checked")) { //if this item is unchecked
+                    $("#select_all").prop('checked', false); //change "select all" checked status to false
+                }
+                isTicked();
+            });
+            isTicked();
+
+
+            /* function for view detail popup */
+            $('#UserTable').on('click', 'a.details', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            })
+
+            /* function for Create popup */
+
+            $('div').on('click', '.modal-create', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            });
+            $('#modal-create').on('submit', '#createform', function (e) {
+                e.preventDefault();
+                var url = $('#createform')[0].action;
+                var data = $('#createform').serialize();
+                createajax(url, data, '#modal-create');
+            });
+            /* function for delete popup */
+            $('#UserTable').on('click', '.modal-delete', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-delete');
+            });
+            $('#modal-delete').on('submit', '#deleteform', function (e) {
+                e.preventDefault();
+                var url = $('#deleteform')[0].action;
+                var data = $('#deleteform').serialize();
+                createajax(url, data, '#modal-delete');
+            });
+
+            $('#srch, .search-box .btn-close').on('click', function (e) {
+
+
+                /*******  To uncheck all the checkboxes in the Select List  ************/
+                var checkboxes = document.querySelectorAll("input[type='checkbox']");
+                checkboxes.forEach(function (Checkbox) {
+                    Checkbox.checked = false;
+                });
+                //for showing the datatable when click the submit button
+
+                $('#search-form').on('submit', function (e) {
+
+                    e.preventDefault();
+                    oTable.draw();
+                    $('#SReport').show();
+                    $('#UserTable').show();
+
+
+
+                });
+
+                var flag = 0;
+                $('#search-form').on('submit', function (e) {
+                    e.preventDefault();
+                    if (flag == 0) {
+
+                        showdatatable();
+                        flag = 0;
+                    }
+                    else
+
+                    oTable.draw();
+
+                    $('#StockReport').show();
+                });
+
+
+
+                if ($('#srch').hasClass('btn-primary')) {
+                    $('#srch').addClass('btn-danger');
+                    $('#srch').removeClass('btn-primary');
+                }
+                else {
+                    if ($('#srch').hasClass('btn-danger')) {
+                        $('#srch').addClass('btn-primary');
+                        $('#srch').removeClass('btn-danger');
+                    }
+
+                    $('#ddlCustomerType').val(null).trigger("change");
+
+                    $('#ddlMobile').val(null).trigger("change");
+
+
+                    oTable.draw();
+                }
+            });
+
+            /* function for Create popup */
+            $('div').on('click', '.modal-create', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+                $('#StockReport').show();
+
+
+            });
+            //Function to retrieve Remarks of Customer
+            function details(d) {
+
+                var CustomerId = d;
+
+                //List all other remarks from table CustomerRemarks
+                var oTable1 = $('#RemarkInfo').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "sortable": true,
+                    "ordering": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": '/CustomerReport/GetAllRemarks',
+                        "type": "POST",
+                        "datatype": "json",
+                        "data": { CustomerId: CustomerId }
+                    },
+                    "order": [[0, "desc"]],
+
+                    "columns": [
+                        {
+                            "data": "id", "name": "id",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                        { "data": "EmpName", "name": "EmpName" },
+                        { "data": "Remark", "name": "Remark" },
+                    ],
+                });
+
+                oTable1.destroy();
+            }
+
+            //Popup of View Remarks
+            $('#UserTable').on('click', 'a.Updation', function (e) {
+
+                e.preventDefault();
+                $(this).attr('data-target', '#modal-container2');
+                $(this).attr('data-toggle', 'modal');
+            });
+
+            CallRepEmployee();
+
+            $("#ddlCustomerType").select2({
+                placeholder: 'Search Customer Type',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/CustomerType/SearchType",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#ddlMobile").select2({
+                placeholder: 'Search Customer by Mobile',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchMobile",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            function reload_table() {
+                oTable.clear().draw();
+                oTable.ajax.reload(null, false);
+            }
+
+            $('#modal-create').on('submit', '#srcform', function (e) {
+                var url = $('#srcform')[0].action;
+                var text = $("#SrcName").val();
+                var formData = new FormData(this);
+                //var mobi = new Array();
+                //var num = 0;
+
+                //for (i = 0; i < count; i++) {
+                //    mobi.push($('#Mobile' + count).val());
+                //}
+
+                $('#ddlSrcLead option:selected').attr("selected", null);
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: formData,//$('#srcform').serialize(),
+                    success: function (data) {
+                        if (data.status) {
+                            $('#modal-create').modal('hide');
+                            var newOption = $('<option></option>');
+                            newOption.val(data.Id).attr("selected", "selected");
+                            newOption.html(text);
+                            $('#ddlSrcLead').append(newOption);
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                        }
+                        fadeAlert();
+                    }
+                })
+                e.preventDefault();
+            });
+
+
+
+</script>
+    }

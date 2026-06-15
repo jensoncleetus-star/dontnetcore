@@ -1,0 +1,1594 @@
+@model QuickSoft.Models.PurchaseEntry
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Purchase Entry List";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string actData2 = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Purchase Entry"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+              "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+               "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+
+<style type="text/css">
+    .form-group {
+        margin-bottom: 20px !important;
+    }
+
+    .btn {
+        border-radius: 4px !important;
+        border: none !important;
+    }
+
+    .search-box .btn.btn-submit {
+        margin: 0px !important;
+    }
+
+    div #advsearchlist {
+        margin: 0px !important;
+    }
+
+    .box-body.search-box {
+        position: initial !important;
+    }
+
+    /*.temp2 {
+        position: absolute !important;
+        background-color: white !important;
+        display: table;
+        z-index: 1 !important;
+        top: -13px !important;
+        font-size: 11px !important;
+        transition: 0.2s;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+        left: 17px;
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+        letter-spacing: 0.5px !important;
+    }*/
+
+    /*table.dataTable thead td {
+        background-image: linear-gradient(to bottom,#55a8e7,#0d83dd);
+    }
+
+    .dt-button {
+        background-image: linear-gradient(to bottom,#eaf2fd,#c0d8f9) !important;
+        box-shadow: -1px 1px 1px rgba(0,0,0,.3);
+        color: #2059a5 !important;
+        border: none !important;
+    }*/
+
+    /*.form-control {*/
+        /*height: 25px !important;*/
+        /*height: 34px !important;
+        border-radius: 4px !important;
+        border: none !important;
+        border-bottom: 1px solid #ccc !important;
+        border-right: 1px solid #ccc !important;
+        border-left: 1px solid #ccc !important;
+        border-top: 1px solid #ccc !important;
+    }*/
+
+    /*.box.box-info .select2-container--default .select2-selection--single {
+        height: 34px !important;
+        border-radius: 4px !important;
+        border: none !important;
+        border-bottom: 1px solid #ccc !important;
+        border-right: 1px solid #ccc !important;
+        border-left: 1px solid #ccc !important;
+        border-top: 1px solid #ccc !important;
+    }
+
+    .date {
+        height: 34px !important;
+        border-radius: 4px !important;
+    }
+
+    .ribbon4 {
+        width: auto;
+        position: absolute;
+        left: -25px !important;
+        top: -10px;
+        padding: 5px 20px 5px 10px;
+        background-image: linear-gradient(to bottom,#55a8e7,#0d83dd);
+        box-shadow: -1px 2px 3px rgba(0,0,0,.3);
+        color: white;
+        border-radius: 0 4px 4px 0;
+        text-transform: uppercase;
+    }
+
+        .ribbon4:before, .ribbon4:after {
+            content: "";
+            position: absolute;
+        }
+
+        .ribbon4:before {
+            width: 10px;
+            height: 117%;
+            top: 0;
+            left: -6.5px;
+            padding: 0 0 7px;
+            background-image: linear-gradient(to bottom,#55a8e7,#0d83dd);
+            border-radius: 6px 0 0 5px;
+        }
+
+        .ribbon4:after {
+            width: 10px;
+            height: 8px;
+            bottom: -8px;
+            left: -5px;
+            background: #095b9a;
+            border-radius: 5px 0 0 5px;
+        }
+*/
+    .dropdown-check-list .anchor {
+        border: 1px solid #0d83dd !important;
+    }
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+    .sh-spaan-text-style {
+        font-family: sans-serif;
+    }
+
+    .sh-input-drop {
+        border: 1px solid rgb(0 0 0 / 0.20);
+        padding: 3px;
+    }
+
+    @@media only screen and (max-width: 400px) {
+        .top3 {
+            margin-top: 27px;
+        }
+
+        .adv-search-height {
+            margin-left: 10px !important;
+        }
+
+        .responsive-search {
+            padding: 0px 0px 0px 0px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+            width: 150px !important;
+        }
+
+        .task-name-center {
+            text-align: center !important;
+        }
+
+        .button-left-margin {
+            margin-left: 25%;
+        }
+        .drop-align-center{
+            position:relative !important;
+          left:60px;
+        }
+    }
+
+    @@media only screen and (min-width: 800px) {
+        .top3 {
+            margin-top: 10px;
+        }
+
+        .adv-search-height {
+            top: -10px !important;
+            margin-left: 13px;
+        }
+
+        .responsive-search {
+            padding: 25px 0px 0px 50px !important;
+        }
+
+        .btn-close {
+            background-color: red !important;
+        }
+    }
+</style>
+<div id="modal-container3" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4>Remarks</h4>
+            </div>
+            <div class="modal-body">
+                <div class="box-body" id="modelview">
+                    <table class="table table-bordered table-hover" id="RemarkInfo">
+                        <thead>
+                            <tr class="bg-gray">
+                                <td>#</td>
+                                <td>Date & Time</td>
+                                <td>Employees</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <div class="row">
+            <div class="col-md-9 col-xs-12">
+                <div class="ribbon">
+                    <div class="ribbon4"><h3 class="box-title">List Purchase Entry</h3></div>
+                </div>
+            </div>
+            <div class="col-md-3 col-xs-12">
+                <div class="pull-right sh-downonSmallScreen">
+                    @if (User.IsInRole("Dev") || User.IsInRole("Invoice Template"))
+                    {
+                        <a class="btn btn-default no-border" href="/InvoiceTemplate/Index?docType=PurchaseEntry" title="Design / manage purchase-bill print templates">
+                            <i class="glyphicon glyphicon-duplicate"></i> Design Templates
+                        </a>
+                    }
+                    <a class="btn btn-info no-border" href="/PurchaseEntry/Create">
+                        <i class="fa fa-plus"></i>&nbsp; Create
+                    </a>
+                </div>
+            </div>
+            @*<div class="col-md-10 col-xs-12 task-name-center ">
+                    <h3 class="box-title" style="font-size:x-large;">List Purchase Entry</h3>
+                </div>
+                <div class="col-md-2 col-xs-12 pull-right sh-downonSmallScreen" style="padding: 0px; margin: 10px 0px 0px 0px;">
+
+                    <div class="row">
+
+                        <div class="col-md-10 col-xs-6 col-xs-offset-3" style="padding:0px; width:150px; ">
+
+                            <a class="btn btn-info no-border" href="/PurchaseEntry/Create">
+                                <i class="fa fa-plus"></i>&nbsp; Create
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>*@
+        </div>
+    </div>
+    <div class="col-md-2 col-xs-10 " id="taskchecklist" style="padding:0px; margin:auto;">
+        <div id="list1" class="dropdown-check-list drop-align-center" tabindex="100">
+            <span class="anchor " style="z-index:0;">Select Fields</span>
+            <ul class="items">
+                <li><input type="checkbox" id="liinvoiceno" />Invoice No.</li>
+                <li><input type="checkbox" id="liPurchaseStatus" />Purchase Status</li>
+                <li><input type="checkbox" id="lifromdate" checked />From Date</li>
+                <li><input type="checkbox" id="litodate" />To Date</li>
+                <li><input type="checkbox" id="lipaymenttype" />Payment Type</li>
+                <li><input type="checkbox" id="lisupplier" />Supplier</li>
+                <li><input type="checkbox" id="lisalesexctve" />Sales Executive</li>
+                <li><input type="checkbox" id="licreatedby" />Created By</li>
+                <li><input type="checkbox" id="libalance" />Balance</li>
+                <li><input type="checkbox" id="limatrlcntre" />Material Center</li>
+                <li><input type="checkbox" id="liapprvlstatus" />Approval Status</li>
+                <li><input type="checkbox" id="liReferenceNo" />Reference No.</li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-10 col-xs-12">
+        <div class="box-body search-box adv-search-height" id="advsearchlist">
+            <div class="search-body responsive-search " style="background:none;">
+                <form id="search-form">
+                    <div class="row">
+                        <input type="hidden" id="remId" />
+                        <div class="form-group col-md-2" id="searchinvno">
+                            @Html.Label("Invoice No", null, new { @class = "control-label temp2" })
+                            @Html.TextBox("BillNo", "", new { @class = "form-control input-sm" })
+                        </div>
+
+                        <div class="form-group col-md-2" id="searchfromdate">
+                            @Html.Label("From Date", null, new { @class = "control-label temp2" })
+                            <div class="input-group date">
+                                @Html.TextBox("FromDate", "01-05-2024", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-2" id="searchtodate" style="display:none">
+                            @Html.Label("To Date", null, new { @class = "control-label temp2" })
+                            <div class="input-group date">
+                                @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-2" id="searchpaymenttype" style="display:none">
+                            @Html.Label("Payment Type", null, new { @class = "control-label temp2" })
+                            @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                                {
+                                new SelectListItem() {Text = "All", Value=""},
+                                new SelectListItem() {Text = "Credit", Value="0"},
+                                new SelectListItem() {Text = "Cash", Value="1"}
+                                }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+                        </div>
+                        <div class="form-group col-md-2" id="searchsupplier" style="display:none">
+                            @Html.Label("Supplier", null, new { @class = "control-label temp2" })
+                            @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control input-sm select2" })
+                        </div>
+                        <div class="form-group col-md-2" id="searchemployee" style="display:none">
+                            @Html.Label("Sales Executive", null, new { @class = "control-label temp2" })
+                            @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExecutive, new { @class = "form-control input-sm select2" })
+                        </div>
+                        <div class="form-group col-md-2" id="searchcreatdby" style="display:none">
+                            @Html.Label("Created By", null, new { @class = "control-label temp2" })
+                            @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                        </div>
+
+                        <div class="form-group col-md-2" id="searchPurchaseStatus" style="display:none">
+                            @Html.Label("Purchase Status", null, new { @class = "control-label temp2" })
+                            @Html.DropDownList("ddlPurchaseStatus", new SelectList(new List<SelectListItem>
+                                {
+                                new SelectListItem() {Text = "All", Value=""},
+                                new SelectListItem() {Text = "Open", Value="0"},
+                                new SelectListItem() {Text = "Closed", Value="1"}
+                                }, "Value", "Text"), new { @class = "form-control input-sm" })
+                        </div>
+                        <div class="form-group col-md-2" id="searchbalance" style="display:none">
+                            @Html.Label("Balance", null, new { @class = "control-label temp2" })
+                            @Html.DropDownList("ddlBalance", (SelectList)ViewBag.Balance, new { @class = "form-control input-sm select2" })
+                        </div>
+                        @if (@ViewBag.BusinessType == "Scaffold")
+                        {
+                            <div class="form-group col-md-2" id="searchtype" style="display:none">
+                                @Html.Label("Type", null, new { @class = "control-label temp2" })
+                                @Html.DropDownList("PurType", (SelectList)ViewBag.Type, new { @class = "form-control select2" })
+                            </div>
+                            <div class="form-group col-md-2" id="searchhiretype" style="display:none">
+                                @Html.Label("HireType", null, new { @class = "control-label temp2" })
+                                @Html.DropDownList("HireType", (SelectList)ViewBag.HiType, "All", new { id = "ddlHType", @class = "form-control select2" })
+                            </div>
+                        }
+                        @if (@ViewBag.EnableMCcheck == 0)
+                        {
+                            <div class="form-group col-md-2" id="searchmatcntr" style="display:none">
+                                @Html.Label("Material Center", null, new { @class = "control-label temp2" })
+                                @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, "All", new { @class = "form-control input-sm" })
+                            </div>
+                        }
+                        @if (ViewBag.MLAPEntry == 0)
+                        {
+                            <div class="form-group col-md-2" id="searchapprovalstatus" style="display:none">
+                                @Html.Label("Approval Status", null, new { @class = "control-label temp2" })
+                                @Html.DropDownList("ApprovalStatus", (SelectList)ViewBag.AppStat, "All", new { id = "ApprovalStatus", @class = "form-control" })
+                            </div>
+                        }
+                        <div class="form-group col-md-2" id="searchRefenceno" style="display:none">
+                            @Html.Label("Reference No", null, new { @class = "control-label temp2" })
+                            @Html.TextBox("ReferenceNo", "", new { @class = "form-control input-sm" })
+                        </div>
+                        <div class="form-group col-md-2 col-6 text-center" id="search">
+                            <input type="submit" class="btn btn-submit" value="Submit" />
+                        </div>
+                        <div class="form-group col-md-2 col-6" id="close">
+                            <input type="button" class="btn btn-close" value="Close" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class=" col-md-12" id="searchpagelength">
+
+        <span class="sh-spaan-text-style">Show &nbsp;</span>@Html.DropDownList("ddlPagesize", new SelectList(new List<SelectListItem>
+{
+new SelectListItem() {Text = "50 Rows", Value="50"},
+new SelectListItem() {Text = "All Rows", Value="10000000"},
+
+}, "Value", "Text"), new { @class = "sh-input-drop select2" })
+
+    </div>
+
+
+
+    @using (Html.BeginForm("DeleteAllPurchase", "PurchaseEntry", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="PurchaseTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Invoice No</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="3">Supplier</td>
+                        <td data-priority="3">Purchase Type</td>
+                        <td data-priority="3">Payment Type</td>
+                        <td data-priority="2" class="headeralign">Total Amount</td>
+                        <td data-priority="2" class="headeralign">Paid Amount</td>
+                        <td data-priority="2" class="headeralign">Balance Amount</td>
+                        <td data-priority="5">Material Center</td>
+                        <td data-priority="4">Purchase Status</td>
+                        <td data-priority="4">Executive</td>
+                        <td data-priority="4">Created By</td>
+                        @*<td data-priority="4">Reference No</td>*@
+                        <td data-priority="3">Approval Status</td>
+                        <td data-priority="3">Created Date</td>
+                        <td data-priority="1">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+        <input type="hidden" id="SuperUserEdit" value="@ViewBag.SuperUserEditvalue" />
+    }
+
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-aqua">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Status Updation History</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-hover" id="UserTableInfo">
+                        <thead>
+                            <tr class="bg-aqua">
+                                <td>Status</td>
+                                <td>Updated By</td>
+                                <td>Requested By</td>
+                                <td>Date</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Reminder/Index")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+<script type="text/javascript">
+    var sa = "Purchase";
+      var minDate = $("#Start").val();
+      var maxDate = $("#End").val();
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+   
+        $(document).ready(function () {
+            $('#searchhiretype').hide();
+            $("#PurType").prop('selectedIndex', 0);
+            $("#ddlMC").prop('selectedIndex', 0);
+         
+            $("#ddlMC").select2({
+                placeholder: 'Search Material Centre by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "",
+                            sttransfer: "yes"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+           // $('#advsearchlist').hide();
+        });
+
+        var oTable = $('#PurchaseTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": false,
+            "pageLength": 50,
+            responsive: true,
+            "bLengthChange": false,
+            "ajax": {
+                "url": '/PurchaseEntry/GetPurchaseEntry',
+                "data": function (data) {
+                    data.BillNo = $('#BillNo').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.supplier = $('#ddlSupplier').val();
+                    data.salesperson = $('#ddlEmployee').val();
+                    data.type = $('#ddlType').val();
+                    data.user = $('#ddlCreatedBy').val();
+                    data.Balance = $('#ddlBalance').val();
+                    data.MC = $('#ddlMC').val();
+                    data.appstat = $('#ApprovalStatus').val();
+                    data.PurchaseType = $('#PurType').val();
+                    data.HireType = $('#ddlHType').val();
+                    data.PurchaseStatus = $('#ddlPurchaseStatus').val();
+                    data.RefenceNo = $('#ReferenceNo').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [15],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "PurchaseEntryId", "name": "PurchaseEntryId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "BillNo", "name": "BillNo" },
+                { "data": "PEDate", "name": "PEDate", "render": function (data) { return convertToDate(data); } },
+                { "data": "Supplier", "name": "Supplier" },
+                {
+                    "data": "PurType", "name": "PurchaseType", "render": function (data) {
+                        if (data == 1) {
+                            return 'CrossHire';
+                        }
+                        else {
+                            return 'Purchase';
+                        }
+                    }
+                },
+                 {
+                     "name": "SupplierType",
+                     "data": function (data) {
+                         if (data.SupplierType == 0) {
+                             return "Credit";
+                         } else {
+                             return "Cash";
+                         }
+                     }
+                 },
+                { "data": "PEGrandTotal", "name": "PEGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "PEPaidAmount", "name": "PEPaidAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                { "data": "BalanceAmt", "name": "BalanceAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "MC", "name": "MaterialCenter" },
+                {
+                    "data": "PurchaseStatus", "name": "PurchaseStatus",
+                    "render": function (data) {
+                        if (data == 0) {
+                            return "Open";
+                        }
+                        else if (data == 1) {
+                            return "Closed";
+                        }
+                        else {
+                            return "";
+                        }
+                    }
+                },
+                { "data": "EmpName", "name": "EmpName" },
+                { "data": "User", "name": "User" },
+
+                //{ "data": "ReferenceNo", "name": "ReferenceNo" },
+                 {
+                     "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                         var status = "";
+                         var cls = "";
+                         if (data.app.length > 0 || (data.Approval == true && '@ViewBag.MLAPEntry' == 'active')) {
+                             if (data.ApprovalStatus == "0") {
+                                 status = '<span class="badge bg-green">Approved</span>';
+                             }
+                             else if (data.ApprovalStatus == "1") {
+                                 status = '<span class="badge bg-red">Rejected</span>';
+                             }
+                             else if (data.ApprovalStatus == "2") {
+                                 status = '<span class="badge bg-orange">Pending</span>';
+                             }
+                             return '<a  class="Updation" onclick="details(' + data.PurchaseEntryId + ')"  title="View Status">' + status + ' </a>';
+                         } else { return null; }
+                     }
+                 },
+                { "data": "PECreatedDate", "name": "PECreatedDate", "render": function (data) { return convertToDate(data); } },
+
+                {
+                    "name": "PurchaseEntryId", "data": function (data) {
+                        var rest = "";
+                        @{
+                            string bosPePrint = "";
+                            if (User.IsInRole("Dev") || User.IsInRole("Invoice Template"))
+                            {
+                                bosPePrint = "<a href=\"/InvoiceTemplate/Print?invoiceId='+ data.PurchaseEntryId +'&docType=PurchaseEntry\" target=\"_blank\" title=\"Print with a custom template\"><i class=\"fa fa-lg fa-print\" style=\"color:#6366f1\"></i></a> ";
+                            }
+                        }
+                        rest += '@Html.Raw(bosPePrint)';
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("View Purchase Entry"))
+                            {
+                                actData += "<a class=\"details\" href = \"/PurchaseEntry/Details/' + data.PurchaseEntryId + '\" title=\"Edit Purchase Entry\"><i class=\"fa fa-lg fa-search-plus\" ></i></a> ";
+                            }
+}
+                        if (data.validornot == "valid") {
+                            @{
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Entry"))
+                                {
+                                    actData2 = "";
+                                    actData2 = "<a href = \"/PurchaseEntry/Edit/' + data.PurchaseEntryId + '\" title=\"Edit Purchase Entry\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+
+                                }
+}
+                            rest += '@Html.Raw(actData2)'
+}
+ else {
+  @{
+      
+      if (User.IsInRole("Dev") || User.IsInRole("Edit Purchase Entry"))
+      {
+          actData2 = "";
+          actData2= "<a href=\"#\" onclick=\"AlertFunction(' +data.PurchaseEntryId +','+data.userEditDays + ',sa)\"title=\"Edit Purchase Entry\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+      }
+
+
+                                }
+                            rest += '@Html.Raw(actData2)'
+}
+                                 @{
+
+                                     if (User.IsInRole("Dev") || User.IsInRole("Download Purchase Entry"))
+                                     {
+
+                                         actData += "<a class=\"modal-link-download\" href=\"/PurchaseEntry/Download/'+ data.PurchaseEntryId +'\" title=\"Download Purchase Entry\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                                     }
+                                     if (User.IsInRole("Dev") || User.IsInRole("Delete Purchase Entry"))
+                                     {
+                                         actData += "<a class=\"modal-delete\" href =\"/PurchaseEntry/Delete/'+ data.PurchaseEntryId +'\" title=\"Delete Purchase Entry\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                     }
+                                     actData += "<a href=\"/PurchaseEntry/GenerateSerialNo/'+ data.PurchaseEntryId +'\" title=\"Generate Serial No.\" ><i class=\"fa-lg fa fa-share\" ></i></a> ";
+                                     actData += "<a class=\"detailss\" href=\"/LogDetails/?TransId='+ data.PurchaseEntryId +'&TransType='+ 'PurchaseEntry' +'\" title=\"View PurchaseEntry Updation\" target=\"new\"><i class=\"fa fa-lg fa-history\"></i></a> ";
+                                     actData += "<a class=\"modal-edit\" href=\"/PurchaseEntry/setopenclose/'+ data.PurchaseEntryId +'\" title=\"set openclose\"><div style=\"block\">op/close</div></a> ";
+
+                                     actData += "<a class=\"btn btn-icons btn-rounded btn-edit modal-create\" href=\"/PurchaseEntry/AddAmcRemark/'+ data.PurchaseEntryId +'\" title=\"Add Remarks\"><i class=\" fa fa-plus\" ></i></a> ";
+                                     actData += "<a class=\"btn btn-icons btn-rounded btn-remark ViewUpdates\" onclick=\"detailsRemark(' + data.PurchaseEntryId + ')\" title=\"View Remarks\"><i class=\" fa fa-eye\" ></i></a> ";
+
+                                     }
+                        rest+= '@Html.Raw(actData)';
+                        if ('@ViewBag.StockTrnsfrUpdate' == 'active') {
+                            if (data.Approval == true ) {
+                            @{
+                               actData = "";
+
+                               actData = "<a class=\"modal-edit\"  href=\"/PurchaseEntry/EditStatus/'+ data.PurchaseEntryId +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+
+                           }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+                        else {
+                            if (data.Approval == true && '@ViewBag.MLAPEntry' == 'active') {
+                            @{
+                               actData = "";
+
+                               actData = "<a class=\"modal-edit\"  href=\"/PurchaseEntry/EditStatus/'+ data.PurchaseEntryId +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+
+                           }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+
+                        if ("@ViewBag.Remind" == "active") {
+                            @{
+                                       actData = "";
+                                       actData += "<a class=\"UpdationRe\" onclick=\"detailsRemind(' + data.PurchaseEntryId + ')\" title=\"View Reminder\"><i class=\"fa-lg fa fa-bell\" ></i></a> ";
+                                       actData += "<a class=\"modal-create\" href=\"/Reminder/AddReminder/'+ data.PurchaseEntryId +'/Purchase\" title=\"Add Reminder\"><i class=\"fa-lg fa fa-sticky-note\" ></i></a> ";
+                                   }
+                            rest += '@Html.Raw(actData)';
+                        }
+
+                        @*if ("@ViewBag.BatchWiseStock" == "active") {
+                            @{
+                                actData = "";
+                                actData += "<a href=\"/PurchaseEntry/GenerateSerialNo/'+ data.PurchaseEntryId +'\" title=\"Generate Serial No.\" ><i class=\"fa-lg fa fa-share\" ></i></a> ";
+                            }
+                            rest += '@Html.Raw(actData)';
+                        }*@
+                        if (data.PurType == "1") {
+                            if (data.HExtent == "PurchaseExtend") {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                    {
+                                        actData += "<a href=\"/PurchaseEntry/Create/'+ data.PurchaseEntryId +'/PurchaseExtend\"  title=\" Create Extention\" class=\"text-red\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+                            else {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Purchase Entry"))
+                                    {
+                                        actData += "<a href=\"/PurchaseEntry/Create/'+ data.PurchaseEntryId +'/PurchaseExtend\"  title=\" Create Extention \"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+                        @{
+                              actData = "";
+                        actData += "<a class=\"modal-create\" href=\"/PurchaseEntry/DownloadFile/'+ data.PurchaseEntryId +'\" title=\"Download Document\">Doc</a> ";
+
+                        }
+
+                        rest += '@Html.Raw(actData)';
+                        if ('@ViewBag.StockTrnsfrUpdate' != 'active') {
+
+                            if (data.SaleConvert == "Sale") {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                    {
+                                        actData += "<a href=\"/CreditSale/Create/'+ data.PurchaseEntryId +'/Purchase\" title=\"Convert To Sales\" class=\"text-red\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            } else {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                    {
+                                        actData += "<a href=\"/CreditSale/Create/'+ data.PurchaseEntryId +'/Purchase\" title=\"Convert To Sales\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+
+                        } else {
+                            if (data.ApprovalStatus == "0") {
+                                if (data.SaleConvert == "Sale") {
+                                      @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                    {
+                                        actData += "<a href=\"/CreditSale/Create/'+ data.PurchaseEntryId +'/Purchase\" title=\"Convert To Sales\" class=\"text-red\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                                } else {
+                                      @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                    {
+                                        actData += "<a href=\"/CreditSale/Create/'+ data.PurchaseEntryId +'/Purchase\" title=\"Convert To Sales\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                                }
+
+                            }
+                        }
+                        return rest;
+                        // '<a class="modal-link-download" href = "/PurchaseEntry/Download/' + data + '" title="Download "><i class="fa fa-download" style="font-size: large"></i></a> ';
+                        //'<a class="modal-link-document" href="" title="Send Quote"><i class="fa fa-share-square-o" style="font-size: large"></i></a>';
+                    }
+                },
+
+                {
+                    "name": "PurchaseEntryId", "data": function (data) {
+                        var rest = "";
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete Purchase Entry"))
+                            {
+                                delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.PurchaseEntryId +'></input>";
+                            }
+                        }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ],
+            buttons: [
+                'colvis',
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Purchase Entry';
+                    },
+                    columnDefs: [
+                        { width: 400, targets: 2 }
+                    ],
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Purchase Entry</h4></th></tr>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                        $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                            .css('min-width', '80px');
+                        //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                        //    .css('padding', '0px');
+                        $(win.document.body).append('</td></tr></tbody>')
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Purchase Entry';
+                    },
+                    message: function () {
+                        var head = 'Purchase Entry';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+                },  @Html.Raw(deleteBTn)
+
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#PurchaseTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            }
+        });
+
+        var bsns = '@ViewBag.BusinessType';
+        if (bsns == "Scaffold") {
+            var column1 = oTable.column(4);
+            column1.visible(true);
+        }
+        else {
+            var column1 = oTable.column(4);
+            column1.visible(false);
+        }
+
+
+        var statcol = '@ViewBag.MLAPEntry';
+        if (statcol == "active") {
+            var column1 = oTable.column(13);
+            column1.visible(true);
+        }
+        else {
+            var column1 = oTable.column(13);
+            column1.visible(false);
+        }
+        var column1 = oTable.column(12);
+        column1.visible(true);
+		   var column1 = oTable.column(14);
+        column1.visible(true);
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+       isTicked();
+
+        /* function for view detail popup */
+    $('#PurchaseTable').on('click', 'a.details', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+    $('div').on('click', 'a.ViewUpdates', function (e) {
+        e.preventDefault();
+        $(this).attr('data-target', '#modal-container3');
+        $(this).attr('data-toggle', 'modal');
+    });
+    function detailsRemark(AmcId) {
+        var RequisitionId = AmcId;
+
+        //List all other remarks from table CustomerRemarks
+        var oTable1 = $('#RemarkInfo').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "paging": false,
+            "sortable": true,
+            "ordering": true,
+            "searching": true,
+            "ajax": {
+                "url": '/PurchaseEntry/GetAllRemarksadded',
+                "type": "POST",
+                "datatype": "json",
+                "data": { RequisitionId: AmcId }
+            },
+            "order": [[0, "desc"]],
+
+            "columns": [
+                {
+                    "data": "id", "name": "id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                { "data": "EmpName", "name": "EmpName" },
+                { "data": "Remarks", "name": "Remarks" },
+            ],
+        });
+
+        oTable1.destroy();
+
+    }
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+      
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            $("#appsubmit").prop("disabled", true);
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            detailsRemind($("#remId").val());
+        });
+
+    $('#modal-edit').on('submit', '#createform', function (e) {
+        e.preventDefault();
+        var url = $('#createform')[0].action;
+        var data = $('#createform').serialize();
+        createajax(url, data, '#modal-edit');
+    });
+    $('#modal-edit').on('submit', '#createForm', function (e) {
+        e.preventDefault();
+        var url = $('#createForm')[0].action;
+        var data = $('#createForm').serialize();
+        createajax(url, data, '#modal-edit');
+    });
+
+        /* function for delete popup */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            detailsRemind($("#remId").val());
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+      //Button Close
+      $('#srch, .search-box .btn-close').on('click', function (e) {
+          $('#advsearchlist').toggle();
+          $('#searchhiretype').hide();
+
+          /*******  To uncheck all the checkboxes in the Select List  ************/
+          var checkboxes = document.querySelectorAll("input[type='checkbox']");
+          checkboxes.forEach(function (Checkbox) {
+              Checkbox.checked = false;
+          });
+
+          if ($('#srch').hasClass('btn-primary')) {
+
+              $('#srch').addClass('btn-danger');
+              $('#srch').removeClass('btn-primary');
+          }
+          else {
+              if ($('#srch').hasClass('btn-danger')) {
+                  $('#srch').addClass('btn-primary');
+                  $('#srch').removeClass('btn-danger');
+              }
+
+              /*******  To clear all the data entered  *********/
+              $('#BillNo').val("");
+              $('#ReferenceNo').val("");
+              $('#FromDate').val("01-01-2024");
+              $('#ToDate').val("");
+              $('#ddlType').val("");
+              $('#ddlSupplier').val(0).trigger('change');
+              $('#ddlEmployee').val(0).trigger('change');
+              $('#ddlCreatedBy').val(null);
+              $('#ddlBalance').val(null);
+              $('#ddlMC').val('').trigger('change');
+              $('#ApprovalStatus').val("");
+              $('#PurType').val(null);
+              $('#ddlHType').val(null);
+              $('#ddlPurchaseStatus').val("");
+
+              oTable.draw();
+          }
+      });
+
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('#ToDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        $('#FromDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 30));
+        //$('#ToDate').datepicker('setDate', today);
+        //$('#FromDate').datepicker('setDate', priordate);
+
+        CallSupplier();
+        CallEmployee();
+
+        $('body').on('change', '#PurType', function (e) {
+            var Type = $('#SaleType').val();
+            if (Type == 2) {
+                $('#HireType').show();
+            }
+            else {
+                $('#HireType').hide();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        //use this to select rows you want
+        $('#ddlPagesize').on('change', function (e) {
+
+            let pagedroplength = $('#ddlPagesize').val();
+            oTable.page.len(pagedroplength).draw();
+        });
+
+
+
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('.table').on('click', '.modal-close-btn', function () {
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        });
+
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        function details(d) {
+            var MCId = d;
+            var oTable = $('#UserTableInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "ajax": {
+                    "url": '/PurchaseEntry/GetAllStatusUpdation',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { MCId: MCId }
+                },
+                "columns": [
+                        {
+                            "name": "ApprovalStatus", "data": function (data) {
+                                var datas = "";
+                                if (data.ApprovalStatus == "Approved") {
+                                    datas += '<span class="badge bg-green">Approved</span>';
+                                }
+                                if (data.ApprovalStatus == "Rejected") {
+                                    datas += '<span class="badge bg-red">Rejected</span>';
+                                }
+                                if (data.ApprovalStatus == "PendingApproval") {
+                                    datas += '<span class="badge bg-orange">Pending</span>';
+                                }
+                                return datas;
+                            }
+                        },
+                      { "data": "User", "name": "User" },
+                      { "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertDateTime(data); } },
+                      { "data": "Remarks", "name": "Remarks" },
+                ],
+                searching: false
+            });
+            oTable.destroy();
+        }
+
+        $('div').on('click', 'a.UpdationRe', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-containerRe');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            var date = new Date();
+            date.setDate(date.getDate());
+            $('.datepicker').datepicker({
+                startDate: date,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            jQuery.validator.methods["date"] = function (value, element) { return true; }
+            $(".timepicker").timepicker({
+                showInputs: true,
+                defaultTime: false,
+                format: 'dd-mm-yyyy'
+            });
+
+            $("#ddlAssignedTo").select2({
+                placeholder: 'Search User',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployeeUser",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        function detailsRemind(d) {
+            if (d != "") {
+                $("#remId").val(d);
+                var oTable1 = $('#RemindInfo').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "sortable": true,
+                    "ordering": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": '/Reminder/GetAllReminder',
+                        "type": "POST",
+                        "datatype": "json",
+                        "data": { Id: d, type: "Purchase" }
+                    },
+                    "order": [[0, "desc"]],
+
+                    "columns": [
+                         {
+                             "data": "ReminderId", "name": "ReminderId",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                      { "data": "Note", "name": "Note" },
+                     { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertDateTime(data); } else { return "" } } },
+                            //{
+                      //    "name": "AssignedTo", "data": function (data) {
+                      //        var datas = "";
+                      //        $.each(data.AssignedTo, function (i, item) {
+                      //            if (datas != "") {
+                      //                datas += ", ";
+                      //            }
+                      //            datas += item.FirstName + " " + item.LastName;
+                      //        });
+                      //        return datas;
+                      //    }
+                      //},
+                      //{ "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedBy", "name": "CreatedBy" },
+                      { "data": "RStatus", "name": "RStatus" },
+                      {
+                          "name": "ReminderId", "data": function (data) {
+                              var rest = "";
+                              @{
+                                actData = "";
+                                actData += "<a class=\"modal-edit\"  href=\"/Reminder/Edit/'+ data.ReminderId +'\" title=\"Edit Reminder\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                actData += "<a class=\"modal-delete\" href=\"/Reminder/Delete/'+ data.ReminderId +'\" title=\"Delete Reminder\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                              rest += '@Html.Raw(actData)';
+                              return rest;
+                          }
+                      }
+                    ],
+                });
+                oTable1.destroy();
+            }
+        }
+
+      $('body').on('change', '#PurType', function (e) {
+          var Type = $('#PurType').val();
+
+          $('#ddlHType').val(null).trigger('change');
+
+          if (Type == 2) {
+              $('#searchhiretype').show();
+          }
+          else {
+              $('#searchhiretype').hide();
+          }
+      });
+
+       var checkList = document.getElementById('list1');
+
+       /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+       checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+           if (checkList.classList.contains('visible'))
+               checkList.classList.remove('visible');
+           else
+               checkList.classList.add('visible');
+       }
+
+       /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+       $("ul li input:checkbox").click(function () {
+
+           var _show = 0;
+
+           //Invoice No.
+           if ($("#liinvoiceno").prop("checked") == true) {
+               $("#searchinvno").show();
+               _show = 1;
+           }
+           else {
+               $('#BillNo').val("");
+               $("#searchinvno").hide();
+               //oTable.draw();
+           }
+
+           //From Date
+           if ($("#lifromdate").prop("checked") == true) {
+               $("#searchfromdate").show();
+               _show = 1;
+           }
+           else {
+               $("#FromDate").val("");
+               $("#searchfromdate").hide();
+               //oTable.draw();
+           }
+
+           //To Date
+           if ($("#litodate").prop("checked") == true) {
+               $("#searchtodate").show();
+               _show = 1;
+           }
+           else {
+               $("#ToDate").val("");
+               $("#searchtodate").hide();
+              // oTable.draw();
+           }
+
+           //Payment Type
+           if ($("#lipaymenttype").prop("checked") == true) {
+               $("#searchpaymenttype").show();
+               _show = 1;
+           }
+           else {
+               $("#ddlType").val(null);
+               $("#searchpaymenttype").hide();
+               //oTable.draw();
+           }
+
+           //Supplier
+           if ($("#lisupplier").prop("checked") == true) {
+               $("#searchsupplier").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlSupplier').val(0).trigger("change");
+               $("#searchsupplier").hide();
+               //oTable.draw();
+           }
+
+           //purchaseStatus
+           if ($("#liPurchaseStatus").prop("checked") == true) {
+               $("#searchPurchaseStatus").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlPurchaseStatus').val("").trigger("change");
+               $("#searchPurchaseStatus").hide();
+               //oTable.draw();
+           }
+
+           //Sales Executive
+           if ($("#lisalesexctve").prop("checked") == true) {
+               $("#searchemployee").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlEmployee').val(0).trigger("change");
+               $("#searchemployee").hide();
+               //oTable.draw();
+           }
+
+           //Created By
+           if ($("#licreatedby").prop("checked") == true) {
+               $("#searchcreatdby").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlCreatedBy').val("").trigger("change");
+               $("#searchcreatdby").hide();
+               //oTable.draw();
+           }
+
+           //Balance
+           if ($("#libalance").prop("checked") == true) {
+               $("#searchbalance").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlBalance').val(null).trigger("change");
+               $("#searchbalance").hide();
+               //oTable.draw();
+           }
+
+           //Material Center
+           if ($("#limatrlcntre").prop("checked") == true) {
+               $("#searchmatcntr").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlMC').val(null).trigger("change");
+               $("#searchmatcntr").hide();
+               //oTable.draw();
+           }
+
+           //Approval Status
+           if ($("#liapprvlstatus").prop("checked") == true) {
+               $("#searchapprovalstatus").show();
+               _show = 1;
+           }
+           else {
+               $('#ApprovalStatus').val("").trigger("change");
+               $("#searchapprovalstatus").hide();
+               //oTable.draw();
+           }
+
+           //Reference No.
+           if ($("#liReferenceNo").prop("checked") == true) {
+               $("#searchRefenceno").show();
+               _show = 1;
+           }
+           else {
+               $('#ReferenceNo').val("");
+               $("#searchRefenceno").hide();
+               //oTable.draw();
+           }
+
+           if (_show == 1) {
+               $('#advsearchlist').show();
+           }
+           else {
+               $('#advsearchlist').hide();
+           }
+       });
+
+       /******* Function to hide dropdown checklist while clicking outside it ********/
+       $(document).on("click", function (event) {
+
+           var element1 = $("#list1");
+
+           if (element1 !== event.target && !element1.has(event.target).length) {
+               checkList.classList.remove('visible');
+           }
+       });
+
+</script>
+}

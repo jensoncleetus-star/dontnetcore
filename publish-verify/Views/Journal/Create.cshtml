@@ -1,0 +1,196 @@
+@model QuickSoft.ViewModel.JournalViewModel
+@{
+    ViewBag.Title = "Create Journal";
+    ViewBag.SubTitle = "Journal";
+    ViewBag.Active = "Transactions";
+}
+@using (Html.BeginForm("Create", "Journal", FormMethod.Post, new { id = "recform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Journal</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Journal"))
+                    {
+                        <a class="btn bg-black no-border" href="/Journal/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Journal List"))
+                {
+                    <a class="btn btn-success no-border" href="/Journal">
+                        <i class="fa fa-fw fa-history"></i> Journal List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 2 })
+                    </div>
+                </div>
+
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.PayFrom, new { @class = "control-label" }) *
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.PayFrom, (SelectList)ViewBag.list, new { id = "ddlpayfrom", @class = "form-control select2", @required = "required", tabindex = 5 })
+                       @if (User.IsInRole("Dev") || User.IsInRole("Create Expense Account"))
+                       {
+                         <span class="input-group-btn">
+                            <button type="button" href="/Accounts/Create" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                       }
+                    </div>
+                        <div id="accbalance" class="form-group acdet" style="display:none">
+                            <div class="input-group input-group-sm">
+                                <label class="text-danger" id="accdetails"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.PayTo, new { @class = "control-label" }) *
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.list, new { id = "ddlpayto", @class = "form-control select2", @required = "required", tabindex = 7 })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Expense Account"))
+                        {
+                        <span class="input-group-btn">
+                            <button type="button" href="/Accounts/Create" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                        }
+                        </div>
+                        <div id="accbalanceto" class="form-group acdet" style="display:none">
+                            <div class="input-group input-group-sm">
+                                <label class="text-danger" id="accdetailsto"></label>
+                            </div>
+                        </div>
+                    </div>
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive hight-250" id="invoice"><hr /></div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Remarks", tabindex = 9, rows = 6 })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group col-md-12 no-paddingleft">
+                            @Html.LabelFor(model => model.Paying, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Paying, new { htmlAttributes = new { @id = "Paying", @class = "form-control text-right", @value = "0.00", tabindex = 11 } })
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <hr />
+                    <div class="form-group pull-right">
+                        <input type="hidden" value="" name="submittype" id="submittype" />
+                        <button type="submit" id="save" class="btn btn-info" tabindex="13">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                        </button>
+                        <button type="submit" id="print" class="btn btn-success" tabindex="14">
+                            <span class="glyphicon glyphicon-print"></span> Save And Print
+                        </button>
+                        <button type="button" tabindex="15" class="btn btn-warning" onclick="@("window.location.href='/Journal/Index'");">Cancel</button>
+                        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@Html.Partial("_Voucher")
+
+@Html.Partial("../Common/_ModalCreate")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/Journal")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            JournalFromTo();
+            //$('#ddlpayfrom').val(null).trigger('change');
+            //$('#ddlpayto').val(null).trigger('change');
+
+
+        });
+        // on change function of payto
+        $('body').on('change', '#ddlpayfrom', function (e) {
+            var accid = $(this).val();
+            accbalance(accid);
+            CheckFromToAcc();
+        });
+
+        // on change function of payto
+        $('body').on('change', '#ddlpayto', function (e) {
+            var accid = $(this).val();
+            accbalanceto(accid);
+            CheckFromToAcc();
+        });
+
+        $('#recform').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#recform").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                $('#submittype').val(fnval);
+                formsubmition(fnval);
+            }
+        });
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        
+    </script>
+}

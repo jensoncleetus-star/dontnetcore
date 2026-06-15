@@ -1,0 +1,94 @@
+@model QuickSoft.ViewModel.AttendanceTypeViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Attendance Type</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("UpdateAttType", "AttendanceType", FormMethod.Post, new { id = "editform" }))
+    {
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                @Html.HiddenFor(model => model.id)
+                <div class="form-group">
+                    @Html.Label("Name", null, new { @class = "control-label col-sm-4" })
+                    @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control", @required = "true" } })
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Group, new { @class = "control-label col-sm-4" })
+                    @Html.DropDownListFor(m => m.Group, (SelectList)ViewBag.GroupType, new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group">
+                    @Html.Label("Leave Type", null, htmlAttributes: new { @class = "control-label " })
+                    @Html.DropDownListFor(m => m.Type, (SelectList)ViewBag.AtType, new { @onchange = "Typechange();", @class = "form-control input-sm", @required = "true" })
+                </div>
+                <div class="form-group" id="PType">
+                    @Html.Label("Period Type", null, htmlAttributes: new { @class = "control-label " })
+                    @Html.EditorFor(model => model.PeriodType, new { htmlAttributes = new { @class = "form-control", @Value = "Days", @readonly = "readonly" } })
+                </div>
+                <div class="form-group" id="unt">
+                    @Html.Label("Unit", null, new { @class = "control-label col-sm-4" })
+                    @Html.DropDownListFor(m => m.Unit, (SelectList)ViewBag.uni, "", new { id = "ddlfirst", @class = "form-control select2" })
+                </div>
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-info col-sm-offset-4">Update</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        $('#unt').hide();
+        $('#PType').hide();
+        $("#ddlfirst").select2({
+            placeholder: 'Search by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/PayrollUnit/SearchSecondUnit",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "empty",
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+        Typechange();
+    });
+    function Typechange() {
+        var ty = $('#Type').val();
+        if ( ty== "3") {
+            $('#PType').hide();
+            $('#unt').show();
+        }
+        else {
+            $('#unt').hide();
+            $('#PType').show();
+        }
+    }
+</script>
+
+

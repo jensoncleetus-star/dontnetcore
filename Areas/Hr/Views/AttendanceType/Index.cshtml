@@ -1,0 +1,163 @@
+﻿@model QuickSoft.Models.AttendanceType
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Attendance Type List";
+    ViewBag.Active = "Payroll Settings";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Attendance Type</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create AttendanceType"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/Hr/AttendanceType/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">#</td>
+                    <td data-priority="2">Name</td>
+                    <td data-priority="2">Group</td>
+                    <td data-priority="2">Leave Type</td>
+                    <td data-priority="2">Period Type</td>
+                    <td data-priority="2">Unit</td>
+                    <td data-priority="5">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#comp').hide();
+        });
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+
+            "ajax": {
+                "url": '/AttendanceType/GetAttType',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{ orderable: false, targets: -1 }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Name", "name": "Name" },
+                 {
+                     "data": "Group", "name": "Group", "render": function (data) {
+                         return 'Primary';
+                     }
+                 },
+                 {
+                     "data": "Type", "name": "Type", "render": function (data) {
+                         if (data == 1) {
+                             return 'Attendance /Leave with Pay';
+                         }
+                         else if (data == 2) {
+                             return 'Leave without Pay';
+                         }
+                         else if (data == 3) {
+                             return 'Production';
+                         }
+                         else {
+                             return 'User Defined Calender Type';
+                         }
+                     }
+                 },
+                 { "data": "PeriodType", "name": "PeriodType" },
+                 { "data": "Unit", "name": "Unit" },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         if (data.Status == 0) {
+                             @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit AttendanceType"))
+                                    {
+                                      actData += "<a class=\"modal-edit\" href=\"/Hr/AttendanceType/Edit/'+ data.id +'\" title=\"Edit Attendance Type\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                    }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete AttendanceType"))
+                                  {
+                                      actData += "<a class=\"modal-delete\" href=\"/Hr/AttendanceType/Delete/'+ data.id +'\" title=\"Delete Attendance Type\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                             return rest = '@Html.Raw(actData)';
+                         } else { return "";}
+                         
+                     }
+                 },
+            ]
+        });
+
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+    </script>
+}

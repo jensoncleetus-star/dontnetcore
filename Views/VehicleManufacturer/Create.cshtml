@@ -1,0 +1,69 @@
+
+@model QuickSoft.Models.VehicleManufacturer
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Manufacturer</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Create", "VehicleManufacturer", FormMethod.Post, new { id = "createform" }))
+    {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.Label("Vehicle Type", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownList("VTyId", (SelectList)ViewBag.VehicleType, "", new { id = "ddlVehicleType", @class = "form-control select2" })
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Manufacturer, htmlAttributes: new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.Manufacturer, new { htmlAttributes = new { @class = "form-control", autofocus = "autofocus", @placeholder = "Enter Vehicle Manufacturer", @required = "required" } })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" value="Save" class="btn btn-info col-sm-offset-4" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+}
+<script>
+    $("#ddlVehicleType").select2({
+        placeholder: 'Select Vehicle Type',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/VehicleManufacturer/SearchVehicleType",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term,
+                    page: params.page,
+                    x: " Select Vehicle Type"
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 1;
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+    });
+</script>

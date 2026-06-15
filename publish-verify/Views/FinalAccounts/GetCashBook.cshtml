@@ -1,0 +1,279 @@
+﻿@model QuickSoft.ViewModel.LedgerViewModel
+@{
+    ViewBag.Title = "Search Cash/Bank Book";
+    ViewBag.SubTitle = "Cash/Bank Book";
+    ViewBag.Active = "Accounts";
+    decimal blnc = Model.OpeningBalance;
+    var sl = 0;
+    string balance = "";
+    var colspan = 10;
+    var AccName = Model.MainAccount;
+    decimal Rec = 0;
+    decimal Pay = 0;
+}
+
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Cash/Bank Book</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="fromdate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))" />
+            <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))" />
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr>
+                        @if (Model.MainAccountID != -1)
+                        {
+                            <td colspan="5">
+                                Account: @Model.MainAccount
+                            </td>
+                        }
+                        else
+                        {
+                            colspan = 10;
+                            <td colspan="5">
+                                Account Group: @Model.MainAccount
+                            </td>
+
+                        }
+                        <td colspan="4">
+                            From : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))  - To : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="@colspan">
+                            Opening Bal: @Math.Abs(Model.OpeningBalance) @Model.blnceType
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Date</td>
+                        @if (Model.MainAccountID == -1)
+                        {
+                            <td>Particulars</td>
+                        }
+                        <td>Vch/Bill No</td>
+                        <td>Type</td>
+                        <td>Account</td>
+                        <td>Receipt(AED)</td>
+                        <td>Payment(AED)</td>
+                        @*<td>Balance(AED)</td>*@
+                        <td>Remark</td>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @foreach (var item in Model.Ledger)
+                    {
+                        balance = "";
+                        var debit = (item.Debit != 0) ? item.Debit : null;
+                        var Credit = (item.Credit != 0) ? item.Credit : null;
+
+                        if (Credit != null)
+                        {
+                            blnc = blnc + (item.Credit ?? 0);
+                        }
+                        else
+                        {
+                            blnc = blnc - (item.Debit ?? 0);
+                        }
+                        if (blnc > 0)
+                        {
+                            balance = Math.Abs(blnc) + " Cr.";
+                        }
+                        else
+                        {
+                            balance = Math.Abs(blnc) + " Dr.";
+                        }
+                        sl++;
+                        Rec = Rec + Convert.ToDecimal(debit);
+                        Pay = Pay + Convert.ToDecimal(Credit);
+
+                        <tr>
+                            <td>@sl</td>
+                            <td>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", item.Date))</td>
+                            @if (Model.MainAccountID == -1)
+                            {
+                                <td>@Html.DisplayFor(m => item.particulars)</td>
+                            }
+                            <td>@Html.DisplayFor(m => item.Invoice)</td>
+                            <td>@Html.DisplayFor(m => item.Type)</td>
+                            <td>@Html.DisplayFor(m => item.RAccount)</td>
+                            <td>@debit </td>
+                            <td>@Credit</td>                            
+                            <td>@Html.DisplayFor(m => item.Remark)</td>
+                        </tr> 
+                        
+                    }
+                    <tr>
+                        <td><b>Total</b></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><b>@Rec</b></td>
+                        <td><b>@Pay</b></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        @if (Model.MainAccountID == -1)
+                        {
+                            <td></td>
+                        }
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><b>Closing Balance</b></td>
+                        <td><b>@balance</b></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                "order": [[0, "asc"]],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                 {
+                     extend: 'print',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Cash/Bank Book';
+                     },
+                     message: function () {
+                         var head = '<table class="tblcompact table table-bordered"><thead>' +
+                         ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Cash/Bank Book</h4></th></tr>' +
+                         '<tr><th><span class="text-left"></span><span class="text-right pull-right"> Account :  ' + '@AccName' + '</span></th></tr></thead></tr>' +
+                         ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                         return head;
+                     },
+                     customize: function (win) {
+
+                         $(win.document.body).find('table, th,tr, td ')
+                            // .css('border', 'inherit')
+                             .css('font-size', '10pt')
+                             .css('padding', '5px')
+                             .addClass('compact');
+                         $(win.document.body).append('</td></tr></tbody>')
+
+                     }
+                 }, 'copy', 'csv', //'excel',
+                 {
+                     extend: 'excel',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Cash/Bank Book';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Cash/Bank Book\n' +
+                           ' Account : ' + '@AccName' + '\n' +
+                          'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                         return head;
+                     },
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: ':visible'
+                     },
+                 },
+                 {
+                     extend: 'pdf',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Cash/Bank Book';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Cash/Bank Book\n' +
+                          ' Account : ' + '@AccName' + '\n' +
+                          'From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '';
+                         return head;
+                     },
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: ':visible'
+                     },
+                     customize: function (doc) {
+                         doc.styles['td:nth-child(2)'] = {
+                             width: '100px',
+                             'max-width': '100px'
+                         }
+                         doc.pageMargins = [10, 10, 10, 10];
+                         doc.defaultStyle.fontSize = 10;
+                         doc.styles.tableHeader.fontSize = 10;
+                         doc.styles.title.fontSize = 12;
+                         // Header font and bg color
+                         doc.styles.tableHeader.fillColor = '#d3d3d3';
+                         doc.styles.tableHeader.color = 'black';
+                         // Remove spaces around page title
+                         doc.content[0].text = doc.content[0].text.trim();
+
+                         //doc.content[1].table.widths = [
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //]
+
+                         var objLayout = {};
+                         // Horizontal line thickness
+                         objLayout['hLineWidth'] = function (i) { return .5; };
+                         // Vertikal line thickness
+                         objLayout['vLineWidth'] = function (i) { return .5; };
+                         //// Horizontal line color
+                         //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                         //// Vertical line color
+                         //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                         // Left padding of the cell
+                         objLayout['paddingLeft'] = function (i) { return 4; };
+                         // Right padding of the cell
+                         objLayout['paddingRight'] = function (i) { return 4; };
+                         // Inject the object in the document
+                         doc.content[1].layout = objLayout;
+                         // Footer font and bg color
+                         doc.styles.tableFooter.fillColor = '#d3d3d3';
+                         doc.styles.tableFooter.color = 'black';
+                     }
+
+                 },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip"
+            });
+        });
+    </script>
+}
+
+
+
+

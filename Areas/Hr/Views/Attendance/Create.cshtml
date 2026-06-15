@@ -1,0 +1,315 @@
+@model QuickSoft.ViewModel.AttendanceViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Attendance";
+    ViewBag.Active = "Payroll";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("CreateAttendance", "Attendance", FormMethod.Post, new { id = "createForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Create Attendance</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Attendance List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/Attendance">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.AtDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="row">
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Branch", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                        </div>
+                    </div>
+                }
+               
+            </div>
+            <div class="row">
+                <div class="col-sm-2 form-group">
+                    <button type="button" href="/Hr/Attendance/AutoFill" class="modal-create btn btn-primary"><i class="fa fa-1x fa-plus-circle"></i> Auto Fill</button>
+                </div>
+                <div class="col-sm-2 form-group">
+                    <input type="file" id="excelfile" />
+                    <input type="button" id="upexcel" class="btn btn-primary btn-xs" value="Attendance Excel Upload" onclick="ExportToTable()" />
+                    <input type="button" id="dwformat" class="btn btn-default btn-xs" value="Download Format" />
+                    <div class="pull-right info">
+                        <i class="fa fa-question-circle" aria-hidden="true"></i>
+                        <div class="callout callout-danger info-msg">
+                            <ul>
+                                <li>Maximum Number of Item on an Excel Sheet is '100'</li>
+                                <li>Employee And Attendance Type is Mandatory</li>
+                                <li>All Fields Are Case Sensitive</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Employee <i class="text-danger">*</i></th>
+                                <th class="text-center">Emp Code</th>
+                                <th class="text-center">Attendance Type <i class="text-danger">*</i></th>
+                                <th class="text-center">Current Balance</th>
+                                <th class="text-center">Value</th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addempitem"></tbody>
+                        <tfoot>
+                        </tfoot>
+                    </table>
+                </div>
+
+            <div class="col-md-12 pull-right">
+                <div class="form-group">
+                    @Html.Label("Note", null, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm textarea", rows = 8 })
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                </div>
+                
+                <div class="form-group pull-right">
+                    <button type="submit" id="save" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                    </button>
+
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Hr/Attendance/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@{
+    var Modelv = "modal-lg";
+}
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/attendance")
+    @Scripts.Render("~/js/sheetjs")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            addempitem('addempitem', "", "", "", "", "", "", "","");
+
+        });
+
+
+        /* function for Create popup */
+
+        $('table').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+
+            //Attendance type validation
+            var tbody = $("#normalinvoice tbody");
+            var chkcount = 0;
+            var length = tbody.children().length-1;
+            if (tbody.children().length > 0) {
+                tbody.children("tr").each(function () {
+                    var rowid = $(this).attr("id");
+                    var rowclass = $(this).attr("class");
+                    var item = $("#" + rowid + " .AtType").val();
+                    if (rowclass != "emp_" && (item == null || item == "")) {
+                        chkcount++;
+                    }
+                });
+            }
+            if (length == chkcount || ((length - chkcount) != length)) {
+                alert("Please Select Attendance Type..!!");
+            } else {
+
+                if ($("#createForm").valid()) {
+                    var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                    if ($("#createForm").valid()) {
+                        AttendanceSubmit(fnval);
+                    }
+                    else {
+                        $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+                    }
+                }
+            }
+        });
+
+        $("#dwformat").click(function () {
+            window.location.href = '@Url.Action("DownloadExcel", "Attendance")';
+        });
+        function ExportToTable() {
+
+            $("#chkexcel").val("true");
+            //var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;
+            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+            /*Checks whether the file is a valid excel file*/
+            if (regex.test($("#excelfile").val())) {
+                // if (regex.test($("#excelfile").val().toLowerCase())) {
+                var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
+                if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
+                    xlsxflag = true;
+                }
+                /*Checks whether the browser supports HTML5*/
+                if (typeof (FileReader) != "undefined") {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        ///*Converts the excel data in to object*/
+                        var data = new Uint8Array(reader.result);
+
+                        //if (xlsxflag) {
+                        var workbook = XLSX.read(data, { type: 'array' });
+                        //}
+                        //else {
+                        //    var workbook = XLS.read(data, { type: 'array' });
+                        //}
+                        /*Gets all the sheetnames of excel in to a variable*/
+                        var sheet_name_list = workbook.SheetNames;
+                        var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
+                        sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
+                            /*Convert the cell value to Json*/
+                            //if (xlsxflag) {
+                            var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y], { defval: '' })
+                            //}
+                            //else {
+                            //    var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
+                            //}
+
+                            if (exceljson.length > 0 && cnt == 0) {
+                                BindTable(exceljson, '#exceltable');
+                                cnt++;
+                            }
+                        });
+                        $('#exceltable').show();
+                    }
+                    if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
+                        reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+                    }
+                    else {
+                        reader.readAsBinaryString($("#excelfile")[0].files[0]);
+                    }
+                }
+                else {
+                    alert("Sorry! Your browser does not support HTML5!");
+                }
+            }
+            else {
+                alert("Please upload a valid Excel file!");
+            }
+        }
+        var excelcount = 0;
+        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
+            var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/
+            var data = [];
+            $('#addempitem').html('');
+            $.each(jsondata, function (i, item1) {
+                //console.log(item1);
+                var EmpName = ((typeof item1.EmployeeName === "undefined") ? "" : item1.EmployeeName);
+                var EmpCode = ((typeof item1.EmployeeCode === "undefined") ? "" : item1.EmployeeCode);
+                var AttType = ((typeof item1.AttendanceType === "undefined") ? "" : item1.AttendanceType);
+                var Value = ((typeof item1.Value === "undefined") ? "" : item1.Value);
+                var Unit = ((typeof item1.Unit === "undefined") ? "" : item1.Unit);
+
+
+                if (EmpName != "" && excelcount < 100) {
+                    addempitem('addempitem', '', EmpName, '', AttType, '', Value, Unit, EmpCode);
+                    excelcount++;
+                }
+            })
+            addempitem('addempitem', "", "", "", "", "", "", "", "");
+
+        }
+
+        function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/
+            var columnSet = [];
+            var headerTr$ = $('<tr />');
+            for (var i = 0; i < jsondata.length; i++) {
+                var rowHash = jsondata[i];
+                for (var key in rowHash) {
+                    if (rowHash.hasOwnProperty(key)) {
+                        if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/
+                            columnSet.push(key);
+                            headerTr$.append($('<th />').html(key));
+                        }
+                    }
+                }
+            }
+            $(tableid).append(headerTr$);
+            return columnSet;
+        }
+    </script>
+}
+
