@@ -612,6 +612,11 @@ namespace QuickSoft.Models
         public DbSet<Maintenance> Maintenances { get; set; }
         public DbSet<RentalProforma> RentalProformas { get; set; }
 
+        // Real-Estate advanced features (additive, isolated):
+        public DbSet<PropertyRentReceipt> PropertyRentReceipts { get; set; }
+        public DbSet<PropertyReminderLog> PropertyReminderLogs { get; set; }
+        public DbSet<PropertyMaintenanceTask> PropertyMaintenanceTasks { get; set; }
+
         public DbSet<PropertyDocumentType> PropertyDocumentTypes { get; set; }
 
         public DbSet<ContractType> ContractTypes { get; set; }

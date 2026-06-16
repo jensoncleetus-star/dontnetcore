@@ -103,6 +103,37 @@
     }
 </style>
 
+<script>document.addEventListener('DOMContentLoaded', function () { document.body.classList.add('bosx-supplier-list'); document.body.classList.add('bosx-customer-list'); });</script>
+@* BOS: supplier hub header + live metric cards (additive; no grid/data/function change) *@
+<div class="bosx-cust-hero">
+    <div class="bosx-hero-left">
+        <div class="bosx-hero-title">Suppliers</div>
+        <div class="bosx-hero-sub">Your complete supplier directory</div>
+    </div>
+    <div class="bosx-hero-actions">
+        @if (User.IsInRole("Dev") || User.IsInRole("Create Supplier"))
+        {
+            <a class="bosx-hero-btn" href="/Supplier/Create"><i class="fa fa-plus"></i> New supplier</a>
+        }
+    </div>
+</div>
+<div class="bosx-metrics">
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-indigo"><i class="fa fa-truck"></i></span><div class="bosx-metric-val" id="bosxSupTotal">&mdash;</div><div class="bosx-metric-lbl">Total suppliers</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-green"><i class="fa fa-plus-circle"></i></span><div class="bosx-metric-val" id="bosxSupMonth">&mdash;</div><div class="bosx-metric-lbl">Added this month</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-amber"><i class="fa fa-calendar-o"></i></span><div class="bosx-metric-val" id="bosxSupYear">&mdash;</div><div class="bosx-metric-lbl">Added this year</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-blue"><i class="fa fa-credit-card"></i></span><div class="bosx-metric-val" id="bosxSupCredit">&mdash;</div><div class="bosx-metric-lbl">On credit terms</div></div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/Supplier/SupplierStats').then(function (r) { return r.json(); }).then(function (d) {
+            function set(id, n) { var e = document.getElementById(id); if (e) { e.textContent = (n == null ? 0 : n).toLocaleString(); } }
+            set('bosxSupTotal', d.total != null ? d.total : d.Total);
+            set('bosxSupMonth', d.thisMonth != null ? d.thisMonth : d.ThisMonth);
+            set('bosxSupYear', d.thisYear != null ? d.thisYear : d.ThisYear);
+            set('bosxSupCredit', d.onCredit != null ? d.onCredit : d.OnCredit);
+        }).catch(function () { });
+    });
+</script>
 <div class="box box-info">
     <div class="box-header with-border">
         <h3 class="box-title">Suppliers</h3>
@@ -116,7 +147,16 @@
             }
         </div>
 
-        <div class="row">
+        @* BOS: clean filter bar (search + Open/Close + Filters), matching the Customer list. Legacy filter below is hidden, revealed by Filters. *@
+        <div class="bosx-filterbar" id="bosxSupFilterbar">
+            <div class="bosx-search">
+                <i class="fa fa-search"></i>
+                <input type="text" id="bosxSupSearch" placeholder="Search name, code or TRN…" autocomplete="off" />
+            </div>
+            <div class="bosx-fb-slot" id="bosxSupOpnSlot"></div>
+            <button type="button" class="bosx-fb-filters" id="bosxSupFiltersBtn"><i class="fa fa-sliders"></i><span>Filters</span></button>
+        </div>
+        <div class="row" id="bosxSupLegacyFilter" style="display:none;">
             <div class="col-md-2">
                 <div id="list1" class="dropdown-check-list" tabindex="100">
                     <span class="anchor" style="z-index:0;">Select Fields</span>
@@ -300,11 +340,11 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
                                 //datas = "'<a href=\"/Supplier/Details/'+ data.id +'\">'+ data.SupplierName +'</a>' ";
                                 if (User.IsInRole("Dev") || User.IsInRole("View Supplier"))
                                 {
-                                    datas = "'<a href=\"/Supplier/Details/'+ data.id +'\">'+ data.SupplierName +'</a>' ";
+                                    datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.SupplierName||'').substring(0,2).toUpperCase() +'</span><div class=\"bosx-cust-tx\"><a href=\"/Supplier/Details/'+ data.id +'\">'+ data.SupplierName +'</a><div class=\"bosx-cust-code\">#'+ (data.SupplierCode||'') +'</div></div></div>' ";
                                 }
                                 else
                                 {
-                                    datas = "data.SupplierName";
+                                    datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.SupplierName||'').substring(0,2).toUpperCase() +'</span><div class=\"bosx-cust-tx\"><span class=\"bosx-c-name\">'+ data.SupplierName +'</span><div class=\"bosx-cust-code\">#'+ (data.SupplierCode||'') +'</div></div></div>' ";
                                 }
                             }
                          return @Html.Raw(datas);
@@ -318,12 +358,15 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
                          var datas = "";
                          $.each(data.mobmodel, function (i, item) {
                              if (item.Num != null) {
-                                 if (datas != "") {
-                                     datas += "<br> ";
-                                 }
-                                 datas += item.Name + '<br>';
-                                 datas += '<a href="tel:' + item.Num + '">' + item.Num + '</a>' + '<br>';
-                                 datas += item.emails + '<br>';
+                                 var numorg = "971" + item.Num.replace("+971", "").replace("971", "").replace(" ", "");
+                                 var numShow = item.Num.replace("+971+971", "+971").replace("+5", "+9715");
+                                 datas += '<div class="bosx-contact"><div class="bosx-c-head">';
+                                 datas += '<a class="bosx-c-wa" href="https://wa.me/' + numorg + '" target="_blank" title="WhatsApp"><i class="fa fa-whatsapp" aria-hidden="true"></i></a>';
+                                 if (item.Name != null && item.Name != "") { datas += '<span class="bosx-c-name">' + item.Name + '</span>'; }
+                                 datas += '</div><div class="bosx-c-meta">';
+                                 datas += '<a class="bosx-c-tel" href="tel:' + numShow + '"><i class="fa fa-phone"></i>' + numShow + '</a>';
+                                 if (item.emails != null && item.emails != "" && item.emails != "null") { datas += '<a class="bosx-c-mail" href="mailto:' + item.emails + '" title="' + item.emails + '"><i class="fa fa-envelope-o"></i>' + item.emails + '</a>'; }
+                                 datas += '</div></div>';
                              }
                          });
                          return datas;
@@ -496,6 +539,20 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
         column2.visible(false);
         column2 = oTable.column(7);
         column2.visible(false);
+        // BOS: clean grid — hide S/N, code, TRN, credit limit/period, opening balance, last-updated (match Customer hub)
+        oTable.column(0).visible(false); oTable.column(1).visible(false); oTable.column(3).visible(false);
+        oTable.column(8).visible(false); oTable.column(9).visible(false); oTable.column(10).visible(false);
+        oTable.column(12).visible(false);
+        // BOS: clean filter bar — relocate Open/Close, wire search + Filters toggle (grid has filter:true so .search() works)
+        (function () {
+            var $opn = $('#searchOpnCls');
+            if ($opn.length) { $opn.appendTo('#bosxSupOpnSlot').removeAttr('hidden').css('display', 'block'); }
+            $('#bosxSupOpnSlot .control-label').hide();
+            var _t;
+            $('#bosxSupSearch').on('input', function () { var v = this.value; clearTimeout(_t); _t = setTimeout(function () { try { oTable.search(v).draw(); } catch (e) { } }, 350); });
+            $('#ddlOpnCls').on('change', function () { try { oTable.draw(); } catch (e) { } });
+            $('#bosxSupFiltersBtn').on('click', function () { $('#bosxSupLegacyFilter').slideToggle(150); $(this).toggleClass('active'); });
+        })();
         function reload_table() {
             oTable.clear().draw();
             oTable.ajax.reload(null, false); //reload datatable ajax

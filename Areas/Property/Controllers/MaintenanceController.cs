@@ -102,7 +102,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = UserView.Count();
             var data = UserView.Skip(skip).Take(pageSize).ToList();
@@ -993,8 +993,81 @@ namespace QuickSoft.Areas.Property.Controllers
             //var billno = RecDet.VoucherNo;
             //SendMail sm = new SendMail();
             //byte[] ms = sm.DownloadPdf(generatePdf(id), HFCheck);
-            //return File(ms, "application/pdf", "Receipt Voucher" + "-" + billno + ".pdf");           
+            //return File(ms, "application/pdf", "Receipt Voucher" + "-" + billno + ".pdf");
 
+        }
+
+        // Custom branded, print-ready Maintenance Contract document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            // single record -> materialize via .Select(...).FirstOrDefault()
+            var m = db.Maintenances.Where(x => x.ID == id)
+                .Select(x => new
+                {
+                    x.ID, x.VoucherNo, x.Date, x.Property, x.Contractor, x.Amount,
+                    x.StartDate, x.EndDate, x.PaymentType, x.ContractType,
+                    x.Note, x.Remark, x.TermsCondition, x.CreatedDate
+                }).FirstOrDefault();
+            if (m == null) return NotFound();
+
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            long propId = m.Property;
+            var prop = db.PropertyMains.Where(p => p.Id == propId)
+                         .Select(p => new { p.Name, p.Code, p.City, p.State, p.Address }).FirstOrDefault();
+
+            // Contractor (service provider) + contact via LEFT JOIN (into x from y in x.DefaultIfEmpty())
+            long conId = m.Contractor;
+            var contractor = (from c in db.Contractors
+                              where c.ContractorID == conId
+                              join ct in db.Contacts on c.Contact equals ct.ContactID into cc
+                              from ct in cc.DefaultIfEmpty()
+                              select new { c.ContractorName, c.ContractorCode, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
+
+            long ctId = m.ContractType ?? 0;
+            var contractTypeName = db.ContractTypes.Where(t => t.ID == ctId).Select(t => t.Name).FirstOrDefault();
+
+            // related lists -> materialize via .Select(...).ToList()
+            var cheques = db.Cheques.Where(ab => ab.Reference == m.ID && ab.Purpose == "Maintenance")
+                            .Select(ab => new { ab.ChequeNo, ab.Amount, ab.Date }).ToList();
+            var fields = (from a in db.AdditionalFieldDatas
+                          join b in db.AdditionalFields on a.Field equals b.ID into ff
+                          from b in ff.DefaultIfEmpty()
+                          where a.Reference == m.ID && a.Purpose == "Maintenance"
+                          select new { name = b.Name, data = a.Name }).ToList();
+
+            ViewBag.Id = m.ID;
+            ViewBag.Code = string.IsNullOrWhiteSpace(m.VoucherNo) ? ("MC-" + m.ID) : m.VoucherNo;
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+            ViewBag.PropName = prop != null ? prop.Name : "-";
+            ViewBag.PropCode = prop != null ? (prop.Code ?? "") : "";
+            ViewBag.PropAddr = prop == null ? "" : ((prop.Address ?? "") + " " + (prop.City ?? "") + " " + (prop.State ?? "")).Trim();
+            ViewBag.ContractorName = contractor != null ? (contractor.ContractorName ?? "-") : "-";
+            ViewBag.ContractorCode = contractor != null ? (contractor.ContractorCode ?? "") : "";
+            ViewBag.ContractorContact = contractor == null ? "" : (((contractor.Mobile ?? contractor.Phone) ?? "") + (string.IsNullOrEmpty(contractor.EmailId) ? "" : "  ·  " + contractor.EmailId));
+            ViewBag.ContractorAddr = contractor != null ? (contractor.Address ?? "") : "";
+            ViewBag.IssueDate = m.Date.ToString("dd MMM yyyy");
+            ViewBag.StartDate = string.IsNullOrWhiteSpace(m.StartDate) ? "-" : m.StartDate;
+            ViewBag.EndDate = string.IsNullOrWhiteSpace(m.EndDate) ? "-" : m.EndDate;
+            ViewBag.Amount = m.Amount.ToString("#,##0.00");
+            ViewBag.ContractType = string.IsNullOrWhiteSpace(contractTypeName) ? "-" : contractTypeName;
+            ViewBag.PaymentMode = (m.PaymentType == 1) ? "Cash" : "Cheque";
+            ViewBag.TnC = m.TermsCondition ?? "";
+            ViewBag.Note = m.Note ?? "";
+            ViewBag.Remark = m.Remark ?? "";
+            ViewBag.Cheques = System.Text.Json.JsonSerializer.Serialize(
+                cheques.Select(x => new { no = x.ChequeNo ?? "-", amt = x.Amount.ToString("#,##0.00"), date = x.Date.ToString("dd-MM-yyyy") }).ToList());
+            ViewBag.Fields = System.Text.Json.JsonSerializer.Serialize(
+                fields.Select(x => new { name = x.name ?? "-", data = x.data ?? "-" }).ToList());
+            return View();
         }
 
         public StringBuilder generatePdf(long id)

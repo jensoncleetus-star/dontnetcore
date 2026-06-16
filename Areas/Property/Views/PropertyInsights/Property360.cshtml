@@ -1,0 +1,77 @@
+@{
+    ViewBag.Title = "Property 360";
+    ViewBag.Active = "Master";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+    decimal net = 0; decimal.TryParse(Convert.ToString(ViewBag.Net), out net);
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#4338ca,#6366f1 55%,#818cf8)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-building"></i></div>
+            <div><h1>Property 360</h1><p>Everything about one property — units, contracts, maintenance &amp; documents</p></div>
+        </div>
+        <div class="rfi-hero-r"><select id="propPick" class="rfi-pick"></select></div>
+    </div>
+
+    <div class="rfi-info">
+        <div><span>Property</span><b>@ViewBag.PName</b></div>
+        <div><span>Code</span><b>@ViewBag.PCode</b></div>
+        <div><span>Type</span><b>@ViewBag.PType</b></div>
+        <div><span>Location</span><b>@ViewBag.PCity</b></div>
+        <div><span>Landlord</span><b>@ViewBag.PLandlord</b></div>
+        <div><span>Address</span><b>@ViewBag.PAddress</b></div>
+    </div>
+
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Units</span><span class="rfi-num">@ViewBag.TotUnits</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Occupied</span><span class="rfi-num pos">@ViewBag.Occupied</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Vacant</span><span class="rfi-num neg">@ViewBag.Vacant</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Income</span><span class="rfi-num pos">@money(ViewBag.Income)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Expense</span><span class="rfi-num neg">@money(ViewBag.Expense)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Net</span><span class="rfi-num @(net>=0?"pos":"neg")">@money(ViewBag.Net)</span><span class="rfi-sub">AED</span></div>
+    </div>
+
+    <div class="rfi-grid2">
+        <div class="rfi-card">
+            <h3><i class="fa fa-th-large"></i> Units</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Unit</th><th>Type</th><th class="r">Rent</th><th class="c">Status</th></tr></thead><tbody id="p3Units"></tbody></table></div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-file-text-o"></i> Tenancy Contracts</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Tenant</th><th>Unit</th><th>End</th><th class="r">Rent</th><th></th></tr></thead><tbody id="p3Contracts"></tbody></table></div>
+        </div>
+    </div>
+    <div class="rfi-grid2">
+        <div class="rfi-card">
+            <h3><i class="fa fa-wrench"></i> Maintenance History</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Contractor</th><th>Voucher</th><th>Date</th><th class="r">Amount</th></tr></thead><tbody id="p3Maint"></tbody></table></div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-id-card"></i> Documents</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Document</th><th>Purpose</th><th>Expiry</th></tr></thead><tbody id="p3Docs"></tbody></table></div>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+  var props=@Html.Raw(ViewBag.Properties ?? "[]"), sel=@(ViewBag.SelectedId ?? 0);
+  var units=@Html.Raw(ViewBag.Units ?? "[]"), contracts=@Html.Raw(ViewBag.Contracts ?? "[]"), maint=@Html.Raw(ViewBag.Maint ?? "[]"), docs=@Html.Raw(ViewBag.Docs ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var pk=document.getElementById('propPick');
+  pk.innerHTML=props.map(function(p){return '<option value="'+p.id+'"'+(p.id==sel?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+  pk.addEventListener('change',function(){window.location.href='/Property/PropertyInsights/Property360?id='+this.value;});
+  document.getElementById('p3Units').innerHTML = units.length ? units.map(function(u){
+    return '<tr><td><b>'+esc(u.name)+'</b> <span class="rfi-mut">'+esc(u.code)+'</span></td><td>'+esc(u.type)+'</td><td class="r">'+m(u.rent)+'</td><td class="c">'+(u.occupied?'<span class="rfi-chip rd">Occupied</span>':'<span class="rfi-chip g">Vacant</span>')+'</td></tr>';
+  }).join('') : '<tr><td colspan="4" class="rfi-empty">No units</td></tr>';
+  document.getElementById('p3Contracts').innerHTML = contracts.length ? contracts.map(function(c){
+    return '<tr><td><b>'+esc(c.tenant)+'</b></td><td>'+esc(c.unit)+'</td><td>'+esc(c.end)+'</td><td class="r">'+m(c.rent)+'</td><td><a class="rfi-lk" href="/Property/TenancyContract/Edit/'+c.Id+'">Open</a></td></tr>';
+  }).join('') : '<tr><td colspan="5" class="rfi-empty">No contracts</td></tr>';
+  document.getElementById('p3Maint').innerHTML = maint.length ? maint.map(function(mn){
+    return '<tr><td>'+esc(mn.contractor)+'</td><td>'+esc(mn.voucher)+'</td><td>'+esc(mn.date)+'</td><td class="r neg">'+m(mn.amount)+'</td></tr>';
+  }).join('') : '<tr><td colspan="4" class="rfi-empty">No maintenance</td></tr>';
+  document.getElementById('p3Docs').innerHTML = docs.length ? docs.map(function(d){
+    return '<tr><td><b>'+esc(d.name)+'</b></td><td>'+esc(d.purpose)+'</td><td>'+esc(d.exp)+'</td></tr>';
+  }).join('') : '<tr><td colspan="3" class="rfi-empty">No documents</td></tr>';
+})();
+</script>

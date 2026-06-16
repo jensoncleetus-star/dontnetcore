@@ -1,0 +1,51 @@
+@{
+    ViewBag.Title = "Financial Trend";
+    ViewBag.Active = "Reports";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+    decimal net = 0; decimal.TryParse(Convert.ToString(ViewBag.TotNet), out net);
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#0f766e,#10b981 55%,#34d399)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-area-chart"></i></div>
+            <div><h1>Financial Trend</h1><p>Income vs expense over the last 8 months</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/ProfitLoss" class="rfi-btn"><i class="fa fa-line-chart"></i> P&amp;L</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">8-mo Income</span><span class="rfi-num pos">@money(ViewBag.TotIncome)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">8-mo Expense</span><span class="rfi-num neg">@money(ViewBag.TotExpense)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">8-mo Net</span><span class="rfi-num @(net>=0?"pos":"neg")">@money(ViewBag.TotNet)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Avg Income / mo</span><span class="rfi-num">@money(ViewBag.AvgIncome)</span><span class="rfi-sub">AED</span></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-bar-chart"></i> Monthly Income vs Expense</h3>
+        <div class="rfi-legend"><span><i class="dot" style="background:#10b981"></i> Income</span><span><i class="dot" style="background:#ef4444"></i> Expense</span></div>
+        <div id="ftChart" class="rfi-trend"></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-table"></i> Month-wise Breakdown</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Month</th><th class="r">Income</th><th class="r">Expense</th><th class="r">Net</th></tr></thead><tbody id="ftBody"></tbody></table></div>
+    </div>
+</div>
+<script>
+(function(){
+  var months=@Html.Raw(ViewBag.Months ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var max=1; months.forEach(function(x){max=Math.max(max,x.income,x.expense);});
+  document.getElementById('ftChart').innerHTML = months.map(function(x){
+    var ih=Math.round(x.income/max*100), eh=Math.round(x.expense/max*100);
+    return '<div class="rfi-tcol"><div class="rfi-tbars">'+
+      '<div class="rfi-tbar" style="height:'+ih+'%;background:linear-gradient(180deg,#34d399,#10b981)" title="Income '+m(x.income)+'"></div>'+
+      '<div class="rfi-tbar" style="height:'+eh+'%;background:linear-gradient(180deg,#f87171,#ef4444)" title="Expense '+m(x.expense)+'"></div>'+
+      '</div><div class="rfi-tlabel">'+esc(x.label)+'</div></div>';
+  }).join('');
+  document.getElementById('ftBody').innerHTML = months.map(function(x){
+    return '<tr><td><b>'+esc(x.label)+'</b></td><td class="r pos">'+m(x.income)+'</td><td class="r neg">'+m(x.expense)+'</td><td class="r '+(x.net>=0?'pos':'neg')+'"><b>'+m(x.net)+'</b></td></tr>';
+  }).join('');
+})();
+</script>

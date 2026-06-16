@@ -78,9 +78,9 @@ namespace QuickSoft.Areas.Property.Controller
                             where
                             (FromDate == "" || EF.Functions.DateDiffDay(a.CreatedDate, fdate) <= 0) &&
                               (ToDate == "" || EF.Functions.DateDiffDay(a.CreatedDate, tdate) >= 0) &&
-                            (Property==0||a.Property==Property)
-                            && (UnitType == 0 || a.UnitType==UnitType)
-                            && (Unit == 0 || a.Id == Unit)
+                            (Property==0||Property==null||a.Property==Property)
+                            && (UnitType == 0 || UnitType==null || a.UnitType==UnitType)
+                            && (Unit == 0 || Unit==null || a.Id == Unit)
                             select new
                             {
                                 id = a.Id,
@@ -90,12 +90,6 @@ namespace QuickSoft.Areas.Property.Controller
                                 a.Description,
                                 UnitType=b.Name,
                                 a.Code,
-                                feature = (from z in db.SelectedUnitFeatures
-                                           where z.Unit == a.Id
-                                           select new
-                                           {
-                                               z.Feature,
-                                           }).ToList(),
                             });
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
@@ -105,10 +99,17 @@ namespace QuickSoft.Areas.Property.Controller
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = UserView.Count();
-            var data = UserView.Skip(skip).Take(pageSize).ToList();
+            var pageRows = UserView.Skip(skip).Take(pageSize).ToList();
+            // attach Feature collection in memory (EF Core 10 can't translate the .ToList() projection once units have rows)
+            var uids = pageRows.Select(r => r.id).ToList();
+            var feats = db.SelectedUnitFeatures.Where(z => uids.Contains(z.Unit)).Select(z => new { z.Unit, z.Feature }).ToList();
+            var data = pageRows.Select(r => new {
+                r.id, r.Name, r.TnC, r.Property, r.Description, r.UnitType, r.Code,
+                feature = feats.Where(f => f.Unit == r.id).Select(f => new { f.Feature }).ToList()
+            }).ToList();
             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
 
         }

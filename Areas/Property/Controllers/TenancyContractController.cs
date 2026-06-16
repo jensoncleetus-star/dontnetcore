@@ -228,7 +228,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = UserView.Count();
             var data = UserView.Skip(skip).Take(pageSize).ToList();
@@ -2042,6 +2042,93 @@ namespace QuickSoft.Areas.Property.Controllers
             //SendMail sm = new SendMail();
             //byte[] ms = sm.DownloadPdf(generatePdf(id), HFCheck);
             //return File(ms, "application/pdf", "Receipt Voucher" + "-" + billno + ".pdf");
+        }
+
+        // Custom branded, print-ready Tenancy Contract document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            var c = db.TenancyContracts.Where(x => x.Id == id)
+                .Select(x => new
+                {
+                    x.Id, x.Code, x.Tenant, x.Property, x.Unit, x.StartDate, x.EndDate, x.issuedate,
+                    x.Rent, x.Deposit, x.Duration, x.Schedule, x.DueDate, x.PaymentType,
+                    x.contractvalue, x.NumberofOccupants, x.WaterAndElectricityBill, x.PetsAllowed,
+                    x.TnC, x.Remark, x.Note, x.CreatedDate
+                }).FirstOrDefault();
+            if (c == null) return NotFound();
+
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            long propId = c.Property ?? 0;
+            var prop = db.PropertyMains.Where(p => p.Id == propId)
+                         .Select(p => new { p.Name, p.Code, p.City, p.State, p.Address, p.LandlordID }).FirstOrDefault();
+            long llId = prop != null ? (prop.LandlordID ?? 0) : 0;
+            var landlord = (from l in db.Landlords
+                            where l.LandlordID == llId
+                            join ct in db.Contacts on l.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
+                            select new { l.LandlordName, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
+            long tnId = c.Tenant ?? 0;
+            var tenant = (from t in db.Tenants
+                          where t.TenantID == tnId
+                          join ct in db.Contacts on t.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
+                          select new { t.TenantName, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
+            var unitName = db.PropertyUnits.Where(u => u.Id == c.Unit).Select(u => u.Name).FirstOrDefault();
+            var durName = db.Durations.Where(d => d.Id == (c.Duration ?? 0)).Select(d => d.Name).FirstOrDefault();
+
+            var cheques = db.Cheques.Where(ab => ab.Reference == c.Id && ab.Purpose == "TenancyContract")
+                            .Select(ab => new { ab.ChequeNo, ab.Amount, ab.Date }).ToList();
+            var docs = (from ac in db.PropertyDocumentTypes
+                        where ac.Reference == c.Id && ac.Purpose == "Tenancy"
+                        join dt in db.DocumentTypes on ac.DocumentType equals dt.ID into dd from dt in dd.DefaultIfEmpty()
+                        select new { type = dt.Name, ac.ExpDate }).ToList();
+
+            string sched = c.Schedule == Schedule.Monthly ? "Monthly" : c.Schedule == Schedule.Month3 ? "Every 3 Months"
+                         : c.Schedule == Schedule.Month6 ? "Every 6 Months" : "Yearly";
+            long due = c.DueDate ?? 0;
+            string dueOrd = (due == 1 || due == 21 || due == 31) ? due + "st" : (due == 2 || due == 22) ? due + "nd"
+                          : (due == 3 || due == 23) ? due + "rd" : due + "th";
+
+            ViewBag.Id = c.Id;
+            ViewBag.Code = c.Code ?? ("TC-" + c.Id);
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+            ViewBag.PropName = prop != null ? prop.Name : "-";
+            ViewBag.PropAddr = prop == null ? "" : ((prop.Address ?? "") + " " + (prop.City ?? "") + " " + (prop.State ?? "")).Trim();
+            ViewBag.UnitName = unitName ?? "-";
+            ViewBag.LandlordName = landlord != null ? (landlord.LandlordName ?? "-") : "-";
+            ViewBag.LandlordContact = landlord == null ? "" : (((landlord.Mobile ?? landlord.Phone) ?? "") + (string.IsNullOrEmpty(landlord.EmailId) ? "" : "  ·  " + landlord.EmailId));
+            ViewBag.LandlordAddr = landlord != null ? (landlord.Address ?? "") : "";
+            ViewBag.TenantName = tenant != null ? (tenant.TenantName ?? "-") : "-";
+            ViewBag.TenantContact = tenant == null ? "" : (((tenant.Mobile ?? tenant.Phone) ?? "") + (string.IsNullOrEmpty(tenant.EmailId) ? "" : "  ·  " + tenant.EmailId));
+            ViewBag.TenantAddr = tenant != null ? (tenant.Address ?? "") : "";
+            ViewBag.StartDate = c.StartDate.ToString("dd MMM yyyy");
+            ViewBag.EndDate = c.EndDate.ToString("dd MMM yyyy");
+            ViewBag.IssueDate = (c.issuedate ?? c.CreatedDate).ToString("dd MMM yyyy");
+            ViewBag.Rent = (c.Rent ?? 0).ToString("#,##0.00");
+            ViewBag.Deposit = (c.Deposit ?? 0).ToString("#,##0.00");
+            ViewBag.ContractValue = string.IsNullOrWhiteSpace(c.contractvalue) ? (c.Rent ?? 0).ToString("#,##0.00") : c.contractvalue;
+            ViewBag.Duration = durName ?? "-";
+            ViewBag.Schedule = sched;
+            ViewBag.DueDate = due == 0 ? "-" : (dueOrd + " of the period");
+            ViewBag.PaymentMode = (c.PaymentType == 1) ? "Cash" : "Cheque";
+            ViewBag.Occupants = string.IsNullOrWhiteSpace(c.NumberofOccupants) ? "-" : c.NumberofOccupants;
+            ViewBag.WaterElec = string.IsNullOrWhiteSpace(c.WaterAndElectricityBill) ? "-" : c.WaterAndElectricityBill;
+            ViewBag.Pets = string.IsNullOrWhiteSpace(c.PetsAllowed) ? "-" : c.PetsAllowed;
+            ViewBag.TnC = c.TnC ?? "";
+            ViewBag.Note = c.Note ?? "";
+            ViewBag.Remark = c.Remark ?? "";
+            ViewBag.Cheques = System.Text.Json.JsonSerializer.Serialize(
+                cheques.Select(x => new { no = x.ChequeNo ?? "-", amt = x.Amount.ToString("#,##0.00"), date = x.Date.ToString("dd-MM-yyyy") }).ToList());
+            ViewBag.Docs = System.Text.Json.JsonSerializer.Serialize(
+                docs.Select(x => new { type = x.type ?? "Document", exp = (x.ExpDate ?? DateTime.Now).ToString("dd-MM-yyyy") }).ToList());
+            return View();
         }
 
         public long GetSeNo(string invoicetype)

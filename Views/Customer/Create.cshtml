@@ -19,7 +19,7 @@
 
     <link rel="stylesheet" href="~/Content/css/shared/style.css">
     <!-- BOS: page marker so the compact/refined styles apply ONLY to this form -->
-    <script>document.addEventListener('DOMContentLoaded', function () { document.body.classList.add('bosx-customer-create'); });</script>
+    <script>document.addEventListener('DOMContentLoaded', function () { document.body.classList.add('bosx-customer-create'); document.body.classList.add('bosx-ccnew'); });</script>
     <!-- endinject -->
     <!-- Layout styles -->
     <link rel="stylesheet" href="~/Content/css/demo_1/style.css">
@@ -147,7 +147,11 @@
 
                                         }
 
-                                        <div class="form-group ">
+                                        @* BOS: new two-pane structure — sticky left section nav + always-visible section cards (no "More" hiding). Every field/sub-table preserved in place. *@
+                                        <div class="bosx-cc-grid">
+                                        <aside class="bosx-cc-nav" id="bosxCcNav" aria-label="Form sections"></aside>
+                                        <div class="bosx-cc-main">
+                                        <div class="form-group bosx-cc-card">
                                             <div class="row">
                                                 <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-user"></i></span> Basic Information</div>
                                                 <div class="col-md-3 hidell">
@@ -206,7 +210,7 @@
                                             </div>
                                             </div>
 
-                                        <div class="form-group hidell">
+                                        <div class="form-group bosx-cc-card">
                                             <div class="row">
                                                 <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-percent"></i></span> Tax, Source &amp; Credit</div>
                                                 <div class="col-md-3">
@@ -246,7 +250,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="form-group hideall">
+                                        <div class="form-group bosx-cc-card">
                                             <div class="row ">
 
                                                 <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-map-marker"></i></span> Address &amp; Region</div>
@@ -296,6 +300,10 @@
             </div>
         </div>*@
                                                 @*<!++++++++===============================================================================>*@
+                                            </div>
+                                        </div>
+                                        <div class="form-group bosx-cc-card">
+                                            <div class="row">
                                                 <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-tags"></i></span> Pricing &amp; Terms</div>
                                                 <div class="col-md-3">
                                                     <br />
@@ -347,6 +355,10 @@
                                                         @Html.EditorFor(model => model.Longitude, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Longitude", tabindex = 10, @type = "number" } })
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group bosx-cc-card">
+                                            <div class="row">
                                                 <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-key"></i></span> Login &amp; Bonus</div>
                                                 <div class="col-md-3">
                                                     <br />
@@ -435,6 +447,8 @@
                                             </div>
                                         </div>
 
+                                        <div class="form-group bosx-cc-card">
+                                        <div class="row"><div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-phone"></i></span> Contacts</div></div>
                                         <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button0" tabindex=15>Add Contact &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
                                         <br><br>
                                         <div class="form-group input_fields_wrap">
@@ -579,10 +593,12 @@
                                         <div class="form-group input_fields_wrap0">
 
                                         </div>
+                                        </div>
 
-                                        <button style="width: 200px;" onclick="myFunction()" type="button" class="hideall btn btn-primary btn-rounded btn-fw" tabindex="21">More Details &ensp;<i class="fa fa-arrow-circle-o-down" aria-hidden="true"></i></button>
+                                        <div class="form-group bosx-cc-card">
+                                        <button style="width: 200px;" onclick="myFunction()" type="button" class="bosx-cc-hide btn btn-primary btn-rounded btn-fw" tabindex="21">More Details &ensp;<i class="fa fa-arrow-circle-o-down" aria-hidden="true"></i></button>
                                         <br><br>
-                                        <div class="form-group" id="myDIV" style="display:none">
+                                        <div class="form-group" id="myDIV">
                                             <div class="row">
                                                 <div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-folder-open-o"></i></span> Opening Balance, Notes &amp; Documents</div>
                                                 <div class="col-md-2">
@@ -769,12 +785,16 @@
 
 
 
+                                        </div>
+                                        </div>
+                                        </div>
                                     </form>
-                                    <br>
+                                    <div class="bosx-cc-actions">
                                     <button type="submit" id="save" class="btn btn-success" tabindex="28">
                                         <span class="glyphicon glyphicon-floppy-disk"></span> Save
-                                    </button> 
+                                    </button>
                                     <button type="button" class="btn btn-default can-btn" tabindex="29" onclick="@("window.location.href='/Customer/Index'");">Cancel</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1501,6 +1521,110 @@
             mobileload();
         }
     }
+</script>
+
+<script>
+    // BOS: section TABS — sticky left nav (custom order) shows ONE section card at a time.
+    (function () {
+        var ORDER = [
+            { key: 'basic',    label: 'Basic Information',            icon: 'fa-user' },
+            { key: 'contacts', label: 'Contacts',                    icon: 'fa-phone' },
+            { key: 'address',  label: 'Address & Region',            icon: 'fa-map-marker' },
+            { key: 'tax',      label: 'Tax, Source & Credit',        icon: 'fa-percent' },
+            { key: 'pricing',  label: 'Pricing & Terms',             icon: 'fa-tags' },
+            { key: 'login',    label: 'Login & Bonus',               icon: 'fa-key' },
+            { key: 'opening',  label: 'Opening Balance & Documents',  icon: 'fa-folder-open-o' }
+        ];
+        function keyOf(card) {
+            var h = card.querySelector('.bosx-section');
+            var t = (h ? h.textContent : '').toLowerCase();
+            if (t.indexOf('basic') >= 0) return 'basic';
+            if (t.indexOf('contact') >= 0) return 'contacts';
+            if (t.indexOf('address') >= 0) return 'address';
+            if (t.indexOf('tax') >= 0) return 'tax';
+            if (t.indexOf('pricing') >= 0) return 'pricing';
+            if (t.indexOf('login') >= 0) return 'login';
+            if (t.indexOf('opening') >= 0 || t.indexOf('balance') >= 0) return 'opening';
+            return 'other';
+        }
+        function init() {
+            var nav = document.getElementById('bosxCcNav');
+            if (!nav) return;
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.bosx-cc-main > .bosx-cc-card'));
+            if (!cards.length) return;
+            var byKey = {};
+            cards.forEach(function (c) { var k = keyOf(c); if (!byKey[k]) { byKey[k] = c; } });
+            nav.innerHTML = '';
+            var items = [];
+            function show(key) {
+                cards.forEach(function (c) { c.style.display = 'none'; });
+                if (byKey[key]) { byKey[key].style.display = 'block'; }
+                items.forEach(function (it) { it.a.classList.toggle('active', it.key === key); });
+            }
+            ORDER.forEach(function (o) {
+                if (!byKey[o.key]) { return; }
+                var a = document.createElement('a');
+                a.className = 'bosx-cc-navitem';
+                a.href = 'javascript:void(0)';
+                a.innerHTML = '<i class="fa ' + o.icon + '"></i><span>' + o.label + '</span>';
+                a.addEventListener('click', function () { show(o.key); });
+                nav.appendChild(a);
+                items.push({ a: a, key: o.key });
+            });
+            show(ORDER[0].key); // default: Basic Information
+            // On Save, reveal ALL panes so required-field validation can run/focus across tabs (data already posts regardless).
+            var saveBtn = document.getElementById('save');
+            if (saveBtn) { saveBtn.addEventListener('click', function () { cards.forEach(function (c) { c.style.display = 'block'; }); }, true); }
+        }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+    })();
+</script>
+
+<script>
+    // BOS: Documents — drag-drop file inputs + client-side image OPTIMIZE on select (smaller upload).
+    // The optimized file replaces the original IN the same input, so it uploads to the server on Save (existing flow).
+    (function () {
+        function fmt(n) { return n < 1024 ? n + ' B' : (n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB'); }
+        function note(input, text, cls) {
+            var p = input.parentNode; if (!p) { return; }
+            var n = p.querySelector('.bosx-file-note');
+            if (!n) { n = document.createElement('small'); n.className = 'bosx-file-note'; p.appendChild(n); }
+            n.textContent = text; n.className = 'bosx-file-note' + (cls ? (' ' + cls) : '');
+        }
+        function compress(file, cb) {
+            if (!file || file.type.indexOf('image/') !== 0) { cb(file, false); return; }
+            var url = URL.createObjectURL(file); var img = new Image();
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                var max = 1600, w = img.width, h = img.height;
+                if (w > max || h > max) { var s = Math.min(max / w, max / h); w = Math.round(w * s); h = Math.round(h * s); }
+                var c = document.createElement('canvas'); c.width = w; c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0, w, h);
+                if (!c.toBlob) { cb(file, false); return; }
+                c.toBlob(function (b) {
+                    if (!b || b.size >= file.size) { cb(file, false); return; }
+                    try { var nf = new File([b], file.name.replace(/\.(png|webp|bmp|gif|tiff?)$/i, '.jpg'), { type: 'image/jpeg' }); cb(nf, true); }
+                    catch (e) { cb(file, false); }
+                }, 'image/jpeg', 0.72);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); cb(file, false); };
+            img.src = url;
+        }
+        function isZone(t) { return t && t.matches && t.matches('input[type=file].file-upload-info'); }
+        document.addEventListener('dragover', function (e) { if (isZone(e.target)) { e.target.classList.add('bosx-dragover'); } }, true);
+        document.addEventListener('dragleave', function (e) { if (isZone(e.target)) { e.target.classList.remove('bosx-dragover'); } }, true);
+        document.addEventListener('drop', function (e) { if (isZone(e.target)) { e.target.classList.remove('bosx-dragover'); } }, true);
+        $(document).on('change', 'input[type=file].file-upload-info', function () {
+            var input = this; if (!input.files || !input.files.length) { return; }
+            var f = input.files[0]; var orig = f.size;
+            if (f.type.indexOf('image/') !== 0) { note(input, f.name + ' · ' + fmt(orig)); return; }
+            note(input, 'Optimizing…', 'busy');
+            compress(f, function (nf, did) {
+                if (did) { try { var dt = new DataTransfer(); dt.items.add(nf); input.files = dt.files; } catch (e) { } }
+                note(input, (did ? 'Optimized: ' : '') + nf.name + ' · ' + fmt(nf.size) + (did ? (' (was ' + fmt(orig) + ')') : ''), did ? 'opt' : '');
+            });
+        });
+    })();
 </script>
 
 

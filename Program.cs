@@ -115,6 +115,10 @@ builder.Services.AddControllersWithViews(o =>
 // so the first user after a restart doesn't pay the per-view Razor compile.
 builder.Services.AddHostedService<QuickSoft.Helpers.ViewWarmupService>();
 
+// Real-Estate: daily tenancy-contract expiry reminder emails (gated OFF by default via
+// EnableSettings('ReminderAutoSend'); see PropertyReminderService).
+builder.Services.AddHostedService<QuickSoft.Helpers.PropertyReminderService>();
+
 // Security hardening (audit S2, stage 1): the antiforgery token is also accepted via this header, and
 // _QuickLayout attaches it to every same-origin jQuery AJAX request. Stage 2 (separate pass) flips on
 // global AutoValidateAntiforgeryToken once the token-less legacy forms (mobile App views) are inventoried.

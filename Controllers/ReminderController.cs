@@ -342,12 +342,19 @@ namespace QuickSoft.Controllers
             var data = v.ToList();
             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
         }
-        public void snoopthis(long Id)
+        public void snoopthis(long Id, string until = null)
         {
             var userid = User.Identity.GetUserId();
 
             var empid = db.Employees.Where(o => o.UserId == userid).Select(o => o.EmployeeId).FirstOrDefault();
 
+            // snooze until a user-picked date/time; fall back to +24h if none / invalid
+            DateTime snoozeUntil;
+            if (string.IsNullOrWhiteSpace(until) ||
+                !DateTime.TryParse(until, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out snoozeUntil))
+            {
+                snoozeUntil = System.DateTime.Now.AddHours(24);
+            }
 
             var reminder = db.ReminderAssigneds.Where(o => o.EmployeeId == empid && o.ReminderId == Id).Select(o => o.ReminderAssignedID).ToList();
             foreach (var remiders in reminder)
@@ -356,7 +363,7 @@ namespace QuickSoft.Controllers
                 db.SaveChanges();
                 snooze c = new snooze
                 {
-                    createddate = System.DateTime.Now.AddHours(24),
+                    createddate = snoozeUntil,
                     reminderassignedid = remiders
 
                 };
@@ -645,6 +652,7 @@ namespace QuickSoft.Controllers
 
                       });
             v = v.Union(v2).Union(v3).OrderByDescending(o => o.Id);
+            recordsTotal = v.Count();   // fix "Showing 0 to 0 of 0" — report the real total
             var data = v.Skip(skip).Take(pageSize).ToList().Select(o => new
             {
                 o.Id,

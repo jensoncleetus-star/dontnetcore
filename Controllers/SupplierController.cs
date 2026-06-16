@@ -168,6 +168,25 @@ namespace QuickSoft.Controllers
             return View(vmodel);
         }
 
+        // BOS: live metric cards for the Supplier hub. Defensive (each in try/catch -> 0 on any error).
+        [HttpGet]
+        public JsonResult SupplierStats()
+        {
+            int total = 0, thisMonth = 0, thisYear = 0, onCredit = 0;
+            try { total = db.Suppliers.Count(); } catch { }
+            try
+            {
+                var now = DateTime.Now;
+                var monthStart = new DateTime(now.Year, now.Month, 1);
+                var yearStart = new DateTime(now.Year, 1, 1);
+                thisMonth = db.Suppliers.Count(s => s.logtime != null && s.logtime >= monthStart);
+                thisYear = db.Suppliers.Count(s => s.logtime != null && s.logtime >= yearStart);
+            }
+            catch { }
+            try { onCredit = db.Suppliers.Count(s => s.CreditLimit > 0); } catch { }
+            return Json(new { total = total, thisMonth = thisMonth, thisYear = thisYear, onCredit = onCredit });
+        }
+
 
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Supplier")]

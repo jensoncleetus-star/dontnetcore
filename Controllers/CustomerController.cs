@@ -475,6 +475,25 @@ namespace QuickSoft.Controllers
 
         }
         [QkAuthorize(Roles = "Dev,Customer")]
+        // BOS: lightweight, defensive stats for the customer-page metric cards (each metric guarded; 0 on any error).
+        [HttpGet]
+        public JsonResult CustomerStats()
+        {
+            int total = 0, thisMonth = 0, thisYear = 0, salesTeam = 0;
+            try { total = db.Customers.Count(); } catch { }
+            try
+            {
+                var now = DateTime.Now;
+                var monthStart = new DateTime(now.Year, now.Month, 1);
+                var yearStart = new DateTime(now.Year, 1, 1);
+                thisMonth = db.Customers.Count(c => c.CreatedDate != null && c.CreatedDate >= monthStart);
+                thisYear = db.Customers.Count(c => c.CreatedDate != null && c.CreatedDate >= yearStart);
+            }
+            catch { }
+            try { salesTeam = db.Customers.Where(c => c.SalesPerson != null).Select(c => c.SalesPerson).Distinct().Count(); } catch { }
+            return Json(new { total = total, thisMonth = thisMonth, thisYear = thisYear, salesTeam = salesTeam });
+        }
+
         public ActionResult Index()
         {
             var OpAll = QkSelect.List(
@@ -695,11 +714,20 @@ namespace QuickSoft.Controllers
             //search
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                // Apply search   
-                v = v.Where(p => p.CustomerName.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.CustomerCode.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.TaxRegNo.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.Alias.ToString().ToLower().Contains(search.ToLower()) 
+                var searchLower = search.ToLower();
+                // also match customers whose CONTACT mobile contains the term, so the clean search bar covers
+                // name / code / TRN / alias / mobile. Capped at 2000 ids to stay under SQL Server's IN()-param limit.
+                long[] vsearchmob = (from a in db.Customers
+                                     join b in db.ContactRelation on a.CustomerID equals b.RelationID
+                                     join c in db.Contacts on b.ContactID equals c.ContactID
+                                     where b.RelationType == (long)CRMCustomerType.Customer && c.Mobile.Contains(search)
+                                     select a.CustomerID).Distinct().Take(2000).ToArray();
+                // Apply search
+                v = v.Where(p => p.CustomerName.ToString().ToLower().Contains(searchLower) ||
+                                 p.CustomerCode.ToString().ToLower().Contains(searchLower) ||
+                                 p.TaxRegNo.ToString().ToLower().Contains(searchLower) ||
+                                 p.Alias.ToString().ToLower().Contains(searchLower) ||
+                                 vsearchmob.Contains(p.id)
                                  //p.currentbalance.ToString().ToLower().Contains(search.ToLower())
                                  //p.CreditPeriod.ToString().ToLower().Contains(search.ToLower())
                                  );
@@ -758,6 +786,133 @@ namespace QuickSoft.Controllers
             return results;
 
 
+        }
+
+        // BOS: export the FULL customer list (all rows, not just the current grid page) to CSV.
+        // Mirrors GetCustomer's exact query, filters and permission gate so what a user can export
+        // == what they can see in the grid; only the paging (Skip/Take) is dropped so every matching
+        // row is written. Blank filter params => the entire customer book. Additive; GetCustomer is untouched.
+        [HttpGet]
+        [QkAuthorize(Roles = "Dev,Customer")]
+        public ActionResult ExportCustomers(string FromDate, string ToDate, long? Customer, string TaxReg, string Mobile, string Phone, decimal? CLimit, int? CPeriod, long? Employee, long? Type, long? Source, string TxType, string MailId, string Alias)
+        {
+            DateTime? fdate = null;
+            DateTime? tdate = null;
+            if (!string.IsNullOrEmpty(FromDate)) fdate = DateTime.Parse(FromDate, new CultureInfo("en-GB").DateTimeFormat);
+            if (!string.IsNullOrEmpty(ToDate)) tdate = DateTime.Parse(ToDate, new CultureInfo("en-GB").DateTimeFormat);
+            TaxType ttype = new TaxType();
+            if (!string.IsNullOrEmpty(TxType)) ttype = (TxType == "0") ? TaxType.ItemWise : TaxType.Exempt;
+
+            var userpermission = User.IsInRole("All Customers");
+            var UserId = User.Identity.GetUserId();
+
+            bool filterByMobile = !string.IsNullOrEmpty(Mobile);
+            long[] vmobile = System.Array.Empty<long>();
+            if (filterByMobile)
+            {
+                vmobile = (from a in db.Customers
+                           join b in db.ContactRelation on a.CustomerID equals b.RelationID
+                           join c in db.Contacts on b.ContactID equals c.ContactID
+                           where (b.RelationType == (long)CRMCustomerType.Customer) && c.Mobile.Contains(Mobile)
+                           select new { a.CustomerID }).Distinct().Select(o => o.CustomerID).ToArray();
+            }
+
+            Employee empl = new Employee();
+            empl.EmployeeId = db.Employees.Where(a => a.UserId == UserId).Select(a => a.EmployeeId).FirstOrDefault();
+
+            var rows = (from a in db.Customers
+                        join x in db.Accountss on a.Accounts equals x.AccountsID
+                        join y in db.Employees on a.SalesPerson equals y.EmployeeId into def
+                        from y in def.DefaultIfEmpty()
+                        join z in db.CustomerTyps on a.CustomerType equals z.TypeId into custty
+                        from z in custty.DefaultIfEmpty()
+                        where
+                            a.Type == CRMCustomerType.Customer &&
+                            (!filterByMobile || vmobile.Contains(a.CustomerID)) &&
+                            (Customer == null || Customer == 0 || a.CustomerID == Customer) &&
+                            (TaxReg == null || TaxReg == "" || x.TRN == TaxReg) &&
+                            (Source == null || Source == 0 || a.SourceOfLead == Source) &&
+                            (CLimit == null || CLimit == 0 || a.CreditLimit == CLimit) &&
+                            (CPeriod == null || CPeriod == 0 || a.CreditPeriod == CPeriod) &&
+                            (Employee == null || Employee == 0 || a.SalesPerson == Employee) &&
+                            (Type == null || Type == 0 || a.CustomerType == Type) &&
+                            (TxType == null || TxType == "" || a.TaxType == ttype) &&
+                            (userpermission == true || a.SalesPerson == empl.EmployeeId) &&
+                            (Alias == null || Alias == "" || x.Alias == Alias) &&
+                            (FromDate == null || FromDate == "" || EF.Functions.DateDiffDay(a.CreatedDate, fdate) <= 0) &&
+                            (ToDate == null || ToDate == "" || EF.Functions.DateDiffDay(a.CreatedDate, tdate) >= 0)
+                        orderby a.CustomerName
+                        select new
+                        {
+                            id = a.CustomerID,
+                            a.CustomerCode,
+                            a.CustomerName,
+                            TRN = x.TRN,
+                            Alias = x.Alias,
+                            Address = a.Addres,
+                            Location = a.Location,
+                            CustomerType = z.Type,
+                            Salesman = (y.FirstName + " " + y.MiddleName + " " + y.LastName),
+                            a.CreditLimit,
+                            a.CreditPeriod,
+                            OpnBalance = (x.OpnBalanceCr > 0) ? (x.OpnBalanceCr != 0 ? x.OpnBalanceCr + " Cr." : "0.00") : (x.OpnBalance != 0 ? x.OpnBalance + " Dr." : "0.00"),
+                            CreatedDate = a.CreatedDate
+                        }).ToList();
+
+            // contacts (mobile + email) per customer in one query, then map in memory
+            var contacts = (from a in db.Customers
+                            join b in db.ContactRelation on a.CustomerID equals b.RelationID
+                            join c in db.Contacts on b.ContactID equals c.ContactID
+                            where b.RelationType == (long)CRMCustomerType.Customer
+                            select new { a.CustomerID, c.Mobile, c.EmailId }).ToList();
+            var mobMap = contacts.Where(z => !string.IsNullOrWhiteSpace(z.Mobile))
+                                 .GroupBy(z => z.CustomerID)
+                                 .ToDictionary(g => g.Key, g => string.Join(" | ", g.Select(z => z.Mobile).Distinct()));
+            var mailMap = contacts.Where(z => !string.IsNullOrWhiteSpace(z.EmailId))
+                                  .GroupBy(z => z.CustomerID)
+                                  .ToDictionary(g => g.Key, g => string.Join(" | ", g.Select(z => z.EmailId).Distinct()));
+
+            System.Func<object, string> esc = (val) =>
+            {
+                var s = (val == null) ? "" : val.ToString();
+                s = s.Replace("\"", "\"\"");
+                return "\"" + s + "\"";
+            };
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append("S/N,Customer Code,Customer Name,Alias,TRN,Address,Location,Customer Type,Sales Person,Mobile,Email,Credit Limit,Credit Period,Opening Balance,Created/Updated\r\n");
+            int sn = 0;
+            foreach (var r in rows)
+            {
+                sn++;
+                string mob = mobMap.ContainsKey(r.id) ? mobMap[r.id] : "";
+                string mail = mailMap.ContainsKey(r.id) ? mailMap[r.id] : "";
+                string dt = (r.CreatedDate == null) ? "" : ((DateTime)r.CreatedDate).ToString("dd-MM-yyyy");
+                sb.Append(esc(sn)).Append(',')
+                  .Append(esc(r.CustomerCode)).Append(',')
+                  .Append(esc(r.CustomerName)).Append(',')
+                  .Append(esc(r.Alias)).Append(',')
+                  .Append(esc(r.TRN)).Append(',')
+                  .Append(esc(r.Address)).Append(',')
+                  .Append(esc(r.Location)).Append(',')
+                  .Append(esc(r.CustomerType)).Append(',')
+                  .Append(esc(r.Salesman)).Append(',')
+                  .Append(esc(mob)).Append(',')
+                  .Append(esc(mail)).Append(',')
+                  .Append(esc(r.CreditLimit)).Append(',')
+                  .Append(esc(r.CreditPeriod)).Append(',')
+                  .Append(esc(r.OpnBalance)).Append(',')
+                  .Append(esc(dt))
+                  .Append("\r\n");
+            }
+
+            var preamble = System.Text.Encoding.UTF8.GetPreamble(); // UTF-8 BOM so Excel opens it correctly
+            var bodyBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            var outBytes = new byte[preamble.Length + bodyBytes.Length];
+            System.Buffer.BlockCopy(preamble, 0, outBytes, 0, preamble.Length);
+            System.Buffer.BlockCopy(bodyBytes, 0, outBytes, preamble.Length, bodyBytes.Length);
+            string fname = "Customers_" + DateTime.Now.ToString("yyyyMMdd_HHmm") + ".csv";
+            return File(outBytes, "text/csv", fname);
         }
 
 

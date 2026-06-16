@@ -1,0 +1,82 @@
+@{
+    ViewBag.Title = "Expiry Reminders";
+    ViewBag.Active = "Settings";
+    bool autoOn = (bool)ViewBag.AutoOn;
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#0e7490,#0ea5e9 55%,#38bdf8)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-bell"></i></div>
+            <div><h1>Contract Expiry Reminders</h1><p>Automatic email alerts before tenancy contracts expire (within @ViewBag.Days days)</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <form method="post" action="/Property/PropertyInsights/SendReminders" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="rfi-btn"><i class="fa fa-paper-plane"></i> Send Now</button>
+            </form>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ViewBag.Msg as string))
+    {
+        <div class="rfi-flash"><i class="fa fa-check-circle"></i> @ViewBag.Msg</div>
+    }
+
+    <div class="rfi-card rfi-toggle-card">
+        <div class="rfi-toggle-l">
+            <h3 style="margin:0"><i class="fa fa-magic"></i> Automatic daily sending</h3>
+            <p class="rfi-mut" style="margin:4px 0 0">
+                @if (autoOn)
+                {<text>Enabled — the system emails tenants automatically every day when a contract is within @ViewBag.Days days of expiry.</text>}
+                else
+                {<text>Disabled — no emails are sent automatically. Use <b>Send Now</b> to send manually, or enable below.</text>}
+            </p>
+        </div>
+        <form method="post" action="/Property/PropertyInsights/ToggleReminderAuto">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="rfi-switch @(autoOn ? "on" : "off")">
+                <span class="rfi-switch-knob"></span>
+                <span class="rfi-switch-txt">@(autoOn ? "ON" : "OFF")</span>
+            </button>
+        </form>
+    </div>
+
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Expiring Soon</span><span class="rfi-num">@ViewBag.DueCount</span><span class="rfi-sub">within @ViewBag.Days days</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Have Email</span><span class="rfi-num pos">@ViewBag.WithEmail</span><span class="rfi-sub">reachable</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Already Reminded</span><span class="rfi-num">@ViewBag.AlreadySent</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Sent</span><span class="rfi-num">@ViewBag.SentTotal</span><span class="rfi-sub">all time</span></div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-hourglass-half"></i> Contracts Expiring Soon</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Contract</th><th>Tenant</th><th>Property</th><th>Email</th><th class="c">Expires</th><th class="c">Days</th><th class="r">Rent</th><th class="c">Status</th></tr></thead><tbody id="rmDue"></tbody></table></div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-history"></i> Reminder Log</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Item</th><th>Email</th><th class="c">Expiry</th><th class="c">Sent</th><th>Result</th></tr></thead><tbody id="rmLog"></tbody></table></div>
+    </div>
+
+    <p class="rfi-note"><i class="fa fa-shield"></i> Emails use your Company SMTP settings. Auto-send stays OFF until you switch it on, so no mail goes out during testing.</p>
+</div>
+<script>
+(function(){
+  var due=@Html.Raw(ViewBag.Due ?? "[]"), log=@Html.Raw(ViewBag.Log ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  document.getElementById('rmDue').innerHTML = due.length ? due.map(function(d){
+    var tier = d.days<=15?'rd':(d.days<=30?'am':'g');
+    var em = d.email && d.email.indexOf('@@')>0 ? esc(d.email) : '<span class="rfi-mut">no email</span>';
+    var st = d.sent ? '<span class="rfi-chip g">Reminded</span>' : '<span class="rfi-chip">Pending</span>';
+    return '<tr><td><b>'+esc(d.Code)+'</b></td><td>'+esc(d.Tenant)+'</td><td>'+esc(d.Property)+'</td><td>'+em+'</td>'+
+           '<td class="c">'+esc(d.exp)+'</td><td class="c"><span class="rfi-chip '+tier+'">'+d.Days+'d</span></td>'+
+           '<td class="r">'+m(d.rent)+'</td><td class="c">'+st+'</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="rfi-empty">No contracts expiring within '+@ViewBag.Days+' days 🎉</td></tr>';
+  document.getElementById('rmLog').innerHTML = log.length ? log.map(function(l){
+    var ok = (l.result||'').indexOf('Sent')===0;
+    var cls = ok?'g':((l.result||'').indexOf('No email')===0?'am':'rd');
+    return '<tr><td>'+esc(l.title)+'</td><td>'+esc(l.email)+'</td><td class="c">'+esc(l.exp)+'</td><td class="c">'+esc(l.sent)+'</td><td><span class="rfi-chip '+cls+'">'+esc(l.result)+'</span></td></tr>';
+  }).join('') : '<tr><td colspan="5" class="rfi-empty">No reminders sent yet</td></tr>';
+})();
+</script>

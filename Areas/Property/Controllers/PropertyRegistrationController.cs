@@ -84,10 +84,10 @@ namespace QuickSoft.Areas.Property.Controllers
                               (InvoiceNo == "" || a.VoucherNo == InvoiceNo) &&
                                (FromDate == "" || EF.Functions.DateDiffDay(a.RDate, fdate) <= 0) &&
                                (ToDate == "" || EF.Functions.DateDiffDay(a.RDate, tdate) >= 0) &&
-                              (Developer == 0 || a.Developer == Developer) &&
-                              (Owner == 0 || a.Owner == Owner) &&
-                              (Property == 0 || a.Property == Property) &&
-                              (Broker == 0 || a.Broker == Broker)
+                              (Developer == 0 || Developer == null || a.Developer == Developer) &&
+                              (Owner == 0 || Owner == null || a.Owner == Owner) &&
+                              (Property == 0 || Property == null || a.Property == Property) &&
+                              (Broker == 0 || Broker == null || a.Broker == Broker)
                             select new
                             {
                                 id = a.RegistrationID,
@@ -110,7 +110,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = UserView.Count();
             var data = UserView.Skip(skip).Take(pageSize).ToList();
@@ -1293,6 +1293,97 @@ namespace QuickSoft.Areas.Property.Controllers
                 serialisedJson.Insert(0, initial);
             }
             return Json(serialisedJson);
+        }
+
+        // Custom branded, print-ready Property Registration document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            var r = db.PropertyRegistrations.Where(x => x.RegistrationID == id)
+                .Select(x => new
+                {
+                    x.RegistrationID, x.VoucherNo, x.RDate, x.Developer, x.Owner, x.Property, x.Broker,
+                    x.Amount, x.Note, x.Remark, x.TermsCondition, x.PaymentType,
+                    x.PlotNumber, x.PlotOption, x.PlotArea, x.PAMeasurement,
+                    x.BuildupArea, x.BAMeasurement, x.Area, x.Hector, x.ADDCNo,
+                    x.PermitId, x.PermissionId, x.BookingDate, x.HandoverDate, x.CreatedDate
+                }).FirstOrDefault();
+            if (r == null) return NotFound();
+
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            long devId = r.Developer;
+            var developer = db.Developers.Where(d => d.DeveloperID == devId)
+                              .Select(d => new { d.DeveloperName, d.DeveloperCode, d.Location, d.BankName }).FirstOrDefault();
+
+            long ownId = r.Owner;
+            var owner = db.Accountss.Where(o => o.AccountsID == ownId)
+                          .Select(o => new { o.Name, o.TRN }).FirstOrDefault();
+
+            long brId = r.Broker ?? 0;
+            var broker = db.Brokers.Where(b => b.BrokerID == brId)
+                           .Select(b => new { b.BrokerName, b.BrokerCode, b.Location }).FirstOrDefault();
+
+            long propId = r.Property;
+            var prop = db.PropertyMains.Where(p => p.Id == propId)
+                         .Select(p => new { p.Name, p.Code, p.City, p.State, p.Address, p.PlotNo, p.PlotAddress }).FirstOrDefault();
+
+            var fields = (from a in db.AdditionalFieldDatas
+                          where a.Reference == r.RegistrationID && a.Purpose == "PropertyRegistration"
+                          join b in db.AdditionalFields on a.Field equals b.ID into item from b in item.DefaultIfEmpty()
+                          select new { label = b.Name, val = a.Name }).ToList();
+
+            ViewBag.Id = r.RegistrationID;
+            ViewBag.Code = string.IsNullOrEmpty(r.VoucherNo) ? ("PR-" + r.RegistrationID) : r.VoucherNo;
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+
+            ViewBag.DeveloperName = developer != null ? (developer.DeveloperName ?? "-") : "-";
+            ViewBag.DeveloperCode = developer != null ? (developer.DeveloperCode ?? "") : "";
+            ViewBag.DeveloperLoc = developer != null ? (developer.Location ?? "") : "";
+            ViewBag.OwnerName = owner != null ? (owner.Name ?? "-") : "-";
+            ViewBag.OwnerTRN = owner != null ? (owner.TRN ?? "") : "";
+            ViewBag.BrokerName = broker != null ? (broker.BrokerName ?? "-") : "-";
+            ViewBag.BrokerCode = broker != null ? (broker.BrokerCode ?? "") : "";
+            ViewBag.BrokerLoc = broker != null ? (broker.Location ?? "") : "";
+
+            ViewBag.PropName = prop != null ? (prop.Name ?? "-") : "-";
+            ViewBag.PropCode = prop != null ? (prop.Code ?? "") : "";
+            ViewBag.PropAddr = prop == null ? "" : ((prop.Address ?? "") + " " + (prop.City ?? "") + " " + (prop.State ?? "")).Trim();
+
+            ViewBag.PlotNumber = r.PlotNumber ?? (prop != null ? (prop.PlotNo ?? "") : "");
+            ViewBag.PlotAddress = prop != null ? (prop.PlotAddress ?? "") : "";
+            // PlotArea/BuildupArea each carry their own measurement string (PAMeasurement/BAMeasurement).
+            ViewBag.PlotArea = r.PlotArea.HasValue ? r.PlotArea.Value.ToString("#,##0.##") : "";
+            ViewBag.PlotAreaUnit = r.PAMeasurement ?? "";
+            ViewBag.BuildupArea = r.BuildupArea.HasValue ? r.BuildupArea.Value.ToString("#,##0.##") : "";
+            ViewBag.BuildupAreaUnit = r.BAMeasurement ?? "";
+            ViewBag.PlotOption = r.PlotOption ?? "";
+            ViewBag.Area = r.Area ?? "";
+            ViewBag.Hector = r.Hector ?? "";
+            ViewBag.ADDCNo = r.ADDCNo ?? "";
+            ViewBag.PermitId = r.PermitId ?? "";
+            ViewBag.PermissionId = r.PermissionId ?? "";
+            ViewBag.PaymentType = r.PaymentType == 2 ? "Cheque" : (r.PaymentType == 1 ? "Cash" : "");
+
+            ViewBag.RegDate = r.RDate.ToString("dd MMM yyyy");
+            ViewBag.BookingDate = r.BookingDate.HasValue ? r.BookingDate.Value.ToString("dd MMM yyyy") : "";
+            ViewBag.HandoverDate = r.HandoverDate.HasValue ? r.HandoverDate.Value.ToString("dd MMM yyyy") : "";
+            ViewBag.Amount = r.Amount.ToString("#,##0.00");
+            ViewBag.Note = r.Note ?? "";
+            ViewBag.Remark = r.Remark ?? "";
+            ViewBag.TnC = r.TermsCondition ?? "";
+
+            ViewBag.Fields = System.Text.Json.JsonSerializer.Serialize(
+                fields.Where(x => !string.IsNullOrWhiteSpace(x.val) && x.val != "0")
+                      .Select(x => new { label = x.label ?? "Field", val = x.val }).ToList());
+            return View();
         }
 
         [HttpGet]

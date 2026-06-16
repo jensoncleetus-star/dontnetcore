@@ -12,7 +12,7 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'qs-pwa-v2'; // v2: BOS rebrand — purges old cached assets (incl. previous icons)
+const CACHE_VERSION = 'qs-pwa-v3'; // v3: list redesign — purges old cached css/js so clients fetch fresh
 const STATIC_CACHE = 'qs-static-' + CACHE_VERSION;
 const OFFLINE_URL = '/offline.html';
 

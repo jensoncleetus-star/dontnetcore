@@ -17,6 +17,7 @@
 
     <style>
     </style>
+    <script>document.addEventListener('DOMContentLoaded', function () { document.body.classList.add('bosx-ccnew'); });</script>
 </head>
 <div style="padding-top:0.8rem !important; ">
     <div class="box padding-box" style=" box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px !important;">
@@ -53,9 +54,12 @@
             <input type="hidden" class="form-control" id="balanceRowcount" value="0" placeholder="">
             <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
 
-
-
-            <div class="box-body">
+            @* BOS: two-pane structure — sticky section tabs + section cards. Every field/sub-table preserved in place. *@
+            <div class="bosx-cc-grid">
+            <aside class="bosx-cc-nav" id="bosxCcNav" aria-label="Form sections"></aside>
+            <div class="bosx-cc-main">
+            <div class="box-body bosx-cc-card">
+                <div class="row"><div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-user"></i></span> Basic Information</div></div>
                 <div class="form-group col-md-4">
                     @Html.LabelFor(model => model.SupplierCode, htmlAttributes: new { @class = "control-label" })*
                     @Html.EditorFor(model => model.SupplierCode, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
@@ -100,22 +104,23 @@
                     @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Enter Remarks", tabindex = 6 })
                 </div>
             </div>
-            <div class="box-header with-border">
-                <h5 class="box-title">Contact Details</h5>
-            </div>
-            <br>
-            //add contact button
+            <div class="bosx-cc-card">
+            <div class="row"><div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-phone"></i></span> Contacts</div></div>
             <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button0">Add Contact &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
             <br>
             <br>
             <div class="form-group input_fields_wrap0">
 
             </div>
+            </div>
 
+            <div class="bosx-cc-card">
+            <div class="row"><div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-folder-open-o"></i></span> Documents</div></div>
             <button style="width: 200px;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button3">Documents Attach &ensp;<i class="fa fa-plus-circle" aria-hidden="true"></i></button>
             <br>
             <br>
             <div class="form-group input_fields_wrap3"></div>
+            </div>
 
             <div class="box-body" style="display:none;">
                 <div class="form-group col-md-4">
@@ -185,11 +190,8 @@
                 </div>
             </div>
 
-            //Product Details
-            <div class="box-header with-border" style="margin-bottom:8px; margin-top:-20px;">
-                <h5 class="box-title">Product Details</h5>
-            </div>
-
+            <div class="bosx-cc-card">
+            <div class="row"><div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-tags"></i></span> Products</div></div>
             <div class="row">
 
                 <div class="form-group col-md-4 col-xs-12">
@@ -223,11 +225,10 @@
                 </div>
 
             </div>
-
-            <div class="box-header with-border">
-                <h5 class="box-title">Bank Details</h5>
             </div>
-            <div class="box-body">
+
+            <div class="box-body bosx-cc-card">
+            <div class="row"><div class="col-md-12 bosx-section"><span class="bosx-section-ic"><i class="fa fa-university"></i></span> Bank &amp; Balance</div></div>
                 <div class="form-group col-md-4">
                     @Html.LabelFor(model => model.BankName, htmlAttributes: new { @class = "control-label " })
                     @Html.EditorFor(model => model.BankName, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Bank Name", tabindex = 22 } })
@@ -268,13 +269,14 @@
                     <div class="table-responsive" hidden id="refdiv"><hr /></div>
                 </div>
             </div>
-
+            </div>
+            </div>
 
             <div class="form-group col-md-12 pull-left">
                 <div class="col-md-12">
                 </div>
             </div>
-            <div class="box-footer clearfix text-center">
+            <div class="box-footer clearfix text-center bosx-cc-actions">
                 <button type="submit" id="save" class="btn btn-success" tabindex="26">
                     <span class="glyphicon glyphicon-floppy-disk"></span> Save
                 </button>
@@ -963,6 +965,82 @@
         }
     }
 
+</script>
+
+<script>
+    // BOS: section TABS — sticky left nav shows ONE section card at a time.
+    (function () {
+        var ORDER = [
+            { key: 'basic',     label: 'Basic Information', icon: 'fa-user' },
+            { key: 'contacts',  label: 'Contacts',          icon: 'fa-phone' },
+            { key: 'products',  label: 'Products',          icon: 'fa-tags' },
+            { key: 'bank',      label: 'Bank & Balance',    icon: 'fa-university' },
+            { key: 'documents', label: 'Documents',         icon: 'fa-folder-open-o' }
+        ];
+        function keyOf(card) {
+            var h = card.querySelector('.bosx-section');
+            var t = (h ? h.textContent : '').toLowerCase();
+            if (t.indexOf('basic') >= 0) return 'basic';
+            if (t.indexOf('contact') >= 0) return 'contacts';
+            if (t.indexOf('product') >= 0) return 'products';
+            if (t.indexOf('bank') >= 0 || t.indexOf('balance') >= 0) return 'bank';
+            if (t.indexOf('document') >= 0) return 'documents';
+            return 'other';
+        }
+        function init() {
+            var nav = document.getElementById('bosxCcNav');
+            if (!nav) return;
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.bosx-cc-main > .bosx-cc-card'));
+            if (!cards.length) return;
+            var byKey = {};
+            cards.forEach(function (c) { var k = keyOf(c); if (!byKey[k]) { byKey[k] = c; } });
+            nav.innerHTML = '';
+            var items = [];
+            function show(key) {
+                cards.forEach(function (c) { c.style.display = 'none'; });
+                if (byKey[key]) { byKey[key].style.display = 'block'; }
+                items.forEach(function (it) { it.a.classList.toggle('active', it.key === key); });
+            }
+            ORDER.forEach(function (o) {
+                if (!byKey[o.key]) { return; }
+                var a = document.createElement('a');
+                a.className = 'bosx-cc-navitem';
+                a.href = 'javascript:void(0)';
+                a.innerHTML = '<i class="fa ' + o.icon + '"></i><span>' + o.label + '</span>';
+                a.addEventListener('click', function () { show(o.key); });
+                nav.appendChild(a);
+                items.push({ a: a, key: o.key });
+            });
+            show(ORDER[0].key);
+            var saveBtn = document.getElementById('save');
+            if (saveBtn) { saveBtn.addEventListener('click', function () { cards.forEach(function (c) { c.style.display = 'block'; }); }, true); }
+        }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+    })();
+</script>
+
+<script>
+    // BOS: Documents — drag-drop file inputs + client-side image OPTIMIZE on select (smaller upload, uploads on Save).
+    (function () {
+        function fmt(n) { return n < 1024 ? n + ' B' : (n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB'); }
+        function note(input, text, cls) { var p = input.parentNode; if (!p) { return; } var n = p.querySelector('.bosx-file-note'); if (!n) { n = document.createElement('small'); n.className = 'bosx-file-note'; p.appendChild(n); } n.textContent = text; n.className = 'bosx-file-note' + (cls ? (' ' + cls) : ''); }
+        function compress(file, cb) {
+            if (!file || file.type.indexOf('image/') !== 0) { cb(file, false); return; }
+            var url = URL.createObjectURL(file); var img = new Image();
+            img.onload = function () { URL.revokeObjectURL(url); var max = 1600, w = img.width, h = img.height; if (w > max || h > max) { var s = Math.min(max / w, max / h); w = Math.round(w * s); h = Math.round(h * s); } var c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); if (!c.toBlob) { cb(file, false); return; } c.toBlob(function (b) { if (!b || b.size >= file.size) { cb(file, false); return; } try { var nf = new File([b], file.name.replace(/\.(png|webp|bmp|gif|tiff?)$/i, '.jpg'), { type: 'image/jpeg' }); cb(nf, true); } catch (e) { cb(file, false); } }, 'image/jpeg', 0.72); };
+            img.onerror = function () { URL.revokeObjectURL(url); cb(file, false); }; img.src = url;
+        }
+        function isZone(t) { return t && t.matches && t.matches('input[type=file].file-upload-info'); }
+        document.addEventListener('dragover', function (e) { if (isZone(e.target)) { e.target.classList.add('bosx-dragover'); } }, true);
+        document.addEventListener('dragleave', function (e) { if (isZone(e.target)) { e.target.classList.remove('bosx-dragover'); } }, true);
+        document.addEventListener('drop', function (e) { if (isZone(e.target)) { e.target.classList.remove('bosx-dragover'); } }, true);
+        $(document).on('change', 'input[type=file].file-upload-info', function () {
+            var input = this; if (!input.files || !input.files.length) { return; } var f = input.files[0]; var orig = f.size;
+            if (f.type.indexOf('image/') !== 0) { note(input, f.name + ' · ' + fmt(orig)); return; }
+            note(input, 'Optimizing…', 'busy');
+            compress(f, function (nf, did) { if (did) { try { var dt = new DataTransfer(); dt.items.add(nf); input.files = dt.files; } catch (e) { } } note(input, (did ? 'Optimized: ' : '') + nf.name + ' · ' + fmt(nf.size) + (did ? (' (was ' + fmt(orig) + ')') : ''), did ? 'opt' : ''); });
+        });
+    })();
 </script>
 
 

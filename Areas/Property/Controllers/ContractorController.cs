@@ -124,13 +124,7 @@ namespace QuickSoft.Areas.Property.Controllers
                          Edit = uEdit,
                          Delete = uDelete,
                          Alias = x.Alias,
-                         mobmodel = (from ac in db.Mobiles
-                                     where (ac.Contact == a.Contact)
-                                     select new MobileViewModel
-                                     {
-                                         Num = (ac.Name == "" || ac.Name == null) ? ac.MobileNum : ac.MobileNum + "-" + ac.Name,
-                                         Name = ac.Name
-                                     }).ToList(),
+                         Contact = a.Contact,
 
                      }).Select(o => new
                      {
@@ -152,7 +146,7 @@ namespace QuickSoft.Areas.Property.Controllers
                          o.Edit,
                          o.Delete,
                          o.Alias,
-                         o.mobmodel,
+                         o.Contact,
                          currentbalance = (o.Debit > o.Credit) ? ((o.Debit - o.Credit) + " Dr.") : ((o.Credit - o.Debit) + " Cr."),
                      });
             //search
@@ -176,11 +170,24 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
                 //v = v.OrderBy(c => c.ProductCategoryID);
             }
             recordsTotal = v.Count();
-            var data = v.Skip(skip).Take(pageSize).ToList();
+            // EF Core 10 cannot translate the nested mobmodel collection-projection once Contractors have rows.
+            // Materialize the page, then attach mobmodel in memory (same pattern as PropertyMain.GetProperty).
+            var page = v.Skip(skip).Take(pageSize).ToList();
+            var contactKeys = page.Select(r => r.Contact).Distinct().ToList();
+            var mobs = db.Mobiles.Where(m => contactKeys.Contains(m.Contact)).Select(m => new { m.Contact, m.MobileNum, m.Name }).ToList();
+            var data = page.Select(r => new {
+                r.id, r.ContractorCode, r.ContractorName, r.TaxRegNo, r.Location, r.Address, r.Phone, r.Email,
+                r.CreditLimit, r.CreditPeriod, r.OpnBalance, r.Credit, r.Debit, r.Dev, r.Details, r.Edit, r.Delete, r.Alias,
+                mobmodel = mobs.Where(x => x.Contact == r.Contact).Select(x => new MobileViewModel {
+                    Num = (string.IsNullOrEmpty(x.Name)) ? x.MobileNum : x.MobileNum + "-" + x.Name,
+                    Name = x.Name
+                }).ToList(),
+                r.currentbalance
+            }).ToList();
             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
 
         }
@@ -1254,13 +1261,6 @@ namespace QuickSoft.Areas.Property.Controllers
                             Country = b.Country,
                             Zip = b.Zip,
                             Phone = b.Phone,
-                            mobmodel = (from ac in db.Mobiles
-                                        where (ac.Contact == a.Contact)
-                                        select new MobileViewModel
-                                        {
-                                            Num = ac.MobileNum,
-                                            Name = ac.Name
-                                        }).ToList(),
                             Fax = b.Fax,
                             EmailId = b.EmailId,
                             Reference = b.Reference,
@@ -1270,6 +1270,13 @@ namespace QuickSoft.Areas.Property.Controllers
                             DCname = e.OpnBalanceCr == 0 ? "Dr." : "Cr.",
                             Alias = e.Alias
                         }).FirstOrDefault();
+            // EF Core 10 cannot translate the nested mobmodel collection-projection; load it as a standalone query.
+            if (cusmodel != null)
+            {
+                var conContact = db.Contractors.Where(d => d.ContractorID == id).Select(d => d.Contact).FirstOrDefault();
+                cusmodel.mobmodel = db.Mobiles.Where(ac => ac.Contact == conContact)
+                    .Select(ac => new MobileViewModel { Num = ac.MobileNum, Name = ac.Name }).ToList();
+            }
             return View(cusmodel);
 
         }

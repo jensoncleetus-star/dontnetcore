@@ -157,6 +157,68 @@
         </div>
     </div>
 </div>
+@* BOS: amazing customer-hub header + live metric cards (additive; no data/function change) *@
+<div class="bosx-cust-hero">
+    <div class="bosx-hero-left">
+        <div class="bosx-hero-title">Customers</div>
+        <div class="bosx-hero-sub">Your complete customer directory</div>
+    </div>
+    <div class="bosx-hero-actions">
+        <div class="bosx-export-wrap">
+            <a class="bosx-hero-btn2" href="javascript:void(0)" onclick="bosxToggleExport(event)"><i class="fa fa-download"></i> Export <i class="fa fa-caret-down" style="margin-left:4px;"></i></a>
+            <div class="bosx-export-menu" id="bosxExportMenu">
+                <a href="javascript:void(0)" onclick="bosxExportPage()"><i class="fa fa-table"></i> <span><b>This page</b><small>The rows currently shown</small></span></a>
+                <a href="javascript:void(0)" onclick="bosxExportAll()"><i class="fa fa-database"></i> <span><b>All customers</b><small>Entire customer data &mdash; full export</small></span></a>
+            </div>
+        </div>
+        @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+        {
+            <a class="bosx-hero-btn" href="/Customer/Create"><i class="fa fa-plus"></i> New customer</a>
+        }
+    </div>
+</div>
+<div class="bosx-metrics">
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-indigo"><i class="fa fa-users"></i></span><div class="bosx-metric-val" id="bosxStatTotal">&mdash;</div><div class="bosx-metric-lbl">Total customers</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-green"><i class="fa fa-user-plus"></i></span><div class="bosx-metric-val" id="bosxStatMonth">&mdash;</div><div class="bosx-metric-lbl">Added this month</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-amber"><i class="fa fa-calendar-o"></i></span><div class="bosx-metric-val" id="bosxStatYear">&mdash;</div><div class="bosx-metric-lbl">Added this year</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-blue"><i class="fa fa-user-circle-o"></i></span><div class="bosx-metric-val" id="bosxStatTeam">&mdash;</div><div class="bosx-metric-lbl">Sales team</div></div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/Customer/CustomerStats').then(function (r) { return r.json(); }).then(function (d) {
+            function set(id, n) { var e = document.getElementById(id); if (e) { e.textContent = (n == null ? 0 : n).toLocaleString(); } }
+            set('bosxStatTotal', d.total != null ? d.total : d.Total);
+            set('bosxStatMonth', d.thisMonth != null ? d.thisMonth : d.ThisMonth);
+            set('bosxStatYear', d.thisYear != null ? d.thisYear : d.ThisYear);
+            set('bosxStatTeam', d.salesTeam != null ? d.salesTeam : d.SalesTeam);
+        }).catch(function () { });
+    });
+
+    // BOS: best-effort city/emirate shown under the customer name — extracted from the address (display only, no data change)
+    window.__bosxCity = function (addr) {
+        if (!addr) return '';
+        var ems = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah', 'Al Ain'];
+        var a = ('' + addr).toLowerCase();
+        for (var i = 0; i < ems.length; i++) { if (a.indexOf(ems[i].toLowerCase()) >= 0) { return ' · ' + ems[i]; } }
+        return '';
+    };
+
+    // BOS export menu: "This page" = the DataTables Excel button (current view);
+    // "All customers" = server-side full CSV (/Customer/ExportCustomers) respecting current filters.
+    function bosxToggleExport(e) { if (e) { e.stopPropagation(); } var m = document.getElementById('bosxExportMenu'); if (m) { m.classList.toggle('open'); } }
+    document.addEventListener('click', function () { var m = document.getElementById('bosxExportMenu'); if (m) { m.classList.remove('open'); } });
+    function bosxExportPage() { var b = document.querySelector('.dt-buttons .buttons-excel'); if (b) { b.click(); } else { var c = document.querySelector('.dt-buttons .buttons-csv'); if (c) { c.click(); } } }
+    function bosxExportAll() {
+        var p = [];
+        function add(k, sel) { try { var v = (window.jQuery ? jQuery(sel).val() : (document.querySelector(sel) || {}).value); if (v != null && v !== '' && v !== 'All') { p.push(encodeURIComponent(k) + '=' + encodeURIComponent(v)); } } catch (ex) { } }
+        add('FromDate', '#FromDate'); add('ToDate', '#ToDate'); add('Customer', '#ddlCustomer');
+        add('TaxReg', '#TaxReg'); add('Mobile', '#ddlMobile'); add('Phone', '#ddlPhone');
+        add('CLimit', '#CLimit'); add('CPeriod', '#CPeriod'); add('Employee', '#ddlEmployee');
+        add('Type', '#ddlCustomerType'); add('Source', '#ddlsource'); add('TxType', '#TaxType');
+        add('MailId', '#MailId'); add('Alias', '#Alias');
+        window.location = '/Customer/ExportCustomers' + (p.length ? ('?' + p.join('&')) : '');
+    }
+</script>
 <div class="box box-info">
     <div class="box-header with-border">
 
@@ -170,7 +232,17 @@
                 </a>}
         </div>
 
-        <div class="row">
+        @* BOS: clean mockup filter bar (search + type + salesperson + Filters). The legacy advanced filter below is hidden and revealed by the Filters button — no field/function removed. *@
+        <div class="bosx-filterbar" id="bosxFilterbar">
+            <div class="bosx-search">
+                <i class="fa fa-search"></i>
+                <input type="text" id="bosxSearch" placeholder="Search name, code or mobile…" autocomplete="off" />
+            </div>
+            <div class="bosx-fb-slot" id="bosxTypeSlot"></div>
+            <div class="bosx-fb-slot" id="bosxEmpSlot"></div>
+            <button type="button" class="bosx-fb-filters" id="bosxFiltersBtn"><i class="fa fa-sliders"></i><span>Filters</span></button>
+        </div>
+        <div class="row" id="bosxLegacyFilter" style="display:none;">
             <div class="col-md-2">
                 <label class="control-label">Filters</label>
                 <div id="list1" class="dropdown-check-list" tabindex="100">
@@ -178,10 +250,8 @@
                     <ul class="items">
                         <li><input type="checkbox" id="liname" class="liname" checked />Customer  Name </li>
                         <li><input type="checkbox" id="lialias" />Customer Alias</li>
-                        <li><input type="checkbox" id="litype" />Customer Type</li>
                         <li><input type="checkbox" id="lisource" />Source</li>
                         <li><input type="checkbox" id="litaxreg" />Tax Reg </li>
-                        <li><input type="checkbox" id="liemployee" />Sales Man</li>
                         <li><input type="checkbox" id="lifromdate" />Created Date From</li>
                         <li><input type="checkbox" id="litodate" />Created Date To</li>
                         <li><input type="checkbox" id="litaxtype" />Tax Type</li>
@@ -519,15 +589,6 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
 
         }
 
-        if ($("#litype").prop("checked") == true) {
-            $("#searchcustomertype").show();
-            _show = 1;
-        }
-        else {
-            $("#ddlCustomerType").select2("val", "");
-            $("#searchcustomertype").hide();
-
-        }
         if ($("#lisource").prop("checked") == true) {
             $("#searchsource").show();
             _show = 1;
@@ -536,16 +597,6 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
             // $("#ddlsource").select2("val", "");
             $('#ddlsource').val("").trigger("change");
             $("#searchsource").hide();
-
-        }
-
-        if ($("#liemployee").prop("checked") == true) {
-            $("#searchemployee").show();
-            _show = 1;
-        }
-        else {
-            $("#ddlEmployee").select2("val", "");
-            $("#searchemployee").hide();
 
         }
 
@@ -602,6 +653,8 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
                     data.TxType = $('#TaxType').val();
                     data.MailId = $('#MailId').val();
                     data.Alias = $('#Alias').val();
+                    // BOS clean search bar -> GetCustomer reads search[value] (grid has filter:false, so feed it here)
+                    data.search = { value: ($('#bosxSearch').val() || ''), regex: false };
                 },
                 "type": "POST",
                 "datatype": "json"
@@ -629,11 +682,11 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
                                //datas = "'<a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a>' ";
                                if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
                                {
-                                   datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.CustomerName||'').substring(0,2).toUpperCase() +'</span><a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a></div>' ";
+                                   datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.CustomerName||'').substring(0,2).toUpperCase() +'</span><div class=\"bosx-cust-tx\"><a href=\"/Customer/Details/'+ data.id +'\">'+ data.CustomerName +'</a><div class=\"bosx-cust-code\">#'+ (data.CustomerCode||'') + (window.__bosxCity ? window.__bosxCity(data.Address) : '') +'</div></div></div>' ";
                                }
                                else
                                {
-                                   datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.CustomerName||'').substring(0,2).toUpperCase() +'</span><span class=\"bosx-c-name\">'+ data.CustomerName +'</span></div>' ";
+                                   datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.CustomerName||'').substring(0,2).toUpperCase() +'</span><div class=\"bosx-cust-tx\"><span class=\"bosx-c-name\">'+ data.CustomerName +'</span><div class=\"bosx-cust-code\">#'+ (data.CustomerCode||'') + (window.__bosxCity ? window.__bosxCity(data.Address) : '') +'</div></div></div>' ";
                                }
                            }
                         return @Html.Raw(datas);
@@ -681,7 +734,7 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
                          return datas;
                      }
                  },
-                { "data": "Email", "name": "Email" },
+                { "data": "Email", "name": "Email", "render": function (d) { var s = (d == null ? '' : d).toString().trim(); if (!s) return ''; var ini = s.replace(/[^a-zA-Z0-9]/g, '').substring(0, 2).toUpperCase(); return '<span class="bosx-sp"><span class="bosx-sp-av">' + ini + '</span>' + s + '</span>'; } },
                 { "data": "customertype", "name": "customertype", "render": function (d) { return (d && d.toString().replace(/\./g, '').trim()) ? '<span class="bosx-badge">' + d + '</span>' : ''; } },
                 {
                     "name": "CreditLimit", "data": function (data) {
@@ -708,10 +761,8 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
                 {
                     "name": "currentbalance",
                     "data": function (data) {
-                        if (data.currentbalance == "0")
-                            return data.decimalcurrbalance;
-                        else
-                            return data.currentbalance;
+                        var v = (data.currentbalance == "0") ? data.decimalcurrbalance : data.currentbalance;
+                        return '<span class="bosx-bal">' + (v == null ? '' : v) + '</span>';
                     }
                 },
 
@@ -872,7 +923,10 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
         var column1 = oTable.column(11);
         column1.visible(false);
         var column1 = oTable.column(12);
-        column1.visible(false);
+        column1.visible(true);
+        oTable.column(0).visible(false);
+        oTable.column(1).visible(false);
+        oTable.column(13).visible(false);
 
         var chkcol = '@userRole';
 
@@ -1031,10 +1085,10 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
               }
               $('#ddlCustomer').val(null).trigger("change");
               $('#Alias').val("");
-              $('#ddlCustomerType').val(null).trigger("change");
+              $('#ddlCustomerType').val(null).trigger("change.select2"); // silent: avoids the new change->grid.draw handler (1 draw below, not 3)
               $('#ddlsource').val(null).trigger("change");
               $('#TaxReg').val("");
-              $('#ddlEmployee').val(null).trigger("change");
+              $('#ddlEmployee').val(null).trigger("change.select2"); // silent: same reason
 
               $('#TaxType').val(null).trigger("change");
               $('#ddlMobile').val(null).trigger("change");
@@ -1059,7 +1113,8 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
         CallRepEmployee();
 
         $("#ddlCustomerType").select2({
-            placeholder: 'Search Customer Type',
+            placeholder: 'All types',
+            allowClear: true,
             minimumInputLength: 0,
             ajax: {
                 url: "/CustomerType/SearchType",
@@ -1187,6 +1242,30 @@ new SelectListItem() {Text = "50 Rows", Value="50"},
           if (element !== event.target && !element.has(event.target).length) {
               checkList.classList.remove('visible');
           }
+      });
+
+      /******* BOS: clean mockup filter bar — search + type + salesperson + Filters toggle.
+               Relocates the existing Type/Salesperson select2 groups into the top bar (keeps them intact);
+               the full legacy filter stays below, hidden, revealed by the Filters button (no field/function removed). ********/
+      $(document).ready(function () {
+          try {
+              var $type = $('#searchcustomertype');
+              var $emp = $('#searchemployee');
+              if ($type.length) { $type.appendTo('#bosxTypeSlot').removeAttr('hidden').css('display', 'block'); }
+              if ($emp.length) { $emp.appendTo('#bosxEmpSlot').removeAttr('hidden').css('display', 'block'); }
+              $('#bosxTypeSlot .select2-selection__placeholder').text('All types');
+              $('#bosxEmpSlot .select2-selection__placeholder').text('All salespersons');
+
+              function bosxGrid() { try { return $('#MyTable').DataTable(); } catch (e) { return null; } }
+
+              var _bsT;
+              $('#bosxSearch').on('input', function () {
+                  clearTimeout(_bsT);
+                  _bsT = setTimeout(function () { var t = bosxGrid(); if (t) { t.draw(); } }, 350);
+              });
+              $('#ddlCustomerType, #ddlEmployee').on('change', function () { var t = bosxGrid(); if (t) { t.draw(); } });
+              $('#bosxFiltersBtn').on('click', function () { $('#bosxLegacyFilter').slideToggle(150); $(this).toggleClass('active'); });
+          } catch (e) { }
       });
 
     </script>

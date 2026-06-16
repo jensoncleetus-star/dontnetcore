@@ -1,0 +1,227 @@
+@{
+    ViewBag.Title = "Real Estate Dashboard";
+    ViewBag.Active = "Dashboard";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="re-dash">
+    <!-- HERO -->
+    <div class="re-hero">
+        <div class="re-hero-l">
+            <div class="re-hero-ic"><i class="fa fa-building"></i></div>
+            <div>
+                <h1>Real Estate Dashboard</h1>
+                <p>Portfolio overview &middot; @DateTime.Now.ToString("dddd, dd MMM yyyy")</p>
+            </div>
+        </div>
+        <div class="re-hero-actions">
+            <a href="/Property/PropertyMain/Create" class="re-qa"><i class="fa fa-plus"></i> Property</a>
+            <a href="/Property/Tenant/Create" class="re-qa"><i class="fa fa-user-plus"></i> Tenant</a>
+            <a href="/Property/TenancyContract/Create" class="re-qa"><i class="fa fa-pencil-square-o"></i> Contract</a>
+            <a href="/Property/Rental/Create" class="re-qa"><i class="fa fa-usd"></i> Rent Invoice</a>
+            <a href="/Property/Maintenance/Create" class="re-qa"><i class="fa fa-wrench"></i> Maintenance</a>
+        </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="re-kpis">
+        <div class="re-kpi k1"><div class="re-kpi-ic"><i class="fa fa-building"></i></div><div><span class="re-num">@ViewBag.Properties</span><span class="re-lbl">Properties</span></div></div>
+        <div class="re-kpi k2"><div class="re-kpi-ic"><i class="fa fa-th-large"></i></div><div><span class="re-num">@ViewBag.Units</span><span class="re-lbl">Total Units</span></div></div>
+        <div class="re-kpi k3"><div class="re-kpi-ic"><i class="fa fa-key"></i></div><div><span class="re-num">@ViewBag.Occupied</span><span class="re-lbl">Occupied</span></div></div>
+        <div class="re-kpi k4"><div class="re-kpi-ic"><i class="fa fa-bed"></i></div><div><span class="re-num">@ViewBag.Vacant</span><span class="re-lbl">Vacant</span></div></div>
+        <div class="re-kpi k5"><div class="re-kpi-ic"><i class="fa fa-users"></i></div><div><span class="re-num">@ViewBag.Tenants</span><span class="re-lbl">Tenants</span></div></div>
+        <div class="re-kpi k6"><div class="re-kpi-ic"><i class="fa fa-user-circle"></i></div><div><span class="re-num">@ViewBag.Landlords</span><span class="re-lbl">Landlords</span></div></div>
+        <div class="re-kpi k7"><div class="re-kpi-ic"><i class="fa fa-file-text-o"></i></div><div><span class="re-num">@ViewBag.ActiveContracts</span><span class="re-lbl">Active Contracts</span></div></div>
+        <div class="re-kpi k8"><div class="re-kpi-ic"><i class="fa fa-money"></i></div><div><span class="re-num">@money(ViewBag.RentRoll)</span><span class="re-lbl">Rent Roll (AED)</span></div></div>
+    </div>
+
+    <!-- ALERT STRIP -->
+    <div class="re-alerts">
+        <div class="re-alert a-warn"><i class="fa fa-hourglass-half"></i> <b>@ViewBag.ExpiringContracts</b> contract(s) expiring in 60 days</div>
+        <div class="re-alert a-info"><i class="fa fa-id-card"></i> <b>@ViewBag.ExpiringDocs</b> document(s) expiring in 90 days</div>
+        <div class="re-alert a-ok"><i class="fa fa-wrench"></i> <b>@ViewBag.MaintenanceCount</b> maintenance contract(s) &middot; AED @money(ViewBag.MaintenanceCost)</div>
+        <div class="re-alert a-buy"><i class="fa fa-handshake-o"></i> <b>@ViewBag.Registrations</b> registration(s) &middot; AED @money(ViewBag.RegistrationValue)</div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="re-grid3">
+        <div class="re-card">
+            <h3>Occupancy</h3>
+            <div class="re-occ">
+                <div class="re-donut" style="--pct:@ViewBag.OccupancyPct">
+                    <div class="re-donut-hole"><span>@ViewBag.OccupancyPct%</span><small>Occupied</small></div>
+                </div>
+                <ul class="re-legend">
+                    <li><i class="dot d-occ"></i> Occupied <b>@ViewBag.Occupied</b></li>
+                    <li><i class="dot d-vac"></i> Vacant <b>@ViewBag.Vacant</b></li>
+                </ul>
+            </div>
+        </div>
+        <div class="re-card">
+            <h3>Units by Type</h3>
+            <div id="reUnitsByType" class="re-bars"></div>
+        </div>
+        <div class="re-card">
+            <h3>Properties by Type</h3>
+            <div id="rePropsByType" class="re-bars"></div>
+        </div>
+    </div>
+
+    <!-- LISTS -->
+    <div class="re-grid2">
+        <div class="re-card">
+            <h3><i class="fa fa-hourglass-half"></i> Upcoming Contract Expiries</h3>
+            <div class="re-tbl"><table><thead><tr><th>Tenant</th><th>Property / Unit</th><th>End Date</th><th class="r">Rent</th></tr></thead><tbody id="reExpContracts"></tbody></table></div>
+        </div>
+        <div class="re-card">
+            <h3><i class="fa fa-id-card"></i> Document Expiry Reminders</h3>
+            <div class="re-tbl"><table><thead><tr><th>Document</th><th>Property</th><th>Expiry</th><th></th></tr></thead><tbody id="reExpDocs"></tbody></table></div>
+        </div>
+    </div>
+    <div class="re-grid1">
+        <div class="re-card">
+            <h3><i class="fa fa-handshake-o"></i> Recent Property Registrations</h3>
+            <div class="re-tbl"><table><thead><tr><th>Property</th><th>Developer</th><th>Date</th><th class="r">Amount (AED)</th><th></th></tr></thead><tbody id="reRecentReg"></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- INSIGHTS: maintenance expense mapping + portfolio P&L -->
+    <div class="re-grid2">
+        <div class="re-card">
+            <h3><i class="fa fa-wrench"></i> Maintenance Expense by Property</h3>
+            <div id="reMaintByProp" class="re-bars"></div>
+        </div>
+        <div class="re-card">
+            <h3><i class="fa fa-line-chart"></i> Portfolio Profit &amp; Loss</h3>
+            <div class="re-pl">
+                <div class="re-pl-row"><span>Income (contracted rent)</span><b class="re-pos">AED @money(ViewBag.RentRoll)</b></div>
+                <div class="re-pl-row"><span>Maintenance expense</span><b class="re-neg">AED @money(ViewBag.MaintenanceCost)</b></div>
+                <div class="re-pl-row re-pl-net"><span>Net Profit</span><b>AED @money(ViewBag.PLNet)</b></div>
+                <div class="re-pl-track"><div class="re-pl-fill" style="width:@(ViewBag.PLMargin)%"></div></div>
+                <div class="re-pl-sub">@ViewBag.PLMargin% net margin</div>
+            </div>
+            <div class="re-insight-links">
+                <a href="/Property/PropertyInsights/ProfitLoss"><i class="fa fa-line-chart"></i> Property P&amp;L</a>
+                <a href="/Property/PropertyInsights/ContractorAllocation"><i class="fa fa-wrench"></i> Contractors</a>
+                <a href="/Property/PropertyInsights/UnitInsights"><i class="fa fa-th-large"></i> Units</a>
+                <a href="/Property/PropertyInsights/RentCollection"><i class="fa fa-usd"></i> Rent Collection</a>
+                <a href="/Property/PropertyInsights/MaintenanceCalendar"><i class="fa fa-calendar"></i> Maint. Calendar</a>
+                <a href="/Property/PropertyInsights/Reminders"><i class="fa fa-bell"></i> Reminders</a>
+                <a href="/Property/PropertyInsights/Gallery"><i class="fa fa-camera"></i> Gallery</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODULE SHORTCUTS -->
+    <div class="re-card">
+        <h3><i class="fa fa-compass"></i> Quick Navigation</h3>
+        <div class="re-nav">
+            <a href="/Property/PropertyMain/"><i class="fa fa-building"></i><span>Properties</span></a>
+            <a href="/Property/Unit/"><i class="fa fa-th-large"></i><span>Units</span></a>
+            <a href="/Property/Tenant/Index"><i class="fa fa-users"></i><span>Tenants</span></a>
+            <a href="/Property/Landlords/Index"><i class="fa fa-user-circle"></i><span>Landlords</span></a>
+            <a href="/Property/Developer/Index"><i class="fa fa-industry"></i><span>Developers</span></a>
+            <a href="/Property/Broker/Index"><i class="fa fa-handshake-o"></i><span>Brokers</span></a>
+            <a href="/Property/TenancyContract/Index"><i class="fa fa-file-text-o"></i><span>Contracts</span></a>
+            <a href="/Property/Maintenance/Index"><i class="fa fa-wrench"></i><span>Maintenance</span></a>
+            <a href="/Property/PropertyReports/PropertySummery"><i class="fa fa-bar-chart"></i><span>Reports</span></a>
+        </div>
+    </div>
+</div>
+
+<style>
+.re-dash{--c1:#6366f1;--c2:#22d3ee;--c3:#10b981;--c4:#f59e0b;--c5:#ef4444;--ink:#0f172a;--mut:#64748b;--card:#fff;--bd:rgba(15,23,42,.08);font-family:'Segoe UI',system-ui,sans-serif;padding:4px 2px}
+.re-dash *{box-sizing:border-box}
+.re-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(120deg,#4f46e5,#0ea5e9 60%,#06b6d4);border-radius:18px;padding:22px 26px;color:#fff;box-shadow:0 12px 30px -10px rgba(79,70,229,.5);margin-bottom:18px}
+.re-hero-l{display:flex;align-items:center;gap:16px}
+.re-hero-ic{width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:26px;backdrop-filter:blur(6px)}
+.re-hero h1{margin:0;font-size:24px;font-weight:800;letter-spacing:.3px}
+.re-hero p{margin:2px 0 0;opacity:.85;font-size:13px}
+.re-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.re-qa{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 13px;border-radius:10px;font-size:12.5px;font-weight:600;text-decoration:none;transition:.15s;white-space:nowrap}
+.re-qa:hover{background:#fff;color:#4f46e5;text-decoration:none}
+.re-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.re-kpi{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px 18px;box-shadow:0 6px 18px -12px rgba(15,23,42,.25);transition:.18s;position:relative;overflow:hidden}
+.re-kpi:hover{transform:translateY(-3px);box-shadow:0 14px 28px -14px rgba(15,23,42,.4)}
+.re-kpi:before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c1)}
+.re-kpi.k2:before{background:var(--c2)}.re-kpi.k3:before{background:var(--c3)}.re-kpi.k4:before{background:var(--c4)}
+.re-kpi.k5:before{background:#8b5cf6}.re-kpi.k6:before{background:#ec4899}.re-kpi.k7:before{background:#14b8a6}.re-kpi.k8:before{background:#f59e0b}
+.re-kpi-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;background:linear-gradient(135deg,var(--c1),#818cf8);flex:none}
+.re-kpi.k2 .re-kpi-ic{background:linear-gradient(135deg,#06b6d4,#22d3ee)}.re-kpi.k3 .re-kpi-ic{background:linear-gradient(135deg,#059669,#34d399)}
+.re-kpi.k4 .re-kpi-ic{background:linear-gradient(135deg,#d97706,#fbbf24)}.re-kpi.k5 .re-kpi-ic{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+.re-kpi.k6 .re-kpi-ic{background:linear-gradient(135deg,#db2777,#f472b6)}.re-kpi.k7 .re-kpi-ic{background:linear-gradient(135deg,#0d9488,#2dd4bf)}.re-kpi.k8 .re-kpi-ic{background:linear-gradient(135deg,#d97706,#f59e0b)}
+.re-num{display:block;font-size:23px;font-weight:800;color:var(--ink);line-height:1.1}
+.re-lbl{display:block;font-size:12px;color:var(--mut);margin-top:2px;font-weight:600}
+.re-alerts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.re-alert{padding:12px 15px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;border:1px solid var(--bd)}
+.re-alert b{font-size:16px}
+.a-warn{background:#fff7ed;color:#c2410c}.a-info{background:#eff6ff;color:#1d4ed8}.a-ok{background:#ecfdf5;color:#047857}.a-buy{background:#faf5ff;color:#7e22ce}
+.re-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.re-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.re-grid1{margin-bottom:16px}
+.re-card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px 20px;box-shadow:0 6px 18px -12px rgba(15,23,42,.2)}
+.re-card h3{margin:0 0 14px;font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
+.re-card h3 i{color:var(--c1)}
+.re-occ{display:flex;align-items:center;gap:22px}
+.re-donut{width:130px;height:130px;border-radius:50%;background:conic-gradient(#4f46e5 calc(var(--pct,0)*1%),#e2e8f0 0);display:flex;align-items:center;justify-content:center;flex:none}
+.re-donut-hole{width:92px;height:92px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.re-donut-hole span{font-size:26px;font-weight:800;color:var(--ink)}
+.re-donut-hole small{font-size:11px;color:var(--mut)}
+.re-legend{list-style:none;margin:0;padding:0}
+.re-legend li{font-size:13px;color:var(--mut);margin:8px 0;font-weight:600}
+.re-legend b{color:var(--ink);margin-left:5px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:middle}
+.d-occ{background:#4f46e5}.d-vac{background:#e2e8f0}
+.re-bars{display:flex;flex-direction:column;gap:11px;min-height:120px}
+.re-bar-row{font-size:12.5px}
+.re-bar-top{display:flex;justify-content:space-between;margin-bottom:4px;color:var(--ink);font-weight:600}
+.re-bar-track{height:9px;background:#eef2f7;border-radius:6px;overflow:hidden}
+.re-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#6366f1,#22d3ee)}
+.re-tbl{overflow-x:auto}
+.re-tbl table{width:100%;border-collapse:collapse;font-size:13px}
+.re-tbl th{text-align:left;color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:7px 8px;border-bottom:2px solid var(--bd)}
+.re-tbl td{padding:9px 8px;border-bottom:1px solid #f1f5f9;color:var(--ink)}
+.re-tbl tr:last-child td{border-bottom:none}
+.re-tbl .r{text-align:right}
+.re-tbl .badge{background:#eef2ff;color:#4338ca;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.re-tbl .empty{color:var(--mut);text-align:center;padding:18px}
+.re-tbl a.lk{color:#4f46e5;text-decoration:none;font-weight:600}
+.re-nav{display:grid;grid-template-columns:repeat(9,1fr);gap:10px}
+.re-nav a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:12px;background:#f8fafc;border:1px solid var(--bd);color:var(--mut);text-decoration:none;font-size:11.5px;font-weight:600;transition:.15s}
+.re-nav a:hover{background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff;border-color:transparent;transform:translateY(-2px)}
+.re-nav a i{font-size:19px}
+@@media(max-width:1100px){.re-kpis,.re-alerts{grid-template-columns:repeat(2,1fr)}.re-grid3,.re-grid2{grid-template-columns:1fr}.re-nav{grid-template-columns:repeat(4,1fr)}}
+</style>
+<script>
+(function(){
+  var unitsByType=@Html.Raw(ViewBag.UnitsByType ?? "[]");
+  var propsByType=@Html.Raw(ViewBag.PropsByType ?? "[]");
+  var expContracts=@Html.Raw(ViewBag.ExpContracts ?? "[]");
+  var expDocs=@Html.Raw(ViewBag.ExpDocs ?? "[]");
+  var recentReg=@Html.Raw(ViewBag.RecentReg ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function money(n){return (Number(n)||0).toLocaleString();}
+  function bars(el,data){
+    el=document.getElementById(el); if(!el)return;
+    if(!data.length){el.innerHTML='<div class="re-tbl"><div class="empty">No data</div></div>';return;}
+    var max=Math.max.apply(null,data.map(function(d){return d.count;}))||1;
+    el.innerHTML=data.map(function(d){var w=Math.round(d.count/max*100);
+      return '<div class="re-bar-row"><div class="re-bar-top"><span>'+esc(d.label)+'</span><span>'+d.count+'</span></div>'+
+             '<div class="re-bar-track"><div class="re-bar-fill" style="width:'+w+'%"></div></div></div>';}).join('');
+  }
+  bars('reUnitsByType',unitsByType);
+  bars('rePropsByType',propsByType);
+  var maintByProp=@Html.Raw(ViewBag.MaintByProperty ?? "[]");
+  bars('reMaintByProp',maintByProp.map(function(x){return {label:x.label,count:x.value};}));
+  function rows(id,data,builder,cols){
+    var tb=document.getElementById(id); if(!tb)return;
+    if(!data.length){tb.innerHTML='<tr><td class="empty" colspan="'+cols+'">Nothing upcoming</td></tr>';return;}
+    tb.innerHTML=data.map(builder).join('');
+  }
+  rows('reExpContracts',expContracts,function(c){
+    return '<tr><td>'+esc(c.tenant)+'</td><td>'+esc(c.property)+' <span class="badge">'+esc(c.unit)+'</span></td><td>'+esc(c.end)+'</td><td class="r">'+money(c.rent)+'</td></tr>';},4);
+  rows('reExpDocs',expDocs,function(d){
+    return '<tr><td>'+esc(d.doc)+'</td><td>'+esc(d.property)+'</td><td>'+esc(d.exp)+'</td><td><a class="lk" href="/Property/PropertyMain/Edit/0">View</a></td></tr>';},4);
+  rows('reRecentReg',recentReg,function(r){
+    return '<tr><td>'+esc(r.property)+'</td><td>'+esc(r.developer)+'</td><td>'+esc(r.date)+'</td><td class="r">'+money(r.amount)+'</td><td><a class="lk" href="/Property/PropertyRegistration/Edit/'+r.id+'">Open</a></td></tr>';},5);
+})();
+</script>

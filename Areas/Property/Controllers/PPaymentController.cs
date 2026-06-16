@@ -1,4 +1,4 @@
-﻿using QuickSoft.Web;
+using QuickSoft.Web;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -196,7 +196,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
                 //v = v.OrderBy(c => c.ProductCategoryID);
             }
 
@@ -434,30 +434,18 @@ namespace QuickSoft.Areas.Property.Controllers
                     if (BusinessType == "Scaffold")
                     {
                         vmodel.User = db.Users.Where(x => x.Id == UserId).Select(y => y.UserName).FirstOrDefault();
-                        var v = (from a in db.Suppliers
-                                 join x in db.Accountss on a.Accounts equals x.AccountsID
-                                 join b in db.Contacts on a.Contact equals b.ContactID into tmp
-                                 from b in tmp.DefaultIfEmpty()
-                                 join j in db.Mobiles on a.Contact equals j.Contact into mobi
-                                 from j in mobi.DefaultIfEmpty()
-                                 where (vmodel.creditor == a.SupplierName)
-                                 select new
-                                 {
-                                     Mobile = (from ac in db.Mobiles
-                                               where (ac.Contact == a.Contact)
-                                               select new MobileViewModel
-                                               {
-                                                   Num = ac.MobileNum,
-                                                   Name = ac.Name
-                                               }).ToList(),
-                                     Email = b.EmailId,
-                                     Phone=b.Phone
-                                 });
-
-                        vmodel.Email = v.Select(x => x.Email).FirstOrDefault();
-                        vmodel.Phone = v.Select(x => x.Phone).FirstOrDefault();
-
-                        vmodel.mobmodel = v.Select(x => x.Mobile).FirstOrDefault();
+                        // EF Core 10 cannot translate the nested Mobile collection-projection; materialize the
+                        // supplier row first, then load mobiles as a standalone query.
+                        var sup = (from a in db.Suppliers
+                                   join b in db.Contacts on a.Contact equals b.ContactID into tmp
+                                   from b in tmp.DefaultIfEmpty()
+                                   where (vmodel.creditor == a.SupplierName)
+                                   select new { a.Contact, Email = b.EmailId, Phone = b.Phone }).FirstOrDefault();
+                        vmodel.Email = sup != null ? sup.Email : null;
+                        vmodel.Phone = sup != null ? sup.Phone : null;
+                        vmodel.mobmodel = sup == null ? new List<MobileViewModel>() :
+                            db.Mobiles.Where(ac => ac.Contact == sup.Contact)
+                                .Select(ac => new MobileViewModel { Num = ac.MobileNum, Name = ac.Name }).ToList();
                         //var bank = db.Accountss.Where(x => x.AccountsID == vmodel.PayFrom && x.Group == 8).Select(y => y).FirstOrDefault();
                         //if (bank != null)
                         //{
@@ -1280,24 +1268,17 @@ namespace QuickSoft.Areas.Property.Controllers
                     if (BusinessType == "Scaffold")
                     {
                         vmodel.User = db.Users.Where(x => x.Id == UserId).Select(y => y.UserName).FirstOrDefault();
-                        var v = (from a in db.Suppliers
-                                 join x in db.Accountss on a.Accounts equals x.AccountsID
-                                 join b in db.Contacts on a.Contact equals b.ContactID into tmp
-                                 from b in tmp.DefaultIfEmpty()
-                                 where (vmodel.creditor == a.SupplierName)
-                                 select new
-                                 {
-                                     Mobile = (from ac in db.Mobiles
-                                               where (ac.Contact == a.Contact)
-                                               select new MobileViewModel
-                                               {
-                                                   Num = ac.MobileNum,
-                                                   Name = ac.Name
-                                               }).ToList(),
-                                     Email = b.EmailId,
-                                 });
-                        vmodel.Email = v.Select(x => x.Email).FirstOrDefault();
-                        vmodel.mobmodel = v.Select(x => x.Mobile).FirstOrDefault();
+                        // EF Core 10 cannot translate the nested Mobile collection-projection; materialize the
+                        // supplier row first, then load mobiles as a standalone query.
+                        var sup = (from a in db.Suppliers
+                                   join b in db.Contacts on a.Contact equals b.ContactID into tmp
+                                   from b in tmp.DefaultIfEmpty()
+                                   where (vmodel.creditor == a.SupplierName)
+                                   select new { a.Contact, Email = b.EmailId }).FirstOrDefault();
+                        vmodel.Email = sup != null ? sup.Email : null;
+                        vmodel.mobmodel = sup == null ? new List<MobileViewModel>() :
+                            db.Mobiles.Where(ac => ac.Contact == sup.Contact)
+                                .Select(ac => new MobileViewModel { Num = ac.MobileNum, Name = ac.Name }).ToList();
                         //var bank = db.Accountss.Where(x => x.AccountsID == vmodel.PayFrom && x.Group==8).Select(y=>y).FirstOrDefault();
                         //if (bank != null)
                         //{
@@ -1691,6 +1672,112 @@ namespace QuickSoft.Areas.Property.Controllers
                 com.addlog(LogTypes.Deleted, UserId, "Payment", "Payments", findip(), sId, "Payment Deleted Successfully");
                 return true;
             }
+        }
+
+        // Custom branded, print-ready Payment Voucher document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            // Single record: materialize via .Select(...).FirstOrDefault() (no nested collection projection).
+            var p = db.Payments.Where(x => x.PaymentId == id)
+                .Select(x => new
+                {
+                    x.PaymentId,
+                    x.VoucherNo,
+                    x.Date,
+                    x.MOPayment,
+                    x.PDCDate,
+                    x.PayFrom,
+                    x.PayTo,
+                    x.SubTotal,
+                    x.GrandTotal,
+                    x.Discount,
+                    x.TaxAmount,
+                    x.Paying,
+                    x.Remark,
+                    x.Project,
+                    x.ProTask,
+                    x.Ref1,
+                    x.Ref2,
+                    x.Ref3,
+                    x.Ref4,
+                    x.Ref5
+                }).FirstOrDefault();
+            if (p == null) return NotFound();
+
+            // Company branding.
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            // Account names (PayTo = the account being paid / beneficiary "Paid To" -> Debit row;
+            // PayFrom = cash/bank account the money comes from -> Credit row).
+            var paidToName = db.Accountss.Where(a => a.AccountsID == p.PayTo).Select(a => a.Name).FirstOrDefault();
+            var paidFromName = db.Accountss.Where(a => a.AccountsID == p.PayFrom).Select(a => a.Name).FirstOrDefault();
+
+            // Cheque / PDC details (a payment may have one PDC row keyed by Reference + PDCType).
+            var pdc = db.PDCs.Where(c => c.Reference == p.PaymentId && c.PDCType == "Payment")
+                        .Select(c => new { c.CheckNo, c.Bank, c.PDCDate, c.Note }).FirstOrDefault();
+
+            // Project / unit names (optional FK -> ?? 0 guard).
+            long projId = p.Project ?? 0;
+            long taskId = p.ProTask ?? 0;
+            var projName = db.PropertyMains.Where(m => m.Id == projId).Select(m => (m.Code + " " + m.Name).Trim()).FirstOrDefault();
+            var taskName = db.PropertyUnits.Where(u => u.Id == taskId).Select(u => u.Name).FirstOrDefault();
+
+            decimal paying = p.Paying;
+            decimal discount = p.Discount;
+            decimal taxAmount = p.TaxAmount;
+            decimal grand = p.GrandTotal;
+            string modeName = Enum.GetName(typeof(ModeOfPayment), p.MOPayment);
+            string amtInWords = "";
+            try { amtInWords = com.ConvertToWords(grand.ToString()); } catch { amtInWords = ""; }
+
+            // Reference fields, only the non-empty ones, for the optional "References" line list.
+            var refs = new System.Collections.Generic.List<object>();
+            if (!string.IsNullOrWhiteSpace(p.Ref1)) refs.Add(new { k = "Ref 1", v = p.Ref1 });
+            if (!string.IsNullOrWhiteSpace(p.Ref2)) refs.Add(new { k = "Ref 2", v = p.Ref2 });
+            if (!string.IsNullOrWhiteSpace(p.Ref3)) refs.Add(new { k = "Ref 3", v = p.Ref3 });
+            if (!string.IsNullOrWhiteSpace(p.Ref4)) refs.Add(new { k = "Ref 4", v = p.Ref4 });
+
+            ViewBag.Id = p.PaymentId;
+            ViewBag.Code = string.IsNullOrWhiteSpace(p.VoucherNo) ? ("PV-" + p.PaymentId) : p.VoucherNo;
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+
+            ViewBag.Date = p.Date.ToString("dd MMM yyyy");
+            ViewBag.PaidTo = string.IsNullOrWhiteSpace(paidToName) ? "-" : paidToName;     // PayTo = beneficiary (Debit row)
+            ViewBag.PaidFrom = string.IsNullOrWhiteSpace(paidFromName) ? "-" : paidFromName; // PayFrom = cash/bank account (Credit row)
+            ViewBag.Amount = paying.ToString("#,##0.00");
+            ViewBag.Discount = discount.ToString("#,##0.00");
+            ViewBag.TaxAmount = taxAmount.ToString("#,##0.00");
+            ViewBag.GrandTotal = grand.ToString("#,##0.00");
+            ViewBag.AmountWords = amtInWords;
+            ViewBag.Mode = modeName;
+            ViewBag.ChequeNo = pdc != null ? (pdc.CheckNo ?? "") : "";
+            ViewBag.Bank = pdc != null ? (pdc.Bank ?? "") : "";
+            ViewBag.PdcDate = (pdc != null && pdc.PDCDate != DateTime.MinValue) ? pdc.PDCDate.ToString("dd MMM yyyy")
+                              : (p.PDCDate != null ? p.PDCDate.Value.ToString("dd MMM yyyy") : "");
+            ViewBag.Project = string.IsNullOrWhiteSpace(projName) ? "" : projName;
+            ViewBag.ProTask = string.IsNullOrWhiteSpace(taskName) ? "" : taskName;
+            ViewBag.Remark = p.Remark ?? "";
+            ViewBag.PdcNote = pdc != null ? (pdc.Note ?? "") : "";
+
+            // Voucher accounting lines (Dr beneficiary / Cr cash-bank / optional Cr discount), rendered via small <script>.
+            var lines = new System.Collections.Generic.List<object>();
+            lines.Add(new { particulars = "Dr  " + (string.IsNullOrWhiteSpace(paidToName) ? "-" : paidToName), debit = paying.ToString("#,##0.00"), credit = "" });
+            lines.Add(new { particulars = "Cr  " + (string.IsNullOrWhiteSpace(paidFromName) ? "-" : paidFromName), debit = "", credit = paying.ToString("#,##0.00") });
+            if (discount > 0)
+                lines.Add(new { particulars = "Cr  Discount Received", debit = "", credit = discount.ToString("#,##0.00") });
+
+            // Lists serialized to JSON (EF already materialized above).
+            ViewBag.Lines = System.Text.Json.JsonSerializer.Serialize(lines);
+            ViewBag.Refs = System.Text.Json.JsonSerializer.Serialize(refs);
+            return View();
         }
 
         [HttpGet]

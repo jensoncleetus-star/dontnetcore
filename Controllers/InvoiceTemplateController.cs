@@ -25,7 +25,7 @@ namespace QuickSoft.Controllers
 
         // The document types the custom designer supports. Sale + Quotation share Common.SaleData;
         // Receipt/Payment/Cheque are wired per-type (their accurate data binders are added incrementally).
-        static readonly string[] DocTypes = { "Sale", "Quotation", "Estimate", "ProForma", "SalesOrder", "DeliveryNote", "CreditNote", "PurchaseOrder", "PurchaseEntry", "Receipt", "Payment", "Cheque", "MaterialRequisition" };
+        static readonly string[] DocTypes = { "Sale", "Quotation", "Estimate", "ProForma", "SalesOrder", "DeliveryNote", "CreditNote", "PurchaseOrder", "PurchaseEntry", "Receipt", "Payment", "Cheque", "MaterialRequisition", "TenancyContract" };
         static string NormDoc(string d) => DocTypes.Contains(d, StringComparer.OrdinalIgnoreCase)
             ? DocTypes.First(x => x.Equals(d, StringComparison.OrdinalIgnoreCase)) : "Sale";
 
@@ -313,6 +313,54 @@ namespace QuickSoft.Controllers
                                 ViewBag.ItemsJson = Newtonsoft.Json.JsonConvert.SerializeObject(items);
                             }
                             ViewBag.InvoiceNo = jo.Value<string>("BillNo") ?? invoiceId.Value.ToString();
+                        }
+                    }
+                    else if (dt == "TenancyContract")
+                    {
+                        // Real-estate tenancy contract — mirror TenancyContractController.Print data fetch (EF Core 10 safe).
+                        var c = db.TenancyContracts.Where(x => x.Id == invoiceId.Value)
+                            .Select(x => new { x.Id, x.Code, x.Tenant, x.Property, x.Unit, x.StartDate, x.EndDate, x.issuedate, x.Rent, x.Deposit, x.Duration, x.Schedule, x.DueDate, x.PaymentType, x.contractvalue, x.NumberofOccupants, x.WaterAndElectricityBill, x.PetsAllowed }).FirstOrDefault();
+                        if (c != null)
+                        {
+                            long propId = c.Property ?? 0;
+                            var prop = db.PropertyMains.Where(p => p.Id == propId).Select(p => new { p.Name, p.City, p.State, p.Address, p.LandlordID }).FirstOrDefault();
+                            long llId = prop != null ? (prop.LandlordID ?? 0) : 0;
+                            var landlord = (from l in db.Landlords where l.LandlordID == llId
+                                            join ct in db.Contacts on l.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
+                                            select new { l.LandlordName, ct.Mobile, ct.Phone, ct.Address }).FirstOrDefault();
+                            long tnId = c.Tenant ?? 0;
+                            var tenant = (from tn in db.Tenants where tn.TenantID == tnId
+                                          join ct in db.Contacts on tn.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
+                                          select new { tn.TenantName, ct.Mobile, ct.Phone, ct.Address }).FirstOrDefault();
+                            string unitName = db.PropertyUnits.Where(u => u.Id == c.Unit).Select(u => u.Name).FirstOrDefault();
+                            string durName = db.Durations.Where(d => d.Id == (c.Duration ?? 0)).Select(d => d.Name).FirstOrDefault();
+                            string sched = c.Schedule == Schedule.Monthly ? "Monthly" : c.Schedule == Schedule.Month3 ? "Every 3 Months" : c.Schedule == Schedule.Month6 ? "Every 6 Months" : "Yearly";
+
+                            map["LANDLORD.Name"] = landlord != null ? (landlord.LandlordName ?? "") : "";
+                            map["LANDLORD.Phone"] = landlord != null ? ((landlord.Mobile ?? landlord.Phone) ?? "") : "";
+                            map["LANDLORD.Address"] = landlord != null ? (landlord.Address ?? "") : "";
+                            map["TENANT.Name"] = tenant != null ? (tenant.TenantName ?? "") : "";
+                            map["TENANT.Phone"] = tenant != null ? ((tenant.Mobile ?? tenant.Phone) ?? "") : "";
+                            map["TENANT.Address"] = tenant != null ? (tenant.Address ?? "") : "";
+                            map["PARTY.Name"] = map["TENANT.Name"]; map["CUSTOMER.Name"] = map["TENANT.Name"];
+                            map["PROPERTY.Name"] = prop != null ? (prop.Name ?? "") : "";
+                            map["PROPERTY.Unit"] = unitName ?? "";
+                            map["PROPERTY.Address"] = prop == null ? "" : string.Join(", ", new[] { prop.Address, prop.City, prop.State }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                            map["TENANCY.Code"] = c.Code ?? "";
+                            map["TENANCY.IssueDate"] = (c.issuedate ?? c.StartDate).ToString("dd-MM-yyyy");
+                            map["TENANCY.StartDate"] = c.StartDate.ToString("dd-MM-yyyy");
+                            map["TENANCY.EndDate"] = c.EndDate.ToString("dd-MM-yyyy");
+                            map["TENANCY.Duration"] = durName ?? "";
+                            map["TENANCY.Rent"] = money(c.Rent);
+                            map["TENANCY.Deposit"] = money(c.Deposit);
+                            map["TENANCY.ContractValue"] = string.IsNullOrWhiteSpace(c.contractvalue) ? money(c.Rent) : c.contractvalue;
+                            map["TENANCY.PaymentMode"] = (c.PaymentType == 1) ? "Cash" : "Cheque";
+                            map["TENANCY.Schedule"] = sched;
+                            map["TENANCY.Occupants"] = string.IsNullOrWhiteSpace(c.NumberofOccupants) ? "" : c.NumberofOccupants;
+                            map["TENANCY.Pets"] = string.IsNullOrWhiteSpace(c.PetsAllowed) ? "" : c.PetsAllowed;
+                            map["SUMMARY.GrandTotal"] = money(c.Rent);
+                            try { map["SUMMARY.AmountInWords"] = c.Rent.HasValue ? (com.ConvertToWords(c.Rent.Value.ToString()) ?? "") : ""; } catch { map["SUMMARY.AmountInWords"] = ""; }
+                            ViewBag.InvoiceNo = c.Code ?? invoiceId.Value.ToString();
                         }
                     }
                     else

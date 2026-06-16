@@ -1,0 +1,154 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rental Proforma @ViewBag.Code</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',Arial,sans-serif;color:#1f2937;background:#eef2f7;font-size:13px;line-height:1.5}
+        .tcp-toolbar{position:sticky;top:0;z-index:10;display:flex;justify-content:flex-end;gap:10px;padding:12px 18px;background:#0f172a}
+        .tcp-toolbar button,.tcp-toolbar a{border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+        .tcp-print{background:linear-gradient(135deg,#4f46e5,#06b6d4);color:#fff}
+        .tcp-pdf{background:#1e293b;color:#fff;border:1px solid #334155}
+        .tcp-back{background:transparent;color:#cbd5e1;border:1px solid #475569}
+        .tcp-sheet{max-width:820px;margin:18px auto;background:#fff;padding:38px 44px;box-shadow:0 10px 40px -16px rgba(15,23,42,.4)}
+        .tcp-lh{text-align:center;border-bottom:3px double #1e293b;padding-bottom:14px;margin-bottom:8px}
+        .tcp-lh img{max-width:100%;max-height:120px}
+        .tcp-co{font-size:22px;font-weight:800;color:#0f172a;letter-spacing:.5px}
+        .tcp-cometa{font-size:12px;color:#475569;margin-top:3px}
+        .tcp-title{text-align:center;margin:18px 0 6px;font-size:19px;font-weight:800;letter-spacing:3px;color:#1e3a8a;text-transform:uppercase}
+        .tcp-ref{text-align:center;font-size:12px;color:#64748b;margin-bottom:18px}
+        .tcp-ref b{color:#1e293b}
+        .tcp-parties{display:flex;gap:16px;margin-bottom:16px}
+        .tcp-party{flex:1;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+        .tcp-party h4{background:#f1f5f9;color:#334155;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-bottom:1px solid #e2e8f0}
+        .tcp-party .b{padding:10px 12px}
+        .tcp-party .nm{font-size:15px;font-weight:800;color:#0f172a}
+        .tcp-party .ln{font-size:12px;color:#475569;margin-top:2px}
+        .tcp-sec{margin:16px 0 8px;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-left:4px solid #4f46e5;padding-left:10px}
+        table.tcp-grid{width:100%;border-collapse:collapse;margin-bottom:6px}
+        table.tcp-grid td{border:1px solid #e2e8f0;padding:8px 11px;font-size:12.5px;vertical-align:top}
+        table.tcp-grid td.k{background:#f8fafc;color:#475569;font-weight:700;width:26%;white-space:nowrap}
+        table.tcp-grid td.v{color:#0f172a;font-weight:600}
+        table.tcp-list{width:100%;border-collapse:collapse;margin-bottom:8px}
+        table.tcp-list th{background:#1e3a8a;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 11px;text-align:left}
+        table.tcp-list td{border:1px solid #e2e8f0;padding:7px 11px;font-size:12.5px}
+        table.tcp-list tr:nth-child(even) td{background:#f8fafc}
+        table.tcp-list tfoot td{background:#f1f5f9;font-weight:800;color:#0f172a;font-size:13.5px}
+        .tcp-terms{border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:12.5px;color:#334155;white-space:pre-wrap;margin-bottom:6px;min-height:40px}
+        .tcp-sign{display:flex;gap:40px;margin-top:42px}
+        .tcp-sign .s{flex:1;text-align:center}
+        .tcp-sign .line{border-top:1.5px solid #1e293b;margin-top:46px;padding-top:6px;font-size:12px;font-weight:700;color:#334155}
+        .tcp-foot{text-align:center;font-size:10.5px;color:#94a3b8;margin-top:26px;border-top:1px solid #e2e8f0;padding-top:10px}
+        .tcp-empty{color:#94a3b8;font-style:italic;font-size:12px;padding:6px 2px}
+        @@media print{
+            body{background:#fff;font-size:12px}
+            .tcp-toolbar{display:none}
+            .tcp-sheet{box-shadow:none;margin:0;max-width:100%;padding:0}
+            table.tcp-list th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+            @@page{margin:14mm}
+        }
+    </style>
+</head>
+<body>
+    <div class="tcp-toolbar">
+        <button class="tcp-print" onclick="window.print()">🖨 Print</button>
+        <a class="tcp-pdf" href="/Property/RentalProforma/Download?id=@ViewBag.Id">⬇ Download PDF</a>
+        <a class="tcp-back" href="/Property/RentalProforma/Index">← Back to list</a>
+    </div>
+    <div class="tcp-sheet">
+        <div class="tcp-lh">
+            @if (!string.IsNullOrEmpty((string)ViewBag.HeaderImg))
+            {
+                <img src="@ViewBag.HeaderImg" alt="@ViewBag.CompName" />
+            }
+            else
+            {
+                <div class="tcp-co">@ViewBag.CompName</div>
+                <div class="tcp-cometa">
+                    @ViewBag.CompAddr
+                    @if (!string.IsNullOrEmpty((string)ViewBag.CompPhone)) { <text> &nbsp;|&nbsp; Tel: @ViewBag.CompPhone</text> }
+                    @if (!string.IsNullOrEmpty((string)ViewBag.CompEmail)) { <text> &nbsp;|&nbsp; @ViewBag.CompEmail</text> }
+                    @if (!string.IsNullOrEmpty((string)ViewBag.CompTRN)) { <text><br />TRN: @ViewBag.CompTRN</text> }
+                </div>
+            }
+        </div>
+
+        <div class="tcp-title">Rental Proforma</div>
+        <div class="tcp-ref">Proforma No: <b>@ViewBag.Code</b> &nbsp;&nbsp;•&nbsp;&nbsp; Date: <b>@ViewBag.InvoiceDate</b></div>
+
+        <div class="tcp-parties">
+            <div class="tcp-party">
+                <h4>From</h4>
+                <div class="b">
+                    <div class="nm">@ViewBag.CompName</div>
+                    @if (!string.IsNullOrEmpty((string)ViewBag.CompAddr)) { <div class="ln">@ViewBag.CompAddr</div> }
+                    @if (!string.IsNullOrEmpty((string)ViewBag.CompPhone)) { <div class="ln">Tel: @ViewBag.CompPhone</div> }
+                    @if (!string.IsNullOrEmpty((string)ViewBag.CompTRN)) { <div class="ln">TRN: @ViewBag.CompTRN</div> }
+                </div>
+            </div>
+            <div class="tcp-party">
+                <h4>Prepared For (Tenant)</h4>
+                <div class="b">
+                    <div class="nm">@ViewBag.TenantName</div>
+                    @if (!string.IsNullOrEmpty((string)ViewBag.TenantCode)) { <div class="ln">Code: @ViewBag.TenantCode</div> }
+                    @if (!string.IsNullOrEmpty((string)ViewBag.TenantContact)) { <div class="ln">@ViewBag.TenantContact</div> }
+                    @if (!string.IsNullOrEmpty((string)ViewBag.TenantAddr)) { <div class="ln">@ViewBag.TenantAddr</div> }
+                </div>
+            </div>
+        </div>
+
+        <div class="tcp-sec">Premises</div>
+        <table class="tcp-grid">
+            <tr><td class="k">Property</td><td class="v">@ViewBag.PropName</td><td class="k">Unit</td><td class="v">@ViewBag.UnitName</td></tr>
+            <tr><td class="k">Address</td><td class="v" colspan="3">@(string.IsNullOrWhiteSpace((string)ViewBag.PropAddr) ? "-" : ViewBag.PropAddr)</td></tr>
+        </table>
+
+        <div class="tcp-sec">Charges</div>
+        <table class="tcp-list" id="tcpLines">
+            <thead><tr><th style="width:50px">#</th><th>Description</th><th style="text-align:right;width:160px">Amount (AED)</th></tr></thead>
+            <tbody></tbody>
+            <tfoot><tr><td colspan="2" style="text-align:right">Total</td><td style="text-align:right">@ViewBag.Amount</td></tr></tfoot>
+        </table>
+
+        <div class="tcp-sec">Additional Details</div>
+        <table class="tcp-list" id="tcpFields"><thead><tr><th style="width:50px">#</th><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
+
+        @if (!string.IsNullOrWhiteSpace((string)ViewBag.TnC) || !string.IsNullOrWhiteSpace((string)ViewBag.Note) || !string.IsNullOrWhiteSpace((string)ViewBag.Remark))
+        {
+            <div class="tcp-sec">Notes &amp; Terms</div>
+            <div class="tcp-terms">@{
+                var parts = new System.Collections.Generic.List<string>();
+                if (!string.IsNullOrWhiteSpace((string)ViewBag.Remark)) { parts.Add("Narration: " + (string)ViewBag.Remark); }
+                if (!string.IsNullOrWhiteSpace((string)ViewBag.Note)) { parts.Add("Note: " + (string)ViewBag.Note); }
+                if (!string.IsNullOrWhiteSpace((string)ViewBag.TnC)) { parts.Add("Terms & Conditions: " + (string)ViewBag.TnC); }
+            }@string.Join("\n\n", parts)</div>
+        }
+
+        <div class="tcp-sign">
+            <div class="s"><div class="line">Tenant's Signature<br /><span style="font-weight:400;color:#94a3b8">@ViewBag.TenantName</span></div></div>
+            <div class="s"><div class="line">For @ViewBag.CompName<br /><span style="font-weight:400;color:#94a3b8">Authorised Signatory</span></div></div>
+        </div>
+
+        <div class="tcp-foot">This is a computer-generated rental proforma — @ViewBag.CompName. Printed @DateTime.Now.ToString("dd MMM yyyy")</div>
+    </div>
+    <script>
+        (function () {
+            var lines = @Html.Raw(ViewBag.Lines ?? "[]"), fields = @Html.Raw(ViewBag.Fields ?? "[]");
+            function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+            var lb = document.querySelector('#tcpLines tbody');
+            lb.innerHTML = lines.length ? lines.map(function (l, i) {
+                return '<tr><td>' + (i + 1) + '</td><td>' + esc(l.desc) + '</td><td style="text-align:right">' + esc(l.amt) + '</td></tr>';
+            }).join('') : '<tr><td colspan="3" class="tcp-empty">No charge lines.</td></tr>';
+            var fb = document.querySelector('#tcpFields tbody');
+            fb.innerHTML = fields.length ? fields.map(function (f, i) {
+                return '<tr><td>' + (i + 1) + '</td><td>' + esc(f.label) + '</td><td>' + esc(f.val) + '</td></tr>';
+            }).join('') : '<tr><td colspan="3" class="tcp-empty">No additional details recorded.</td></tr>';
+        })();
+    </script>
+</body>
+</html>

@@ -34,7 +34,10 @@
     <link href="~/Content/css/modern-theme.css?v=20260615b" rel="stylesheet" />
     @* Form beautification (2026): CSS-only refinement of inputs/labels/buttons/tables — gated on body.bosx-beauty.
        Additive, no markup/field change. Loaded after modern-theme so it wins the cascade. *@
-    <link href="~/Content/css/forms-beautify.css?v=20260615o" rel="stylesheet" />
+    <link href="~/Content/css/forms-beautify.css?v=20260615ac" rel="stylesheet" />
+    @* Real Estate module beautification (2026): scoped to body.bosx-re (Property area only) — modern list cards,
+       grid, filters, and create forms. Pure CSS overlay, no markup/field change. *@
+    <link href="~/Content/css/realestate-beautify.css?v=20260616p" rel="stylesheet" />
 
     @* PWA (2026): installable app — manifest + theme color + iOS home-screen support.
        The service worker (sw.js) caches static assets only and NEVER caches pages or data. *@
@@ -55,7 +58,7 @@
 
 </head>
 @*<body class="hold-transition skin-blue-light sidebar-mini fixed">*@
-<body class="hold-transition skin-blue sidebar-mini fixed bosx-beauty">
+<body class="hold-transition skin-blue sidebar-mini fixed bosx-beauty @(ViewBag.BodyClass ?? "")">
 
     @*<div class="pageloader-outer" style="z-index:999999,;position:relative">
             <div class="loader-enq">
@@ -279,23 +282,43 @@
                 });
             }
         }
+        var _snoozeReminderId = 0;
         function snoopthis(id) {
-            // var ok = confirm("Are you sure want to stop this notification ?");
-            if (1) {
-                $.ajax({
-                    url: '/Reminder/snoopthis/' + id,
-                    type: "GET",
-
-                    contentType: false, // Not to set any content header
-                    processData: false, // Not to process data
-
-                    success: function (e) {
-                        oTable1r.draw();
-                    }
-
-
-                });
-            }
+            _snoozeReminderId = id;
+            // default: tomorrow, same time (shown in the user's local time)
+            var d = new Date();
+            d.setDate(d.getDate() + 1);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            var inp = document.getElementById('snoozeUntilInput');
+            if (inp) { inp.value = d.toISOString().slice(0, 16); }
+            var ov = document.getElementById('snoozeOverlay');
+            if (ov) { ov.style.display = 'flex'; }
+        }
+        function closeSnooze() {
+            var ov = document.getElementById('snoozeOverlay');
+            if (ov) { ov.style.display = 'none'; }
+        }
+        function confirmSnooze() {
+            var val = (document.getElementById('snoozeUntilInput') || {}).value || '';
+            if (!val) { return; }
+            $.ajax({
+                url: '/Reminder/snoopthis/' + _snoozeReminderId + '?until=' + encodeURIComponent(val),
+                type: "GET",
+                contentType: false,
+                processData: false,
+                success: function (e) {
+                    closeSnooze();
+                    oTable1r.draw();
+                }
+            });
+        }
+        // quick-snooze presets (in hours) from the picker
+        function snoozePreset(hours) {
+            var d = new Date();
+            d.setHours(d.getHours() + hours);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            var inp = document.getElementById('snoozeUntilInput');
+            if (inp) { inp.value = d.toISOString().slice(0, 16); }
         }
         function completed(id) {
              var ok = confirm("Are you sure Complte This?");
@@ -573,7 +596,17 @@
                     }
                 },
                 //{ "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
-                { "data": "Note", "name": "Note" },
+                {
+                    "data": "Note", "name": "Note",
+                    "render": function (data, type, row) {
+                        if (data == null) return '';
+                        var t = String(data)
+                            .replace(/expair/gi, 'expire')
+                            .replace(/Expired\/or expire soon/gi, 'Expiring soon')
+                            .replace(/\b12:00:00 AM\b/g, '');
+                        return '<div class="rem-note"><i class="fa fa-bell-o rem-note-ic" aria-hidden="true"></i><span>' + t + '</span></div>';
+                    }
+                },
 
 
                 {

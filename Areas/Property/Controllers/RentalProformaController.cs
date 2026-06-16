@@ -76,8 +76,8 @@ namespace QuickSoft.Areas.Property.Controllers
                               (InvoiceNo == "" || a.VoucherNo == InvoiceNo) &&
                                (FromDate == "" || EF.Functions.DateDiffDay(a.Date, fdate) <= 0) &&
                                (ToDate == "" || EF.Functions.DateDiffDay(a.Date, tdate) >= 0) &&
-                              (Tenant == 0 || a.Tenant == Tenant) &&
-                              (Property == 0 || a.Property == Property)
+                              (Tenant == 0 || Tenant == null || a.Tenant == Tenant) &&
+                              (Property == 0 || Property == null || a.Property == Property)
                             select new
                             {
                                 id = a.ID,
@@ -98,7 +98,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = UserView.Count();
             var data = UserView.Skip(skip).Take(pageSize).ToList();
@@ -596,8 +596,72 @@ namespace QuickSoft.Areas.Property.Controllers
             //var billno = RecDet.VoucherNo;
             //SendMail sm = new SendMail();
             //byte[] ms = sm.DownloadPdf(generatePdf(id), HFCheck);
-            //return File(ms, "application/pdf", "Receipt Voucher" + "-" + billno + ".pdf");           
+            //return File(ms, "application/pdf", "Receipt Voucher" + "-" + billno + ".pdf");
 
+        }
+
+        // Custom branded, print-ready Rental Proforma document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            var r = db.RentalProformas.Where(x => x.ID == id)
+                .Select(x => new
+                {
+                    x.ID, x.VoucherNo, x.Date, x.Tenant, x.Property, x.Unit,
+                    x.Amount, x.Note, x.Remark, x.TermsCondition, x.CreatedDate
+                }).FirstOrDefault();
+            if (r == null) return NotFound();
+
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            long propId = r.Property;
+            var prop = db.PropertyMains.Where(p => p.Id == propId)
+                         .Select(p => new { p.Name, p.Code, p.City, p.State, p.Address }).FirstOrDefault();
+
+            long tnId = r.Tenant;
+            var tenant = (from t in db.Tenants
+                          where t.TenantID == tnId
+                          join ct in db.Contacts on t.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
+                          select new { t.TenantName, t.TenantCode, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
+
+            long unitId = r.Unit;
+            var unit = db.PropertyUnits.Where(u => u.Id == unitId).Select(u => new { u.Name, u.Code }).FirstOrDefault();
+
+            var fields = (from a in db.AdditionalFieldDatas
+                          where a.Reference == r.ID && a.Purpose == "Rental Proforma"
+                          join b in db.AdditionalFields on a.Field equals b.ID into item from b in item.DefaultIfEmpty()
+                          select new { label = b.Name, val = a.Name }).ToList();
+
+            ViewBag.Id = r.ID;
+            ViewBag.Code = string.IsNullOrEmpty(r.VoucherNo) ? ("RPF-" + r.ID) : r.VoucherNo;
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+            ViewBag.PropName = prop != null ? prop.Name : "-";
+            ViewBag.PropAddr = prop == null ? "" : ((prop.Address ?? "") + " " + (prop.City ?? "") + " " + (prop.State ?? "")).Trim();
+            ViewBag.UnitName = unit != null ? (unit.Name ?? "-") : "-";
+            ViewBag.TenantName = tenant != null ? (tenant.TenantName ?? "-") : "-";
+            ViewBag.TenantContact = tenant == null ? "" : (((tenant.Mobile ?? tenant.Phone) ?? "") + (string.IsNullOrEmpty(tenant.EmailId) ? "" : "  ·  " + tenant.EmailId));
+            ViewBag.TenantAddr = tenant != null ? (tenant.Address ?? "") : "";
+            ViewBag.TenantCode = tenant != null ? (tenant.TenantCode ?? "") : "";
+            ViewBag.InvoiceDate = r.Date.ToString("dd MMM yyyy");
+            ViewBag.Amount = r.Amount.ToString("#,##0.00");
+            ViewBag.Note = r.Note ?? "";
+            ViewBag.Remark = r.Remark ?? "";
+            ViewBag.TnC = r.TermsCondition ?? "";
+            ViewBag.Lines = System.Text.Json.JsonSerializer.Serialize(
+                new[] { new { desc = "Rent — " + (prop != null ? (prop.Name ?? "Property") : "Property")
+                                     + (unit != null && !string.IsNullOrEmpty(unit.Name) ? " / " + unit.Name : ""),
+                              amt = r.Amount.ToString("#,##0.00") } });
+            ViewBag.Fields = System.Text.Json.JsonSerializer.Serialize(
+                fields.Where(x => !string.IsNullOrWhiteSpace(x.val) && x.val != "0")
+                      .Select(x => new { label = x.label ?? "Field", val = x.val }).ToList());
+            return View();
         }
 
         public StringBuilder generatePdf(long id)

@@ -623,7 +623,7 @@ namespace QuickSoft.Areas.Property.Controllers
                      //&& (Developer == 0 || a.Developer == Developer)
                      //&& (Owner == 0 || a.Owner == Owner)
                      && (Contractor == 0 || Contractor == null || a.Contractor == Contractor)
-                     && (Property == 0 || Contractor == null || a.Property == Property)
+                     && (Property == 0 || Property == null || a.Property == Property)
                      && (fromdate == "" || EF.Functions.DateDiffDay(a.Date, fdate) <= 0)
                      && (todate == "" || EF.Functions.DateDiffDay(a.Date, tdate) >= 0)
                      select new
@@ -1061,17 +1061,17 @@ namespace QuickSoft.Areas.Property.Controllers
                          UnitType = e.Name,
                          a.Rent,
                          a.Deposit,
-                         Features = (from ac in db.SelectedUnitFeatures
-                                              where
-                                              (ac.Unit == a.Id)
-                                              select new
-                                              {
-                                                  ac.Feature,
-                                              }).ToList(),
                      }).OrderBy(a => a.Date);
 
-            var data = v.Skip(skip).Take(pageSize).ToList();
             recordsTotal = v.Count();
+            // EF Core 10 cannot translate the nested Features collection-projection; attach it in memory after paging.
+            var page = v.Skip(skip).Take(pageSize).ToList();
+            var unitIds = page.Select(r => r.Id).ToList();
+            var feats = db.SelectedUnitFeatures.Where(f => unitIds.Contains(f.Unit)).Select(f => new { f.Unit, f.Feature }).ToList();
+            var data = page.Select(r => new {
+                r.Id, r.Date, r.Name, r.UnitType, r.Rent, r.Deposit,
+                Features = feats.Where(f => f.Unit == r.Id).Select(f => new { f.Feature }).ToList()
+            }).ToList();
 
             JavaScriptSerializer javaScriptSerializer = new JavaScriptSerializer();
             javaScriptSerializer.MaxJsonLength = Int32.MaxValue;

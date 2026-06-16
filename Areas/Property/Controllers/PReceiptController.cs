@@ -1,4 +1,4 @@
-﻿using QuickSoft.Web;
+using QuickSoft.Web;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -151,6 +151,25 @@ namespace QuickSoft.Areas.Property.Controllers
                 return View(receipt);
             }
         }
+        // Separate attachment upload for the receipt Create form: the main save POSTs JSON (no file),
+        // so the attachment is uploaded here on file-select and its name is stored in Ref5 (which the
+        // Create save already persists). Additive — does not touch the receipt save path.
+        [HttpPost]
+        public JsonResult UploadReceiptDoc()
+        {
+            try
+            {
+                var file = Request.Form.Files["file"];
+                if (file == null || file.Length == 0) return Json(new { ok = false });
+                var folder = LegacyWeb.MapPath("~/uploads/RecieptDoc/");
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                var name = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                file.SaveAs(Path.Combine(folder, name));
+                return Json(new { ok = true, name = name, orig = file.FileName });
+            }
+            catch { return Json(new { ok = false }); }
+        }
+
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Create Receipt")]
         public JsonResult Create(ReceiptViewModel vmodel)
@@ -488,7 +507,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = v.Count();
             var data = v.Skip(skip).Take(pageSize).ToList();
@@ -1611,6 +1630,108 @@ namespace QuickSoft.Areas.Property.Controllers
             //byte[] ms = sm.DownloadPdf(generatePdf(id), HFCheck);
             //return File(ms, "application/pdf", "Receipt Voucher" + "-" + billno + ".pdf");           
 
+        }
+
+        // Custom branded, print-ready Receipt Voucher document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            // Single record: materialize via .Select(...).FirstOrDefault() (no nested collection projection).
+            var r = db.Receipts.Where(x => x.ReceiptId == id)
+                .Select(x => new
+                {
+                    x.ReceiptId,
+                    x.VoucherNo,
+                    x.Date,
+                    x.MOPayment,
+                    x.PDCDate,
+                    x.PayFrom,
+                    x.PayTo,
+                    x.SubTotal,
+                    x.GrandTotal,
+                    x.Discount,
+                    x.Paying,
+                    x.Remark,
+                    x.Project,
+                    x.ProTask,
+                    x.Ref1,
+                    x.Ref2,
+                    x.Ref3,
+                    x.Ref4,
+                    x.Ref5
+                }).FirstOrDefault();
+            if (r == null) return NotFound();
+
+            // Company branding.
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            // Account names (PayFrom = received-from account; PayTo = deposited-to account).
+            var payerName = db.Accountss.Where(a => a.AccountsID == r.PayFrom).Select(a => a.Name).FirstOrDefault();
+            var receiverName = db.Accountss.Where(a => a.AccountsID == r.PayTo).Select(a => a.Name).FirstOrDefault();
+
+            // Cheque / PDC details (a receipt may have one PDC row keyed by Reference + PDCType).
+            var pdc = db.PDCs.Where(p => p.Reference == r.ReceiptId && p.PDCType == "Receipt")
+                        .Select(p => new { p.CheckNo, p.Bank, p.PDCDate, p.Note }).FirstOrDefault();
+
+            // Project / unit names (optional FK -> ?? 0 guard).
+            long projId = r.Project ?? 0;
+            long taskId = r.ProTask ?? 0;
+            var projName = db.PropertyMains.Where(p => p.Id == projId).Select(p => (p.Code + " " + p.Name).Trim()).FirstOrDefault();
+            var taskName = db.PropertyUnits.Where(u => u.Id == taskId).Select(u => u.Name).FirstOrDefault();
+
+            decimal paying = r.Paying;
+            decimal discount = r.Discount ?? 0;
+            decimal grand = r.GrandTotal;
+            string modeName = Enum.GetName(typeof(ModeOfPayment), r.MOPayment);
+            string amtInWords = "";
+            try { amtInWords = com.ConvertToWords(grand.ToString()); } catch { amtInWords = ""; }
+
+            // Reference fields, only the non-empty ones, for the optional "References" line list.
+            var refs = new System.Collections.Generic.List<object>();
+            if (!string.IsNullOrWhiteSpace(r.Ref1)) refs.Add(new { k = "Ref 1", v = r.Ref1 });
+            if (!string.IsNullOrWhiteSpace(r.Ref2)) refs.Add(new { k = "Ref 2", v = r.Ref2 });
+            if (!string.IsNullOrWhiteSpace(r.Ref3)) refs.Add(new { k = "Ref 3", v = r.Ref3 });
+            if (!string.IsNullOrWhiteSpace(r.Ref4)) refs.Add(new { k = "Ref 4", v = r.Ref4 });
+
+            ViewBag.Id = r.ReceiptId;
+            ViewBag.Code = string.IsNullOrWhiteSpace(r.VoucherNo) ? ("RV-" + r.ReceiptId) : r.VoucherNo;
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+
+            ViewBag.Date = r.Date.ToString("dd MMM yyyy");
+            ViewBag.ReceivedFrom = string.IsNullOrWhiteSpace(receiverName) ? "-" : receiverName; // PayTo = customer the receipt is received against (Debit row)
+            ViewBag.DepositedTo = string.IsNullOrWhiteSpace(payerName) ? "-" : payerName;          // PayFrom = account credited (e.g. cash/bank)
+            ViewBag.Amount = paying.ToString("#,##0.00");
+            ViewBag.Discount = discount.ToString("#,##0.00");
+            ViewBag.GrandTotal = grand.ToString("#,##0.00");
+            ViewBag.AmountWords = amtInWords;
+            ViewBag.Mode = modeName;
+            ViewBag.ChequeNo = pdc != null ? (pdc.CheckNo ?? "") : "";
+            ViewBag.Bank = pdc != null ? (pdc.Bank ?? "") : "";
+            ViewBag.PdcDate = (pdc != null && pdc.PDCDate != DateTime.MinValue) ? pdc.PDCDate.ToString("dd MMM yyyy")
+                              : (r.PDCDate != null ? r.PDCDate.Value.ToString("dd MMM yyyy") : "");
+            ViewBag.Project = string.IsNullOrWhiteSpace(projName) ? "" : projName;
+            ViewBag.ProTask = string.IsNullOrWhiteSpace(taskName) ? "" : taskName;
+            ViewBag.Remark = r.Remark ?? "";
+            ViewBag.PdcNote = pdc != null ? (pdc.Note ?? "") : "";
+
+            // Voucher accounting lines (Dr receiver / Cr payer / optional Dr discount), rendered via small <script>.
+            var lines = new System.Collections.Generic.List<object>();
+            lines.Add(new { particulars = "Dr  " + (string.IsNullOrWhiteSpace(receiverName) ? "-" : receiverName), debit = paying.ToString("#,##0.00"), credit = "" });
+            lines.Add(new { particulars = "Cr  " + (string.IsNullOrWhiteSpace(payerName) ? "-" : payerName), debit = "", credit = paying.ToString("#,##0.00") });
+            if (discount > 0)
+                lines.Add(new { particulars = "Dr  Discount", debit = discount.ToString("#,##0.00"), credit = "" });
+
+            // Lists serialized to JSON (EF already materialized above).
+            ViewBag.Lines = System.Text.Json.JsonSerializer.Serialize(lines);
+            ViewBag.Refs = System.Text.Json.JsonSerializer.Serialize(refs);
+            return View();
         }
 
         public StringBuilder generatePdf(long id)

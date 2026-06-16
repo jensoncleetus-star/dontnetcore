@@ -32,6 +32,8 @@
         @Html.ValidationSummary("", new { @class = "alert alert-danger" })
         <div class="box-body">
             <input type="hidden" id="VoucherType" value="Receipt" />
+            <div class="box-header with-border"><h5 class="box-title">Receipt Details</h5></div>
+            <div class="clearfix"></div>
             <div class="row">
                 <div class="col-sm-2 form-group ">
                     @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
@@ -122,7 +124,10 @@
                     </div>
                 </div>
             </div>
-         
+            <div class="clearfix"></div>
+            <div class="box-header with-border"><h5 class="box-title">Cheque &amp; Bank Details</h5></div>
+            <div class="clearfix"></div>
+
                 <div class="row">
                     <div class="col-sm-2 form-group" id="checkno">
                         @Html.LabelFor(model => model.CheckNo, new { @class = "control-label" })
@@ -143,7 +148,9 @@
 
                     <div class="form-group col-sm-12 no-padding">
                         @Html.Label("Attachment", null, new { @class = "control-label" })
-                        <input type="file" class="form-control Attache" id="RecieptDoc" name="RecieptDoc" placeholder="Enter Attachments" />
+                        <input type="file" class="form-control Attache" id="RecieptDoc" name="RecieptDoc" placeholder="Enter Attachments" accept="image/*,application/pdf" />
+                        <input type="hidden" id="Ref5" name="Ref5" value="@ViewBag.fname" />
+                        <span id="recDocStatus" class="text-muted" style="font-size:12px;display:block;margin-top:4px"></span>
 
                         <a href="/uploads/RecieptDoc/@ViewBag.fname" target="_new">Open Attachment</a>
 
@@ -163,6 +170,9 @@
                         }
                     }
                 </div>
+                <div class="clearfix"></div>
+                <div class="box-header with-border"><h5 class="box-title">Amount &amp; Notes</h5></div>
+                <div class="clearfix"></div>
                 <div>
                     <div class="table-responsive hight-250" id="invoice"><hr /></div>
                     <div class="row">
@@ -335,6 +345,24 @@ else
                 formsubmitionprop(fnval);
             }
 
+        });
+
+        // attachment: the main save POSTs JSON (no files), so upload the chosen file immediately here
+        // and store its server filename in #Ref5, which the receipt save already persists.
+        $('#RecieptDoc').on('change', function () {
+            var f = this.files && this.files[0];
+            if (!f) return;
+            var fd = new FormData(); fd.append('file', f);
+            $('#recDocStatus').text('Uploading...');
+            $.ajax({
+                url: '/Property/PReceipt/UploadReceiptDoc', type: 'POST', data: fd,
+                processData: false, contentType: false,
+                success: function (r) {
+                    if (r && r.ok) { $('#Ref5').val(r.name); $('#recDocStatus').html('<i class="fa fa-check text-success"></i> ' + (r.orig || 'Attached')); }
+                    else { $('#recDocStatus').text('Upload failed — try again.'); }
+                },
+                error: function () { $('#recDocStatus').text('Upload failed — try again.'); }
+            });
         });
 
         /* function for Create popup */

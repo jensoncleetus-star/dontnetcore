@@ -107,13 +107,6 @@ namespace QuickSoft.Areas.Property.Controllers
                                 a.Code,
                                 Date=a.CreatedDate,
                                 DocumentType = db.DocumentTypes.Where(x => x.ID == a.DocumentType).Select(y => y.Name).FirstOrDefault(),//c.Name,
-                                feature = (from z in db.SelectedFeatures
-                                           where z.Property == a.Id //&& (Feature == 0 || z.Feature == Feature)
-                                           select new
-                                           {
-                                               //z.Feature,
-                                               z.Feature
-                                           }).ToList(),
                             });
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
@@ -123,10 +116,18 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { UserView = UserView.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = UserView.Count();
-            var data = UserView.Skip(skip).Take(pageSize).ToList();
+            var pageRows = UserView.Skip(skip).Take(pageSize).ToList();
+            // EF Core 10 cannot translate the .ToList() Feature collection-projection inside the server query
+            // (it only errored once PropertyMains had rows). Attach Features in memory instead.
+            var pids = pageRows.Select(r => r.id).ToList();
+            var feats = db.SelectedFeatures.Where(z => pids.Contains(z.Property)).Select(z => new { z.Property, z.Feature }).ToList();
+            var data = pageRows.Select(r => new {
+                r.id, r.Name, r.Property, r.LandlordName, r.Remark, r.Description, r.Code, r.Date, r.DocumentType,
+                feature = feats.Where(f => f.Property == r.id).Select(f => new { f.Feature }).ToList()
+            }).ToList();
             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
 
         }

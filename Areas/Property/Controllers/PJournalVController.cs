@@ -175,7 +175,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
-                v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
+                try { v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir); } catch { /* grid column name not in projection - keep default order */ }
             }
             recordsTotal = v.Count();
             var data = v.Skip(skip).Take(pageSize).ToList();
@@ -997,6 +997,74 @@ namespace QuickSoft.Areas.Property.Controllers
             return File(ms, "application/pdf", "Journal Voucher" + "-" /*+ accname + "-" */+ billno + ".pdf");
 
 
+        }
+
+        // Custom branded, print-ready Journal Voucher document (standalone page -> browser print / PDF).
+        // Read-only; every piece materialized before shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Print(long id)
+        {
+            var j = db.Journals.Where(x => x.JournalId == id)
+                .Select(x => new
+                {
+                    x.JournalId, x.VoucherNo, x.Date, x.PayFrom, x.PayTo, x.Remark,
+                    x.GrandTotal, x.Paying, x.VATNature, x.MOPayment, x.PDCDate,
+                    x.CreatedDate, x.CreatedBy
+                }).FirstOrDefault();
+            if (j == null) return NotFound();
+
+            var comp = db.companys.Select(x => new { x.CPName, x.CPAddress, x.CPPhone, x.CPEmail, x.TRN }).FirstOrDefault();
+            var hdr = db.CompanyHeaders.Select(h => h.Header).FirstOrDefault();
+
+            string preparedBy = string.IsNullOrEmpty(j.CreatedBy) ? "" :
+                                db.Users.Where(u => u.Id == j.CreatedBy).Select(u => u.UserName).FirstOrDefault();
+
+            // Account / debit / credit lines for this voucher (materialized list; left-join the account name).
+            var lines = (from a in db.AccountsTransactions
+                         where a.reference == j.JournalId && a.Purpose == "Journal"
+                         join b in db.Accountss on a.Account equals b.AccountsID into acc
+                         from b in acc.DefaultIfEmpty()
+                         select new
+                         {
+                             AccType = (a.Type == 0) ? 0 : 1,
+                             AccountName = b.Name,
+                             a.Debit,
+                             a.Credit,
+                             a.Narration
+                         }).ToList();
+
+            decimal totDebit = lines.Sum(x => x.Debit);
+            decimal totCredit = lines.Sum(x => x.Credit);
+
+            string vatNature = j.VATNature == 1 ? "Registered Expense (B2B)" : "Not Applicable";
+
+            ViewBag.Id = j.JournalId;
+            ViewBag.Code = string.IsNullOrEmpty(j.VoucherNo) ? ("JV-" + j.JournalId) : j.VoucherNo;
+            ViewBag.CompName = comp != null ? comp.CPName : "Company";
+            ViewBag.CompAddr = comp != null ? comp.CPAddress : "";
+            ViewBag.CompPhone = comp != null ? comp.CPPhone : "";
+            ViewBag.CompEmail = comp != null ? comp.CPEmail : "";
+            ViewBag.CompTRN = comp != null ? comp.TRN : "";
+            ViewBag.HeaderImg = string.IsNullOrEmpty(hdr) ? "" : ("/uploads/companyheader/header/" + hdr);
+            ViewBag.VoucherDate = j.Date.ToString("dd MMM yyyy");
+            ViewBag.PreparedBy = string.IsNullOrEmpty(preparedBy) ? "-" : preparedBy;
+            ViewBag.Time = j.CreatedDate.ToString("hh:mm tt");
+            ViewBag.PayMode = Enum.GetName(typeof(ModeOfPayment), j.MOPayment) ?? "-";
+            ViewBag.PdcDate = j.PDCDate != null ? ((DateTime)j.PDCDate).ToString("dd MMM yyyy") : "";
+            ViewBag.VatNature = vatNature;
+            ViewBag.GrandTotal = j.GrandTotal.ToString("#,##0.00");
+            ViewBag.TotalDebit = totDebit.ToString("#,##0.00");
+            ViewBag.TotalCredit = totCredit.ToString("#,##0.00");
+            ViewBag.Narration = j.Remark ?? "";
+            ViewBag.Lines = System.Text.Json.JsonSerializer.Serialize(
+                lines.Select(x => new
+                {
+                    acc = string.IsNullOrWhiteSpace(x.AccountName) ? "-" : x.AccountName,
+                    note = x.Narration ?? "",
+                    debit = x.Debit > 0 ? x.Debit.ToString("#,##0.00") : "",
+                    credit = x.Credit > 0 ? x.Credit.ToString("#,##0.00") : ""
+                }).ToList());
+            return View();
         }
 
         public StringBuilder generatePdf(long id)

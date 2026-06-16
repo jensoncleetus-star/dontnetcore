@@ -76,6 +76,98 @@ namespace QuickSoft.Areas.Property.Controllers
             ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
             return View(vmodel);
         }
+
+        // Rich Real Estate dashboard (KPIs + charts + alert lists). Self-contained (no ajax widgets),
+        // computed server-side; all collections materialized before in-memory shaping (EF Core 10 safe).
+        [HttpGet]
+        public ActionResult Dashboard()
+        {
+            var today = DateTime.Now;
+
+            int units = db.PropertyUnits.Count();
+            var allocated = db.TenancyContracts.Where(c => c.Status == 0).Select(c => c.Unit).Distinct().ToList();
+            int occupied = allocated.Count(); if (occupied > units) occupied = units;
+            int vacant = units - occupied; if (vacant < 0) vacant = 0;
+
+            ViewBag.Properties = db.PropertyMains.Count();
+            ViewBag.Units = units;
+            ViewBag.Occupied = occupied;
+            ViewBag.Vacant = vacant;
+            ViewBag.OccupancyPct = units > 0 ? (int)Math.Round(occupied * 100.0 / units) : 0;
+            ViewBag.Landlords = db.Landlords.Count();
+            ViewBag.Tenants = db.Tenants.Count();
+            ViewBag.Developers = db.Developers.Count();
+            ViewBag.Brokers = db.Brokers.Count();
+            ViewBag.Contractors = db.Contractors.Count();
+            ViewBag.ActiveContracts = db.TenancyContracts.Count(c => c.Status == 0);
+            ViewBag.RentRoll = db.TenancyContracts.Where(c => c.Status == 0).Select(c => (decimal?)c.Rent).Sum() ?? 0;
+            ViewBag.MaintenanceCount = db.Maintenances.Count();
+            ViewBag.MaintenanceCost = db.Maintenances.Select(m => (decimal?)m.Amount).Sum() ?? 0;
+            ViewBag.Registrations = db.PropertyRegistrations.Count();
+            ViewBag.RegistrationValue = db.PropertyRegistrations.Select(r => (decimal?)r.Amount).Sum() ?? 0;
+            var soonC = today.AddDays(60);
+            ViewBag.ExpiringContracts = db.TenancyContracts.Count(c => c.EndDate >= today && c.EndDate <= soonC);
+            var soonD = today.AddDays(90);
+            ViewBag.ExpiringDocs = db.PropertyDocumentTypes.Count(d => d.ExpDate >= today && d.ExpDate <= soonD);
+
+            // ---- charts ----
+            var utRows = (from u in db.PropertyUnits
+                          join t in db.PropertyUnitTypes on u.UnitType equals t.ID into tt
+                          from t in tt.DefaultIfEmpty()
+                          select new { t.Name }).ToList();
+            ViewBag.UnitsByType = System.Text.Json.JsonSerializer.Serialize(utRows.GroupBy(x => string.IsNullOrEmpty(x.Name) ? "Other" : x.Name)
+                                  .Select(g => new { label = g.Key, count = g.Count() }).OrderByDescending(x => x.count).ToList());
+
+            var ptRows = (from p in db.PropertyMains
+                          join t in db.PropertyTypes on p.PropertyType equals t.ID into tt
+                          from t in tt.DefaultIfEmpty()
+                          select new { t.Name }).ToList();
+            ViewBag.PropsByType = System.Text.Json.JsonSerializer.Serialize(ptRows.GroupBy(x => string.IsNullOrEmpty(x.Name) ? "Other" : x.Name)
+                                  .Select(g => new { label = g.Key, count = g.Count() }).OrderByDescending(x => x.count).ToList());
+
+            ViewBag.Occupancy = System.Text.Json.JsonSerializer.Serialize(new { occupied = occupied, vacant = vacant });
+
+            // ---- alert / activity lists ----
+            var expC = (from c in db.TenancyContracts
+                        where c.EndDate >= today
+                        join t in db.Tenants on c.Tenant equals t.TenantID into tt from t in tt.DefaultIfEmpty()
+                        join p in db.PropertyMains on c.Property equals p.Id into pp from p in pp.DefaultIfEmpty()
+                        join u in db.PropertyUnits on c.Unit equals u.Id into uu from u in uu.DefaultIfEmpty()
+                        orderby c.EndDate
+                        select new { id = c.Id, tenant = t.TenantName, property = p.Name, unit = u.Name, end = c.EndDate, rent = c.Rent }).Take(6).ToList();
+            ViewBag.ExpContracts = System.Text.Json.JsonSerializer.Serialize(expC.Select(x => new { x.id, tenant = x.tenant ?? "-", property = x.property ?? "-", unit = x.unit ?? "-", end = x.end.ToString("dd-MM-yyyy"), rent = x.rent ?? 0 }).ToList());
+
+            var expD = (from d in db.PropertyDocumentTypes
+                        where d.ExpDate >= today
+                        join p in db.PropertyMains on d.Reference equals p.Id into pp from p in pp.DefaultIfEmpty()
+                        join dt in db.DocumentTypes on d.DocumentType equals dt.ID into dd from dt in dd.DefaultIfEmpty()
+                        orderby d.ExpDate
+                        select new { id = d.ID, doc = dt.Name, property = p.Name, exp = d.ExpDate }).Take(6).ToList();
+            ViewBag.ExpDocs = System.Text.Json.JsonSerializer.Serialize(expD.Select(x => new { x.id, doc = x.doc ?? "Document", property = x.property ?? "-", exp = (x.exp ?? today).ToString("dd-MM-yyyy") }).ToList());
+
+            var reg = (from r in db.PropertyRegistrations
+                       join p in db.PropertyMains on r.Property equals p.Id into pp from p in pp.DefaultIfEmpty()
+                       join d in db.Developers on r.Developer equals d.DeveloperID into dd from d in dd.DefaultIfEmpty()
+                       orderby r.RDate descending
+                       select new { id = r.RegistrationID, property = p.Name, developer = d.DeveloperName, amount = r.Amount, date = r.RDate }).Take(6).ToList();
+            ViewBag.RecentReg = System.Text.Json.JsonSerializer.Serialize(reg.Select(x => new { x.id, property = x.property ?? "-", developer = x.developer ?? "-", amount = x.amount, date = x.date.ToString("dd-MM-yyyy") }).ToList());
+
+            // ---- insights: maintenance expense mapping by property + P&L summary ----
+            var maintByProp = (from m in db.Maintenances
+                               join p in db.PropertyMains on m.Property equals p.Id into pp from p in pp.DefaultIfEmpty()
+                               select new { name = p.Name, amount = m.Amount }).ToList();
+            ViewBag.MaintByProperty = System.Text.Json.JsonSerializer.Serialize(
+                maintByProp.GroupBy(x => string.IsNullOrEmpty(x.name) ? "-" : x.name)
+                           .Select(g => new { label = g.Key, value = g.Sum(x => x.amount) }).OrderByDescending(x => x.value).Take(8).ToList());
+            decimal plIncome = (decimal)ViewBag.RentRoll;
+            decimal plExpense = (decimal)ViewBag.MaintenanceCost;
+            ViewBag.PLNet = plIncome - plExpense;
+            ViewBag.PLMargin = plIncome > 0 ? (int)Math.Round((plIncome - plExpense) * 100m / plIncome) : 0;
+
+            ViewBag.Active = "Dashboard";
+            return View();
+        }
+
         public ActionResult GetDocumentExpairy()
         {
             var UserId = User.Identity.GetUserId();
@@ -120,11 +212,8 @@ namespace QuickSoft.Areas.Property.Controllers
                                      join bb in db.TenancyContracts on aa.Id equals bb.Property
                                      join cc in db.Tenants on bb.Tenant equals cc.TenantID
                                      where cc.TenantID==a.Reference && a.Purpose=="Tenant"
-                                     select new
-                                     {
-                                     aa.Name
-                                     }
-                                     ).AsEnumerable().Select(x=>x.Name).FirstOrDefault()
+                                     select aa.Name
+                                     ).FirstOrDefault()
                      select new
                      {
 
@@ -153,11 +242,8 @@ namespace QuickSoft.Areas.Property.Controllers
                         let propname=(from a in db.PropertyMains
                                       join b in db.TenancyContracts on a.Id equals b.Property
                                       where b.Id==t.Id
-                                      select new
-                                      {
-                                          a.Name
-                                      }
-                                      ).AsEnumerable().Select(x=>x.Name).FirstOrDefault()
+                                      select a.Name
+                                      ).FirstOrDefault()
                         select new
                         {
                             expdate = t.EndDate,
@@ -568,6 +654,15 @@ namespace QuickSoft.Areas.Property.Controllers
             return Json(new { data = data });
 
         }
+
+        // ===================== MODULE HUB LANDING PAGES =====================
+        // Static card-grid entry screens for each top menu group (no DB/EF — pure links),
+        // so none of the module's EF Core 10 port-break fixes are touched.
+        [HttpGet] public ActionResult LeasingHub() { ViewBag.Active = "Leasing"; return View(); }
+        [HttpGet] public ActionResult PortfolioHub() { ViewBag.Active = "Portfolio"; return View(); }
+        [HttpGet] public ActionResult MaintenanceHub() { ViewBag.Active = "Maintenance"; return View(); }
+        [HttpGet] public ActionResult InsightsHub() { ViewBag.Active = "Reports"; return View(); }
+        [HttpGet] public ActionResult ConfigHub() { ViewBag.Active = "Configuration"; return View(); }
 
         protected override void Dispose(bool disposing)
         {
