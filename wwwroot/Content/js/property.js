@@ -160,7 +160,7 @@ function GetUnit(val) {
         placeholder: 'Search Unit by Name',
         minimumInputLength: 0,
         ajax: {
-            url: "/Unit/SearchUnit",
+            url: "/Property/Unit/SearchUnit",
             dataType: 'json',
             delay: 50,
             data: function (params) {
@@ -213,7 +213,7 @@ function GetUnitforPayment(val) {
         placeholder: 'Search Unit by Name',
         minimumInputLength: 0,
         ajax: {
-            url: "/Unit/SearchUnit",
+            url: "/Property/Unit/SearchUnit",
             dataType: 'json',
             delay: 50,
             data: function (params) {
@@ -240,7 +240,7 @@ function GetFeature(val) {
         placeholder: 'Search Feature by Name',
         minimumInputLength: 0,
         ajax: {
-            url: "/PropertyFeature/SearchFeature",
+            url: "/Property/PropertyFeature/SearchFeature",
             dataType: 'json',
             delay: 50,
             data: function (params) {
@@ -266,7 +266,7 @@ function GetDocumentType(val) {
         placeholder: 'Search Document Type by Name',
         minimumInputLength: 0,
         ajax: {
-            url: "/DocumentType/SearchDocumentType",
+            url: "/Property/DocumentType/SearchDocumentType",
             dataType: 'json',
             delay: 50,
             data: function (params) {
@@ -478,7 +478,7 @@ function GetDuration(val) {
         placeholder: 'Search Duration by Name',
         minimumInputLength: 0,
         ajax: {
-            url: "/Duration/SearchDuration",
+            url: "/Property/Duration/SearchDuration",
             dataType: 'json',
             delay: 50,
             data: function (params) {
