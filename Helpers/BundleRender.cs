@@ -160,6 +160,27 @@ namespace QuickSoft.Web
         }
 
         private static string ToUrl(string v) => v.Replace("~", "");
+
+        // Cache-busting: append ?v=<file-last-write-ticks> so a changed asset gets a NEW url and
+        // bypasses the static-file 24h cache (Cache-Control: max-age=86400) automatically — no more
+        // "hard-refresh to pick up the new JS/CSS". Falls back to the bare url if the file is absent
+        // or unmappable (e.g. external/CDN paths).
+        public static string Versioned(string url)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(url) || url.StartsWith("http", StringComparison.OrdinalIgnoreCase) || url.StartsWith("//"))
+                    return url;
+                var phys = LegacyWeb.MapPath("~" + url);
+                if (File.Exists(phys))
+                {
+                    var ticks = File.GetLastWriteTimeUtc(phys).Ticks;
+                    return url + (url.Contains("?") ? "&" : "?") + "v=" + ticks;
+                }
+            }
+            catch { /* fall through to the unversioned url */ }
+            return url;
+        }
     }
 
     public static class Scripts
@@ -168,7 +189,7 @@ namespace QuickSoft.Web
         {
             var sb = new System.Text.StringBuilder();
             foreach (var p in paths) foreach (var u in BundleRegistry.Resolve(p))
-                sb.Append("<script src=\"").Append(u).Append("\"></script>\n");
+                sb.Append("<script src=\"").Append(BundleRegistry.Versioned(u)).Append("\"></script>\n");
             return new HtmlString(sb.ToString());
         }
     }
@@ -179,7 +200,7 @@ namespace QuickSoft.Web
         {
             var sb = new System.Text.StringBuilder();
             foreach (var p in paths) foreach (var u in BundleRegistry.Resolve(p))
-                sb.Append("<link rel=\"stylesheet\" href=\"").Append(u).Append("\" />\n");
+                sb.Append("<link rel=\"stylesheet\" href=\"").Append(BundleRegistry.Versioned(u)).Append("\" />\n");
             return new HtmlString(sb.ToString());
         }
     }
