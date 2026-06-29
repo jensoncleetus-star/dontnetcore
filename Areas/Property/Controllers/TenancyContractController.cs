@@ -217,7 +217,9 @@ namespace QuickSoft.Areas.Property.Controllers
                                 Tanant = c.CustomerName,
                                 Unit = d.Name,
                                 Duration = e.Name,
-                              
+                                                StartDate=a.StartDate,
+                                                EndDate=a.EndDate,
+                               date = a.CreatedDate
                             });
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
@@ -1908,7 +1910,6 @@ namespace QuickSoft.Areas.Property.Controllers
                             Amt = a.Amount,
                             No = a.ChequeNo,
                             Date = a.Date,
-                            Id = a.ID,
                             Bank = a.Bank,
                             BankName = c.Name
                         }).ToList();
@@ -1946,7 +1947,6 @@ namespace QuickSoft.Areas.Property.Controllers
                             Amt = a.Amount,
                             No = a.ChequeNo,
                             Date = a.Date,
-                            Id = a.ID,
                             Bank = a.Bank,
                             BankName = c.Name
                         }).ToList();
