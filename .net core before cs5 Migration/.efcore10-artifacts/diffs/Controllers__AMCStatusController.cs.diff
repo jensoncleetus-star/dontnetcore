@@ -1,0 +1,67 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__AMCStatusController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\AMCStatusController.cs"
+index f5aa861..717dd0d 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__AMCStatusController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\AMCStatusController.cs"	
+@@ -63,26 +63,12 @@ namespace QuickSoft.Controllers
+                          a.AmcStatusId,
+                          a.StatusName,
+                          b.UserName,
+-                         Depts = (from z in db.AmcStatusDepts
+-                                  join y in db.Departments on z.DeptId equals y.DepartmentID
+-                                  where z.AmcStatusId == a.AmcStatusId
+-                                  select new
+-                                  {
+-                                      DeptName = (y.DepartmentName != null) ? y.DepartmentName : "",
+-                                  }).ToList(),
+-                         Desgn = (from z in db.AmcStatusDesgs
+-                                  join y in db.Designations on z.DesgId equals y.DesignationID
+-                                  where z.AmcStatusId == a.AmcStatusId
+-                                  select new
+-                                  {
+-                                      DesgnName = (y.DesignationName != null) ? y.DesignationName : "",
+-                                  }).ToList(),
+                      });
+ 
+             //search
+             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
+             {
+-                // Apply search   
++                // Apply search
+                 v = v.Where(p => p.StatusName.ToString().ToLower().Contains(search.ToLower()));
+             }
+ 
+@@ -93,7 +79,33 @@ namespace QuickSoft.Controllers
+             }
+ 
+             recordsTotal = v.Count();
+-            var data = v.Skip(skip).Take(pageSize).ToList();
++            var page = v.Skip(skip).Take(pageSize).ToList();
++            var ids = page.Select(r => r.AmcStatusId).ToList();
++
++            // bulk lookups (two round-trips total, mirrors EF6 per-row result but batched)
++            var deptLk = (from z in db.AmcStatusDepts
++                          join y in db.Departments on z.DeptId equals y.DepartmentID
++                          where ids.Contains(z.AmcStatusId)
++                          select new { z.AmcStatusId, DeptName = y.DepartmentName ?? "" })
++                         .ToList()
++                         .ToLookup(x => x.AmcStatusId);
++
++            var desgLk = (from z in db.AmcStatusDesgs
++                          join y in db.Designations on z.DesgId equals y.DesignationID
++                          where ids.Contains(z.AmcStatusId)
++                          select new { z.AmcStatusId, DesgnName = y.DesignationName ?? "" })
++                         .ToList()
++                         .ToLookup(x => x.AmcStatusId);
++
++            var data = page.Select(r => new
++            {
++                r.AmcStatusId,
++                r.StatusName,
++                r.UserName,
++                Depts = deptLk[r.AmcStatusId].Select(x => new { x.DeptName }).ToList(),
++                Desgn = desgLk[r.AmcStatusId].Select(x => new { x.DesgnName }).ToList(),
++            }).ToList();
++
+             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
+         }
+ 

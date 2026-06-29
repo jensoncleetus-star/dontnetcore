@@ -1,0 +1,27 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__MaterialRequisitionController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\MaterialRequisitionController.cs"
+index 6f1a711..1081aca 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__MaterialRequisitionController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\MaterialRequisitionController.cs"	
+@@ -92,8 +92,8 @@ namespace QuickSoft.Controllers
+                          MaterialRequisitionId= g.Item,
+                          item = h.ItemCode + "-" + h.ItemName,
+                          ItemUnit =i.ItemUnitName,//db.ItemUnits.Where(aa=>aa.ItemUnitID==h.ItemUnitID).Select(aa=>aa.ItemUnitName), //(h.SubUnitId == g.ItemUnit) ? i.ItemUnitName : "",
+-                         ItemQuantity = (h.SubUnitId == g.ItemUnit) ? g.ItemQuantity : g.ItemQuantity / h.ConFactor,
+-                         UnitPrice= h.PurchasePrice,
++                         ItemQuantity = (h.SubUnitId == g.ItemUnit) ? g.ItemQuantity : (h != null ? g.ItemQuantity / h.ConFactor : g.ItemQuantity),
++                         UnitPrice= h != null ? h.PurchasePrice : 0,
+                          reqno=a.BillNo,
+                          reqid=a.MaterialRequisitionId,
+                          //a.MRNo,
+@@ -801,9 +801,9 @@ namespace QuickSoft.Controllers
+ 
+                      let app = db.Approvals.Where(a => a.TransEntry == b.MaterialRequisitionId && a.Type == "MaterialRequisition").Select(a => a.EmployeeId).ToList()
+                      let AppStatus = db.ApprovalUpdates.Where(a => a.TransEntry == b.MaterialRequisitionId && a.Type == "MaterialRequisition").Select(a => a.ApprovalStatus).ToList()
+-                     let chkAppStatus = db.ApprovalUpdates.Where(a => a.TransEntry == b.MaterialRequisitionId && a.Type == "MaterialRequisition").GroupBy(l => l.ApprovedBy)
++                     let chkAppStatus = db.ApprovalUpdates.Where(a => a.TransEntry == b.MaterialRequisitionId && a.Type == "MaterialRequisition").AsEnumerable().GroupBy(l => l.ApprovedBy)
+                                         .Select(g => g.OrderByDescending(c => c.CreatedDate).FirstOrDefault())
+-                                        .ToList().Select(a => a.ApprovalStatus).ToList()
++                                        .Select(a => a.ApprovalStatus).ToList()
+ 
+                      where (BillNo == null || BillNo == "" || b.BillNo == BillNo) &&
+                    (FromDate == null || FromDate == "" || EF.Functions.DateDiffDay(b.MRDate, fdate) <= 0) &&

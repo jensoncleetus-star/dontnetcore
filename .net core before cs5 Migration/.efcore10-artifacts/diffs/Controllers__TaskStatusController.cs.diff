@@ -1,0 +1,125 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__TaskStatusController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\TaskStatusController.cs"
+index e07576d..73d3811 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__TaskStatusController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\TaskStatusController.cs"	
+@@ -738,12 +738,11 @@ namespace QuickSoft.Controllers
+                 IEnumerable<SelectFormat> full = new List<SelectFormat>();
+                 //nor dept and nor desgn
+                 var depdesg = (from b in db.TaskStatus
+-                               let chkdep = db.TaskStatusDepts.Where(a => a.TaskStatusId == b.TaskStatusId).Select(a => a.DeptId).ToList()
+-                               let chkdesg = db.TaskStatusDesgs.Where(a => a.TaskStatusId == b.TaskStatusId).Select(a => a.DesgId).ToList()
+-                               where chkdep.Count() == 0 && chkdesg.Count() == 0
++                               where !db.TaskStatusDepts.Any(a => a.TaskStatusId == b.TaskStatusId)
++                                  && !db.TaskStatusDesgs.Any(a => a.TaskStatusId == b.TaskStatusId)
+                                select new SelectFormat
+                                {
+-                                   text = b.StatusName, //each json object will have 
++                                   text = b.StatusName, //each json object will have
+                                    id = b.TaskStatusId
+                                });
+                 full = full.Union(depdesg);
+@@ -752,11 +751,10 @@ namespace QuickSoft.Controllers
+ 
+                     Int64 dept = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DepartmentID).FirstOrDefault();
+                     var dep = (from b in db.TaskStatus
+-                               let chkdep = db.TaskStatusDepts.Where(a => a.TaskStatusId == b.TaskStatusId).Select(a => a.DeptId).ToList()
+-                               where chkdep.Contains(dept)
++                               where db.TaskStatusDepts.Any(a => a.TaskStatusId == b.TaskStatusId && a.DeptId == dept)
+                                select new SelectFormat
+                                {
+-                                   text = b.StatusName, //each json object will have 
++                                   text = b.StatusName, //each json object will have
+                                    id = b.TaskStatusId
+                                });
+                     full = full.Union(dep);
+@@ -766,11 +764,10 @@ namespace QuickSoft.Controllers
+                 {
+                     Int64 desgn = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DesignationID).FirstOrDefault();
+                     var dessg = (from b in db.TaskStatus
+-                                 let chkdesg = db.TaskStatusDesgs.Where(a => a.TaskStatusId == b.TaskStatusId).Select(a => a.DesgId).ToList()
+-                                 where chkdesg.Contains(desgn)
++                                 where db.TaskStatusDesgs.Any(a => a.TaskStatusId == b.TaskStatusId && a.DesgId == desgn)
+                                  select new SelectFormat
+                                  {
+-                                     text = b.StatusName, //each json object will have 
++                                     text = b.StatusName, //each json object will have
+                                      id = b.TaskStatusId
+                                  });
+                     full = full.Union(dessg);
+@@ -780,12 +777,11 @@ namespace QuickSoft.Controllers
+                     Int64 dept = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DepartmentID).FirstOrDefault();
+                     Int64 desgn = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DesignationID).FirstOrDefault();
+                     var depanddesg = (from b in db.TaskStatus
+-                                      let chkdep = db.TaskStatusDepts.Where(a => a.TaskStatusId == b.TaskStatusId).Select(a => a.DeptId).ToList()
+-                                      let chkdesg = db.TaskStatusDesgs.Where(a => a.TaskStatusId == b.TaskStatusId).Select(a => a.DesgId).ToList()
+-                                      where chkdep.Contains(dept) && chkdesg.Contains(desgn)
++                                      where db.TaskStatusDepts.Any(a => a.TaskStatusId == b.TaskStatusId && a.DeptId == dept)
++                                         && db.TaskStatusDesgs.Any(a => a.TaskStatusId == b.TaskStatusId && a.DesgId == desgn)
+                                       select new SelectFormat
+                                       {
+-                                          text = b.StatusName, //each json object will have 
++                                          text = b.StatusName, //each json object will have
+                                           id = b.TaskStatusId
+                                       });
+                     full = full.Union(depanddesg);
+@@ -927,13 +923,12 @@ namespace QuickSoft.Controllers
+                 IEnumerable<SelectFormat> full = new List<SelectFormat>();
+                 //nor dept and nor desgn
+                 var depdesg = (from b in db.LeadStatuss
+-                               let chkdep = db.TaskStatusDepts.Where(a => a.TaskStatusId == b.LeadStatusID).Select(a => a.DeptId).ToList()
+-                               let chkdesg = db.TaskStatusDesgs.Where(a => a.TaskStatusId == b.LeadStatusID).Select(a => a.DesgId).ToList()
+-                               where chkdep.Count() == 0 && chkdesg.Count() == 0
++                               where !db.TaskStatusDepts.Any(a => a.TaskStatusId == b.LeadStatusID)
++                                  && !db.TaskStatusDesgs.Any(a => a.TaskStatusId == b.LeadStatusID)
+                                && empid==true
+                                select new SelectFormat
+                                {
+-                                   text = b.StatusType, //each json object will have 
++                                   text = b.StatusType, //each json object will have
+                                    id = b.LeadStatusID
+                                });
+                
+@@ -943,11 +938,10 @@ namespace QuickSoft.Controllers
+ 
+                     Int64 dept = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DepartmentID).FirstOrDefault();
+                     var dep = (from b in db.LeadStatuss
+-                               let chkdep = db.TaskStatusDepts.Where(a => a.TaskStatusId == b.LeadStatusID).Select(a => a.DeptId).ToList()
+-                               where chkdep.Contains(dept)
++                               where db.TaskStatusDepts.Any(a => a.TaskStatusId == b.LeadStatusID && a.DeptId == dept)
+                                select new SelectFormat
+                                {
+-                                   text = b.StatusType, //each json object will have 
++                                   text = b.StatusType, //each json object will have
+                                    id = b.LeadStatusID
+                                });
+                     full = full.Union(dep);
+@@ -957,11 +951,10 @@ namespace QuickSoft.Controllers
+                 {
+                     Int64 desgn = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DesignationID).FirstOrDefault();
+                     var dessg = (from b in db.LeadStatuss
+-                                 let chkdesg = db.TaskStatusDesgs.Where(a => a.TaskStatusId == b.LeadStatusID).Select(a => a.DesgId).ToList()
+-                                 where chkdesg.Contains(desgn)
++                                 where db.TaskStatusDesgs.Any(a => a.TaskStatusId == b.LeadStatusID && a.DesgId == desgn)
+                                  select new SelectFormat
+                                  {
+-                                     text = b.StatusType, //each json object will have 
++                                     text = b.StatusType, //each json object will have
+                                      id = b.LeadStatusID
+                                  });
+                     full = full.Union(dessg);
+@@ -971,12 +964,11 @@ namespace QuickSoft.Controllers
+                     Int64 dept = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DepartmentID).FirstOrDefault();
+                     Int64 desgn = (long)db.Employees.Where(a => a.EmployeeId == chkUserIsEmp).Select(a => a.DesignationID).FirstOrDefault();
+                     var depanddesg = (from b in db.LeadStatuss
+-                                      let chkdep = db.TaskStatusDepts.Where(a => a.TaskStatusId == b.LeadStatusID).Select(a => a.DeptId).ToList()
+-                                      let chkdesg = db.TaskStatusDesgs.Where(a => a.TaskStatusId == b.LeadStatusID).Select(a => a.DesgId).ToList()
+-                                      where chkdep.Contains(dept) && chkdesg.Contains(desgn)
++                                      where db.TaskStatusDepts.Any(a => a.TaskStatusId == b.LeadStatusID && a.DeptId == dept)
++                                         && db.TaskStatusDesgs.Any(a => a.TaskStatusId == b.LeadStatusID && a.DesgId == desgn)
+                                       select new SelectFormat
+                                       {
+-                                          text = b.StatusType, //each json object will have 
++                                          text = b.StatusType, //each json object will have
+                                           id = b.LeadStatusID
+                                       });
+                     full = full.Union(depanddesg);

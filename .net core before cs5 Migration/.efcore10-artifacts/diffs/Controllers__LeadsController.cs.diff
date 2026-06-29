@@ -1,0 +1,21 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__LeadsController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\LeadsController.cs"
+index d1329f2..9aa27ff 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__LeadsController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\LeadsController.cs"	
+@@ -492,12 +492,13 @@ namespace QuickSoft.Controllers
+ 
+ 
+ 
+-                     let f = db.AssignedTos.Where(cl => cl.CustomerID == a.CustomerID && cl.approve == false && cl.Status == "Assigned" && cl.ChkStatus == (int)Status.active).Select(cl => cl.EmployeeId).ToList()
+-
+                      let g = db.LeadTaskUpdations.Where(lr => lr.TaskId == a.CustomerID && lr.CreatedBy == UserId).OrderByDescending(a => a.TaskUpdationID).FirstOrDefault()
+ 
+                      where a.Type == CRMCustomerType.Leads
+-                     && f.Contains(empl.EmployeeId)
++                     // f.Contains(empl.EmployeeId) rewritten as a server-translatable EXISTS — the original
++                     // `let f = ....ToList()` is not translatable in EF Core 10; semantics are identical
++                     // (empl.EmployeeId is in the set of active "Assigned", approve==false employees for this CustomerID).
++                     && db.AssignedTos.Any(cl => cl.CustomerID == a.CustomerID && cl.approve == false && cl.Status == "Assigned" && cl.ChkStatus == (int)Status.active && cl.EmployeeId == empl.EmployeeId)
+                      && (a.OpenClose == 0 || a.OpenClose == null)
+ 
+                      select new

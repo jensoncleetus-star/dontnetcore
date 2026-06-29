@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "Live Data";
+}
+<div class="page-head p-4 mb-4">
+    <h3 class="mb-1"><i class="bi bi-database-fill-check"></i> Live Data — emirtechlatest</h3>
+    <div class="small opacity-75">The new ASP.NET Core app, working on your real SQL Server Express database (.\SQLEXPRESS)</div>
+</div>
+
+<div class="alert alert-info d-flex align-items-center">
+    <i class="bi bi-pencil-square me-2 fs-5"></i>
+    <div><strong>Item Categories below are read + write</strong> — Create / Edit / Delete write live rows into <code>emirtechlatest</code>. Quotations are read-only for this demo. Login &amp; auth stay on the separate LocalDB.</div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card text-center"><div class="card-body">
+        <div class="display-6 fw-bold text-primary" id="catCount">@ViewBag.Categories</div><div class="text-muted">Item Categories</div></div></div></div>
+    <div class="col-md-4"><div class="card text-center"><div class="card-body">
+        <div class="display-6 fw-bold text-primary">@(((int)ViewBag.Quotations).ToString("N0"))</div><div class="text-muted">Quotations</div></div></div></div>
+    <div class="col-md-4"><div class="card text-center"><div class="card-body">
+        <div class="display-6 fw-bold text-primary">@(((int)ViewBag.Customers).ToString("N0"))</div><div class="text-muted">Customers</div></div></div></div>
+</div>
+
+<div class="card mb-4"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0"><i class="bi bi-tags"></i> Real item categories <span class="badge bg-success-subtle text-success border border-success">live read + write</span></h6>
+        <button class="btn btn-sm btn-primary" onclick="newCat()"><i class="bi bi-plus-lg"></i> New category</button>
+    </div>
+    <table id="tblCat" class="table table-hover w-100">
+        <thead><tr><th style="width:90px">ID</th><th>Category</th><th>Parent</th><th>Description</th><th style="width:110px" class="text-end">Actions</th></tr></thead>
+    </table>
+</div></div>
+
+<div class="card"><div class="card-body">
+    <h6 class="mb-3"><i class="bi bi-receipt"></i> Real quotations <span class="text-muted small">(read-only, server-side paged over 26K+ rows)</span></h6>
+    <table id="tblQuot" class="table table-hover w-100">
+        <thead><tr><th>Bill No</th><th>Date</th><th>Customer</th><th class="text-center">Items</th><th class="text-end">Grand Total (AED)</th></tr></thead>
+    </table>
+</div></div>
+
+@Html.AntiForgeryToken()
+
+<!-- Create / Edit modal -->
+<div class="modal fade" id="catModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="catModalTitle">New category</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <input type="hidden" id="catId" />
+        <div class="mb-3"><label class="form-label">Category name</label><input id="catName" class="form-control" /></div>
+        <div class="mb-3"><label class="form-label">Description</label><input id="catDesc" class="form-control" /></div>
+        <div class="text-muted small">Writes directly to <code>emirtechlatest.ItemCategories</code>.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="saveCat()">Save</button></div>
+</div></div></div>
+
+@section scripts {
+<script>
+    var token = $('input[name="__RequestVerificationToken"]').val();
+    var modal = new bootstrap.Modal(document.getElementById('catModal'));
+
+    var catTable = $('#tblCat').DataTable({
+        processing:true, serverSide:true, ajax:{ url:'@Url.Action("GetCategories")', type:'POST' },
+        columns:[
+            { data:'itemCategoryID', name:'ItemCategoryID' },
+            { data:'itemCategoryName', name:'ItemCategoryName' },
+            { data:'parentName', name:'ParentName', render:function(d){ return d ? d : '<span class="text-muted">—</span>'; } },
+            { data:'description', name:'Description', orderable:false, render:function(d){ return d ? d : ''; } },
+            { data:'itemCategoryID', name:'act', orderable:false, className:'text-end', render:function(id){
+                return '<button class="btn btn-sm btn-outline-primary edit"><i class="bi bi-pencil"></i></button> ' +
+                       '<button class="btn btn-sm btn-outline-danger del"><i class="bi bi-trash"></i></button>'; } }
+        ], pageLength:10, order:[[0,'asc']]
+    });
+
+    $('#tblQuot').DataTable({
+        processing:true, serverSide:true, ajax:{ url:'@Url.Action("GetQuotations")', type:'POST' },
+        columns:[
+            { data:'billNo', name:'BillNo' },
+            { data:'quotDate', name:'QuotDate', orderable:false },
+            { data:'customerName', name:'CustomerName' },
+            { data:'quotItems', name:'QuotItems', className:'text-center' },
+            { data:'quotGrandTotal', name:'QuotGrandTotal', className:'text-end' }
+        ], pageLength:10, order:[[0,'desc']]
+    });
+
+    function newCat(){ $('#catModalTitle').text('New category'); $('#catId').val(''); $('#catName').val(''); $('#catDesc').val(''); modal.show(); }
+
+    $('#tblCat tbody').on('click', '.edit', function(){
+        var d = catTable.row($(this).closest('tr')).data();
+        $('#catModalTitle').text('Edit category #'+d.itemCategoryID); $('#catId').val(d.itemCategoryID);
+        $('#catName').val(d.itemCategoryName); $('#catDesc').val(d.description || ''); modal.show();
+    });
+
+    $('#tblCat tbody').on('click', '.del', function(){
+        var d = catTable.row($(this).closest('tr')).data();
+        if(!confirm('Delete "'+d.itemCategoryName+'" from the real database?')) return;
+        $.ajax({ url:'@Url.Action("DeleteCategory")', type:'POST', data:{ id:d.itemCategoryID }, headers:{ 'RequestVerificationToken': token },
+            success:function(e){ alert(e.message); if(e.status){ catTable.ajax.reload(); bumpCount(-1); } } });
+    });
+
+    function saveCat(){
+        var id = $('#catId').val(), name = $('#catName').val(), desc = $('#catDesc').val();
+        var url = id ? '@Url.Action("EditCategory")' : '@Url.Action("CreateCategory")';
+        var data = id ? { id:id, name:name, description:desc } : { name:name, description:desc };
+        $.ajax({ url:url, type:'POST', data:data, headers:{ 'RequestVerificationToken': token },
+            success:function(e){ alert(e.message); if(e.status){ modal.hide(); catTable.ajax.reload(); if(!id) bumpCount(1); } } });
+    }
+
+    function bumpCount(n){ var el=$('#catCount'); el.text(parseInt(el.text(),10)+n); }
+</script>
+}

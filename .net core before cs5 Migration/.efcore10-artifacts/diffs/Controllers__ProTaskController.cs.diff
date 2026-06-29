@@ -1,0 +1,776 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ProTaskController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ProTaskController.cs"
+index 5171e93..eaaf4d4 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ProTaskController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ProTaskController.cs"	
+@@ -367,11 +367,10 @@ namespace QuickSoft.Controllers
+                      join b in db.PeriodicMaintenances on a.AmcId equals b.AmcId
+                      join d in db.PeriodicMaintenanceDetails on b.PeriodicMaintenanceId equals d.PeriodicMaintenanceId
+                      join c in db.Customers on a.CustomerId equals c.CustomerID
+-                      let assign = db.PeriodicMaintAssignedToes.Where(x => x.PeriodicMaintDtlId == d.PeriodicMaintDetailsId && x.Status == "Assigned" && x.ChkStatus == Status.active).Select(x => x.EmployeeId).ToList()
+ 
+                       where d.PDate >= datefrom && d.PDate <= dateto &&
+                      (a.Lattitude!=null||c.Lattitude!=null) && (a.Longitude !=null||c.Longitude !=null) &&
+-                     (editperiodic==true||assign.Contains(EmpId))
++                     (editperiodic==true||db.PeriodicMaintAssignedToes.Any(x => x.PeriodicMaintDtlId == d.PeriodicMaintDetailsId && x.Status == "Assigned" && x.ChkStatus == Status.active && x.EmployeeId == EmpId))
+                      && (a.OpenClose == 0 || a.OpenClose == null)
+ 
+                        select new points
+@@ -393,7 +392,7 @@ namespace QuickSoft.Controllers
+                         
+                         where a.logtime >= taskdatefrom && a.logtime <= taskdateto &&
+                                 (a.Lattitude != null || c.Lattitude != null) && (a.Longitude != null || c.Longitude != null) &&
+-                                 (editprotask == true || assign.Contains(EmpId))
++                                 (editprotask == true || db.TaskAssigneds.Any(x => x.ProTaskId == a.ProTaskId && x.Status == "Assigned" && x.chkStatus == Status.active && x.EmployeeId == EmpId))
+                                     && (a.OpenClose == 0 || a.OpenClose == null)
+                                     &&(am==null||am.OpenClose==0)
+                         select new 
+@@ -420,11 +419,10 @@ namespace QuickSoft.Controllers
+                         });
+             var periodictask = (from a in db.ProTasks.Where(o=>o.Branch==1)
+                         join c in db.Customers on a.CustomerID equals c.CustomerID
+-                        let assign = db.TaskAssigneds.Where(x => x.ProTaskId == a.ProTaskId && x.Status == "Assigned" && x.chkStatus == Status.active).Select(x => x.EmployeeId).ToList()
+ 
+                         where a.logtime >= taskdatefrom && a.logtime <= taskdateto &&
+                                 (a.Lattitude != null || c.Lattitude != null) && (a.Longitude != null || c.Longitude != null) &&
+-                                 (editprotask == true || assign.Contains(EmpId))
++                                 (editprotask == true || db.TaskAssigneds.Any(x => x.ProTaskId == a.ProTaskId && x.Status == "Assigned" && x.chkStatus == Status.active && x.EmployeeId == EmpId))
+                                     && (a.OpenClose == 0 ||a.OpenClose==null)
+                                     &&
+                                     a.TaskName.Contains("AMC - Periodic Maintenance")
+@@ -741,25 +739,22 @@ namespace QuickSoft.Controllers
+             string[] cl = { "green", "blue", "gold", "red", "green", "blue", "gold", "red", "green", "blue", "gold", "red", "green", "blue", "gold", "red", "green", "blue", "gold", "red", "green", "blue", "gold", "red", "green", "blue", "gold", "red" };
+             int clcount = 0;
+             int taskcount = 0;
++            var assignedLookup = (from z in db.TaskAssigneds
++                                  join y in db.Employees on z.EmployeeId equals y.EmployeeId
++                                  where z.Status == "Assigned" && z.chkStatus == Status.active
++                                  select new
++                                  {
++                                      z.ProTaskId,
++                                      FirstName = (y.FirstName != null) ? y.FirstName : ""
++                                  }).Distinct().ToList()
++                                 .GroupBy(x => x.ProTaskId)
++                                 .ToDictionary(g => g.Key, g => String.Join(",", g.Select(o => o.FirstName).ToArray()));
+             for (var i = 0; i < 38; i++)
+             {
+                 DateTime? fdate = null;
+                 fdate = clockQuery[i].dt;
+                 var task = (from a in db.ProTasks.Where(o=>o.Branch==1)
+                             join e in db.Employees on a.driver equals e.EmployeeId
+-                            let AssignedTo = (from z in db.TaskAssigneds
+-                                              join y in db.Employees on z.EmployeeId equals y.EmployeeId
+-                                              where z.ProTaskId == a.ProTaskId && z.Status == "Assigned" && z.chkStatus == Status.active
+-                                              select new
+-                                              {
+-                                                  //id = y.EmployeeId,
+-                                                  //LastName = (y.LastName != null) ? y.LastName : "",
+-                                                  FirstName = (y.FirstName != null) ? y.FirstName : "",
+-                                                  //MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
+-                                                  //Img = (y.ImgFileName != null) ? y.ImgFileName : "",
+-                                                  //y.Status
+-                                              }).Distinct().ToList()
+-
+                             where (EF.Functions.DateDiffMinute(a.StartTime, fdate) >= 0) &&
+                                 (EF.Functions.DateDiffMinute(a.EndTime, fdate) <= 0) &&
+                                 a.driver == driver
+@@ -769,7 +764,6 @@ namespace QuickSoft.Controllers
+                                 a.StartTime,
+                                 a.EndTime,
+                                 a.TaskName,
+-                                AssignedTo,
+                                 e.FirstName
+ 
+                             }).ToList();
+@@ -778,7 +772,7 @@ namespace QuickSoft.Controllers
+                 {
+                     if (taskcount == 0)
+                     {
+-                        string ass = String.Join(",", t.AssignedTo.Select(o => o.FirstName).ToArray());
++                        string ass = assignedLookup.TryGetValue(t.ProTaskId, out var assNames) ? assNames : "";
+                         string prid = t.ProTaskId.ToString();
+                         clockQuery[i].selectedcol = true;
+                         clockQuery[i].protaskid = prid;
+@@ -820,7 +814,7 @@ namespace QuickSoft.Controllers
+                                                dt = start.AddMinutes(30 * offset)
+                                            }).ToList();
+                         }
+-                        string ass = String.Join(",", t.AssignedTo.Select(o => o.FirstName).ToArray());
++                        string ass = assignedLookup.TryGetValue(t.ProTaskId, out var assNames) ? assNames : "";
+                         string prid = t.ProTaskId.ToString();
+                         clockQuery2[i].selectedcol = true;
+                         clockQuery2[i].protaskid = prid;
+@@ -862,7 +856,7 @@ namespace QuickSoft.Controllers
+                                                dt = start.AddMinutes(30 * offset)
+                                            }).ToList();
+                         }
+-                        string ass = String.Join(",", t.AssignedTo.Select(o => o.FirstName).ToArray());
++                        string ass = assignedLookup.TryGetValue(t.ProTaskId, out var assNames) ? assNames : "";
+                         string prid = t.ProTaskId.ToString();
+                         clockQuery3[i].selectedcol = true;
+                         clockQuery3[i].protaskid = prid;
+@@ -1434,10 +1428,8 @@ namespace QuickSoft.Controllers
+ 
+ 
+ 
+-            var taskups = from element in db.ProTaskUpdations
+-                          group element by element.ProTaskId
+-                       into groups
+-                          select groups.OrderByDescending(p => p.CreatedDate).FirstOrDefault();
++            // taskups = latest ProTaskUpdation per task. The original GroupBy->FirstOrDefault-of-ENTITY
++            // LEFT JOIN is not translatable by EF Core 10; it is recomputed client-side below (taskupLookup).
+ 
+ 
+ 
+@@ -1461,137 +1453,102 @@ namespace QuickSoft.Controllers
+                 });
+             */
+ 
+-            var UserView = (from a in db.ProTasks.Where(o=>o.Branch==1)
++            // SERVER query — pure entities only (EF Core 10 translatable). The taskups GroupBy-latest
++            // LEFT JOIN, the let Reminder/let mobnum subqueries and the nested AssignedTo/TskLead/
++            // Updateduser collection projections are removed here and recomputed CLIENT-SIDE below.
++            // (The Contacts join `i` was never projected in the original output, so it is dropped.)
++            var rawRows = (from a in db.ProTasks.Where(o => o.Branch == 1)
++                           join b in db.Projects on a.ProjectId equals b.ProjectId into pro
++                           from b in pro.DefaultIfEmpty()
++                           join c in db.ProTaskTypes on a.TaskType equals c.TaskTypeId into type
++                           from c in type.DefaultIfEmpty()
++                           join e in db.Users on a.CreatedBy equals e.Id into usr
++                           from e in usr.DefaultIfEmpty()
++                           join d in db.Customers on a.CustomerID equals d.CustomerID into cus
++                           from d in cus.DefaultIfEmpty()
++                           join f in db.TaskStatus on a.TaskStatus equals f.TaskStatusId into ttask
++                           from f in ttask.DefaultIfEmpty()
++                           join s in db.Employees on a.SalesPerson equals s.EmployeeId into emp
++                           from s in emp.DefaultIfEmpty()
++                           where a.TaskStatus == protaskstatus && a.CreatedDate >= dd
++                           select new { a, b, c, e, d, f, s }).ToList();
+ 
+-                            join b in db.Projects on a.ProjectId equals b.ProjectId into pro
+-                            from b in pro.DefaultIfEmpty()
+-                            join c in db.ProTaskTypes on a.TaskType equals c.TaskTypeId into type
+-                            from c in type.DefaultIfEmpty()
+-                            join e in db.Users on a.CreatedBy equals e.Id into usr
+-                            from e in usr.DefaultIfEmpty()
+-                            join d in db.Customers on a.CustomerID equals d.CustomerID into cus
+-                            from d in cus.DefaultIfEmpty()
+-                            join f in db.TaskStatus on a.TaskStatus equals f.TaskStatusId into ttask
+-                            from f in ttask.DefaultIfEmpty()
+-                            join s in db.Employees on a.SalesPerson equals s.EmployeeId into emp
+-                            from s in emp.DefaultIfEmpty()
+-                            join i in db.Contacts on d.Contact equals i.ContactID into tmp
+-                            from i in tmp.DefaultIfEmpty()
+-                            join taskup in taskups on a.ProTaskId equals taskup.ProTaskId into tsk
+-                            from taskup in tsk.DefaultIfEmpty()
++            var ids = rawRows.Select(o => o.a.ProTaskId).ToList();
+ 
++            // latest ProTaskUpdation per task (was the taskups GroupBy-latest + taskup LEFT JOIN)
++            var taskupLookup = db.ProTaskUpdations
++                .Where(u => ids.Contains(u.ProTaskId)).ToList()
++                .GroupBy(u => u.ProTaskId)
++                .ToDictionary(g => g.Key, g => g.OrderByDescending(u => u.CreatedDate).First());
+ 
+-                            let Reminder = (from z in db.Reminders
+-                                            where z.Type == "Task" && z.Reference == a.ProTaskId
++            // assignees (was the nested AssignedTo collection)
++            var assignLookup = (from z in db.TaskAssigneds
++                                where z.Status == "Assigned" && z.chkStatus == Status.active && ids.Contains(z.ProTaskId)
++                                join y in db.Employees on z.EmployeeId equals y.EmployeeId
++                                select new { z.ProTaskId, id = y.EmployeeId, LastName = y.LastName ?? "", FirstName = y.FirstName ?? "", MiddleName = y.MiddleName ?? "", Img = y.ImgFileName ?? "", y.Status })
++                               .ToList().ToLookup(z => z.ProTaskId);
+ 
+-                                            orderby z.RDate descending
+-                                            select new
+-                                            {
+-                                                ReminderDate = z.RDate,
+-                                                validity = (DateTime.Now <= z.RDate) ? "Upcoming" : "Expired",
++            // task mobiles (was the nested TskLead collection / mobnum)
++            var leadLookup = db.TaskMobiles.Where(x => ids.Contains(x.ProTaskId))
++                              .Select(x => new { x.ProTaskId, x.MobileNo }).ToList().ToLookup(x => x.ProTaskId);
+ 
+-                                            }).FirstOrDefault()
+-                            //let taskup = db.ProTaskUpdations.Where(x => x.ProTaskId == a.ProTaskId).OrderByDescending(x => x.CreatedDate).FirstOrDefault()
+-                            let mobnum = db.TaskMobiles.Where(x => x.ProTaskId == a.ProTaskId).Select(x => x.MobileNo).ToList()
+-                            // let log = db.LogManagers.Where(lg => lg.LogID == a.ProTaskId.ToString() && lg.LogTable == "ProTasks").OrderByDescending(lg => lg.LogManagerID).FirstOrDefault()
+-                            where a.TaskStatus == protaskstatus && a.CreatedDate >= dd
+-                            select new
+-                            {
+-                                a.ProTaskId,
+-                                a.TaskName,
+-                                a.TaskCode,
+-                                b.ProjectName,
+-                                ProjectId = a.ProjectId == null ? 0 : b.ProjectId,
+-                                CustomerName = a.CustomerID == -2 ? "No Customer" : (a.CustomerID == null ? d.CustomerName : d.CustomerName),
+-                                CustomerID = a.CustomerID == -2 ? -2 : (a.CustomerID == null ? d.CustomerID : d.CustomerID),
+-                                e.UserName,
+-                                a.StartDate,
+-                                a.EndDate,
+-                                a.StartTime,
+-                                a.EndTime,
+-                                c.TypeName,
+-                                //a.TaskStatus,
+-                                //f.Status,
+-                                a.Priority,
+-                                TaskStat = f.StatusName,
+-                                a.CreatedDate,
+-                                s.FirstName,
+-                                s.LastName,
+-                                //AssignedTo = j.FirstName + " " + j.LastName,
+-                                AssignedTo = (from z in db.TaskAssigneds
+-                                              join y in db.Employees on z.EmployeeId equals y.EmployeeId
+-                                              where z.ProTaskId == a.ProTaskId && z.Status == "Assigned" && z.chkStatus == Status.active
+-                                              select new
+-                                              {
+-                                                  id = y.EmployeeId,
+-                                                  LastName = (y.LastName != null) ? y.LastName : "",
+-                                                  FirstName = (y.FirstName != null) ? y.FirstName : "",
+-                                                  MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
+-                                                  Img = (y.ImgFileName != null) ? y.ImgFileName : "",
+-                                                  y.Status
+-                                              }).Distinct().ToList(),
+-                                TskLead = (from ac in db.TaskMobiles
+-                                           where (ac.ProTaskId == a.ProTaskId)
+-                                           select new MobileViewModel
+-                                           {
+-                                               Num = ac.MobileNo
+-                                           }).ToList(),
+-                                a.CreatedBy,
+-                                UserId,
+-                                allcheck,
+-                                editcheck,
+-                                devcheck,
+-                                a.Ref1,
+-                                a.Ref2,
+-                                a.Ref3,
+-                                a.Ref4,
+-                                a.Ref5,
+-                                Reminder = Reminder,
+-                                a.Location,
+-                                ldate = ((a != null) && (taskup.CreatedDate > a.logtime)) ? taskup.CreatedDate : a.logtime,
+-                                Updateduser = db.Users.Where(x => x.Id == taskup.CreatedBy).Select(x => x.UserName).FirstOrDefault(),
+-                                a.TaskDetails,
+-                            })
++            // latest reminder per task (was the let Reminder subquery, ordered by RDate desc)
++            var remLookup = db.Reminders.Where(z => z.Type == "Task" && ids.Contains(z.Reference))
++                              .ToList().GroupBy(z => z.Reference)
++                              .ToDictionary(g => g.Key, g => g.OrderByDescending(z => z.RDate).First());
+ 
+-                              .ToList().Select(o => new
+-                              {
+-                                  o.ProTaskId,
+-                                  o.TaskName,
+-                                  o.TaskCode,
+-                                  Project = o.ProjectId,
+-                                  o.ProjectName,
+-                                  o.CustomerID,
+-                                  o.CustomerName,
+-                                  o.UserName,
+-                                  o.StartDate,
+-                                  o.EndDate,
+-                                  o.StartTime,
+-                                  o.EndTime,
+-                                  o.TypeName,
+-
+-                                  Priority = Enum.GetName(typeof(TaskPriority), o.Priority),
+-                                  o.AssignedTo,
+-                                  o.TaskStat,
+-                                  o.CreatedDate,
+-                                  EmpName = o.FirstName + " " + o.LastName,
+-                                  o.CreatedBy,
+-                                  o.UserId,
+-                                  o.allcheck,
+-                                  o.editcheck,
+-                                  o.devcheck,
+-                                  o.Ref1,
+-                                  o.Ref2,
+-                                  o.Ref3,
+-                                  o.Ref4,
+-                                  o.Ref5,
+-                                  ReminderDate = o.Reminder != null ? o.Reminder.ReminderDate : null,
+-                                  validity = (o.Reminder != null && o.Reminder.ReminderDate != null) ? o.Reminder.validity : null,
+-                                  o.Location,
+-                                  o.ldate,
+-                                  o.TaskDetails,
+-                                  mobmodel = o.TskLead,
+-                                  o.Updateduser
+-                              });
++            // updating-user names (was the Updateduser subquery)
++            var updByIds = taskupLookup.Values.Where(u => u.CreatedBy != null).Select(u => u.CreatedBy).Distinct().ToList();
++            var updUserLookup = db.Users.Where(u => updByIds.Contains(u.Id))
++                                  .Select(u => new { u.Id, u.UserName }).ToList()
++                                  .ToDictionary(u => u.Id, u => u.UserName);
++
++            // CLIENT re-projection — identical member names, order & values to the original outer Select.
++            var UserView = rawRows.Select(r =>
++            {
++                var a = r.a;
++                ProTaskUpdation taskup = taskupLookup.TryGetValue(a.ProTaskId, out var tu) ? tu : null;
++                var rem = remLookup.TryGetValue(a.ProTaskId, out var rr) ? rr : null;
++                DateTime? ldate = ((a != null) && (taskup != null && taskup.CreatedDate.HasValue && taskup.CreatedDate.Value > a.logtime)) ? taskup.CreatedDate : (DateTime?)a.logtime;
++                return new
++                {
++                    a.ProTaskId,
++                    a.TaskName,
++                    a.TaskCode,
++                    Project = a.ProjectId == null ? 0 : (r.b != null ? r.b.ProjectId : 0),
++                    ProjectName = r.b != null ? r.b.ProjectName : null,
++                    CustomerID = a.CustomerID == -2 ? (long?)-2 : (a.CustomerID == null ? (r.d != null ? r.d.CustomerID : (long?)null) : (r.d != null ? r.d.CustomerID : (long?)null)),
++                    CustomerName = a.CustomerID == -2 ? "No Customer" : (r.d != null ? r.d.CustomerName : null),
++                    UserName = r.e != null ? r.e.UserName : null,
++                    a.StartDate,
++                    a.EndDate,
++                    a.StartTime,
++                    a.EndTime,
++                    TypeName = r.c != null ? r.c.TypeName : null,
++                    Priority = Enum.GetName(typeof(TaskPriority), a.Priority),
++                    AssignedTo = assignLookup[a.ProTaskId].Select(z => new { z.id, z.LastName, z.FirstName, z.MiddleName, z.Img, z.Status }).Distinct().ToList(),
++                    TaskStat = r.f != null ? r.f.StatusName : null,
++                    a.CreatedDate,
++                    EmpName = (r.s != null ? r.s.FirstName : "") + " " + (r.s != null ? r.s.LastName : ""),
++                    a.CreatedBy,
++                    UserId,
++                    allcheck,
++                    editcheck,
++                    devcheck,
++                    a.Ref1,
++                    a.Ref2,
++                    a.Ref3,
++                    a.Ref4,
++                    a.Ref5,
++                    ReminderDate = rem != null ? rem.RDate : (DateTime?)null,
++                    validity = (rem != null && rem.RDate != null) ? (DateTime.Now <= rem.RDate ? "Upcoming" : "Expired") : null,
++                    a.Location,
++                    ldate,
++                    a.TaskDetails,
++                    mobmodel = leadLookup[a.ProTaskId].Select(m => new MobileViewModel { Num = m.MobileNo }).ToList(),
++                    Updateduser = (taskup != null && taskup.CreatedBy != null && updUserLookup.ContainsKey(taskup.CreatedBy)) ? updUserLookup[taskup.CreatedBy] : null,
++                };
++            });
+ 
+ 
+             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
+@@ -3219,7 +3176,7 @@ union select taskid, salesentryid as saleid  from additionaltaks ) as q1)))").To
+             long rtask = 11;
+             var uid = User.Identity.GetUserId();
+             var mymc = db.MCs.Where(o => o.AssignedUser == uid).Select(o => o.MCId).FirstOrDefault();
+-            var printdata = (from a in db.ProTasks.Where(o=>o.Branch==1)
++            var hdr = (from a in db.ProTasks.Where(o=>o.Branch==1)
+                              join b in db.servicereports on a.ProTaskId equals b.protaskid
+                              join c in db.Customers on a.CustomerID equals c.CustomerID
+                              join d in db.TaskStatus on b.jobstatusid equals d.TaskStatusId into takstat
+@@ -3247,87 +3204,114 @@ union select taskid, salesentryid as saleid  from additionaltaks ) as q1)))").To
+                                  date = b.starttime,
+                                  b.createdby,
+                                  editoption=(b.createdby==uid)?1:0,
+-                                 Salesperson = e.FirstName + " " + e.MiddleName + " " + e.LastName,
+-                                 contacts=(from c in db.Contacts
+-                                  join cr in db.ContactRelation
+-                                    on new { c.ContactID, RelationType = rtask }
+-                                 equals new { cr.ContactID, cr.RelationType }
+-                                  where (cr.RelationID == vmodel.ProTaskId)
+-                                  select new
+-                                  {
++                                 Salesperson = e.FirstName + " " + e.MiddleName + " " + e.LastName
++                             }).FirstOrDefault();
+ 
+-                                      ContactID = c.ContactID
+-                                       ,
+-                                      Name = c.Name
+-                                      ,
+-                                      FirstName = c.FirstName,
+-                                      LastName = c.LastName,
+-                                      Address = c.Address
+-                                      ,
+-                                      Country = c.Country
+-                                      ,
+-                                      State = c.State
+-                                      ,
+-                                      City = c.City
+-                                      ,
+-                                      Zip = c.Zip
+-                                      ,
+-                                      Phone = c.Phone
+-                                      ,
+-                                      Mobile = c.Mobile
+-                                      ,
+-                                      Fax = c.Fax
+-                                      ,
+-                                      EmailId = c.EmailId
+-                                      ,
+-                                      Reference = c.Reference
+-                                      ,
+-                                      ContactPerson = c.ContactPerson
+-                                      ,
+-                                      Status = c.Status
+-                                      ,
+-                                      Group = c.Group
+-                                      ,
+-                                      SalesPMob = c.SalesPMob
+-                                      ,
+-                                      TypeOfContact = c.TypeOfContact
+-                                      ,
+-                                      Website = c.Website
+-                                      ,
+-                                      CountryID = c.CountryID
+-                                      ,
+-                                      ContactTypeID = c.ContactTypeID
+-                                  }).ToList(),
+-                                 AssignedTo = (from z in db.servicereportmembers
+-                                               join y in db.Employees on z.employeeid equals y.EmployeeId
+-                                               where z.servicereportid == srid
+-                                               select new
+-                                               {
+-                                                   id = y.EmployeeId,
+-                                                   LastName = (y.LastName != null) ? y.LastName : "",
+-                                                   FirstName = (y.FirstName != null) ? y.FirstName : "",
+-                                                   MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
+-                                                   Img = (y.ImgFileName != null) ? y.ImgFileName : "",
+-                                                   y.Status
+-                                               }).Distinct().ToList(),
+-                                 itemsused = (from a in db.itemtasklist
+-                                              join b in db.Items on a.itemid equals b.ItemID
+-                                              join c in db.MCs on a.mcfrom equals c.MCId
+-                                              join d in db.ItemUnits on a.unit equals d.ItemUnitID
+-                                              where a.protaskid==vmodel.ProTaskId && c.MCId==mymc
+-                                              select new
+-                                              {
+-                                                  b.ItemCode,
+-                                                  b.ItemName,
+-                                                  a.qty,
+-                                                  b.ConFactor,
+-                                                  SellingPrice= (a.unit==b.ItemUnitID)?b.SellingPrice:b.SellingPrice/b.ConFactor,
+-                                                  d.ItemUnitName,
+-                                                  total = b.SellingPrice * a.qty
+-                                              }
+-                                            ).ToList()
++            var contacts = (from c in db.Contacts
++                             join cr in db.ContactRelation
++                               on new { c.ContactID, RelationType = rtask }
++                            equals new { cr.ContactID, cr.RelationType }
++                             where (cr.RelationID == vmodel.ProTaskId)
++                             select new
++                             {
+ 
+-                             }).FirstOrDefault();
++                                 ContactID = c.ContactID
++                                  ,
++                                 Name = c.Name
++                                 ,
++                                 FirstName = c.FirstName,
++                                 LastName = c.LastName,
++                                 Address = c.Address
++                                 ,
++                                 Country = c.Country
++                                 ,
++                                 State = c.State
++                                 ,
++                                 City = c.City
++                                 ,
++                                 Zip = c.Zip
++                                 ,
++                                 Phone = c.Phone
++                                 ,
++                                 Mobile = c.Mobile
++                                 ,
++                                 Fax = c.Fax
++                                 ,
++                                 EmailId = c.EmailId
++                                 ,
++                                 Reference = c.Reference
++                                 ,
++                                 ContactPerson = c.ContactPerson
++                                 ,
++                                 Status = c.Status
++                                 ,
++                                 Group = c.Group
++                                 ,
++                                 SalesPMob = c.SalesPMob
++                                 ,
++                                 TypeOfContact = c.TypeOfContact
++                                 ,
++                                 Website = c.Website
++                                 ,
++                                 CountryID = c.CountryID
++                                 ,
++                                 ContactTypeID = c.ContactTypeID
++                             }).ToList();
++
++            var AssignedTo = (from z in db.servicereportmembers
++                              join y in db.Employees on z.employeeid equals y.EmployeeId
++                              where z.servicereportid == srid
++                              select new
++                              {
++                                  id = y.EmployeeId,
++                                  LastName = (y.LastName != null) ? y.LastName : "",
++                                  FirstName = (y.FirstName != null) ? y.FirstName : "",
++                                  MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
++                                  Img = (y.ImgFileName != null) ? y.ImgFileName : "",
++                                  y.Status
++                              }).ToList().Distinct().ToList();
++
++            var itemsused = (from a in db.itemtasklist
++                             join b in db.Items on a.itemid equals b.ItemID
++                             join c in db.MCs on a.mcfrom equals c.MCId
++                             join d in db.ItemUnits on a.unit equals d.ItemUnitID
++                             where a.protaskid==vmodel.ProTaskId && c.MCId==mymc
++                             select new
++                             {
++                                 b.ItemCode,
++                                 b.ItemName,
++                                 a.qty,
++                                 b.ConFactor,
++                                 SellingPrice= (a.unit==b.ItemUnitID)?b.SellingPrice:b.SellingPrice/b.ConFactor,
++                                 d.ItemUnitName,
++                                 total = b.SellingPrice * a.qty
++                             }
++                           ).ToList();
++
++            var printdata = (hdr == null) ? null : new
++            {
++                hdr.servicereportid,
++                hdr.TaskCode,
++                hdr.TaskName,
++                hdr.starttime,
++                hdr.endtime,
++                hdr.CustomerName,
++                hdr.Addres,
++                hdr.StatusName,
++                hdr.remark,
++                hdr.jobtypes,
++                hdr.paytype,
++                hdr.amount,
++                hdr.chequenumber,
++                hdr.bankname,
++                date = hdr.date,
++                hdr.createdby,
++                hdr.editoption,
++                hdr.Salesperson,
++                contacts,
++                AssignedTo,
++                itemsused
++            };
+ 
+ 
+                         
+@@ -3370,7 +3354,7 @@ union select taskid, salesentryid as saleid  from additionaltaks ) as q1)))").To
+             var uid = User.Identity.GetUserId();
+             var mymc = db.MCs.Where(o => o.AssignedUser == uid).Select(o => o.MCId).FirstOrDefault();
+ 
+-            var printdata = (from a in db.ProTasks.Where(o=>o.Branch==1)
++            var hdr = (from a in db.ProTasks.Where(o=>o.Branch==1)
+ 
+                              join b in db.servicereports on a.ProTaskId equals b.protaskid
+                              join c in db.Customers on a.CustomerID equals c.CustomerID
+@@ -3382,6 +3366,7 @@ union select taskid, salesentryid as saleid  from additionaltaks ) as q1)))").To
+                              where b.servicereportid == srid
+                              select new
+                              {
++                                 a.ProTaskId,
+                                  b.servicereportid,
+                                  a.TaskCode,
+                                  a.TaskName,
+@@ -3399,87 +3384,116 @@ union select taskid, salesentryid as saleid  from additionaltaks ) as q1)))").To
+                                  date = b.starttime,
+                                  b.createdby,
+                                  editoption = (b.createdby == uid) ? 1 : 0,
+-                                 Salesperson = e.FirstName + " " + e.MiddleName + " " + e.LastName,
+-                                 contacts = (from c in db.Contacts
+-                                             join cr in db.ContactRelation
+-                                               on new { c.ContactID, RelationType = rtask }
+-                                            equals new { cr.ContactID, cr.RelationType }
+-                                             where (cr.RelationID == a.ProTaskId)
+-                                             select new
+-                                             {
++                                 Salesperson = e.FirstName + " " + e.MiddleName + " " + e.LastName
++                             }).FirstOrDefault();
+ 
+-                                                 ContactID = c.ContactID
+-                                                  ,
+-                                                 Name = c.Name
+-                                                 ,
+-                                                 FirstName = c.FirstName,
+-                                                 LastName = c.LastName,
+-                                                 Address = c.Address
+-                                                 ,
+-                                                 Country = c.Country
+-                                                 ,
+-                                                 State = c.State
+-                                                 ,
+-                                                 City = c.City
+-                                                 ,
+-                                                 Zip = c.Zip
+-                                                 ,
+-                                                 Phone = c.Phone
+-                                                 ,
+-                                                 Mobile = c.Mobile
+-                                                 ,
+-                                                 Fax = c.Fax
+-                                                 ,
+-                                                 EmailId = c.EmailId
+-                                                 ,
+-                                                 Reference = c.Reference
+-                                                 ,
+-                                                 ContactPerson = c.ContactPerson
+-                                                 ,
+-                                                 Status = c.Status
+-                                                 ,
+-                                                 Group = c.Group
+-                                                 ,
+-                                                 SalesPMob = c.SalesPMob
+-                                                 ,
+-                                                 TypeOfContact = c.TypeOfContact
+-                                                 ,
+-                                                 Website = c.Website
+-                                                 ,
+-                                                 CountryID = c.CountryID
+-                                                 ,
+-                                                 ContactTypeID = c.ContactTypeID
+-                                             }).ToList(),
+-                                 AssignedTo = (from z in db.servicereportmembers
+-                                               join y in db.Employees on z.employeeid equals y.EmployeeId
+-                                               where z.servicereportid == srid
+-                                               select new
+-                                               {
+-                                                   id = y.EmployeeId,
+-                                                   LastName = (y.LastName != null) ? y.LastName : "",
+-                                                   FirstName = (y.FirstName != null) ? y.FirstName : "",
+-                                                   MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
+-                                                   Img = (y.ImgFileName != null) ? y.ImgFileName : "",
+-                                                   y.Status
+-                                               }).Distinct().ToList(),
+-                                 itemsused = (from aa in db.itemtasklist
+-                                              join b in db.Items on aa.itemid equals b.ItemID
+-                                              join c in db.MCs on aa.mcfrom equals c.MCId
+-                                              join d in db.ItemUnits on aa.unit equals d.ItemUnitID
+-                                              where aa.protaskid == a.ProTaskId && c.MCId == mymc
+-                                              select new
+-                                              {
+-                                                  b.ItemCode,
+-                                                  b.ItemName,
+-                                                  aa.qty,
+-                                                  b.ConFactor,
+-                                                  SellingPrice = (aa.unit == b.ItemUnitID) ? b.SellingPrice : b.SellingPrice / b.ConFactor,
+-                                                  d.ItemUnitName,
+-                                                  total = b.SellingPrice * aa.qty
+-                                              }
+-                                            ).ToList()
++            var ptid = (hdr == null) ? 0 : hdr.ProTaskId;
+ 
+-                             }).FirstOrDefault();
++            var contacts = (from c in db.Contacts
++                            join cr in db.ContactRelation
++                              on new { c.ContactID, RelationType = rtask }
++                           equals new { cr.ContactID, cr.RelationType }
++                            where (cr.RelationID == ptid)
++                            select new
++                            {
++
++                                ContactID = c.ContactID
++                                 ,
++                                Name = c.Name
++                                ,
++                                FirstName = c.FirstName,
++                                LastName = c.LastName,
++                                Address = c.Address
++                                ,
++                                Country = c.Country
++                                ,
++                                State = c.State
++                                ,
++                                City = c.City
++                                ,
++                                Zip = c.Zip
++                                ,
++                                Phone = c.Phone
++                                ,
++                                Mobile = c.Mobile
++                                ,
++                                Fax = c.Fax
++                                ,
++                                EmailId = c.EmailId
++                                ,
++                                Reference = c.Reference
++                                ,
++                                ContactPerson = c.ContactPerson
++                                ,
++                                Status = c.Status
++                                ,
++                                Group = c.Group
++                                ,
++                                SalesPMob = c.SalesPMob
++                                ,
++                                TypeOfContact = c.TypeOfContact
++                                ,
++                                Website = c.Website
++                                ,
++                                CountryID = c.CountryID
++                                ,
++                                ContactTypeID = c.ContactTypeID
++                            }).ToList();
++
++            var AssignedTo = (from z in db.servicereportmembers
++                              join y in db.Employees on z.employeeid equals y.EmployeeId
++                              where z.servicereportid == srid
++                              select new
++                              {
++                                  id = y.EmployeeId,
++                                  LastName = (y.LastName != null) ? y.LastName : "",
++                                  FirstName = (y.FirstName != null) ? y.FirstName : "",
++                                  MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
++                                  Img = (y.ImgFileName != null) ? y.ImgFileName : "",
++                                  y.Status
++                              }).ToList().Distinct().ToList();
++
++            var itemsused = (from aa in db.itemtasklist
++                             join b in db.Items on aa.itemid equals b.ItemID
++                             join c in db.MCs on aa.mcfrom equals c.MCId
++                             join d in db.ItemUnits on aa.unit equals d.ItemUnitID
++                             where aa.protaskid == ptid && c.MCId == mymc
++                             select new
++                             {
++                                 b.ItemCode,
++                                 b.ItemName,
++                                 aa.qty,
++                                 b.ConFactor,
++                                 SellingPrice = (aa.unit == b.ItemUnitID) ? b.SellingPrice : b.SellingPrice / b.ConFactor,
++                                 d.ItemUnitName,
++                                 total = b.SellingPrice * aa.qty
++                             }
++                           ).ToList();
++
++            var printdata = (hdr == null) ? null : new
++            {
++                hdr.servicereportid,
++                hdr.TaskCode,
++                hdr.TaskName,
++                hdr.starttime,
++                hdr.endtime,
++                hdr.CustomerName,
++                hdr.Addres,
++                hdr.StatusName,
++                hdr.remark,
++                hdr.jobtypes,
++                hdr.paytype,
++                hdr.amount,
++                hdr.chequenumber,
++                hdr.bankname,
++                date = hdr.date,
++                hdr.createdby,
++                hdr.editoption,
++                hdr.Salesperson,
++                contacts,
++                AssignedTo,
++                itemsused
++            };
+ 
+ 
+             var cdetails = db.companys
+@@ -7036,7 +7050,7 @@ union select taskid, salesentryid as saleid  from additionaltaks ) as q1)))").To
+                             starttime1 = a.starttime,
+                             empdetailid = c.EmployeeId,
+                             a.starttime,
+-                            endtime = (a.endtime < a.starttime) ? DbFunctionsCompat.AddDays(a.endtime, 1) : a.endtime
++                            endtime = (a.endtime < a.starttime) ? a.endtime.Value.AddDays(1) : a.endtime
+ 
+                         }).ToList().Select(o => new
+                         {

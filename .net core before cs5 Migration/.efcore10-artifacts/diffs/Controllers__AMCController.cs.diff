@@ -1,0 +1,65 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__AMCController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\AMCController.cs"
+index f0b486b..3c76582 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__AMCController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\AMCController.cs"	
+@@ -4141,6 +4141,9 @@ public DateTime? ldate { get; set; }
+                     {
+ 
+                         var dt = System.DateTime.Now.AddYears(2);
++                        var curdate = System.DateTime.Now;
++                        // EF Core 10 cannot translate GroupBy().Select(g => g.OrderByDescending().FirstOrDefault())
++                        // used as a join source, so materialize the latest-per-TransactionId map client-side first.
+                         var amcremarsk = (from a in db.AddedRemarks
+                                           where  a.TransactionType == "amcremarks"
+                                           select new
+@@ -4152,16 +4155,23 @@ public DateTime? ldate { get; set; }
+ 
+                                           }
+ 
++                                        ).AsEnumerable()
++                                         .GroupBy(r => r.TransactionId)
++            .Select(g => g.OrderByDescending(r => r.CreatedDate).First()) // group never empty; latest remark per TransactionId
++                                         .ToList();
+ 
+-                                        ).GroupBy(r => r.TransactionId)
+-            .Select(g => g.OrderByDescending(r => r.CreatedDate).FirstOrDefault()); // Or .Last() if already ordered ascending
++                        // Exact in-memory replica of SQL DATEDIFF(hour, curdate, nexttime): hour-boundary count difference.
++                        var amcMap = amcremarsk
++                            .Where(d => ((d.nexttime.Value.Date.AddHours(d.nexttime.Value.Hour))
++                                          - curdate.Date.AddHours(curdate.Hour)).TotalHours < 12)
++                            .GroupBy(d => d.TransactionId)
++                            .ToDictionary(g => g.Key, g => g.First().nexttime);
++                        var amcIds = amcMap.Keys.ToList();
+ 
+-                        var curdate = System.DateTime.Now;
+                         var rem = (from a in db.Amcs
+                                    join b in db.AmcAssignedTos on a.AmcId equals b.AmcId
+-                                   join d in amcremarsk on a.AmcId equals d.TransactionId
+                                    join c in db.Customers on a.CustomerId equals c.CustomerID
+-                                    where  EF.Functions.DateDiffHour(curdate,d.nexttime ) < 12
++                                    where  amcIds.Contains(a.AmcId)
+ 
+ 
+                                    && b.Status == "Assigned" && b.ChkStatus == Status.active
+@@ -4170,11 +4180,17 @@ public DateTime? ldate { get; set; }
+                                    {
+                                        b.EmployeeId,
+                                        a.AmcId,
+-                                        d.nexttime,
+-                                        curdate,
+                                        taskname = a.AmcNo + "-" + c.CustomerName,
+-                                  
+-                                   }).Distinct().ToList();
++
++                                   }).Distinct().ToList()
++                                   .Select(x => new
++                                   {
++                                       x.EmployeeId,
++                                       x.AmcId,
++                                       nexttime = amcMap[x.AmcId],
++                                       curdate,
++                                       x.taskname,
++                                   }).ToList();
+ 
+                         if (rem.Count() > 0)
+                         {

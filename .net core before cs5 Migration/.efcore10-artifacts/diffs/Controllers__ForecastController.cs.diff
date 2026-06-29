@@ -1,0 +1,43 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ForecastController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ForecastController.cs"
+index 0e116b6..074251f 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ForecastController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ForecastController.cs"	
+@@ -3854,21 +3854,27 @@ namespace QuickSoft.Controllers
+             var UserId = User.Identity.GetUserId();
+ 
+ 
+-            var v = (from a in db.EmpAttendances
+-                     where (From == null || From == "" || EF.Functions.DateDiffDay(a.login, crdate) <= 0) &&
+-                     (To == null || To == "" || EF.Functions.DateDiffDay(a.login, exdate) >= 0)
+-                     group a by a.EmployeeName into g
+-                     join c in db.Users on g.FirstOrDefault().EmployeeName equals c.Id
++            // EF Core 10 cannot translate g.FirstOrDefault() (a non-aggregate row pulled from a group)
++            // used as a join key or in the projection (EF6 could). Materialize the grouped employee rows
++            // server-side (group key + a representative Id via a real aggregate), pull Users, then join
++            // client-side. Output shape { id, user } preserved.
++            var emp = (from a in db.EmpAttendances
++                       where (From == null || From == "" || EF.Functions.DateDiffDay(a.login, crdate) <= 0) &&
++                       (To == null || To == "" || EF.Functions.DateDiffDay(a.login, exdate) >= 0)
++                       group a by a.EmployeeName into g
++                       select new { EmployeeName = g.Key, Id = g.Min(x => x.Id) })
++                      .ToList();
++
++            var users = db.Users.Select(c => new { c.Id, c.UserName }).ToList();
++
++            var v = (from e in emp
++                     join c in users on e.EmployeeName equals c.Id
+                      where (user == null || user == "" || c.Id == user)
+-
+-
+-
+                      select new
+                      {
+-
+-                         id = g.FirstOrDefault().Id,
++                         id = e.Id,
+                          user = c.UserName,
+-                     });
++                     }).AsQueryable();
+ 
+ 
+             //search

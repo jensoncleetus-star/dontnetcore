@@ -1,0 +1,24 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__HomeController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\HomeController.cs"
+index 6182f1a..5ee3666 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__HomeController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\HomeController.cs"	
+@@ -226,7 +226,7 @@ namespace QuickSoft.Controllers
+                          Customer = db.Customers.Where(a => a.CustomerID == b.Customer).Select(a => a.CustomerCode + " - " + a.CustomerName).FirstOrDefault(),
+                          b.QuotDate,
+                          b.QuotGrandTotal,
+-                         validity = (DateTime.Now <= DbFunctionsCompat.AddDays(b.QuotDate, (b.QuotValidity == null) ? 0 : b.QuotValidity + 1)) ? "Active" : "Expired"
++                         validity = (b.QuotDate.AddDays((b.QuotValidity == null) ? 0 : (b.QuotValidity.Value + 1)) >= DateTime.Now) ? "Active" : "Expired"
+                      });
+             v = v.OrderByDescending(c => c.QuotationId).Take(5);
+             var data = v.ToList();
+@@ -306,9 +306,8 @@ namespace QuickSoft.Controllers
+             var v = (from a in db.Reminders
+                      join b in db.Users on a.CreatedBy equals b.Id into emp
+                      from b in emp.DefaultIfEmpty()
+-                     let remas = db.ReminderAssigneds.Where(x => x.ReminderId == a.ReminderId).Select(x => x.EmployeeId).ToList()
+                      where olddate <= a.RDate && a.RDate <= newdate &&
+-                     remas.Contains(empId)
++                     db.ReminderAssigneds.Any(x => x.ReminderId == a.ReminderId && x.EmployeeId == empId)
+                      orderby a.RDate descending
+                      select new
+                      {

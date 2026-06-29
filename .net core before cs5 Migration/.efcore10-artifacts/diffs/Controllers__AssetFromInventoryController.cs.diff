@@ -1,0 +1,57 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__AssetFromInventoryController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\AssetFromInventoryController.cs"
+index f636ade..84666ca 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__AssetFromInventoryController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\AssetFromInventoryController.cs"	
+@@ -712,7 +712,12 @@ namespace QuickSoft.Controllers
+             List<ItemList> v1 = new List<ItemList>();
+ 
+ 
+-            var v = (from a in db.Items
++            // EF Core 10 throws "Nullable object must have a value" when projecting the non-nullable members of the
++            // left-joined (DefaultIfEmpty) entities b/c (Quantity, Price, InvoiceNo, AssetEntryDate, AssetEntryId)
++            // directly in SQL: a NULL row from the outer join can't be read into a non-nullable struct.
++            // Materialize an entity-only projection (nullable casts), then re-project client-side with the SAME
++            // member names/order/values, null-safe. ConvertedQty stays server-side (already ?? 0 guarded).
++            var serverRows = (from a in db.Items
+                      join b in db.AssetTransferDetails on a.ItemID equals b.RefItemId into temp1
+                      from b in temp1.DefaultIfEmpty()
+                      join c in db.AssetTransferMasters on b.AssetEntryId equals c.AssetEntryId into temp2
+@@ -731,15 +736,30 @@ namespace QuickSoft.Controllers
+ 
+                      select new
+                      {
+-                         invoice = c.InvoiceNo,
++                         cInvoiceNo = (long?)c.InvoiceNo,
+                          ItemID = a.ItemID,
+-                         Item = a.ItemCode + "-" + a.ItemName,
+-                         PriUnit = e.ItemUnitName,
+-                         NetQty = b.Quantity - ConvertedQty,
+-                         Price = b.Price,
+-                         AssetAccountName = d.Name,
+-                         AssetEntryDate = c.AssetEntryDate,
+-                         c.AssetEntryId,
++                         ItemCode = a.ItemCode,
++                         ItemName = a.ItemName,
++                         ItemUnitName = e.ItemUnitName,
++                         bQuantity = (decimal?)b.Quantity,
++                         ConvertedQty = ConvertedQty,
++                         bPrice = (decimal?)b.Price,
++                         AccountName = d.Name,
++                         cAssetEntryDate = (DateTime?)c.AssetEntryDate,
++                         cAssetEntryId = (long?)c.AssetEntryId,
++                     }).ToList();
++
++            var v = serverRows.Select(o => new
++                     {
++                         invoice = o.cInvoiceNo ?? 0,
++                         ItemID = o.ItemID,
++                         Item = o.ItemCode + "-" + o.ItemName,
++                         PriUnit = o.ItemUnitName,
++                         NetQty = (o.bQuantity ?? 0) - o.ConvertedQty,
++                         Price = o.bPrice ?? 0,
++                         AssetAccountName = o.AccountName,
++                         AssetEntryDate = o.cAssetEntryDate ?? default(DateTime),
++                         AssetEntryId = o.cAssetEntryId ?? 0,
+                      }).Where(o => o.NetQty > 0).Distinct();
+             v = v.OrderBy(b => b.AssetEntryDate);
+             var data = v.Skip(skip).Take(pageSize).ToList();

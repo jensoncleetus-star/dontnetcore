@@ -1,0 +1,142 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__PurchaseEntryExpenseController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\PurchaseEntryExpenseController.cs"
+index 739de6f..003f17b 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__PurchaseEntryExpenseController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\PurchaseEntryExpenseController.cs"	
+@@ -3047,6 +3047,19 @@ namespace QuickSoft.Controllers
+                 fdate = DateTime.Now.AddDays(-30);
+             }
+             // dc.ChangeTracker.LazyLoadingEnabled = false; // if your table is relational, contain foreign key
++            // chkAppStatus = latest ApprovalUpdate status per ApprovedBy (GroupBy-latest-per-group) per PurchaseEntry.
++            // EF Core 10 cannot translate GroupBy(key).Select(g => g.OrderByDescending(...).FirstOrDefault())
++            // (whole-row-per-group) inside a server projection, so it is materialized once and computed client-side.
++            var chkAppStatusRows = db.ApprovalUpdates
++                .Where(x => x.Type == "PurchaseEntryPayment")
++                .Select(x => new { x.TransEntry, x.ApprovalStatus, x.ApprovedBy, x.CreatedDate })
++                .ToList();
++            var chkAppStatusLookup = chkAppStatusRows
++                .GroupBy(a => a.TransEntry)
++                .ToDictionary(g => g.Key, g => g
++                    .GroupBy(l => l.ApprovedBy)
++                    .Select(grp => grp.OrderByDescending(c => c.CreatedDate).First())
++                    .Select(a => a.ApprovalStatus).ToList());
+             var v = (from a in db.PurchaseEntrys
+                      join b in db.Suppliers on a.Supplier equals b.SupplierID
+                      join c in db.PEPayments on a.PurchaseEntryId equals c.PurchaseEntry
+@@ -3061,9 +3074,6 @@ namespace QuickSoft.Controllers
+                          //let mc = db.MCs.Where(x => x.AssignedUser == a.CreatedBy).Select(x => x.MCId).FirstOrDefault()
+                      let app = db.AssignedTos.Where(x => x.CustomerID == -1).Select(x => x.EmployeeId).ToList()
+                      let AppStatus = db.ApprovalUpdates.Where(x => x.TransEntry == a.PurchaseEntryId && x.Type == "PurchaseEntryPayment").Select(x => x.ApprovalStatus).ToList()
+-                     let chkAppStatus = db.ApprovalUpdates.Where(x => x.TransEntry == a.PurchaseEntryId && x.Type == "PurchaseEntryPayment").GroupBy(l => l.ApprovedBy)
+-                                        .Select(g => g.OrderByDescending(c => c.CreatedDate).FirstOrDefault())
+-                                        .ToList().Select(x => x.ApprovalStatus).ToList()
+                      let chkAppStatusme = db.ApprovalUpdates.Where(x => x.TransEntry == a.PurchaseEntryId && x.Type == "PurchaseEntryPayment" && x.ApprovalStatus == ApprovalStatus.Approved && x.ApprovedBy == UserId).Select(x => x.ApprovedBy).FirstOrDefault()
+                      let sh = db.ConvertTransactionss.Where(ap => ap.From == a.PurchaseEntryId && ap.ConvertFrom == tov && ap.ConvertTo == fromv).FirstOrDefault()
+ 
+@@ -3116,13 +3126,15 @@ namespace QuickSoft.Controllers
+                          app = app,
+ 
+                          AppStatus = AppStatus,
+-                         chkAppStatus = chkAppStatus,
+                          CreatedDate = a.PECreatedDate,
+                          meexist = chkAppStatusme,
+                          a.PurType,
+                          HExtent = sh.ConvertFrom,
+                          a.ReferenceNo,
+-                     }).ToList().Select(o => new
++                     }).ToList().Select(o =>
++                     {
++                         var chkAppStatus = chkAppStatusLookup.TryGetValue(o.PurchaseEntryId, out var ck) ? ck : new List<ApprovalStatus>();
++                         return new
+                      {
+                          o.PurchaseEntryId,
+                          o.PECreatedDate,
+@@ -3149,12 +3161,13 @@ namespace QuickSoft.Controllers
+                          o.MC,
+                          o.app,
+                          Approval = (o.app != null && empl.EmployeeId != null) ? (o.app.Contains(empl.EmployeeId) ? true : false) : false,
+-                         ApprovalStatus = (o.app.Count > 0 && o.AppStatus.Count > 0 && o.chkAppStatus.Count > 0) ? (o.chkAppStatus.Contains(ApprovalStatus.Completed))?ApprovalStatus.Completed:(o.chkAppStatus.Contains(ApprovalStatus.Rejected) ? ApprovalStatus.Rejected : (o.app != null && o.chkAppStatus != null && o.app.Count != 0 && o.chkAppStatus.Count != 0 && o.chkAppStatus.Count() == o.app.Count() ? ApprovalStatus.Approved : ApprovalStatus.PartialApproval)) : ApprovalStatus.PendingApproval,
++                         ApprovalStatus = (o.app.Count > 0 && o.AppStatus.Count > 0 && chkAppStatus.Count > 0) ? (chkAppStatus.Contains(ApprovalStatus.Completed))?ApprovalStatus.Completed:(chkAppStatus.Contains(ApprovalStatus.Rejected) ? ApprovalStatus.Rejected : (o.app != null && chkAppStatus != null && o.app.Count != 0 && chkAppStatus.Count != 0 && chkAppStatus.Count() == o.app.Count() ? ApprovalStatus.Approved : ApprovalStatus.PartialApproval)) : ApprovalStatus.PendingApproval,
+                          o.CreatedDate,
+                          o.PurType,
+                          o.HExtent,
+                          o.ReferenceNo,
+                          o.meexist
++                     };
+                      });
+ 
+             v = v.Where(a => (a.ApprovalStatus == ApprovalStatus.Approved || a.ApprovalStatus == ApprovalStatus.PartialApproval));
+@@ -3271,6 +3284,19 @@ namespace QuickSoft.Controllers
+                 fdate = DateTime.Now.AddDays(-30);
+             }
+             // dc.ChangeTracker.LazyLoadingEnabled = false; // if your table is relational, contain foreign key
++            // chkAppStatus = latest ApprovalUpdate status per ApprovedBy (GroupBy-latest-per-group) per PurchaseEntry.
++            // EF Core 10 cannot translate GroupBy(key).Select(g => g.OrderByDescending(...).FirstOrDefault())
++            // (whole-row-per-group) inside a server projection, so it is materialized once and computed client-side.
++            var chkAppStatusRows = db.ApprovalUpdates
++                .Where(x => x.Type == "PurchaseEntryPayment")
++                .Select(x => new { x.TransEntry, x.ApprovalStatus, x.ApprovedBy, x.CreatedDate })
++                .ToList();
++            var chkAppStatusLookup = chkAppStatusRows
++                .GroupBy(a => a.TransEntry)
++                .ToDictionary(g => g.Key, g => g
++                    .GroupBy(l => l.ApprovedBy)
++                    .Select(grp => grp.OrderByDescending(c => c.CreatedDate).First())
++                    .Select(a => a.ApprovalStatus).ToList());
+             var v = (from a in db.PurchaseEntrys
+                      join b in db.Suppliers on a.Supplier equals b.SupplierID
+                      join c in db.PEPayments on a.PurchaseEntryId equals c.PurchaseEntry
+@@ -3285,9 +3311,6 @@ namespace QuickSoft.Controllers
+                          //let mc = db.MCs.Where(x => x.AssignedUser == a.CreatedBy).Select(x => x.MCId).FirstOrDefault()
+                      let app = db.AssignedTos.Where(x => x.CustomerID==-1).Select(x => x.EmployeeId).ToList()
+                      let AppStatus = db.ApprovalUpdates.Where(x => x.TransEntry == a.PurchaseEntryId && x.Type == "PurchaseEntryPayment").Select(x => x.ApprovalStatus).ToList()
+-                     let chkAppStatus = db.ApprovalUpdates.Where(x => x.TransEntry == a.PurchaseEntryId && x.Type == "PurchaseEntryPayment").GroupBy(l => l.ApprovedBy)
+-                                        .Select(g => g.OrderByDescending(c => c.CreatedDate).FirstOrDefault())
+-                                        .ToList().Select(x => x.ApprovalStatus).ToList()
+                      let chkAppStatusme = db.ApprovalUpdates.Where(x => x.TransEntry == a.PurchaseEntryId && x.Type == "PurchaseEntryPayment"&& x.ApprovalStatus==ApprovalStatus.Approved && x.ApprovedBy ==UserId).Select(x=>x.ApprovedBy).FirstOrDefault()
+                      let sh = db.ConvertTransactionss.Where(ap => ap.From == a.PurchaseEntryId && ap.ConvertFrom == tov && ap.ConvertTo == fromv).FirstOrDefault()
+ 
+@@ -3340,13 +3363,15 @@ namespace QuickSoft.Controllers
+                          app = app,
+ 
+                          AppStatus = AppStatus,
+-                         chkAppStatus = chkAppStatus,
+                          CreatedDate = a.PECreatedDate,
+                          meexist= chkAppStatusme,
+                          a.PurType,
+                          HExtent = sh.ConvertFrom,
+                          a.ReferenceNo,
+-                     }).ToList().Select(o => new
++                     }).ToList().Select(o =>
++                     {
++                         var chkAppStatus = chkAppStatusLookup.TryGetValue(o.PurchaseEntryId, out var ck) ? ck : new List<ApprovalStatus>();
++                         return new
+                      {
+                          o.PurchaseEntryId,
+                          o.PECreatedDate,
+@@ -3373,14 +3398,15 @@ namespace QuickSoft.Controllers
+                          o.MC,
+                          o.app,
+                          Approval = (o.app != null && empl.EmployeeId != null) ? (o.app.Contains(empl.EmployeeId) ? true : false) : false,
+-                         ApprovalStatus = (o.app.Count > 0 && o.AppStatus.Count > 0 && o.chkAppStatus.Count > 0) ? (o.chkAppStatus.Contains(ApprovalStatus.Rejected) ? ApprovalStatus.Rejected : (o.app != null && o.chkAppStatus != null && o.app.Count != 0 && o.chkAppStatus.Count != 0 && o.chkAppStatus.Count() == o.app.Count() ? ApprovalStatus.Approved : ApprovalStatus.PartialApproval)) : ApprovalStatus.PendingApproval,
++                         ApprovalStatus = (o.app.Count > 0 && o.AppStatus.Count > 0 && chkAppStatus.Count > 0) ? (chkAppStatus.Contains(ApprovalStatus.Rejected) ? ApprovalStatus.Rejected : (o.app != null && chkAppStatus != null && o.app.Count != 0 && chkAppStatus.Count != 0 && chkAppStatus.Count() == o.app.Count() ? ApprovalStatus.Approved : ApprovalStatus.PartialApproval)) : ApprovalStatus.PendingApproval,
+                          o.CreatedDate,
+                          o.PurType,
+                          o.HExtent,
+                          o.ReferenceNo,
+                          o.meexist
++                     };
+                      });
+-            
++
+                 v = v.Where(a => (a.ApprovalStatus == ApprovalStatus.PendingApproval||a.ApprovalStatus==ApprovalStatus.PartialApproval) && a.meexist!=UserId);
+            
+ 
+@@ -8245,7 +8271,7 @@ namespace QuickSoft.Controllers
+                             a.daysexpirty,
+                             MfgDate     =   c.PEDate,
+                             Quantity    =   b.ItemQuantity,
+-                            ExpiryDate  =   DbFunctionsCompat.AddDays(c.PEDate, (int?)((a.daysexpirty != null)? a.daysexpirty : 360)),
++                            ExpiryDate  =   c.PEDate.AddDays(a.daysexpirty ?? 360),
+                             UnitId      =   b.ItemUnit
+                         }).ToList();
+             return Json(ConD);

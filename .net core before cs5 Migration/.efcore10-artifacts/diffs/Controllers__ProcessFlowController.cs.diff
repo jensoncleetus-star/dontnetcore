@@ -1,0 +1,109 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ProcessFlowController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ProcessFlowController.cs"
+index cfb2995..3888b4d 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ProcessFlowController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ProcessFlowController.cs"	
+@@ -59,7 +59,11 @@ namespace QuickSoft.Controllers
+             int skip = start != null ? Convert.ToInt32(start) : 0;
+             int recordsTotal = 0;
+ 
+-            var UserView = (from a in db.ProcessFlows
++            // EF Core 10 cannot translate the two inline nested .ToList() collection sub-projections
++            // (AssignType / AssignedUsers) inside a server-side outer projection (was 500). Split into
++            // scalar base rows + two bulk child lookups, then build the final shape client-side. This
++            // mirrors the EF6 per-row N+1 behavior and is output-identical.
++            var baseRows = (from a in db.ProcessFlows
+                             join b in db.TaskStatus on a.TaskStatus equals b.TaskStatusId into tmp
+                             from b in tmp.DefaultIfEmpty()
+                             select new
+@@ -67,45 +71,53 @@ namespace QuickSoft.Controllers
+                                 a.ProcessFlowId,
+                                 a.RemoveUpdateUser,
+                                 a.RemoveUpdateUserTeams,
+-                                AssignType = (from z in db.ProcessFlowAssignTypes
+-                                              join w in db.Teams on z.TeamId equals w.TeamId
+-                                              join y in db.Employees on w.TeamLead equals y.EmployeeId
+-                                              where z.ProcessFlowId == a.ProcessFlowId
+-                                            select new
+-                                            {
+-                                                w.TeamName,
+-                                           }).ToList(),
+-                                //AssignTypes = (a.AssignType != -1) ? db.Employees.Where(x => x.EmployeeId == a.AssignType).Select(x => x.FirstName + " " + x.LastName).FirstOrDefault(): "Individual",
+-
+-                                ////TeamLead = (from z in db.Teams
+-                                ////            join y in db.Employees on z.TeamLead equals y.EmployeeId
+-                                ////            where z.TeamId == a.AssignType
+-                                ////            select new
+-                                ////            {
+-                                ////                Name = y.FirstName + " " + y.LastName
+-                                ////            }).FirstOrDefault(),
+-                                AssignedUsers = (from z in db.ProcessFlowAssignUsers
+-                                                 join y in db.Employees on z.EmployeeId equals y.EmployeeId
+-                                                 where z.ProcessFlowId == a.ProcessFlowId
+-                                                 select new
+-                                                 {
+-                                                     id = y.EmployeeId,
+-                                                     LastName = (y.LastName != null) ? y.LastName : "",
+-                                                     FirstName = (y.FirstName != null) ? y.FirstName : "",
+-                                                     MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
+-                                                     Img = (y.ImgFileName != null) ? y.ImgFileName : "",
+-                                                     y.Status
+-                                                 }).ToList(),
+                                 TaskStatus = b.StatusName,
+-                            }).ToList().Select(o => new
+-                            {
+-                                id = o.ProcessFlowId,
+-                                o.AssignType,
+-                                o.RemoveUpdateUser,
+-                                o.RemoveUpdateUserTeams,
+-                                o.AssignedUsers,
+-                                o.TaskStatus,
+-                            });
++                            }).ToList();
++
++            var ids = baseRows.Select(r => r.ProcessFlowId).ToList();
++
++            var assignTypeLookup = (from z in db.ProcessFlowAssignTypes
++                                    join w in db.Teams on z.TeamId equals w.TeamId
++                                    join y in db.Employees on w.TeamLead equals y.EmployeeId
++                                    where ids.Contains(z.ProcessFlowId)
++                                    select new
++                                    {
++                                        z.ProcessFlowId,
++                                        w.TeamName,
++                                    })
++                                   .ToList()
++                                   .GroupBy(x => x.ProcessFlowId)
++                                   .ToDictionary(g => g.Key, g => g.Select(x => new { x.TeamName }).ToList());
++
++            var assignedUsersLookup = (from z in db.ProcessFlowAssignUsers
++                                       join y in db.Employees on z.EmployeeId equals y.EmployeeId
++                                       where ids.Contains(z.ProcessFlowId)
++                                       select new
++                                       {
++                                           z.ProcessFlowId,
++                                           id = y.EmployeeId,
++                                           LastName = (y.LastName != null) ? y.LastName : "",
++                                           FirstName = (y.FirstName != null) ? y.FirstName : "",
++                                           MiddleName = (y.MiddleName != null) ? y.MiddleName : "",
++                                           Img = (y.ImgFileName != null) ? y.ImgFileName : "",
++                                           y.Status
++                                       })
++                                      .ToList()
++                                      .GroupBy(x => x.ProcessFlowId)
++                                      .ToDictionary(g => g.Key, g => g.Select(x => new { x.id, x.LastName, x.FirstName, x.MiddleName, x.Img, x.Status }).ToList());
++
++            var emptyAssignType = Enumerable.Empty<object>().Select(x => new { TeamName = (string)null }).ToList();
++            var emptyAssignedUsers = Enumerable.Empty<object>().Select(x => new { id = default(long), LastName = "", FirstName = "", MiddleName = "", Img = "", Status = default(int) }).ToList();
++
++            var UserView = baseRows.Select(o => new
++            {
++                id = o.ProcessFlowId,
++                AssignType = assignTypeLookup.TryGetValue(o.ProcessFlowId, out var at) ? at : emptyAssignType,
++                o.RemoveUpdateUser,
++                o.RemoveUpdateUserTeams,
++                AssignedUsers = assignedUsersLookup.TryGetValue(o.ProcessFlowId, out var au) ? au : emptyAssignedUsers,
++                o.TaskStatus,
++            });
+             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
+             {
+                 // Apply search   

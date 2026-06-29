@@ -1,0 +1,133 @@
+@model QuickSoftPilot.ViewModels.QuotationViewModel
+@{
+    ViewData["Title"] = "New Quotation";
+}
+<div class="page-head p-4 mb-4">
+    <h3 class="mb-0"><i class="bi bi-receipt"></i> New Quotation</h3>
+    <div class="small opacity-75">Header + line items saved together in one transaction (EF Core)</div>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="All" class="alert alert-danger py-2 small"></div>
+}
+
+<form asp-action="Create" method="post" id="quotForm">
+    <div class="card mb-3"><div class="card-body row g-3">
+        <div class="col-md-5">
+            <label asp-for="CustomerName" class="form-label"></label>
+            <input asp-for="CustomerName" class="form-control" placeholder="e.g. Al Falah Trading LLC" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="QuotDate" class="form-label"></label>
+            <input asp-for="QuotDate" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label asp-for="TaxPercent" class="form-label"></label>
+            <input asp-for="TaxPercent" type="number" step="0.01" class="form-control" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <span class="text-muted small">Bill No auto-generated</span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Remarks" class="form-label"></label>
+            <input asp-for="Remarks" class="form-control" />
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Line items</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRow()"><i class="bi bi-plus-lg"></i> Add line</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead class="table-light"><tr>
+                    <th style="width:40px">#</th>
+                    <th>Item</th>
+                    <th style="width:110px" class="text-end">Qty</th>
+                    <th style="width:140px" class="text-end">Unit Price</th>
+                    <th style="width:150px" class="text-end">Line Total</th>
+                    <th>Note</th>
+                    <th style="width:40px"></th>
+                </tr></thead>
+                <tbody id="lines"></tbody>
+            </table>
+        </div>
+        <div class="row justify-content-end">
+            <div class="col-md-4">
+                <table class="table table-sm mb-0">
+                    <tr><td>Subtotal</td><td class="text-end" id="subTotal">0.00</td></tr>
+                    <tr><td>VAT (<span id="taxLbl">5</span>%)</td><td class="text-end" id="taxAmt">0.00</td></tr>
+                    <tr class="fw-bold border-top"><td>Grand Total (AED)</td><td class="text-end" id="grandTotal">0.00</td></tr>
+                </table>
+            </div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save quotation</button>
+        <a asp-action="Index" class="btn btn-light">Cancel</a>
+    </div>
+</form>
+
+@section scripts {
+<script>
+    var initial = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Items));
+
+    function money(n){ return (isFinite(n) ? n : 0).toFixed(2); }
+
+    function rowHtml(item){
+        item = item || {};
+        var name = item.itemName ?? item.ItemName ?? "";
+        var qty  = item.itemQuantity ?? item.ItemQuantity ?? 0;
+        var price= item.itemUnitPrice ?? item.ItemUnitPrice ?? 0;
+        var note = item.itemNote ?? item.ItemNote ?? "";
+        return '<tr>' +
+          '<td class="rownum text-muted"></td>' +
+          '<td><input name="x.ItemName" value="'+name+'" class="form-control form-control-sm" placeholder="Item / description" /></td>' +
+          '<td><input name="x.ItemQuantity" value="'+qty+'" type="number" step="0.01" class="form-control form-control-sm text-end qty" /></td>' +
+          '<td><input name="x.ItemUnitPrice" value="'+price+'" type="number" step="0.01" class="form-control form-control-sm text-end price" /></td>' +
+          '<td class="text-end lineTotal">0.00</td>' +
+          '<td><input name="x.ItemNote" value="'+note+'" class="form-control form-control-sm" /></td>' +
+          '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="delRow(this)"><i class="bi bi-x"></i></button></td>' +
+        '</tr>';
+    }
+
+    function addRow(item){ $('#lines').append(rowHtml(item)); reindex(); recalc(); }
+    function delRow(btn){ $(btn).closest('tr').remove(); reindex(); recalc(); }
+
+    // Renumber every row so model binding sees a contiguous Items[0..n].
+    function reindex(){
+        $('#lines tr').each(function(i){
+            $(this).find('.rownum').text(i+1);
+            $(this).find('input').each(function(){
+                var base = $(this).attr('name').replace(/^.*\./, '');   // e.g. ItemName
+                $(this).attr('name', 'Items['+i+'].'+base);
+            });
+        });
+    }
+
+    function recalc(){
+        var sub = 0;
+        $('#lines tr').each(function(){
+            var q = parseFloat($(this).find('.qty').val()) || 0;
+            var p = parseFloat($(this).find('.price').val()) || 0;
+            var lt = q*p; sub += lt;
+            $(this).find('.lineTotal').text(money(lt));
+        });
+        var tax = parseFloat($('#TaxPercent').val()) || 0;
+        var taxAmt = sub*tax/100;
+        $('#subTotal').text(money(sub));
+        $('#taxLbl').text(tax);
+        $('#taxAmt').text(money(taxAmt));
+        $('#grandTotal').text(money(sub+taxAmt));
+    }
+
+    $(document).on('input', '.qty,.price,#TaxPercent', recalc);
+    $('#quotForm').on('submit', reindex);
+
+    if (initial && initial.length) { initial.forEach(addRow); } else { addRow(); }
+    recalc();
+</script>
+}

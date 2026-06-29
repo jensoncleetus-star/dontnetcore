@@ -1,0 +1,180 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ProTaskNonTechController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ProTaskNonTechController.cs"
+index 100f7cf..f6302a0 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__ProTaskNonTechController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\ProTaskNonTechController.cs"	
+@@ -224,11 +224,10 @@ namespace QuickSoft.Controllers
+                      join b in db.PeriodicMaintenances on a.AmcId equals b.AmcId
+                      join d in db.PeriodicMaintenanceDetails on b.PeriodicMaintenanceId equals d.PeriodicMaintenanceId
+                      join c in db.Customers on a.CustomerId equals c.CustomerID
+-                      let assign = db.PeriodicMaintAssignedToes.Where(x => x.PeriodicMaintDtlId == d.PeriodicMaintDetailsId && x.Status == "Assigned" && x.ChkStatus == Status.active).Select(x => x.EmployeeId).ToList()
+ 
+                       where d.PDate >= datefrom && d.PDate <= dateto &&
+                      (a.Lattitude!=null||c.Lattitude!=null) && (a.Longitude !=null||c.Longitude !=null) &&
+-                     (editperiodic==true||assign.Contains(EmpId))
++                     (editperiodic==true || db.PeriodicMaintAssignedToes.Any(x => x.PeriodicMaintDtlId == d.PeriodicMaintDetailsId && x.Status == "Assigned" && x.ChkStatus == Status.active && x.EmployeeId == EmpId))
+                      && (a.OpenClose == 0 || a.OpenClose == null)
+ 
+                        select new points
+@@ -250,7 +249,7 @@ namespace QuickSoft.Controllers
+                         
+                         where a.logtime >= taskdatefrom && a.logtime <= taskdateto &&
+                                 (a.Lattitude != null || c.Lattitude != null) && (a.Longitude != null || c.Longitude != null) &&
+-                                 (editprotask == true || assign.Contains(EmpId))
++                                 (editprotask == true || db.TaskAssigneds.Any(x => x.ProTaskId == a.ProTaskId && x.Status == "Assigned" && x.chkStatus == Status.active && x.EmployeeId == EmpId))
+                                     && (a.OpenClose == 0 || a.OpenClose == null)
+                                     &&(am==null||am.OpenClose==0)
+                         select new 
+@@ -277,11 +276,10 @@ namespace QuickSoft.Controllers
+                         });
+             var periodictask = (from a in db.ProTasks.Where(o=>o.Branch==2)
+                         join c in db.Customers on a.CustomerID equals c.CustomerID
+-                        let assign = db.TaskAssigneds.Where(x => x.ProTaskId == a.ProTaskId && x.Status == "Assigned" && x.chkStatus == Status.active).Select(x => x.EmployeeId).ToList()
+ 
+                         where a.logtime >= taskdatefrom && a.logtime <= taskdateto &&
+                                 (a.Lattitude != null || c.Lattitude != null) && (a.Longitude != null || c.Longitude != null) &&
+-                                 (editprotask == true || assign.Contains(EmpId))
++                                 (editprotask == true || db.TaskAssigneds.Any(x => x.ProTaskId == a.ProTaskId && x.Status == "Assigned" && x.chkStatus == Status.active && x.EmployeeId == EmpId))
+                                     && (a.OpenClose == 0 ||a.OpenClose==null)
+                                     &&
+                                     a.TaskName.Contains("AMC - Periodic Maintenance")
+@@ -1885,6 +1883,11 @@ namespace QuickSoft.Controllers
+                               (flag == 1 || z.CreatedDate >= crdate)
+                               select z);
+ 
++            // mob/TskLead union + the `join mobs in fulls` were a SERVER-SIDE join to an in-memory
++            // IEnumerable (EF6 client-joined this; EF Core 10 can't translate a join to a local
++            // IEnumerable inside an IQueryable). Materialize `fulls` first, then INNER-join it
++            // CLIENT-SIDE after the main query materializes. With flag==1 the (flag==1 || logtime…)
++            // guards are always true, so the materialized set is identical to the original.
+             var mob = (
+             from co in db.Contacts
+ 
+@@ -1894,24 +1897,26 @@ namespace QuickSoft.Controllers
+             from con in conn.DefaultIfEmpty()
+             where (rrr.RelationType == 11) &&
+             (flag == 1 || (pro.logtime > crdate && pro.logtime < todaylog))
+-            select new 
++            select new
+             {
+ 
+                 Num = co.Mobile,
+                 ID = pro.ProTaskId
+ 
+-            });
++            }).ToList();
+             var TskLead = (from ac in db.TaskMobiles
+                            join pro in db.ProTasks.Where(o=>o.Branch==2) on ac.ProTaskId equals pro.ProTaskId
+                            where
+ 
+             (flag == 1 || (pro.logtime > crdate && pro.logtime < todaylog))
+-                           select new 
++                           select new
+                            {
+                                Num = ac.MobileNo,
+                                ID = pro.ProTaskId
+-                           });
+-            var fulls = mob.Union(TskLead).Where(o=>o.Num!=null);
++                           }).ToList();
++            var fulls = mob.Union(TskLead).Where(o=>o.Num!=null).ToList();
++            // lookup: ProTaskId -> mobile numbers (replaces the server `join mobs in fulls`).
++            var fullsLookup = fulls.ToLookup(o => o.ID);
+ 
+             //              where
+             //              (flag == 1 || (p.logtime > crdate && p.logtime < todaylog))
+@@ -1923,15 +1928,14 @@ namespace QuickSoft.Controllers
+             //                  a.TaskUpdationID
+ 
+ 
+-            var taskups = from element in db.ProTaskUpdations
+-                          where (flag == 1 || (element.CreatedDate > crdate && element.CreatedDate < todaylog))
+-                          group element by element.ProTaskId
++            // taskups (GroupBy-latest) join removed — EF Core 10 can't translate a
++            // GroupBy→FirstOrDefault-of-entity. It was a LEFT join whose `taskup` was never
++            // projected (and never filters rows), so dropping it preserves output exactly.
+ 
+-                       into groups
+-                          select groups.OrderByDescending(p => p.CreatedDate).FirstOrDefault();
+-
+-            var UserView = (from a in db.ProTasks.Where(o=>o.Branch==2)
+-                            join mobs in fulls on a.ProTaskId equals mobs.ID 
++            // SERVER query — pure entities only (EF Core 10 translatable). The in-memory `join mobs
++            // in fulls` and the taskups GroupBy-latest LEFT join are removed here; the mobile match
++            // is applied CLIENT-SIDE via fullsLookup after materialization (identical row-fan-out).
++            var rawRows = (from a in db.ProTasks.Where(o=>o.Branch==2)
+                             join b in db.Projects on a.ProjectId equals b.ProjectId into pro
+                             from b in pro.DefaultIfEmpty()
+                             join c in db.ProTaskTypes on a.TaskType equals c.TaskTypeId into type
+@@ -1944,8 +1948,6 @@ namespace QuickSoft.Controllers
+                             from f in ttask.DefaultIfEmpty()
+                             join s in db.Employees on a.SalesPerson equals s.EmployeeId into emp
+                             from s in emp.DefaultIfEmpty()
+-                            join taskup in taskups on a.ProTaskId equals taskup.ProTaskId into tsk
+-                            from taskup in tsk.DefaultIfEmpty()
+                             join h in db.VehicleTypes on a.VTypId equals h.VTypeId into temp1
+                             from h in temp1.DefaultIfEmpty()
+                             join j in db.VehicleManufacturers on a.VManuId equals j.MId into temp2
+@@ -1970,13 +1972,13 @@ namespace QuickSoft.Controllers
+                               (ref3 == "" || ref3 == null || a.Ref3 == ref3) &&
+                               (ref4 == "" || ref4 == null || a.Ref4 == ref4) &&
+                               (ref5 == "" || ref5 == null || a.Ref5 == ref5) &&
+-            
++
+                               (VType == 0 || VType == null || a.VTypId == VType) &&
+                               (Vmanu == 0 || Vmanu == null || a.VManuId == Vmanu) &&
+-                              (Vmod == 0 || Vmod == null || a.VModId == Vmod) 
+-                              &&(OpnCls == "" || OandC == null || (OandC == 0 && (a.OpenClose == 0 || a.OpenClose == null)) || a.OpenClose == OandC) 
+-                              && (local == "0" || local == "All" || local == null || a.Location == local) 
+-                             // && (Mobile == "All" || Mobile == "" ||  mobsearch==Mobile) 
++                              (Vmod == 0 || Vmod == null || a.VModId == Vmod)
++                              &&(OpnCls == "" || OandC == null || (OandC == 0 && (a.OpenClose == 0 || a.OpenClose == null)) || a.OpenClose == OandC)
++                              && (local == "0" || local == "All" || local == null || a.Location == local)
++                             // && (Mobile == "All" || Mobile == "" ||  mobsearch==Mobile)
+                            &&(search == "" ||
+                            a.TaskName.ToString().ToLower().Contains(search.ToLower()) ||
+                     a.TaskName.ToString().ToLower().StartsWith(search.ToLower()) ||
+@@ -1994,19 +1996,24 @@ namespace QuickSoft.Controllers
+                                 allcheck,
+                                 editcheck,
+                                 devcheck,
+-                                mobs.Num
+-                            }).ToList().Select(o => new
+-                              {
+-                                  o.ProTaskId,
+-                                  o.TaskName,
+-                                 
+-                                  o.CustomerID,
+-                                  o.CustomerName,
+-                            
+-                                  mobmodel = o.Num, //mobilesno(o.ProTaskId),
+-                              });
++                            }).ToList();
+ 
+-            //    // Apply search   
++            // CLIENT-SIDE INNER join to the materialized mobiles (was `join mobs in fulls`): one row
++            // per matching mobile number, identical fan-out & member shape to the original projection.
++            var UserView = (from o in rawRows
++                            from mobs in fullsLookup[o.ProTaskId]
++                            select new
++                            {
++                                o.ProTaskId,
++                                o.TaskName,
++
++                                o.CustomerID,
++                                o.CustomerName,
++
++                                mobmodel = mobs.Num, //mobilesno(o.ProTaskId),
++                            });
++
++            //    // Apply search
+             //    UserView = UserView.Where(
+             //        p.TaskCode.ToString().ToLower().StartsWith(search.ToLower())
+ 
+@@ -6585,7 +6592,7 @@ on q2.ProTaskId =ProTasks.ProTaskId
+                             starttime1 = a.starttime,
+                             empdetailid = c.EmployeeId,
+                             a.starttime,
+-                            endtime = (a.endtime < a.starttime) ? DbFunctionsCompat.AddDays(a.endtime, 1) : a.endtime
++                            endtime = (a.endtime < a.starttime) ? a.endtime.Value.AddDays(1) : a.endtime
+ 
+                         }).ToList().Select(o => new
+                         {

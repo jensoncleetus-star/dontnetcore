@@ -1,0 +1,59 @@
+﻿diff --git "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__LeadProcessFlowController.cs" "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\LeadProcessFlowController.cs"
+index 24edda9..cbd7e6e 100644
+--- "a/C:\\Quick Soft 10-06-2026\\.efcore10-artifacts\\.efcore10-bak\\Controllers__LeadProcessFlowController.cs"	
++++ "b/C:\\Quick Soft 10-06-2026\\QuickNetCore\\Controllers\\LeadProcessFlowController.cs"	
+@@ -66,14 +66,6 @@ namespace QuickSoft.Controllers
+                                 a.LeadProcessFlowId,
+                                 a.RemoveUpdateUser,
+                                 a.RemoveUpdateUserTeams,
+-                                AssignType = (from z in db.LeadProcessFlowAssignTypes
+-                                              join w in db.Teams on z.TeamId equals w.TeamId
+-                                              join y in db.Employees on w.TeamLead equals y.EmployeeId
+-                                              where z.LeadProcessFlowId == a.LeadProcessFlowId
+-                                              select new
+-                                              {
+-                                                  w.TeamName,
+-                                              }).ToList(),
+                                 //AssignTypes = (a.AssignType != -1) ? db.Employees.Where(x => x.EmployeeId == a.AssignType).Select(x => x.FirstName + " " + x.LastName).FirstOrDefault(): "Individual",
+ 
+                                 ////TeamLead = (from z in db.Teams
+@@ -83,9 +75,23 @@ namespace QuickSoft.Controllers
+                                 ////            {
+                                 ////                Name = y.FirstName + " " + y.LastName
+                                 ////            }).FirstOrDefault(),
++                                LeadStatus =a.LeadStatus==500? "Lead Approved": b.StatusType,
++                            }).ToList().Select(o => new
++                            {
++                                id = o.LeadProcessFlowId,
++                                AssignType = (from z in db.LeadProcessFlowAssignTypes
++                                              join w in db.Teams on z.TeamId equals w.TeamId
++                                              join y in db.Employees on w.TeamLead equals y.EmployeeId
++                                              where z.LeadProcessFlowId == o.LeadProcessFlowId
++                                              select new
++                                              {
++                                                  w.TeamName,
++                                              }).ToList(),
++                                o.RemoveUpdateUser,
++                                o.RemoveUpdateUserTeams,
+                                 AssignedUsers = (from z in db.LeadProcessFlowAssignUsers
+                                                  join y in db.Employees on z.EmployeeId equals y.EmployeeId
+-                                                 where z.LeadProcessFlowId == a.LeadProcessFlowId
++                                                 where z.LeadProcessFlowId == o.LeadProcessFlowId
+                                                  select new
+                                                  {
+                                                      id = y.EmployeeId,
+@@ -95,14 +101,6 @@ namespace QuickSoft.Controllers
+                                                      Img = (y.ImgFileName != null) ? y.ImgFileName : "",
+                                                      y.Status
+                                                  }).ToList(),
+-                                LeadStatus =a.LeadStatus==500? "Lead Approved": b.StatusType,
+-                            }).ToList().Select(o => new
+-                            {
+-                                id = o.LeadProcessFlowId,
+-                                o.AssignType,
+-                                o.RemoveUpdateUser,
+-                                o.RemoveUpdateUserTeams,
+-                                o.AssignedUsers,
+                                 o.LeadStatus ,
+                             });
+             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
