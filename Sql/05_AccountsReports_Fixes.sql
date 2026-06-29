@@ -45,8 +45,14 @@ DECLARE @def nvarchar(max) = OBJECT_DEFINITION(OBJECT_ID('dbo.SP_AVCOMethod'));
 IF @def IS NOT NULL AND @def LIKE '%auditemirtechlatest.dbo.Items%'
 BEGIN
     SET @def = REPLACE(@def, 'auditemirtechlatest.dbo.Items', 'dbo.AvcoAuditItems');
-    IF @def NOT LIKE '%CREATE OR ALTER%'
-        SET @def = REPLACE(REPLACE(@def, 'CREATE PROCEDURE', 'CREATE OR ALTER PROCEDURE'), 'CREATE PROC ', 'CREATE OR ALTER PROC ');
+    -- Convert the leading CREATE header to ALTER. Whitespace-tolerant: the stored
+    -- definition can render as "CREATE   PROCEDURE" (multiple spaces), which a literal
+    -- REPLACE(...,'CREATE PROCEDURE',...) silently misses, leaving a plain CREATE that
+    -- then collides with the SP that 04 already installed (Msg 2714). The first CREATE
+    -- token is the procedure header (this SP has no leading comment), so STUFF it in place.
+    DECLARE @cp int = CHARINDEX('CREATE', @def);
+    IF @cp > 0 AND @cp < 20
+        SET @def = STUFF(@def, @cp, 6, 'ALTER ');
     EXEC (@def);
     PRINT 'SP_AVCOMethod repointed to dbo.AvcoAuditItems';
 END
