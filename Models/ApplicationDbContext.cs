@@ -653,6 +653,9 @@ namespace QuickSoft.Models
             modelBuilder.Entity<RoleGroupModule>().HasKey(gr => new { gr.RoleGroupId, gr.ModuleId });
             modelBuilder.Entity<RoleGroupModule>().ToTable("RoleGroupModule");
 
+            // Keyless DTO for tenancy expiry query
+            modelBuilder.Entity<TenancyContractExpiryDto>().HasNoKey();
+
             RemapLegacyTableNames(modelBuilder);
         }
 

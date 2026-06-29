@@ -8535,6 +8535,37 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
         #region Common Print Methods From Controllers
 
         #region Print Sales Entry
+        #endregion
+     
+        public static string GenerateZatcaBase64(string sellerName, string vatNumber, DateTime? timestamp, decimal? invoiceTotal, decimal? vatTotal)
+        {
+            List<byte> tlvBytes = new List<byte>();
+
+            // ഓരോ ഫീൽഡും അതിന്റെ Tag നമ്പറിനൊപ്പം TLV ബൈറ്റുകളാക്കി മാറ്റുന്നു
+            tlvBytes.AddRange(EncodeTlvField(1, sellerName));
+            tlvBytes.AddRange(EncodeTlvField(2, (vatNumber == null) ? "" : vatNumber));
+            tlvBytes.AddRange(EncodeTlvField(3, timestamp.Value.ToString("yyyy-MM-ddTHH:mm:sszzz")));
+            tlvBytes.AddRange(EncodeTlvField(4, Convert.ToString(invoiceTotal)));
+            tlvBytes.AddRange(EncodeTlvField(5, Convert.ToString(vatTotal)));
+
+            // മുഴുവൻ ബൈറ്റുകളെയും ഒന്നിച്ച് ചേർത്ത് Base64 ലേക്ക് മാറ്റുന്നു
+            return Convert.ToBase64String(tlvBytes.ToArray());
+        }
+
+        private static byte[] EncodeTlvField(int tag, string value)
+        {
+            // വാല്യൂവിനെ UTF-8 ബൈറ്റ് അറേ ആക്കുന്നു (അറബിക് സപ്പോർട്ടിനായി)
+            byte[] valueBytes = Encoding.UTF8.GetBytes(value);
+
+            List<byte> fieldBytes = new List<byte>();
+
+            fieldBytes.Add((byte)tag);               // 1. Tag (1 byte)
+            fieldBytes.Add((byte)valueBytes.Length); // 2. Length (1 byte)
+            fieldBytes.AddRange(valueBytes);         // 3. Value (Bytes)
+
+            return fieldBytes.ToArray();
+        }
+        #region Print Sales Entry
         public pdfSummaryViewModel SaleData(long id, Status? PrintCode = null, Status? HideItmName = null, Status? PNoStatus = null, Int64? TOut = 0, Status? ProjectCheck = null, string ConvertFrom = "", string ConvertBill = "")
         {
             Int64 temp = 0;
@@ -8578,7 +8609,7 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
                       select new pdfSummaryViewModel
                       {
                           PartyName = (b.CustomerPrintName == null) ? b.CustomerName : b.CustomerPrintName,
-                          customercode=b.CustomerCode,
+                          customercode = b.CustomerCode,
                           BillNo = a.BillNo,
                           salesretunid = sr.SalesReturnId,
                           mc = a.MaterialCenter,
@@ -8587,8 +8618,8 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
                           Cashier = e.FirstName,
                           Discount = a.SEDiscount,
                           GrandTotal = a.SEGrandTotal,
-                          Paid = d != null ? d.SEPaidAmount : 0,
-                          Balance = d != null ? a.SEGrandTotal - d.SEPaidAmount : 0,
+                          Paid = d.SEPaidAmount,
+                          Balance = a.SEGrandTotal - d.SEPaidAmount,
                           SubTotal = a.SESubTotal,
                           TaxAmount = a.SETaxAmount,
                           Address = b.Addres.Replace(System.Environment.NewLine, "<br/>"),
@@ -8657,10 +8688,12 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
                           Ref5 = (a.Ref5 == "") ? ((t.Ref5 != "") ? t.Ref5 : a.Ref5) : a.Ref5,
                           ContactNo = k.Phone,
                           empemail = k.EmailId,
-                          CreatedDate = a.SECreatedDate
+                          CreatedDate = a.SECreatedDate,
 
 
                       }).FirstOrDefault();
+            vmodel.zatcaBase64 = GenerateZatcaBase64(vmodel.PartyName, vmodel.TRN, vmodel.CreatedDate, vmodel.GrandTotal, vmodel.TaxAmount);
+
             vmodel.pdfItem = (from b in db.SEItemss
                               join c in db.Items on b.Item equals c.ItemID
                               join d in db.Scaffolds on c.ItemID equals d.Item into scaffold
@@ -8743,7 +8776,7 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
                                             }).ToList(),
                               }).ToList();
             vmodel.billsundry = (from b in db.SEBillSundrys
-                                     //join c in db.BillSundrys on b.BillSundry equals c.BillSundryId
+                                 //join c in db.BillSundrys on b.BillSundry equals c.BillSundryId
                                  let bs = db.BillSundrys.Where(a => a.BillSundryId == b.BillSundry).Select(a => a.BSName).FirstOrDefault()
                                  where b.SalesEntry == id
                                  select new pdfBillSundryViewModel
@@ -8769,8 +8802,6 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
 
             return vmodel;
         }
-        #endregion
-        #region salesprofit
 
         public void setsalesprofit(string seno, decimal? bonusclimed)
         {

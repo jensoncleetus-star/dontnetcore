@@ -550,6 +550,7 @@ namespace QuickSoft.ViewModel
         public long? salesretunid { get; set; }
         public string PartyName { get; set; }
         public string qutationtype { get; set; }
+        public string zatcaBase64 { get; set; }
         public string BillNo { get; set; }
         public DateTime Date { get; set; }
         public string Note { get; set; }

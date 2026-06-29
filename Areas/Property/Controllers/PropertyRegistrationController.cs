@@ -229,7 +229,7 @@ namespace QuickSoft.Areas.Property.Controllers
                 preg.Developer = vmodel.Developer;
                 preg.Owner = vmodel.Owner;
                 preg.Property = vmodel.Property;
-                if (vmodel.Broker != null)
+                if (vmodel.Broker != null && vmodel.Broker!="")
                 {
                     preg.Broker =Convert.ToInt64(vmodel.Broker);
                 }

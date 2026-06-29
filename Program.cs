@@ -26,7 +26,7 @@ if (string.IsNullOrWhiteSpace(conn))
     if (!builder.Environment.IsDevelopment())
         throw new System.InvalidOperationException(
             "ConnectionStrings:DefaultConnection is not configured. Set it (per branch database) before running in Production.");
-    conn = @"Server=.\SQLEXPRESS;Database=emirtechlatest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
+    conn = @"Server=.\SQLEXPRESS;Database=blankdbdotnecore;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
 }
 
 // EF Core 10 translates `list.Contains(column)` via OPENJSON, which fails on SQL Server databases at an

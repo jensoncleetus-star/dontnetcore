@@ -50,15 +50,16 @@ namespace QuickSoft.Areas.Property.Controllers
 
                 DateTime expaired = System.DateTime.Now.Date.AddMonths(-3);
                 DateTime reminder = System.DateTime.Now.Date.AddMonths(1);
-                var vm = (from a in db.TenancyContracts
-                          join b in db.Customers on a.Tenant equals b.CustomerID into cust
-                          from b in cust.DefaultIfEmpty()
-                          select new
-                          {
-                              a.Id,
-                              b.CustomerName,
-                              a.EndDate
-                          }).Where(o => o.EndDate >= expaired && o.EndDate <= reminder).ToList();
+
+                var vm = db.Set<TenancyContractExpiryDto>()
+                    .FromSqlInterpolated($@"SELECT a.Id,
+                                           b.CustomerName,
+                                           TRY_CONVERT(datetime, a.EndDate, 103) AS EndDate
+                                      FROM TenancyContracts a
+                                      LEFT JOIN Customers b ON a.Tenant = b.CustomerID
+                                     WHERE TRY_CONVERT(datetime, a.EndDate, 103) >= {expaired}
+                                       AND TRY_CONVERT(datetime, a.EndDate, 103) <= {reminder}")
+                    .ToList();
                var userid = User.Identity.GetUserId();
                 foreach (var k in vm)
                 {
@@ -201,24 +202,22 @@ namespace QuickSoft.Areas.Property.Controllers
                             join d in db.PropertyUnits on a.Unit equals d.Id into uni
                             from d in uni.DefaultIfEmpty()
                             join e in db.Durations on a.Duration equals e.Id into dur
-                            from e in dur.DefaultIfEmpty()
-                            where
-                             (FromDate == "" || EF.Functions.DateDiffDay(a.CreatedDate, fdate) <= 0) &&
-                             (ToDate == "" || EF.Functions.DateDiffDay(a.CreatedDate, tdate) >= 0) &&
-                            //(Feature == 0 || d.Feature == Feature) &&
-                            (Property == 0 || Property == null || a.Id == Property)
-                            && (Tenant == 0 || Tenant == null || a.Tenant == Tenant)
-                            && (Unit == 0 || Unit == null || a.Unit == Unit)
-                            select new
+                                            from e in dur.DefaultIfEmpty()
+                                            where
+                                             (string.IsNullOrEmpty(FromDate) || (fdate.HasValue && EF.Functions.DateDiffDay(a.CreatedDate, fdate.Value) <= 0)) &&
+                                             (string.IsNullOrEmpty(ToDate) || (tdate.HasValue && EF.Functions.DateDiffDay(a.CreatedDate, tdate.Value) >= 0)) &&
+                                            //(Feature == 0 || d.Feature == Feature) &&
+                                            (Property == 0 || Property == null || a.Id == Property)
+                                            && (Tenant == 0 || Tenant == null || a.Tenant == Tenant)
+                                            && (Unit == 0 || Unit == null || a.Unit == Unit)
+                                            select new
                             {
                                 id = a.Id,
                                 Property = b.Name,
                                 Tanant = c.CustomerName,
                                 Unit = d.Name,
                                 Duration = e.Name,
-                                a.StartDate,
-                                a.EndDate,
-                                date = a.CreatedDate
+                              
                             });
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
@@ -505,7 +504,7 @@ namespace QuickSoft.Areas.Property.Controllers
                     count = 0;
                     foreach (var arr in vmodel.docmodel)
                     {
-                        if (arr.Attachments != null)
+                        if (arr.Attachments != null && arr.Type != "")
                         {
                             PropertyDocumentType doc = new PropertyDocumentType();
                             doc.DocumentType = Convert.ToInt64(arr.Type);

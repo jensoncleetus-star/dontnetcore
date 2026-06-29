@@ -799,7 +799,7 @@ function itemUpdate(selectObject, dataid, action) {
     var Hire = $('#ddlHType').val();
     var TaxInclusive = $("#TaxInclusive").val() || "";
 
-
+    var unassemple = $("#chkunassemple").prop("checked");
     var newUrl;
     if (mc != null && mc > 0 && Stype != 2) {
         newUrl = '/Item/GetItemMC';
@@ -812,9 +812,47 @@ function itemUpdate(selectObject, dataid, action) {
         url: newUrl,
         type: "GET",
         dataType: "JSON",
-        data: { itemID: itemid, mc: mc, Saltype: Stype, HireType: Hire,customerid:customer },
+        data: { itemID: itemid, mc: mc, Saltype: Stype, HireType: Hire, customerid: customer, unassemples: unassemple },
         success: function (result) {
-            createUnitList(result, dataid, action);
+            if (unassemple == false)
+                createUnitList(result, dataid, action);
+            else {
+              
+                    $.each(result, function (i, itemm) {
+
+
+                        $.ajax({
+                            url: '/Item/GetItemById',
+                            dataType: 'json',
+                            data: { ItemId: itemm.ItemID },
+                            cache: true,
+                            success: function (data) {
+
+                                $(".item_").remove();
+                                $.each(data, function (i, item) {
+                                    var taxamt = item.SellingPrice * (item.Tax / 100);
+                                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                        addrow2('addinvoiceItem', 'sales', item.ItemUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, taxamt, 0, '', item);
+
+                                    } else {
+                                        addrow('addinvoiceItem', 'sales', item.ItemUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, taxamt, 0, '', item);
+
+                                    }
+                                });
+                                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                    addrow2('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
+                                } else {
+                                    addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
+                                }
+                                $(".barcode").val("");
+                                $(".barcode").focus();
+                            }
+                        });
+
+
+                       
+                    });
+            }
 
             if (action == "sales" || action == "quot" || action == "foredit") {
                 $(".minstk_" + dataid).attr("data-validcode", result.validkey);
@@ -3315,6 +3353,7 @@ function PrintInvoice(e, type, dvitem, conType) {
     if (e.summary.validityqtn != null && e.summary.validityqtn != "") {
         $("#Iblvalidityqtn").text(e.summary.validityqtn);
     }
+
     if (e.summary.CMRNoteNo != null && e.summary.CMRNoteNo !== "" && e.summary.CMRNoteNo != 0) {
         $("#IblMRNTitle").text("MR Note No ");
         $("#lblMRNNo").text(": " + e.summary.CMRNoteNo);
@@ -5520,12 +5559,13 @@ function saletypechange(type, method) {
             tbody.children("tr").each(function () {
                 var rowid = $(this).attr("id");
                 var item = $("#" + rowid + " .item_name").val();
+             
                 if (item != null) {
                     $.ajax({
                         url: '/Item/GetItem',
                         type: "GET",
                         dataType: "JSON",
-                        data: { itemID: item, mc: mc, Saltype: Stype, HireType: Hire },
+                        data: { itemID: item, mc: mc, Saltype: Stype, HireType: Hire},
                         success: function (result) {
                             $("#" + rowid + " .tax_percentage").val(result.Tax.toFixed(2));
                             var quantity = $("#" + rowid + " .quty").val();
