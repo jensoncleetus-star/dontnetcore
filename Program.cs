@@ -222,8 +222,13 @@ app.MapControllerRoute(name: "Login", pattern: "login",
     defaults: new { controller = "Users", action = "Login" });
 // Legacy "calendar" area alias (calendarAreaRegistration.cs): the area had no controllers of its own —
 // "/calendar/taskcalendar/..." resolved to the MAIN taskcalendarController (and is what the time-sheet
-// manual view's iframes link to). Map the same URL shape onto the main controllers.
-app.MapControllerRoute(name: "calendar_default", pattern: "calendar/{controller}/{action=Index}/{id?}");
+// manual view's iframes link to). Constrain it to ONLY the taskcalendar controller: a generic
+// "calendar/{controller}/{action}" pattern matched any controller, so any page reached under /calendar/
+// became the ambient route and leaked the "calendar/" prefix into every generated link (Url.Action /
+// BeginForm / ActionLink) — e.g. POST /calendar/Users/copypermissionAsync -> 404. Pinning the controller
+// keeps the iframe URL working while letting all other links fall back to the default (no-prefix) route.
+app.MapControllerRoute(name: "calendar_default", pattern: "calendar/taskcalendar/{action=Index}/{id?}",
+    defaults: new { controller = "taskcalendar" });
 app.MapControllerRoute(name: "DoubleR", pattern: "{controller}/{action}/{id}/{type}",
     defaults: new { controller = "Home", action = "Index", type = "", id = "" });
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
