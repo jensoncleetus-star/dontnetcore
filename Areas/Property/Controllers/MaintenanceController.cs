@@ -964,7 +964,6 @@ namespace QuickSoft.Areas.Property.Controllers
                             Amt = a.Amount,
                             No = a.ChequeNo,
                             Date = a.Date,
-                            Id = a.ID,
                             Bank = a.Bank,
                             BankName = c.Name
                         }).ToList();

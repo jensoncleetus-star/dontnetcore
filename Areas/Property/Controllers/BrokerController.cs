@@ -1552,7 +1552,6 @@ namespace QuickSoft.Areas.Property.Controllers
                         where a.Reference == CnId && a.Purpose==purpose
                         select new
                         {
-                            ID=a.ID,
                             AttAch = b.attachments,
                             type = c.Name,
                             Value = c.ID,
