@@ -324,10 +324,10 @@ namespace QuickSoft.Controllers
 
                 if (cmp.RemoveLogo == false)
                 {
-                    if (cmp.Company.CPLogo != null)
+                    if (cmp.Company.CPLogo != null && Request.Form.Files["Company.CPLogo"] != null)
                     {
                         // files upload
-                        IFormFile file = Request.Form.Files[0];
+                        IFormFile file = Request.Form.Files["Company.CPLogo"];
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/company/");
                         file.SaveAs(Path.Combine(uploadUrl, fileName));
@@ -357,17 +357,17 @@ namespace QuickSoft.Controllers
                 CompanyHeader CompanyHead = db.CompanyHeaders.Find(1);
                 if (cmp.RemoveHeaderFooter == false)
                 {
-                    if (cmp.Header != null)
+                    if (cmp.Header != null && Request.Form.Files["Header"] != null)
                     {
-                        IFormFile file = Request.Form.Files[1];
+                        IFormFile file = Request.Form.Files["Header"];
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/companyheader/header");
                         file.SaveAs(Path.Combine(uploadUrl, fileName));
                         CompanyHead.Header = fileName;
                     }
-                    if (cmp.Footer != null)
+                    if (cmp.Footer != null && Request.Form.Files["Footer"] != null)
                     {
-                        IFormFile file = Request.Form.Files[2];
+                        IFormFile file = Request.Form.Files["Footer"];
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/companyheader/footer");
                         file.SaveAs(Path.Combine(uploadUrl, fileName));
