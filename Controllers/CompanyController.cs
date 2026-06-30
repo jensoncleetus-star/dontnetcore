@@ -343,7 +343,7 @@ namespace QuickSoft.Controllers
                     }
                     company.CPLogo = null;
                 }
-                if (cmp.Payrolldate != null)
+                if (cmp.Payrolldate != null&& cmp.Payrolldate!="")
                 {
                     company.Payrolldate = DateTime.Parse(cmp.Payrolldate.ToString(), new CultureInfo("en-GB"));
                 }
@@ -354,7 +354,7 @@ namespace QuickSoft.Controllers
                 db.Entry(company).State = EntityState.Modified;
                 db.SaveChanges();
 
-                CompanyHeader CompanyHead = db.CompanyHeaders.Find(1);
+                CompanyHeader CompanyHead = db.CompanyHeaders.Find((long)1);
                 if (cmp.RemoveHeaderFooter == false)
                 {
                     if (cmp.Header != null && Request.Form.Files["Header"] != null)
@@ -365,7 +365,7 @@ namespace QuickSoft.Controllers
                         file.SaveAs(Path.Combine(uploadUrl, fileName));
                         CompanyHead.Header = fileName;
                     }
-                    if (cmp.Footer != null && Request.Form.Files["Footer"] != null)
+                    if (cmp.Footer != null && Request.Form.Files["Footer"] != null&& cmp.Footer!="")
                     {
                         IFormFile file = Request.Form.Files["Footer"];
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
