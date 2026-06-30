@@ -1,13 +1,16 @@
 ﻿@using QuickSoft.Helpers
+@using Microsoft.AspNetCore.Http
 
 @{
-    var alerts = TempData.ContainsKey(Alert.TempDataKey)
-                ? (Newtonsoft.Json.JsonConvert.DeserializeObject<List<Alert>>((string)TempData[Alert.TempDataKey]) ?? new List<Alert>())
+    // Alerts live in Session (set by BaseController.AddAlert). Read + remove immediately so they are
+    // strictly one-shot — background AJAX and refreshes can never re-show them (the cookie-TempData
+    // version kept reappearing because AJAX requests retained the cookie).
+    var alertJson = Context.Session.GetString(Alert.TempDataKey);
+    var alerts = !string.IsNullOrEmpty(alertJson)
+                ? (Newtonsoft.Json.JsonConvert.DeserializeObject<List<Alert>>(alertJson) ?? new List<Alert>())
                 : new List<Alert>();
 
-    // One-shot: drop the entry once rendered so a page refresh does NOT re-show the toast
-    // (the indexer read alone wasn't reliably consuming it -> it lingered across refreshes).
-    TempData.Remove(Alert.TempDataKey);
+    Context.Session.Remove(Alert.TempDataKey);
 
     foreach (var alert in alerts)
     {

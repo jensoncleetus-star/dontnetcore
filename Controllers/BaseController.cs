@@ -69,11 +69,13 @@ namespace QuickSoft.Controllers
 
         private void AddAlert(string alertStyle, string message, string heading, string alertIcon, bool dismissable)
         {
-            // Store the alerts as a JSON string. ASP.NET Core's TempData serializer only supports primitive
-            // types, so a raw List<Alert> throws "DefaultTempDataSerializer cannot serialize ..." when the next
-            // redirect persists TempData (MVC5's session-backed TempData allowed arbitrary objects). JSON round-trips.
-            var alerts = TempData.ContainsKey(Alert.TempDataKey)
-                ? (Newtonsoft.Json.JsonConvert.DeserializeObject<List<Alert>>((string)TempData[Alert.TempDataKey]) ?? new List<Alert>())
+            // Store alerts in Session (JSON), NOT cookie-TempData. Cookie TempData was re-shown on every page
+            // load: a page's background AJAX calls reload the TempData cookie and (not reading the alert key)
+            // RETAIN it, re-writing the cookie after _Alerts already consumed it -> the toast kept reappearing.
+            // Session is server-side and _Alerts removes the key the moment it renders, so it is truly one-shot.
+            var existing = HttpContext.Session.GetString(Alert.TempDataKey);
+            var alerts = !string.IsNullOrEmpty(existing)
+                ? (Newtonsoft.Json.JsonConvert.DeserializeObject<List<Alert>>(existing) ?? new List<Alert>())
                 : new List<Alert>();
 
             alerts.Add(new Alert
@@ -85,7 +87,7 @@ namespace QuickSoft.Controllers
                 Dismissable = dismissable
             });
 
-            TempData[Alert.TempDataKey] = Newtonsoft.Json.JsonConvert.SerializeObject(alerts);
+            HttpContext.Session.SetString(Alert.TempDataKey, Newtonsoft.Json.JsonConvert.SerializeObject(alerts));
         }
         // find ip
 
