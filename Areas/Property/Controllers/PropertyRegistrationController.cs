@@ -253,11 +253,11 @@ namespace QuickSoft.Areas.Property.Controllers
                 preg.Area = vmodel.Area;
                 preg.Hector = vmodel.Hector;
                 preg.ADDCNo = vmodel.ADDCNo;
-                if (vmodel.BookingDate != null)
+                if (vmodel.BookingDate != null&& vmodel.BookingDate!="")
                 {
                     preg.BookingDate = DateTime.Parse(vmodel.BookingDate.ToString(), new CultureInfo("en-GB"));
                 }
-                if (vmodel.HandoverDate != null)
+                if (vmodel.HandoverDate != null&& vmodel.HandoverDate!="")
                 {
                     preg.HandoverDate = DateTime.Parse(vmodel.HandoverDate.ToString(), new CultureInfo("en-GB"));
                 }
@@ -277,7 +277,7 @@ namespace QuickSoft.Areas.Property.Controllers
                    var  count2 = 0;
                     foreach (var arr in vmodel.docmodel)
                     {
-                        if (arr.Attachments != null)
+                        if (arr.Attachments != null&& arr.Type!="")
                         {
                             PropertyDocumentType doc = new PropertyDocumentType();
                             doc.DocumentType = Convert.ToInt64(arr.Type);
