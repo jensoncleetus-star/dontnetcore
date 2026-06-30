@@ -1,4 +1,4 @@
-﻿
+
 function GetDeveloper(val) {
 
     var type =( val == 0) ? "empty" : "all";
@@ -131,10 +131,10 @@ function GetTenant(val) {
 
     var type =( val == 0) ? "empty" : "all";
     $("#ddlTenant").select2({
-        placeholder: 'Search Tenant Name or Code',
+        placeholder: 'Search Customer by Name or Code',
         minimumInputLength: 0,
         ajax: {
-            url: "/Property/Tenant/SearchTenant",
+            url: "/Customer/SearchCustomer",
             dataType: 'json',
             delay: 50,
             data: function (params) {
