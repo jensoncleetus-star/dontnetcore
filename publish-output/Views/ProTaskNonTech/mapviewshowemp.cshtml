@@ -1,0 +1,202 @@
+﻿@model  List<QuickSoft.ViewModel.points>
+@* [SECURITY] polyfill .io CDN was compromised in 2024 (supply-chain attack); switched to Cloudflare's safe mirror over HTTPS. — 2026-06-10 *@
+<script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=default"></script>
+<style>
+    /*
+    * Always set the map height explicitly to define the size of the div element
+    * that contains the map.
+    */
+    #map {
+        height: 100vh;
+        position: fixed;
+    }
+
+    /*
+    * Optional: Makes the sample page fill the window.
+    */
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/lightbox")
+}
+@{var vModel = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @vModel)
+
+
+<div class="row">
+    <div class="col-md-2"><strong>Search</strong></div>
+    <div class="col-md-6"><input type="text" name="srchtxt" value="" onkeyup="filterMarkers(this.value)" /></div>
+</div>
+<div id="map" style="position:fixed !important"></div>
+
+
+
+<script>
+        (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set, e = new URLSearchParams, u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a) })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)) })
+            ({ key: "AIzaSyBd7_J3UBnpQyRcggz2uZ8JnQuPIvTYJ5A", v: "beta" });</script>
+<script>
+    var lat = [];
+    var log = [];
+    var gmarkers1 = [];
+    var cusname = [];
+    var custid = [];
+    var type = [];
+    var taskid = [];
+    var amcid = [];
+    var noPoi = [
+        {
+            featureType: "poi",
+            stylers: [
+                { visibility: "off" }
+            ]
+        }
+    ];
+
+
+                          @{
+
+                              if (Model != null &&  Model.Count > 0)
+                              {
+                                  // List<QuickSoft.ViewModel.points> allpoints = ViewBag.CountryCodes;
+
+                                  foreach (var item in Model)
+                                  {
+ @:lat.push(@item.lat);
+     @:log.push(@item.log);
+      @:cusname.push('@item.pointname');
+        @:custid.push(@item.customerid);
+        @:type.push('@item.type');
+       @:taskid.push('@item.taskid');
+              @:amcid.push('@item.amcid');
+                                  }
+                              }
+                          }
+
+
+
+                                      initMap();
+                                      let map;
+
+                                      async function initMap() {
+                                          const { Map } = await google.maps.importLibrary("maps");
+
+                                          map = new Map(document.getElementById("map"), {
+            zoom: 15,
+            center: new google.maps.LatLng(lat[0], log[0]),
+                                              mapTypeId: google.maps.MapTypeId.ROADMAP,
+
+        });
+                                          var infowindow = new google.maps.InfoWindow();
+
+                                          var marker, i;
+
+                                          for (i = 0; i < lat.length; i++) {
+                                              var editid = 0;
+                                              editid = (amcid[i] == 0) ? taskid[i] : amcid[i];
+                                              if (type[i] == "customer") {
+
+                                                  marker = new google.maps.Marker({
+
+                    icon: {
+                                                  path: google.maps.SymbolPath.CIRCLE,
+                        strokeColor: "red",
+                        scale: 8
+                    },
+                                                      category: cusname[i].toUpperCase(),
+                                                      position: new google.maps.LatLng(lat[i], log[i]),
+                                                     url: "" + custid[i],
+                    map: map
+                              });
+                                      }
+                                              else if (type[i] == "task") {
+
+                                                  marker = new google.maps.Marker({
+
+                                                      icon: {
+                                                          path: google.maps.SymbolPath.CIRCLE,
+                                                          strokeColor: "green",
+                                                          scale: 8
+                                                      },
+
+
+                                                      category: cusname[i].toUpperCase(),
+                    position: new google.maps.LatLng(lat[i], log[i]),
+                    map: map
+                                  });
+                              }
+                                              else {
+
+                                                  marker = new google.maps.Marker({
+
+                                                      icon: {
+                                                          path: google.maps.SymbolPath.CIRCLE,
+                                                          strokeColor: "blue",
+                                                          scale: 8
+                                                      },
+
+
+                                                      category: cusname[i].toUpperCase(),
+                                                      position: new google.maps.LatLng(lat[i], log[i]),
+                                                      map: map
+                                                  });
+
+                                              }
+                                              gmarkers1.push(marker);
+                              google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                                  return function () {
+                                      var mlink = '<a href="/ProTask/Details/' + taskid[i] + '" target="_blank" style="color:blue;font-size:bold;">' + cusname[i] + '</a>';
+                                      var mapview = '<a href="https://maps.google.com/?q=' + lat[i] + "," + log[i] + '" target="_blank" style="color:blue;font-size:bold;">Open in Google Map</a>';
+                                      var assign = "";
+                                        if (editid != 0 && amcid[i] == 0 && taskid[i] != 0) {
+                                          assign = '<a class="modal-create" href="/ProTask/Assign/' + taskid[i] + '/MyTask" target="_new" title="Assign Task"  style="color:red;font-size:bold;">Click Here To Assign Task</a>';
+                                      }
+                                      if (editid != 0 && amcid[i] != 0 && taskid[i] == 0) {
+                                          assign = '<a href="/AMC/Edit/' + amcid[i] + '"target="_blank" style="color:red;font-size:bold;">Amc Edit</a>';
+                                      }
+                                      infowindow.setContent(mlink + "<br><hr>" + mapview );
+                                      infowindow.open(map, marker);
+                                  }
+                              })(marker, i));
+                                          }
+                                          var noPoi = [{
+                                              featureType: "poi",
+                                              elementType: "labels",
+
+                                              stylers: [{
+                                                  visibility: "off"
+                                              }]
+                                          }];
+
+                                          map.setOptions({
+                                              styles: noPoi
+                                          });
+    }
+    $("#map").css("position", "fixed !important");
+    filterMarkers = function (category) {
+        for (i = 0; i < lat.length; i++) {
+            marker = gmarkers1[i];
+            // If is same category or category not picked
+            if (marker.category.indexOf(category.toUpperCase()) != -1 ) {
+                marker.setVisible(true);
+                var position = marker.position;
+                map.setCenter(position);
+            }
+            // Categories don't match
+            else {
+                marker.setVisible(false);
+            }
+        }
+    }
+</script>
+

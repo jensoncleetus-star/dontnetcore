@@ -1,0 +1,77 @@
+﻿
+@using(Html.BeginForm("executeqry", "patch", FormMethod.Post, new { id = "executeqryform", role = "form"}))
+    {
+<div class="panel-body">
+    <div class="box-body">
+        <div class="row">
+            <div class="form-group col-md-12">
+              <table style="width:100%">
+                  <tr>
+                      
+                      <td>
+                          Enter Qry<br />
+
+                          
+                                   <textarea name="qry" id="qry" style="width:90%;height:200px">
+SELECT distinct conn.session_id, cpu_time
+                          FROM sys.dm_exec_sessions AS sess
+                          JOIN sys.dm_exec_connections AS conn
+                          ON sess.session_id = conn.session_id  order by (cpu_time) desc
+</textarea>
+                      </td>
+                  </tr>
+                  <tr>
+                      <td><input type="submit" id="execqry" value="Execute"/></td>
+                  </tr>
+              </table>
+            </div>
+            </div>
+        </div>
+    </div>
+     }
+
+
+@{ 
+    string exactPath = Server.MapPath("/uploads/");
+
+}
+path=@exactPath;
+<script>
+    setInterval(function (){
+        $.get("/patch/reindex");
+    }, 60000*10);
+    $('#executeqryforms').on('submit', function (e) {
+        e.preventDefault();
+                  e.preventDefault();
+        var url = $('#executeqryform')[0].action;
+            var formData = new FormData(this);
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                processData: false,
+                contentType: false,
+                url: url,
+                data: formData,//$('#createLandlordForm').serialize(), //formData,//JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("#executeqry").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                   
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("#executeqry").prop('disabled', false); // enable button
+                    }
+                }
+            });
+      
+
+    });
+</script>
+     

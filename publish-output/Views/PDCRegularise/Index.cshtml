@@ -1,0 +1,652 @@
+
+@{
+    ViewBag.Title = "Regularise PDC";
+    ViewBag.SubTitle = "Regularise PDC";
+    ViewBag.Active = "Master";
+
+}
+<div class="box box-default" id="formsec">
+    <div class="box-header with-border">
+        <h3 class="box-title">Regularise PDC</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <div class="form-group col-md-4">
+                @Html.Label("Check Number", null, new { @class = "control-label" })
+                @Html.TextBox("CheckNumber", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4" style="">
+                <label class="control-label">Select Bank Account</label>
+                @Html.DropDownList("ddlBank", (SelectList)ViewBag.Bank, "", new { @class = "form-control select2 input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Voucher Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlType", (SelectList)ViewBag.Type, new { @class = "form-control select2 input-sm" })
+            </div>
+            @if (ViewBag.BusinessType != "Property")
+            {
+                <div class="form-group col-md-4 cus">
+                    @Html.Label("Customer", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, new { @class = "form-control select2 input-sm" })
+                </div>
+                <div class="form-group col-md-4 sup">
+                    @Html.Label("Supplier", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control select2 input-sm" })
+                </div>
+            }
+            else
+            {
+                <div class="form-group col-md-4 select2-box">
+                    @Html.Label("Tenant", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlTenant", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                </div>
+                <div class="form-group col-md-4 select2-box">
+                    @Html.Label("Contractor", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlContractor", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                </div>
+            }
+            <div class="form-group col-md-4 select2-box">
+                @Html.Label("With Hold", null, new { @class = "control-label" })
+                <input type="checkbox" value="1" checked="checked" name="chkhold" id="chkhold" />
+            </div>
+            <div class="form-group col-md-4">
+                <label class="control-label">From</label>
+                <div class="input-group date">
+                    <input class="form-control input-md" id="From" name="From" value="" type="text">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                <label class="control-label">To</label>
+                <div class="input-group date">
+                    <input class="form-control input-md" id="To" name="To" value="" type="text">
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "Home") + "'");">Cancel</button>
+                @*<input type="button" class="btn btn-default" value="Reset" data-dismiss="modal" id="btnreset" />*@
+            </div>
+        </form>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalChange")
+<div class="box box-default" id="SReport">
+    @using (Html.BeginForm("update", "PDCRegularise", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">View PDC </h3>
+        </div>
+        <div class="box-body">
+            <div class="box-body">
+                <table class="table table-bordered table-hover" id="UserTable">
+                    <thead>
+                        <tr class="bg-gray">
+                            <td><input type="checkbox" id="select_all" /></td>
+                            <td>PDC Date</td>
+                            <td>Voucher No</td>
+                            <td>Bank</td>
+                            <td>Account</td>
+                            <td>PDC Issued</td>
+                            <td>PDC Receipt</td>
+                            <td>PDC Journal</td>
+                            <td>Check No.</td>
+                            <td>Remark</td>
+                            <td>Status</td>
+                            @*<td>Created By</td>
+                                <td>Created Date</td>
+                                <td>Branch</td>*@
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Total:</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="box-footer col-md-12" id="sub">
+                <button type="submit" id="save" class="btn btn-info col-sm-offset-5">Submit</button>
+            </div>
+        </div>
+    }
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    <style>
+        .sup .select2-container, .cus .select2-container {
+            width: 100% !important;
+        }
+    </style>
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+    $('.table').on('click', '.modal-change', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-change');
+    });
+           var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+                responsive: true,
+                "bLengthChange": false,
+                "ajax": {
+                    "url": '/PDCRegularise/GetData2',
+                    "data": function (data) {
+
+                        data.fromdate = $('#From').val();
+                        data.todate = $('#To').val();
+                        data.Type = $('#ddlType').val();
+                        data.customer = $('#ddlCustomer').val();
+                        data.supplier = $('#ddlSupplier').val();
+                        data.CheckNumber = $('#CheckNumber').val();
+                        data.tenant = $('#ddlTenant').val();
+                        data.contractor = $('#ddlContractor').val();
+                        data.bankid = $('#ddlBank').val();
+                        data.withhold = $('#chkhold').prop("checked");
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[2, "desc"]],
+                "columnDefs": [{
+                    "targets": [1],
+                    "orderable": false
+                }],
+                "columns": [
+
+                    {
+                        "data": "id", "name": "id",
+                        "render": function (data, type, row, meta) {
+                            var box = '<input class="checkbox" type="checkbox" name="bill[]" value="' + data + '"/>';
+                            return box;
+                            //return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                    {
+                        "name": "Voucher", "data": function (result) {
+                            @{
+
+                         var urls = "";
+                                }
+                            if (result.pdctype == "Receipt") {
+                                          @{
+
+
+                    urls = "'<a href=\"/Receipt/Edit/'+  result.voucherid +'\" target=\"_new\">'+ result.Voucher +'</a>' ";
+                               }
+                                return @Html.Raw(urls);
+                            }
+                            else if (result.pdctype == "Payment") {
+                                 @{
+
+
+                    urls = "'<a href=\"/Payment/Edit/'+  result.voucherid +'\" target=\"_new\">'+ result.Voucher +'</a>' ";
+                               }
+                                return @Html.Raw(urls);
+                            }
+
+                            else {
+                                 @{
+
+
+                    urls = "'<a href=\"/JournalV/Edit/'+  result.voucherid +'\" target=\"_new\">'+ result.Voucher +'</a>' ";
+                               }
+                                return @Html.Raw(urls);
+                            }
+
+
+                        }
+
+                    },
+                    { "data": "bankname", "name": "bankname" },
+                    { "data": "Account", "name": "Account" },
+                    { "data": "Issued", "name": "Issued", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "Receipt", "name": "Receipt", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "Journal", "name": "Journal", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "check", "name": "check" },
+                    { "data": "remark", "name": "remark" },
+                    {
+                        "name": "withhold", "data": function (data) {
+                            if (data.withhold == 1) {
+                                return '<a href="/PDCRegularise/ChangeStatus/' + data.id + '/HOLD" class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >HOLD</i></a>';
+                            }
+                            else {
+                                return '<a href="/PDCRegularise/ChangeStatus/' + data.id + '/UNHOLD" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >UNHOLD</i></a>';
+                            }
+                        }
+                    },
+                    //{ "data": "CreatedBy", "name": "CreatedBy" },
+                    //{ "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertToDate(data); } },
+                    //{ "data": "Branch", "name": "Branch" }
+                ],
+                      buttons: [
+                'colvis',
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'PDC Entry';
+                    },
+                    columnDefs: [
+                        { width: 400, targets: 2 }
+                    ],
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>PDC Entry</h4></th></tr>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                        $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                            .css('min-width', '80px');
+                        //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                        //    .css('padding', '0px');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', 'excel',
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'PDC Entry';
+                    },
+                    message: function () {
+                        var head = 'PDC Entry';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+                }
+
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#SalesTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            },
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 :
+
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(4)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(4, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(4).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+                    total = api
+                        .column(6)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(6, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(6).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+
+                },
+
+
+
+
+
+
+
+
+
+                "columnDefs": [{ targets: 0, orderable: false }],
+                "drawCallback": function (settings) {
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $("#sub").hide();
+                    } else {
+                        $("#sub").show();
+                    }
+                    //if ($(this).find('tbody tr').length <= 1) {
+                    //    $("#sub").hide();
+                    //}
+                    //else {
+                    //    $("#sub").show();
+                    //}
+                }
+
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                //$('#SReport').show();
+               // $('#formsec').hide();
+            });
+
+       
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+    $('#modal-change').on('submit', '#changeform', function (e) {
+        e.preventDefault();
+        var url = $('#changeform')[0].action;
+        var data = $('#changeform').serialize();
+        createajax(url, data, '#modal-change');
+        oTable.draw();
+    });
+        $(document).ready(function () {
+            $(".sup").hide();
+            $(".cus").hide();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy'
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy'
+            });
+
+            CallBankAcctPDC2();
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            var todate = new Date(new Date().setDate(today.getDate() + 30));
+           // $('#To').datepicker('setDate', todate);
+          //  $('#From').datepicker('setDate', priordate);
+            //---
+
+            //$('#SReport').hide();
+            $("#ddlCustomer").select2({
+                placeholder: 'Search Customer by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchCustomer",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlSupplier").select2({
+                placeholder: 'Search Supplier by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Supplier/SearchSupplier",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlTenant").select2({
+                placeholder: 'Search Tenant Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Property/Tenant/SearchTenant",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all",
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlContractor").select2({
+                placeholder: 'Search Contractor Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Property/Contractor/SearchContractor",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all",
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+  
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        $('#payform').on('submit', function (e) {
+            e.preventDefault();
+            var url = $('#payform')[0].action;
+            var data = $('#payform').serialize();
+            if (data.length > 0) {
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: data,
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (data) {
+                        if (data.status) {
+                            $('.ajax_response', res_success).text(data.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '/PDCRegularise/Index';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                })
+            }
+        });
+        $('body').on('change', '#ddlType', function () {
+            //if ($(this).val() == "Payments") {
+            //    $(".sup").show();
+            //    $(".cus").hide();
+            //}
+            //else if ($(this).val() == "Reciepts") {
+            //    $(".sup").hide();
+            //    $(".cus").show();
+            //}
+            //else {
+            //    $(".sup").hide();
+            //    $(".cus").hide();
+            //}
+        });
+
+</script>
+}

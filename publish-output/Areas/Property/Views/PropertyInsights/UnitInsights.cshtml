@@ -1,0 +1,59 @@
+@{
+    ViewBag.Title = "Unit Insights";
+    ViewBag.Active = "Master";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#4f46e5,#6366f1 55%,#06b6d4)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-th-large"></i></div>
+            <div><h1>Unit Insights</h1><p>Occupancy, rent realisation &amp; vacancy across all units</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/Unit/Create" class="rfi-btn"><i class="fa fa-plus"></i> New Unit</a>
+            <a href="/Property/PropertyInsights/ProfitLoss" class="rfi-btn"><i class="fa fa-line-chart"></i> P&amp;L</a>
+        </div>
+    </div>
+
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Units</span><span class="rfi-num">@ViewBag.TotUnits</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Occupied</span><span class="rfi-num pos">@ViewBag.Occupied</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Vacant</span><span class="rfi-num neg">@ViewBag.Vacant</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Potential Rent</span><span class="rfi-num">@money(ViewBag.PotentialRent)</span><span class="rfi-sub">AED / yr</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Realised</span><span class="rfi-num pos">@money(ViewBag.RealisedRent)</span><span class="rfi-sub">AED / yr</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Lost (vacancy)</span><span class="rfi-num neg">@money(ViewBag.LostRent)</span><span class="rfi-sub">AED / yr</span></div>
+    </div>
+
+    <div class="rfi-grid2">
+        <div class="rfi-card">
+            <h3><i class="fa fa-building"></i> Occupancy by Property</h3>
+            <div id="uiByProp" class="rfi-bars"></div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-pie-chart"></i> Units by Type</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Type</th><th class="c">Total</th><th class="c">Occupied</th><th class="r">Rent (AED)</th></tr></thead><tbody id="uiByType"></tbody></table></div>
+        </div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-door-open"></i> Vacant Units (lease these next)</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Unit</th><th>Code</th><th>Property</th><th>Type</th><th class="r">Expected Rent</th><th></th></tr></thead><tbody id="uiVacant"></tbody></table></div>
+    </div>
+</div>
+<script>
+(function(){
+  var byP=@Html.Raw(ViewBag.ByProperty ?? "[]"), byT=@Html.Raw(ViewBag.ByType ?? "[]"), vac=@Html.Raw(ViewBag.VacantList ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  document.getElementById('uiByProp').innerHTML = byP.length ? byP.map(function(p){
+    return '<div class="rfi-bar-row"><div class="rfi-bar-top"><span>'+esc(p.property)+'</span><span>'+p.occupied+'/'+p.units+' &middot; '+p.pct+'%</span></div>'+
+      '<div class="rfi-bar-track"><div class="rfi-bar-fill" style="width:'+p.pct+'%;background:linear-gradient(90deg,#4f46e5,#06b6d4)"></div></div></div>';
+  }).join('') : '<div class="rfi-empty">No units</div>';
+  document.getElementById('uiByType').innerHTML = byT.length ? byT.map(function(t){
+    return '<tr><td><b>'+esc(t.type)+'</b></td><td class="c">'+t.count+'</td><td class="c"><span class="rfi-chip g">'+t.occupied+'</span></td><td class="r">'+m(t.rent)+'</td></tr>';
+  }).join('') : '<tr><td colspan="4" class="rfi-empty">No unit types</td></tr>';
+  document.getElementById('uiVacant').innerHTML = vac.length ? vac.map(function(u){
+    return '<tr><td><b>'+esc(u.unit)+'</b></td><td>'+esc(u.code)+'</td><td>'+esc(u.property)+'</td><td>'+esc(u.type)+'</td><td class="r">'+m(u.rent)+'</td><td><a class="rfi-lk" href="/Property/TenancyContract/Create">Lease</a></td></tr>';
+  }).join('') : '<tr><td colspan="6" class="rfi-empty">All units occupied 🎉</td></tr>';
+})();
+</script>

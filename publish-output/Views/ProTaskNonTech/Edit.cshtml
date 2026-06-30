@@ -1,0 +1,1493 @@
+@model QuickSoft.ViewModel.ProTaskViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Edit Task";
+    ViewBag.Active = "Master";
+
+    string check = "";
+    string url = "";
+    string strImage = "";
+    string partialconfig = "";
+    var atype = Model.AssignType;
+    
+    int ci = 0;
+
+}
+
+<style>
+  /*giving blue border to dropdowns------------------------*/
+    /*multiselect dropdown*/
+    span.select2-selection--multiple[aria-expanded=true] {
+        border: 1px solid rgb(43 76 248 / 0.82) !important;
+        transition: 0.1s;
+    }
+    /*single dropdown*/
+    span.select2-selection--single[aria-expanded=true] {
+        border: 1px solid rgb(43 76 248 / 0.82) !important;
+        transition: 0.1s;
+    }
+    /*--------------------------------------------------------*/
+
+</style>
+<div class="box box-info">
+    <input type="hidden" class="form-control" id="RowCount" value="0" placeholder="">
+    @using (Html.BeginForm("Edit", "ProTaskNonTech", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Task </h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit ProTask"))
+                    {
+                        <a class="btn back-black" href="/ProTaskNonTech/Edit/@ViewBag.preEntry">
+                            &nbsp;&nbsp;  <i class="fa fa-step-backward" style=""></i>&nbsp;&nbsp;
+                        </a>
+
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit ProTask"))
+                    {
+
+                        <a class="btn back-black" href="/ProTaskNonTech/Edit/@ViewBag.nxtEntry">
+                            &nbsp;&nbsp;  <i class="fa fa-step-backward" style=""></i>&nbsp;&nbsp;
+                        </a>
+
+
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create ProTask"))
+                    {
+
+                        <a class="btn back-black" href="/ProTaskNonTech/Create">
+                            &nbsp;&nbsp;  <i class="fa fa-step-backward" style=""></i>&nbsp;&nbsp;
+                        </a>
+                    }
+                }
+
+                @if (User.IsInRole("Dev") || User.IsInRole("ProTask List"))
+                {
+
+                    <a class="btn btn-outline-primary btn-fw list-blue" style="" href="/ProTaskNonTech">
+                        &nbsp;&nbsp;&nbsp; <i class="fa fa-fw fa-history "></i>&nbsp; List&nbsp;&nbsp;&nbsp;
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="row" style="padding-top:5px;">
+                @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+                <div class="form-group col-md-2 col-xs-6">
+
+                    @Html.EditorFor(model => model.TaskCode, new { htmlAttributes = new { @class = "form-control", @required = "required", @placeholder = "Enter Task Code", @readonly = "readonly" } })
+                    @Html.LabelFor(m => m.TaskCode, new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="form-group col-md-2 col-xs-6">
+
+                    @Html.EnumDropDownListFor(model => model.Priority, new { @class = "form-control", @required = "required" })
+                    @Html.LabelFor(m => m.Priority, new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="clearfix visible-xs-block "></div>
+                <div class=" form-group col-md-4" style="">
+
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.CustomerID, (SelectList)ViewBag.Customers, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required", @onchange = "loadcont(this)" })
+                            <span class="">
+                                <a href="/Customer/Create" class=" btn round-blue-button fa-stack" title="Create Customer" target="_new"> <i class="fa fa-circle fa-stack-1x white-bg-i"></i><i class="fa fa-2x fa-plus-circle fa-stack-2x"></i></a>
+                            </span>
+                        </div> }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.CustomerID, (SelectList)ViewBag.Customers, new { id = "ddlCustomer", @class = "form-control select2", @required = "required", @onchange = "loadcont(this)" })}
+                    @Html.LabelFor(model => model.CustomerID, new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="form-group col-md-4 ">
+                    @*@Html.EditorFor(model => model.TaskName, new { htmlAttributes = new { @class = "form-control", @required = "required" } })*@
+
+                    @Html.DropDownListFor(model => model.TaskName, (SelectList)ViewBag.TskName, new { @class = "form-control input-sm select2", @required = "required", tabindex = 2 })
+                    @Html.LabelFor(m => m.TaskName, new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="form-group col-md-4">
+
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create ProTaskType"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.TaskType, (SelectList)ViewBag.tskType, new { id = "ddlTaskType", @class = "form-control select2", @required = "required" })
+                            <span class="">
+                                <a href="/ProTaskType/Create" class="modal-add btn round-blue-button fa-stack" title="Create Customer" target="_new"> <i class="fa fa-circle fa-stack-1x white-bg-i"></i><i class="fa fa-2x fa-plus-circle fa-stack-2x"></i></a>
+                            </span>
+                        </div> }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.TaskType, (SelectList)ViewBag.tskType, new { id = "ddlTaskType", @class = "form-control select2", @required = "required" })}
+                    @Html.LabelFor(model => model.TaskType, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                </div>
+
+
+
+                @if (1 == 1)
+                {
+                    <div class="col-md-4 form-group">
+
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.ProjectId, (SelectList)ViewBag.Project, "", new { id = "ddlProject", @class = "form-control select2", @required = "required" })
+                                <span class="">
+                                    <a href="/Project/AddProject" class="modal-project btn round-blue-button fa-stack" title="Create Customer" target="_new"> <i class="fa fa-circle fa-stack-1x white-bg-i"></i><i class="fa fa-2x fa-plus-circle fa-stack-2x"></i></a>
+                                </span>
+                            </div> }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.ProjectId, (SelectList)ViewBag.Project, "", new { id = "ddlProject", @class = "form-control select2", @required = "required" })}
+                        @Html.LabelFor(m => m.ProjectId, new { @class = "control-label small-standalone-label" })
+                    </div>
+
+                    <div class="form-group col-md-2 col-xs-6">
+
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create ProjectStatus"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.TaskStatus, (SelectList)ViewBag.Stat, new { id = "ddlPStatus", @class = "form-control select2", @required = "required" })
+                                <span class="input-group-btn">
+                                    <a href="/TaskStatus/Create" class="modal-addnew btn btn-success btn-flat" title="Add Project Status"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div> }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.TaskStatus, (SelectList)ViewBag.Stat, new { id = "ddlPStatus", @class = "form-control select2", @required = "required" })}
+                        @Html.LabelFor(model => model.TaskStatus, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                    </div>}
+
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        var fmap = "";
+                        if (Model.FieldMap[i].Field == "Ref1")
+                        {
+                            fmap = Model.Ref1;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref2")
+                        {
+                            fmap = Model.Ref2;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref3")
+                        {
+                            fmap = Model.Ref3;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref4")
+                        {
+                            fmap = Model.Ref4;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref5")
+                        {
+                            fmap = Model.Ref5;
+                        }
+
+                        <div class="form-group col-md-2 col-xs-6">
+
+                            @if (Model.FieldMap[i].Type == "Dropdown")
+                            {
+                                if (Model.FieldMap[i].Field == "Ref1")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef1, new { @id = "Ref1", @class = "form-control input-sm select2 ref" }) }
+                                if (Model.FieldMap[i].Field == "Ref2")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef2, new { @id = "Ref2", @class = "form-control input-sm select2 ref" }) }
+                                if (Model.FieldMap[i].Field == "Ref3")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef3, new { @id = "Ref3", @class = "form-control input-sm select2 ref" }) }
+                                if (Model.FieldMap[i].Field == "Ref4")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef4, new { @id = "Ref4", @class = "form-control input-sm select2 ref" }) }
+                                if (Model.FieldMap[i].Field == "Ref5")
+                                {
+                                    @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef5, new { @id = "Ref5", @class = "form-control input-sm select2 ref" }) }
+
+                            }
+                            else
+                            {
+                                <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="@fmap">}
+                            <label class="control-label small-standalone-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                        </div>  }
+                }
+                <div class="clearfix visible-xs-block "></div>
+                <div class="form-group col-md-4 col-xs-12">
+                    @Html.LabelFor(m => m.driver, new { @class = "control-label small-standalone-label-from_top" })
+                    @Html.DropDownListFor(m => m.driver, (SelectList)ViewBag.Employee, "", new { @id = "driver", @class = "form-control select2 porder" })
+
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.LabelFor(m => m.AssignType, new { @class = "control-label small-standalone-label-from_top l" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Task Team"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2", @name = "AssignTypeAll[]", @multiple = "multiple" })
+                            <span class="">
+                                <a href="/Team/Create" class="modal-create btn round-blue-button-mul fa-stack" title="Create Customer" target="_new"> <i class="fa fa-circle fa-stack-1x white-bg-i"></i><i class="fa fa-2x fa-plus-circle fa-stack-2x"></i></a>
+                            </span>
+                        </div> }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2", @name = "AssignTypeAll[]", @multiple = "multiple" })}
+
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.LabelFor(m => m.AssignedTo, new { @class = "control-label small-standalone-label-from_top" })
+                    @Html.ListBoxFor(m => m.AssignedMembers, (MultiSelectList)ViewBag.team, new { @id = "AssignedUsers", @class = "form-control select2", @name = "AssignedMembers[]", @multiple = "multiple" })
+
+                </div>
+                <div class="col-md-4 col-xs-12 form-group">
+
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @if (Model.SalesPerson != null)
+                            {
+                                @Html.DropDownListFor(m => m.SalesPerson, (SelectList)ViewBag.Empl, new { id = "ddlEmployee", @class = "form-control select2" }) }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.SalesPerson, (SelectList)ViewBag.Empl, "", new { id = "ddlEmployee", @class = "form-control select2" })}
+                            <span class="input-group-btn">
+                                <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle "></i></button>
+                            </span>
+
+                        </div> }
+                    else
+                    {
+                        if (Model.SalesPerson != null)
+                        {
+                            @Html.DropDownListFor(m => m.SalesPerson, (SelectList)ViewBag.Empl, new { id = "ddlEmployee", @class = "form-control select2" }) }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.SalesPerson, (SelectList)ViewBag.Empl, "", new { id = "ddlEmployee", @class = "form-control select2" })}
+                    }
+                    @Html.Label("Sales Person", null, new { @class = "control-label small-standalone-label" })
+                </div>
+            </div>
+            <div class="row">
+
+
+                <div class="form-group  col-md-2 col-xs-6" style="margin-bottom:8px;">
+
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.StartDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    </div>
+                    @Html.LabelFor(model => model.StartDate, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="form-group col-md-2 col-xs-6">
+                    <div class="bootstrap-timepicker">
+
+                        <div class="input-group">
+                            @Html.TextBoxFor(m => m.StartTime, "{0:hh:mm tt}", new { @class = "form-control timepicker", @autocomplete = "off", @value = "" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-clock-o"></i>
+                            </div>
+                        </div>
+                        @Html.LabelFor(m => m.StartTime, new { @class = "control-label small-standalone-label" })
+                    </div>
+                </div>
+                <div class="clearfix visible-xs-block visible-sm-block "></div>
+                <div class="form-group col-md-2 col-xs-6" style="margin-bottom:8px;">
+
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.EndDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    </div>
+                    @Html.LabelFor(model => model.EndDate, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="form-group col-md-2 col-xs-6">
+                    <div class="bootstrap-timepicker">
+
+                        <div class="input-group">
+                            @Html.TextBoxFor(m => m.EndTime, "{0:hh:mm tt}", new { @class = "form-control timepicker", @autocomplete = "off", @value = "" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-clock-o"></i>
+                            </div>
+                        </div>
+                        @Html.LabelFor(m => m.EndTime, new { @class = "control-label small-standalone-label" })
+                    </div>
+
+                </div>
+                <div class="clearfix visible-xs-block "></div>
+                <div class="form-group col-md-4">
+
+                    @Html.DropDownListFor(m => m.Location, (SelectList)ViewBag.Local, new { @class = "form-control input-sm select2", @placeholder = "Enter Location" })
+                    @Html.LabelFor(m => m.Location, new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="form-group col-md-4 col-xs-12">
+
+                    @Html.EditorFor(model => model.Lattitude, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Lattitude", tabindex = 9, @type = "number" } })
+                    @Html.LabelFor(model => model.Lattitude, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                </div>
+
+                <div class="form-group col-md-4 col-xs-12">
+                    @Html.EditorFor(model => model.Longitude, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Longitude", tabindex = 10, @type = "number" } })
+                    @Html.LabelFor(model => model.Longitude, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                </div>
+                <div class="col-md-4 col-xs-12 form-group">
+                    @Html.DropDownListFor(model => model.OpenClose, (IEnumerable<SelectListItem>)ViewBag.OpnCls, new { @class = "form-control" })
+                    @*@Html.DropDownListFor(model => model.OpenClose, (SelectList)ViewBag.OpnCls, new { @class = "form-control" })*@
+                    @Html.Label("Open/Close", null, new { @class = "control-label small-standalone-label" })
+                </div>
+            </div>
+            @if (ViewBag.BusiType == "Workshop")
+            {
+                <div class="row">
+                    <div class="form-group col-md-4">
+                        @Html.DropDownListFor(m => m.VehicleType, (SelectList)ViewBag.VehicleTypes, new { id = "ddlVehicleType", @class = "form-control select2", @required = "required" })
+                        @Html.LabelFor(model => model.VehicleType, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.DropDownListFor(m => m.VehicleManufacturer, (SelectList)ViewBag.VehicleManu, new { id = "ddlVehicleManufacturer", @class = "form-control select2", @required = "required" })
+                        @Html.LabelFor(model => model.VehicleManufacturer, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.DropDownListFor(m => m.VehicleModel, (SelectList)ViewBag.VehicleModels, new { id = "ddlVModel", @class = "form-control select2", @required = "required" })
+                        @Html.LabelFor(model => model.VehicleModel, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                    </div>
+                </div>
+            }
+            else
+            {
+                @Html.HiddenFor(model => model.VehicleModel)
+                @Html.HiddenFor(model => model.VehicleManufacturer)
+            }
+            <div class="row">
+                <div class="clearfix visible-xs-block "></div>
+                <div class="form-group col-md-6 col-xs-12">
+                    <div class="container-fluid" style="border: 1px solid rgba(0,0,0,0.09); border-radius: 20px; margin-top:10px; padding:10px;">
+                        <div id="mobiles"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 col-12 addcontact-center">
+                    <button type="submit" style="" class="btn   btn-fw add_field_button addcontact-blue">Add Contact <i class="fa fa-plus-circle" style="margin-top:4px;" aria-hidden="true"></i>&ensp;</button>
+
+                </div>
+                <br>
+                <div class="col-md-12 col-12">
+                    <div class="form-group input_fields_wrap">
+
+                        <table class="table table-condensed table-hover" id="contactTbl">
+
+                            @{
+
+
+                                if (Model != null && Model.LstContacts != null && Model.LstContacts.Count > 0)
+                                {
+                                    List<QuickSoft.Models.Country> CountryCodelist = ViewBag.CountryCodes;
+
+                                    foreach (var item in Model.LstContacts.ToList())
+                                    {
+                                        <div class="remove" style=" border: 1px solid rgba(0,0,0,0.09); border-radius: 30px; margin-top:10px;">
+                                            <div class="row" style="margin-top: 1rem;">
+                                                <div class="col-md-2 col-xs-12">
+                                                    <label class="control-label">Country Code</label>
+                                                    <div class="input-group">
+                                                        <select id="Type" class="form-control" name="LstContacts[@ci].CountryID">
+                                                            @{
+                                                                foreach (var data in CountryCodelist)
+                                                                {
+                                                                    if (data.CountryID == item.CountryID)
+                                                                    {
+                                                                        <option value="@data.CountryID" selected="selected">@data.CountryName (@data.CountryCode)</option>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <option value="@data.CountryID">@data.CountryName (@data.CountryCode)</option>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        </select>
+                                                        @*<input type="text" value="@item.Country" name="LstContacts[@ci].Country" class="form-control">*@
+                                                    </div>
+                                                </div>
+                                                <div class="clearfix visible-xs-block "></div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Mobile Number( W/O Country code) </label>
+                                                    <div class="input-group">
+                                                        @*<input type="text" value="@item.Mobile" name="LstContacts[@ci].Mobile" class="form-control">*@
+                                                        <input type="text" value="@item.Mobile" name="LstContacts[@ci].Mobile" class="form-control Mobile" id="Mobile[@ci]" placeholder="5xxxxxxxx" onchange="CheckMobileNo('', @ci)">
+                                                        <input type="hidden" value="EditMode" id="MobileHidden @ci" class="MobileHidden">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Email Id</label>
+                                                    <div class="input-group">
+                                                        <input type="email" value="@item.EmailId" name="LstContacts[@ci].EmailId" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Website</label>
+                                                    <div class="input-group">
+                                                        <input type="text" value="@item.Website" name="LstContacts[@ci].Website" class="form-control">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row" style="margin-top: 1rem;">
+                                                <div class="col-md-2" hidden style="display: none;">
+                                                    <label class="control-label">id</label>
+                                                    <div class="input-group">
+                                                        <input type="text" value="@item.ContactID" name="LstContacts[@ci].ContactID" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-xs-12">
+                                                    <label class="control-label">Contact Type </label>
+                                                    <div class="input-group">
+                                                        @*<input type="hidden" name="LstContacts[@(di)].ContactId" value="@item.ContactID" id="docu" />*@
+                                                        <select id="Type" class="form-control" name="LstContacts[@ci].ContactTypeID">
+                                                            @{
+                                                                List<QuickSoft.Models.ContactType> typelist = ViewBag.TypeList;
+
+                                                                foreach (var data in typelist)
+                                                                {
+                                                                    if (data.ContactId == item.ContactTypeID)
+                                                                    {
+                                                                        <option value="@data.ContactId" selected="selected">@data.Type</option>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <option value="@data.ContactId">@data.Type</option>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="clearfix visible-xs-block "></div>
+                                                <div class="col-md-3">
+
+                                                    <label class="control-label">First Name</label>
+                                                    <div class="input-group">
+
+                                                        <input type="text" name="LstContacts[@ci].FirstName" class="form-control" value="@item.FirstName" required>
+
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-md-3">
+
+                                                    <label class="control-label">Last Name</label>
+                                                    <div class="input-group">
+
+                                                        <input type="text" name="LstContacts[@ci].LastName" class="form-control" value="@item.LastName">
+
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-md-3 col-xs-10">
+                                                    <label class="control-label">Company Name</label>
+                                                    <div class="input-group">
+
+                                                        <input type="text" name="LstContacts[@ci].Name" class="form-control" value="@item.Name">
+
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-md-1 col-xs-2 my-auto">
+                                                    <a href="javascript:void(0);" class="remove_button"><i style="color:red;margin-top:25px;margin-left: 20px; " class="fa fa-trash fa-lg" aria-hidden="true"></i></a>
+
+                                                </div>
+
+                                            </div>
+                                            <br>
+                                        </div>
+
+
+                                        ci++;
+
+                                    }
+                                }
+                            }
+                        </table>
+
+
+                    </div>
+                </div>
+                <br>
+            </div>
+
+
+            <div class="row">
+                <div class="form-group col-md-6">
+                    @Html.LabelFor(m => m.TaskDetails, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.TaskDetails, new { @class = "form-control input-sm textarea", @placeholder = "Enter Details..", rows = 5, @style = "height:100px;" })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.LabelFor(m => m.Note, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm", @placeholder = "Enter Note..", @rows = "5", @style = "height:190px !important;" })
+                </div>
+
+                <div class="form-group col-md-12">
+                    @Html.Label("Documents", null, new { @class = "control-label" })
+                    <div class="file-loading">
+                        <input id="input-24" name="input24[]" type="file" multiple>
+                    </div>
+                </div>
+
+                @foreach (var arr in @ViewBag.image)
+                {
+                    check = "\"/uploads/protaskdocuments/" + arr.FileName + "\"";
+                    strImage += check + ',';
+
+                    partialconfig += "{ key:" + arr.TaskImageId + " }" + ',';
+
+                }
+            </div>
+            <div class="row text-center">
+                <div class=" col-md-12 col-12">
+                    <button type="submit" id="save" class="btn save-color" tabindex="28">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                    </button> &ensp;
+                    <input type="button" class="btn cancel-color" value="Reset" data-dismiss="modal" id="btnreset" tabindex="20" />
+                </div>
+            </div>
+
+        </div>
+    }
+</div>
+
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+@Html.Partial("../Common/_ModalCustomer")
+<div id="modal-add" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/Mobile")
+
+
+    <script type="text/javascript">
+        $(':input').focusin(function () {
+            $(this).addClass("standalone-blue-border");
+
+        });
+        $(':input').focusout(function () {
+            $(this).removeClass("standalone-blue-border");
+        });
+        var getQueryString = function (field, url) {
+            var href = url ? url : window.location.href;
+            var id = href.substring(href.lastIndexOf('/') + 1);
+            return id ? id : null;
+        }
+        function loadcont(obj) {
+            var cus = $(obj).val();
+            window.location.href = "/ProTaskNonTech/Edit/" +  '@ViewContext.RouteData.Values["id"]'+"?custid=" + cus;
+
+        }
+        function loadcontact(i, obj) {
+            $('.mobilenumber').select2('destroy');
+            var s = $("#Mobile" + i).val();
+            s = s.replace(/^0+/, '');
+            var opt = '<option value="' + s + '" selected>' + s + '</option>'
+            $("#Mobile" + i).append(opt);
+            mobileload();
+            $.ajax({
+                url: "/Customer/getcontactsbymobile",
+                type: "GET",
+                dataType: "JSON",
+                data: { mobile: obj.value },
+                success: function (result) {
+                    $("#firstname" + i).val(result[0].FirstName);
+                    $("#Website" + i).val(result[0].Website);
+                    $('.emailid').select2('destroy');
+                    var opt = '<option value="' + result[0].EmailId + '" selected>' + result[0].EmailId + '</option>'
+                    $("#EmailId" + i).append(opt);
+
+                    $("#EmailId" + i).val(result[0].EmailId);
+
+                    //$("#Mobile" + i).val(result[0].MobileNum);
+                    $("#CountryID" + i).val(result[0].CountryID);
+                    $("#Name" + i).val(result[0].Name + "," + result[0].Address);
+                    $("#lastname" + i).val(result[0].LastName);
+                    $("#ContactTypeID" + i).val(result[0].ContactTypeID);
+
+                    emailload();
+                }
+            });
+
+            //Function to check correct format for Mobile Number
+            CheckMobileNo(s, i);
+        }
+
+        function loadcontactemail(i, obj) {
+            $.ajax({
+                url: "/Customer/getcontactsbyemail",
+                type: "GET",
+                dataType: "JSON",
+                data: { email: obj.value },
+                success: function (result) {
+
+                    $("#firstname" + i).val(result[0].FirstName);
+                    $("#Website" + i).val(result[0].Website);
+                    $("#EmailId" + i).val(result[0].EmailId);
+                    $('.mobilenumber').select2('destroy');
+                    var opt = '<option value="' + result[0].MobileNum + '" selected>' + result[0].MobileNum + '</option>'
+                    $("#Mobile" + i).append(opt);
+
+                    //$("#Mobile" + i).val(result[0].MobileNum);
+                    $("#CountryID" + i).val(result[0].CountryID);
+                    $("#Name" + i).val(result[0].Name + "," + result[0].Address);
+                    $("#lastname" + i).val(result[0].LastName);
+                    $("#ContactTypeID" + i).val(result[0].ContactTypeID);
+
+                    mobileload();
+                }
+            });
+        }
+        function callselect() {
+            mobileload();
+            emailload();
+        }
+        function mobileload() {
+            $('.mobilenumber').select2({
+                tags: true,
+                placeholder: '5xxxxxxxx',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchMobilecontact",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+
+                    },
+                    cache: true
+                },
+            });
+        }
+        function emailload() {
+            $('.emailid').select2({
+                tags: true,
+
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchEmailcontact",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        }
+        function checkmob(obj) {
+            var val = $(obj).val()
+            var reg = /^0/gi;
+            if (val.match(reg)) {
+                $(obj).val(val.replace(reg, ''));
+            }
+        }
+        var Countrys = '<option value="0">--Select--</option>';
+
+        $(document).ready(function () {
+            $("#driver").select2({});
+            $.ajax({
+                type: "GET",
+                url: "/Customer/GetCountryCode",
+                data: "{}",
+                success: function (data) {
+                    for (var i = 0; i < data.length; i++) {
+                        Countrys += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                    }
+                }
+            });
+            $("#ddlCustomer").val(@Model.CustomerID);
+            $("#TaskName").select2({
+
+
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ProTask/SearchProTaskbyidtwo",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            customer: $("#ddlCustomer").val()
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+        $(document).ready(function () {
+            var max_fields = 10; //maximum input boxes allowed
+            var wrapper = $(".input_fields_wrap"); //Fields wrapper
+            var add_button = $(".add_field_button"); //Add button ID
+
+            var x = 1; //initlal text box count
+
+            var s = '<option value="0">--Select--</option>';
+
+            $(document).ready(function () {
+                $.ajax({
+                    type: "GET",
+                    url: "/Customer/GetContactTypes",
+                    data: "{}",
+                    success: function (data) {
+                        for (var i = 0; i < data.length; i++) {
+                            s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                        }
+                    }
+                });
+            });
+
+            $(add_button).click(function (e) { //on add input button click
+                e.preventDefault();
+                if (x < max_fields) { //max input box allowed
+
+                    if (document.getElementById('RowCount').value < @ci) {
+                        var rowno = @ci;
+                    }
+                    else {
+                        var rowno = document.getElementById('RowCount').value;
+                    }
+                    //paste here
+                    $(wrapper).append(
+
+                        '<div class="remove" style=" border: 1px solid rgba(0,0,0,0.09); border-radius: 30px; margin-top:10px;">' +
+
+                        '<div class="row " style="margin-top: 1rem;">' +
+                        '<div class="col-md-2 col-xs-12">' +
+                        '<label class="control-label">Country Code</label>' +
+                        '<div class="input-group">' +
+                        '<select class="form-control"  name="LstContacts[' + rowno + '].CountryID" tabindex="30"  id="CountryID' + rowno + '"  tabindex="34">' + Countrys +
+                        '</select>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="clearfix visible-xs-block ">' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Mobile Number( W/O Country code)</label>' +
+                        '<div class="input-group">' +
+                            '<select  name="LstContacts[' + rowno + '].Mobile" class="form-control mobilenumber select2"  required onchange="loadcontact(' + rowno + ',this)"  id="Mobile' + rowno + '"  tabindex="35" ></select>' +
+                            '<input type="hidden" value="NewMode" id="MobileHidden" class="MobileHidden">' +
+                        ' </div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Email Id</label>' +
+                        '<div class="input-group">' +
+                        '<select   name="LstContacts[' + rowno + '].EmailId" class="form-control select2 emailid" id="EmailId' + rowno + '" onchange="loadcontactemail(' + rowno + ',this)"></select>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Website</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].Website" class="form-control"  id="Website' + rowno + '">' +
+                        '</div>' +
+                        '</div ">' +
+                        '<div class="col-md-1">' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="row h-100" style="margin-top: 1rem;">' +
+                        '<div class="col-md-2 col-xs-12">' +
+                        '<label class="control-label">Contact Type</label>' +
+                        '<div class="input-group">' +
+                        '<select class="form-control"  name="LstContacts[' + rowno + '].ContactTypeID" tabindex="30" id="ContactTypeID' + rowno + '">' + s +
+                        '</select>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="clearfix visible-xs-block ">' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">First Name</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].FirstName" class="form-control"  tabindex="31"  required id="firstname' + rowno + '" > ' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Last Name</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].lastname" class="form-control" id="lastname' + rowno + '"  tabindex="32">' +
+                        ' </div>' +
+                        '</div>' +
+                        '<div class="col-md-3 col-xs-10">' +
+                        '<label class="control-label">Company Name</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].Name" class="form-control"  id="Name' + rowno + '"  tabindex="33">' +
+                        '</div>' +
+                        ' </div>' +
+                        '<div class="col-md-1 col-xs-2 my-auto  " >' +
+                        '<a href="javascript:void(0);" class="remove_button "><i style="color:red;margin-top:25px;margin-left: 20px; " class="fa fa-trash fa-lg" aria-hidden="true"></i></a>' +
+
+                        '</div>' +
+
+                        '</div>' +
+                        '</br>' +
+                        '</div>');
+
+                    callselect();
+
+                    x++;
+
+                    rowno++;
+                    document.getElementById('RowCount').value = rowno;
+                    callselect();
+                }
+            });
+
+            $(wrapper).on('click', '.remove_button', function (e) {
+                e.preventDefault();
+
+                $(this).closest('.remove').remove(); //Remove field html
+                x--; //Decrement field counter
+            });
+        });
+
+
+
+        var date = new Date();
+        date.setDate(date.getDate());
+        $('.date').datepicker({
+            startDate: date,
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+
+
+        $(document).ready(function () {
+
+            $(function () {
+                $(".textarea").wysihtml5();
+            });
+
+            $('#StartDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#EndDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $("#ddlTaskType").select2({});
+
+            CallEmployee();
+            CallCustomer();
+            CallProject();
+
+            assignTypeSel('@Model.ProTaskId');
+            CallTeam();
+            CallTaskStatus();
+            $("#Location").select2({
+                tags: true
+            });
+
+            $(document).ready(function () {
+                var VehTypeId = $("#ddlVehicleType").val();
+                var VehManuId=$("#ddlVehicleManufacturer").val();
+          
+                //Calling function to load Assets
+                SortManufacturer(VehTypeId);
+                SortModel(VehManuId,VehTypeId);
+
+            $("#ddlVehicleType").select2({
+                placeholder: 'Select Vehicle Type',
+                minimumInputLength: 0,
+                ajax: {
+                    url:"/Protask/SearchVehicleType", //"/VehicleModel/SearchVehicleType",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: " Select Vehicle Type"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            });
+
+            $('body').on('change', '#ddlVehicleType', function (e) {
+
+                //Clearing Current value of Asset Dropdown, Unit, Asset Rate & Stock Value
+                $("#ddlVehicleManufacturer").val("0");
+                $("#ddlVModel").val("0");
+                $("#ddlVModel").html('');
+                $("#ddlVehicleManufacturer").html("");
+                
+
+                var VehiTypeId = $(this).val();
+                var VehiManId =$("#ddlVehicleManufacturer").val();
+                //Calling function to load Assets
+                SortManufacturer(VehiTypeId);
+                SortModel(VehiManId, VehiTypeId);
+
+            });
+            $('body').on('change', '#ddlVehicleManufacturer', function (e) {
+
+                //Clearing Current value of Asset Dropdown, Unit, Asset Rate & Stock Value
+                $("#ddlVModel").val("0");
+                
+
+                var VehiManuId = $(this).val();
+                var VehtId=$("#ddlVehicleType").val();
+                //Calling function to load Assets
+                SortModel(VehiManuId,VehtId);
+
+            });
+            function SortManufacturer(VehicleTypeID) {
+
+                $("#ddlVehicleManufacturer").select2({
+                    placeholder: 'Select Manufacturer',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url:"/Protask/SearchManufacturer", //"/VehicleModel/SearchManufacturer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                VTid: VehicleTypeID,
+                                x: " Select Manufacturer",
+                    
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            }
+            function SortModel(VehiManuId,VehTypId) {
+                //var temp = $('#ddlVehicleType').val();
+                $("#ddlVModel").select2({
+                    placeholder: 'Select the Model',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Protask/SearchModel",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                VMaID: VehiManuId,
+                                Vt: VehTypId,
+                                x: " Select Model"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            }
+
+            $("#AssignedUsers").select2({
+                placeholder: 'Search Employee by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployeeUser",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                            // x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            var prochk = '@ViewBag.ProjChk';
+            if (prochk == 'active') {
+                $('#AssignedUsers').prop('required', true);
+                $('#AssignedUsers').attr('data-msg-required', "Assigned To field is required");
+            } else {
+                $('#AssignedUsers').prop('required', false);
+                $('#AssignedUsers').attr('data-msg-required', "");
+            }
+            var EntryID = '@Model.ProTaskId';
+            if (EntryID != null && getQueryString1('custid')==null) {
+                $.ajax({
+                    url: '/ProTask/GetMobile',
+                    dataType: 'json',
+                    data: { CnId: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        //$('#addchecklist').html('');
+                        leng = data.length;
+                        if (leng > 0) {
+                            $.each(data, function (i, item) {
+                                AddMobile(item.Mob, item.Name);
+                            });
+                        } else {
+                            AddMobile();
+                        }
+                    }
+                });
+            }
+
+            $(".ref").select2({
+                tags: true
+            });
+            $(".ref").each(function () {
+                var refval = $(this).attr('Id');
+                $(this).attr('name', refval);
+            });
+
+        });
+        $("#input-24").fileinput({
+            initialPreview: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: false,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+            deleteUrl: "/ProTask/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+
+        $('body').on('change', '#StartDate', function (e) {
+            var date = $(this).datepicker('getDate');
+            if (date) {
+                date.setDate(date.getDate());
+            }
+            $('#EndDate').datepicker("setStartDate", date);
+        });
+
+        $('div').on('click', '.modal-add', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-add');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-add').on('submit', '#tsktypeform', function (e) {
+            var url = $('#tsktypeform')[0].action;
+            var text = $("#TypeName").val();
+            $('#ddlTaskType option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#tsktypeform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-add').modal('hide');
+
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlTaskType').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+
+            e.preventDefault();
+        });
+
+        $('div').on('click', '.modal-addnew', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-addnew');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-addnew').on('submit', '#pstatform', function (e) {
+            var url = $('#modal-addnew #pstatform')[0].action;
+
+            var text = $("#StatusName").val();
+            $('#ddlPStatus option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#modal-addnew #pstatform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-addnew').modal('hide');
+
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlPStatus').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+
+            e.preventDefault();
+        });
+
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+        });
+
+        //project type in project pop up
+        $('div').on('click', '.modal-ptype', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-ptype');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-ptype').on('submit', '#typeform', function (e) {
+            var url = $('#modal-ptype #typeform')[0].action;
+
+            var text = $("#TypeName").val();
+            $('#ddlProType option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#modal-ptype #typeform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-ptype').modal('hide');
+
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlProType').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+
+            e.preventDefault();
+        });
+
+        /* function for Create popup */
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+            var tsktype = '@ViewContext.RouteData.Values["type"]';
+            if ($("#createForm").valid()) {
+                var url = $('#createForm')[0].action;
+                var formData = new FormData(this);
+                var files = $("#input-24").get(0);
+                if (files.length > 0) {
+                    for (var i = 0; i < files.length; i++) {
+                        formData.append("input-24", files[i]);
+                    }
+                }
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            if (tsktype == "MyTask")
+                                window.location.href = '@Url.Action("MyTask", "ProTaskNonTech")';
+                            else {
+                                window.location.href = '@Url.Action("Index", "ProTaskNonTech")';
+                            }
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });
+        ProjectPopup();
+        CustomerPopup();
+        $('body').on('change', '#AssignTypeAll', function (e) {
+            var assign = $("#AssignTypeAll").val();
+            AssignTypeChangeforedit(assign);
+            CallTaskStatus();
+        });
+
+        function AssignTypeChangeforedit(assign) {
+
+            if (assign != null && assign != "") {
+                var myObj = {};
+                $.each(assign, function (i, value) {
+                    myObj[i] = value;
+                });
+                //if (assign != -1) {
+                $.ajax({
+                    url: '/Team/GetAllMembers',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { assign: myObj },
+                    success: function (result) {
+                        if (result != null) {
+                            var chk = 0;
+                            var values = new Array();
+                            $.each(result, function (j, member) {
+                                if (chk != member.lead) {
+                                    values.push(member.lead);
+                                    chk = member.lead;
+                                }
+                                values.push(member.emp);
+                                chk++;
+                            });
+                            values.push($('#AssignedUsers').val());
+                            $('#AssignedUsers').val(values).trigger("change");
+                        } else {
+                            $('#AssignedUsers').val(null).trigger("change");
+                        }
+                    }
+                });
+                // $("#AssignedUsers").prop("disabled", false);
+                //CallTaskStatus();
+                //}
+                //else {
+                //    // $("#AssignedUsers").prop("disabled", true);
+                //    $('#AssignedUsers').val(null).trigger('change');
+                //}
+            }
+            else {
+                // $("#AssignedUsers").prop("disabled", true);
+               //  $('#AssignedUsers').val(null).trigger('change');
+            }
+        }
+
+        function assignTypeSel(taskid) {
+            $.ajax({
+                url: '/ProTask/GetAllMembers',
+                type: "GET",
+                dataType: "JSON",
+                data: { taskid: taskid },
+                success: function (result) {
+                    if (result != null) {
+                        var chk = 0;
+                        var values = new Array();
+                        $.each(result, function (j, member) {
+                            values.push(member.emp);
+                            chk++;
+                        });
+                        $('#AssignedUsers').val(values).trigger("change");
+                    } else {
+                        $('#AssignedUsers').val(null).trigger("change");
+                    }
+                }
+            });
+            $("#AssignedUsers").prop("disabled", false);
+        }
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            CallProject();
+            CallTaskMobile();
+        });
+
+        //Function to check correct format for Mobile Number
+        //MobileNo is not passed in fetched rows(Edit Mode Rows)
+        function CheckMobileNo(MobileNo, i) {
+            var Mobile;
+
+            if (MobileNo == "") {
+                Mobile = document.getElementById("Mobile[" + i + "]").value;
+                Mobile = Mobile.replace(/^0+/, '');
+                document.getElementById("Mobile[" + i + "]").value = Mobile;
+            }
+            else
+                Mobile = MobileNo;
+
+            var NumbersOnly = /[^0-9]/g;
+            var NewMob = (Mobile.replace(NumbersOnly, ""));
+
+            if (Mobile != NewMob) {
+                alert("Please Select Correct Format For Mobile..(Numbers Only)");
+
+                if (MobileNo == "") {
+                    document.getElementById("Mobile[" + i + "]").value = "";
+                    document.getElementById("Mobile[" + i + "]").focus();
+                }
+                else {
+                    var opt = '<option value="" selected>5xxxxxxxx</option>'
+                    $("#Mobile" + i).append(opt);
+                    mobileload();
+                }
+            }
+            else if (Mobile.length > 9) {
+                alert("Only 9 numbers are allowed...")
+
+                if (MobileNo == "") {
+                    document.getElementById("Mobile[" + i + "]").value = "";
+                    document.getElementById("Mobile[" + i + "]").focus();
+                }
+                else {
+                    var opt = '<option value="" selected >5xxxxxxxx</option>'
+
+                    $("#Mobile" + i).append(opt);
+                    mobileload();
+                }
+            }
+        }
+    </script>
+
+}

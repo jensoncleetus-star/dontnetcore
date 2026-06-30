@@ -1,0 +1,68 @@
+@{
+    ViewBag.Title = "Property Profit & Loss";
+    ViewBag.Active = "Reports";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+    decimal net = 0; decimal.TryParse(Convert.ToString(ViewBag.TotNet), out net);
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#059669,#10b981 55%,#34d399)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-line-chart"></i></div>
+            <div><h1>Property Profit &amp; Loss</h1><p>Rental income vs maintenance expense &middot; net profit per property</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/ContractorAllocation" class="rfi-btn"><i class="fa fa-wrench"></i> Contractors</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Income</span><span class="rfi-num pos">@money(ViewBag.TotIncome)</span><span class="rfi-sub">AED — contracted rent</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Maintenance Expense</span><span class="rfi-num neg">@money(ViewBag.TotExpense)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Net Profit / Loss</span><span class="rfi-num @(net>=0?"pos":"neg")">@money(ViewBag.TotNet)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Overall Margin</span><span class="rfi-num">@ViewBag.OverallMargin%</span><span class="rfi-sub">net / income</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Profitable</span><span class="rfi-num pos">@ViewBag.Profitable</span><span class="rfi-sub">properties</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">In Loss</span><span class="rfi-num neg">@ViewBag.Loss</span><span class="rfi-sub">properties</span></div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-bar-chart"></i> Income vs Expense — Top Properties</h3>
+        <div class="rfi-legend"><span><i class="dot" style="background:#10b981"></i> Income</span><span><i class="dot" style="background:#ef4444"></i> Expense</span></div>
+        <div id="plChart" class="rfi-bars"></div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-table"></i> Property-wise Profit &amp; Loss</h3>
+        <div class="rfi-tbl">
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>City</th><th class="c">Units</th><th class="c">Occ%</th><th class="r">Income</th><th class="r">Expense</th><th class="r">Net P&amp;L</th><th class="c">Margin</th><th></th></tr></thead>
+                <tbody id="plBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+  var rows=@Html.Raw(ViewBag.Rows ?? "[]"), chart=@Html.Raw(ViewBag.TopChart ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  // grouped bars
+  var max=1; chart.forEach(function(c){max=Math.max(max,c.income,c.expense);});
+  document.getElementById('plChart').innerHTML = chart.length ? chart.map(function(c){
+    var iw=Math.round(c.income/max*100), ew=Math.round(c.expense/max*100);
+    return '<div class="rfi-bar2"><div class="rfi-bar2-top"><span>'+esc(c.label)+'</span><span class="'+(c.net>=0?'pos':'neg')+'">'+(c.net>=0?'+':'')+m(c.net)+'</span></div>'+
+      '<div class="rfi-bar2-track"><div class="rfi-bar2-fill" style="width:'+iw+'%;background:#10b981"></div></div>'+
+      '<div class="rfi-bar2-track"><div class="rfi-bar2-fill" style="width:'+ew+'%;background:#ef4444"></div></div></div>';
+  }).join('') : '<div class="rfi-empty">No property data</div>';
+  // table
+  document.getElementById('plBody').innerHTML = rows.length ? rows.map(function(r){
+    var occ = r.units>0 ? Math.round(r.occupied/r.units*100) : 0;
+    return '<tr><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.ptype)+'</td><td>'+esc(r.city)+'</td>'+
+      '<td class="c">'+r.units+'</td><td class="c">'+occ+'%</td>'+
+      '<td class="r pos">'+m(r.income)+'</td><td class="r neg">'+m(r.expense)+'</td>'+
+      '<td class="r '+(r.net>=0?'pos':'neg')+'"><b>'+m(r.net)+'</b></td>'+
+      '<td class="c"><span class="rfi-chip '+(r.net>=0?'g':'rd')+'">'+r.margin+'%</span></td>'+
+      '<td><a class="rfi-lk" href="/Property/PropertyMain/Edit/'+r.id+'">Open</a></td></tr>';
+  }).join('') : '<tr><td colspan="10" class="rfi-empty">No properties</td></tr>';
+})();
+</script>

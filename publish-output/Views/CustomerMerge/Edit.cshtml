@@ -1,0 +1,214 @@
+@model QuickSoft.ViewModel.TeamViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Team</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "Team", FormMethod.Post, new { id = "editform", @class = "form-horizontal" }))
+    {
+        <script type="text/javascript">
+            $('form#editform').removeData("validator");
+            $('form#editform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#editform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+<div class="box-body">
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamName, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.EditorFor(model => model.TeamName, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamLead, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.DropDownListFor(m => m.TeamLead, (SelectList)ViewBag.Employee, "Select Team Lead", new { @class = "teaml form-control select2 textwidth", @required = "required" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamMembers, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.TeamMembers, (MultiSelectList)ViewBag.team, new { @class = "teammem form-control input-sm textwidth" })
+        </div>
+    </div>
+    <div class="form-group">
+        @Html.LabelFor(m => m.TeamTag, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.DropDownListFor(m => m.TeamTag, (SelectList)ViewBag.TagTeam, new { @class = "teamtg form-control input-sm select2 textwidth" })
+        </div>
+    </div>
+    <div class="form-group">
+
+        @Html.CheckBoxFor(m => m.CustomerRelation, new { @class = "control-label col-sm-", @id = "MyChk", @onchange = "changecheckbox(this)" })
+        @Html.Label("Customer Relation", null, new { @class = "control-label col-sm-4" })
+    </div>
+    <div class="form-group" id="taskstatusid">
+        @Html.LabelFor(m => m.TaskStatus, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.TaskStatus, (MultiSelectList)ViewBag.TaskStat, new { @class = "tskstat form-control textwidth" })
+        </div>
+    </div>
+    <div class="form-group" id="leadstatusid" style="display:none;">
+        @Html.LabelFor(m => m.LeadStatus, new { @class = "control-label col-sm-4" })
+        <div class="col-sm-8">
+            @Html.ListBoxFor(m => m.LeadStatus, (MultiSelectList)ViewBag.leadstat, new {@class = "form-control textwidth" })
+        </div>
+    </div>
+</div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box-footer">
+                        <button type="submit" class="btn btn-info col-sm-offset-4">Update</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <script>
+                if ($("#MyChk").is(":checked")) {
+                    $("#taskstatusid").hide();
+                    $("#leadstatusid").show();
+
+                }
+                else {
+                    $("#taskstatusid").show();
+                    $("#leadstatusid").hide();
+                }
+                function changecheckbox(obj) {
+                    if ($(obj).is(":checked")) {
+                        $("#taskstatusid").hide();
+                        $("#leadstatusid").show();
+
+                    }
+                    else {
+                        $("#taskstatusid").show();
+                        $("#leadstatusid").hide();
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+
+                $(".teaml").select2({
+                    placeholder: 'Search Employee by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchEmployee",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page
+
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $(".teammem").select2({
+                    placeholder: 'Search Employees by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchTeamMember",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                lead: $('#TeamLead').val()
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $('#TeamLead').on("change", function (e) {
+                    if ($(this).val() != 0) {
+                        $("#TeamMembers").prop("disabled", false);
+                    }
+                    else {
+                        $("#TeamMembers").prop("disabled", true);
+                    }
+                });
+                $(".teamtg").select2({
+                    tags: true
+                });
+
+
+                $(".tskstat").select2({
+                    placeholder: 'Search Task Status',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/TaskStatus/SearchTaskStatusName",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $("#LeadStatus").select2({
+                    placeholder: 'Search Task Status',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/TaskStatus/SearchTaskStatusName2",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            </script>
+    }
+</div>

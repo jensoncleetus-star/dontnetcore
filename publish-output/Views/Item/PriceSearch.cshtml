@@ -1,0 +1,275 @@
+@{
+    ViewBag.Title = "Price Search";
+    ViewBag.SubTitle = "Price Search";
+    ViewBag.Active = "Utility";
+}
+
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Price Search</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-2">
+                @Html.Label("Material Center", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Item Category", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Item Code/Name", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="box-footer col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "Home") + "'");">Cancel</button>
+                @*<button class="btn btn-default" type="Reset" id="btnreset">Reset</button>*@
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="box box-default" id="StockReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Price Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <th rowspan="2">S/N</th>
+                        <th rowspan="2">Item</th>
+                        <th rowspan="2">Category</th>
+                        <th colspan="3">Purchase price</th>
+                        <th colspan="3">Selling Price</th>
+                        <th rowspan="2">Base Price</th>
+                        <th rowspan="2">MRP</th>
+                    </tr>
+                    <tr class="bg-gray">
+                        <th>Given</th>
+                        <th>Avg.</th>
+                        <th>Last</th>
+                        <th>Given</th>
+                        <th>Avg.</th>
+                        <th>Last</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            $('#StockReport').hide();
+            CallMC();
+            $("#ddlCategory").select2({
+                placeholder: 'Search Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemCategory/SearchItemCategory",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0
+                        };
+                    },
+                    results: function (data) {
+                        return { results: data };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+
+            });
+
+            ItemSearchable();
+        });
+
+        jQuery(function ($) {
+            oTable = $('#UserTable').DataTable({
+                //"processing": true, // for show progress bar
+                //"serverSide": true, // for process server side
+                //"filter": true, // this is for disable filter (search box)
+                //"orderMulti": false, // for disable multiple column at once
+                //"bStateSave": true,
+                //"deferLoading": 0, // disable default ajax loading
+                //"bLengthChange": false,
+                //"paging": false,
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+                responsive: true,
+                "columnDefs": [{
+                    "targets": "_all",
+                    "orderable": false
+                }],
+                "order": [[0, "desc"]],
+                "columnDefs": [{
+                    "targets": [4],
+                    "orderable": false
+                }],
+                "ajax": {
+                    "url": '/Item/GetPrice',
+                    "data": function ( data ) {
+                        data.itemid = $('#ddlItem').val();
+                        data.category = $('#ddlCategory').val();
+                        data.matrialcenter = $('#ddlMC').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                     {
+                         "data": "ItemID", "name": "ItemID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "ItemName", "name": "ItemName" },
+                    { "data": "categoryname", "name": "categoryname" },
+                    { "data": "PurchasePrice", "name": "PurchasePrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "PurAvg", "name": "PurAvg", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "cost", "name": "cost", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "SellingPrice", "name": "SellingPrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "SaleAvg", "name": "SaleAvg", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "price", "name": "price", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "BasePrice", "name": "BasePrice", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    { "data": "MRP", "name": "MRP", render: $.fn.dataTable.render.number(",", ".", 2) },
+                    
+                ],
+              //  buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+              //{
+              //    extend: 'print',//
+              //    title: "",
+              //    footer: true,
+              //    message: '<table class="tblcompact table table-bordered"><thead>' +
+              //        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock Report</h4></th></tr>' +
+              //        ' <tr><th><span class="text-left">ItemCode/Name : ' + $('#ItemCodeName').val() + '</span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+              //    customize: function (win) {
+              //        // $(win.document.body)
+              //        //.css('font-size', '10pt')
+              //        //.css('padding', '1px');
+              //        $(win.document.body).find('table, th,tr, td ')
+              //           // .css('border', 'inherit')
+              //            .css('font-size', '10pt')
+              //            .css('padding', '5px')
+              //            .addClass('compact');
+              //        $(win.document.body).append('</td></tr></tbody>')
+
+              //    }
+              //}, 'copy', 'csv', 'excel',
+              //{
+              //    extend: 'pdf',//
+              //    title: "",
+              //    footer: true,
+              //    message:
+              //        '' + $('#cname').val() + '\n' +
+              //        '' + $('#caddress').val() + '\n' +
+              //        ' Stock Report \n' +
+              //        'ItemCode/Name : ' + $('#ItemCodeName').val() + '\n'
+              //        //'From :  ' + $('#From').val() + ' To :' + $('#To').val() + ''
+              //    ,
+              //    pageSize: 'A4',
+              //    exportOptions: {
+              //        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+              //    },
+              //    customize: function (doc) {
+              //        doc.pageMargins = [10, 10, 10, 10];
+              //        doc.defaultStyle.fontSize = 10;
+              //        doc.styles.tableHeader.fontSize = 10;
+              //        doc.styles.title.fontSize = 12;
+              //        // Remove spaces around page title
+              //        doc.content[0].text = doc.content[0].text.trim();
+
+
+
+              //        doc.content[1].table.widths = [
+              //        '10%',
+              //        '10%',
+              //        '10%',
+              //        '10%',
+              //        '15%',
+              //        '10%',
+              //        '10%',
+              //        '10%',
+              //        '15%'
+              //        ]
+
+
+              //        var objLayout = {};
+              //        // Horizontal line thickness
+              //        objLayout['hLineWidth'] = function (i) { return .5; };
+              //        // Vertikal line thickness
+              //        objLayout['vLineWidth'] = function (i) { return .5; };
+              //        //// Horizontal line color
+              //        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+              //        //// Vertical line color
+              //        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+              //        // Left padding of the cell
+              //        objLayout['paddingLeft'] = function (i) { return 4; };
+              //        // Right padding of the cell
+              //        objLayout['paddingRight'] = function (i) { return 4; };
+              //        // Inject the object in the document
+              //        doc.content[1].layout = objLayout;
+              //    }
+
+
+              //},
+
+              //  ],
+
+
+
+                //sDom: "lBfr<'datatable-scroll't>ip",
+                //"lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+            });
+
+             $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#StockReport').show();
+            });
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+        $('body').on('change', '#ddlCategory', function (e)
+        {
+            $('#ddlItem').val('').trigger('change');
+        });
+    </script>
+}

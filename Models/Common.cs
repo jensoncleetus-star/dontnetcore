@@ -65,6 +65,15 @@ namespace QuickSoft.Models
         }
         public string ResolveShortUrl(string shortUrl)
         {
+            // Security (audit S17 / SSRF): only resolve Google-Maps short links. Refuse arbitrary or internal
+            // hosts so a user-supplied "maps URL" can't make the server fetch intranet / cloud-metadata endpoints.
+            if (string.IsNullOrWhiteSpace(shortUrl)
+                || !System.Uri.TryCreate(shortUrl, System.UriKind.Absolute, out var _u)
+                || (_u.Scheme != System.Uri.UriSchemeHttp && _u.Scheme != System.Uri.UriSchemeHttps)
+                || !(_u.Host.EndsWith(".google.com", System.StringComparison.OrdinalIgnoreCase)
+                     || _u.Host.Equals("google.com", System.StringComparison.OrdinalIgnoreCase)
+                     || _u.Host.EndsWith("goo.gl", System.StringComparison.OrdinalIgnoreCase)))
+                return shortUrl;
             using (var httpClient = new HttpClient())
             {
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"); // Mimic a browser
@@ -4513,7 +4522,7 @@ on PEPayments.PurchaseEntry = q3.PurchaseEntryId";
             }
             var EnableBranch = db.EnableSettings.Where(a => a.EnableType == "EnableBranch").FirstOrDefault();
             var BranchCheck = EnableBranch != null ? EnableBranch.Status : Status.inactive;
-            decimal stkvalue = (ProdViewModel.StockValue != null && ProdViewModel.StockValue != 0) ? (decimal)(ProdViewModel.StockValue / ProdViewModel.OpeningStock) : 0;
+            decimal stkvalue = (ProdViewModel.StockValue != null && ProdViewModel.StockValue != 0 && ProdViewModel.OpeningStock != null && ProdViewModel.OpeningStock != 0) ? (decimal)(ProdViewModel.StockValue / ProdViewModel.OpeningStock) : 0; // Calc fix: also guard OpeningStock divisor (prevents DivideByZeroException on item save).
             if (BranchCheck == Status.active)
             {
                 Branch = ProdViewModel.Branch;

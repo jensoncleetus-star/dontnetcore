@@ -37,7 +37,7 @@ namespace QuickSoft.Controllers
         {
             DateTime? fdate = null;
             DateTime? tdate = null;
-            var allentry = true;// User.IsInRole("All vehicle");
+            var allentry = User.IsInRole("All vehicle"); // Security S21: was hardcoded true (IDOR — leaked all rows); matches this controller's own line 206.
 
             if (fromdate != "")
             {

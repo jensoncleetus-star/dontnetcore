@@ -1,0 +1,89 @@
+@using QuickSoft.ViewModel
+@model QuickSoft.ViewModel.TreeViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Chart Of Accounts</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-body">
+            <div id="tree"></div>
+            <div id="Acctree">
+                @{ TreeView(Model); }
+            </div>
+        </div>
+    </div>
+</div>
+@{ void TreeView(TreeViewModel module, long? parent = 0)
+{
+TreeViewModel sub = new TreeViewModel();
+sub.Menu = module.Menu;
+var submodule = sub.Menu;
+var data = ViewBag.Active;
+    <ul>
+        @foreach (var menus in module.Menu)
+        {
+            var classn = (menus.Type == "Group") ? "glyphicon-hand-right" : "glyphicon-arrow-right";
+            var disables = (menus.Type == "Group") && (menus.text != "Supplier" || menus.text != "Customer" || menus.text != "Customer") ? "" : ", \"disabled\":true";
+
+            if (menus.Parent == parent)
+            {
+                <li data-jstree='{"icon":"glyphicon @classn"@disables}'>
+                    @menus.text
+                    @if (menus.Type == "Group")
+                    {
+                        TreeView(sub, menus.ID);
+                    }
+                </li>
+            }
+        }
+    </ul>
+} }
+
+
+
+
+
+
+
+
+    @section scripts{
+        @Scripts.Render("~/js/jqueryval")
+        <script type="text/javascript">
+            function getTree() {
+                $.ajax({
+                    url: '/Accounts/GetTree',
+                    type: 'POST',
+                    dataType: "JSON",
+                    success: function (data) {
+                        return data;
+                    }
+                });
+            }
+
+            //var treev = $('#tree').treeview({
+            //    data: json,
+            //     levels: 5,
+            //     backColor: 'green'
+            //});
+            $('#tree').jstree({
+                'core': getTree()
+                //'core': {
+                //    'data': [
+                //       'Simple root node',
+                //       {
+                //           'text': 'Root node 2',
+                //           'state': {
+                //               'opened': true,
+                //               'selected': true
+                //           },
+                //           'children': [
+                //             { 'text': 'Child 1' },
+                //             'Child 2'
+                //           ]
+                //       }
+                //    ]
+                //}
+            });
+        </script>
+    }

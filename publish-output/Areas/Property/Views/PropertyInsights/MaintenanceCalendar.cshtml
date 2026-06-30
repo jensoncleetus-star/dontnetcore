@@ -1,0 +1,72 @@
+@{
+    ViewBag.Title = "Maintenance Calendar";
+    ViewBag.Active = "Transactions";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#b45309,#f59e0b 55%,#fbbf24)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-calendar"></i></div>
+            <div><h1>Maintenance &amp; AMC Calendar</h1><p>Scheduled maintenance, AMC contracts &amp; inspection / renewal due dates</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/MaintenanceCalendar?y=@(ViewBag.PrevY)&m=@(ViewBag.PrevM)" class="rfi-btn"><i class="fa fa-chevron-left"></i></a>
+            <span class="rfi-monthlbl">@ViewBag.MonthName</span>
+            <a href="/Property/PropertyInsights/MaintenanceCalendar?y=@(ViewBag.NextY)&m=@(ViewBag.NextM)" class="rfi-btn"><i class="fa fa-chevron-right"></i></a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Maintenance Jobs</span><span class="rfi-num">@ViewBag.MaintCount</span><span class="rfi-sub">this month</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">AMC Visits</span><span class="rfi-num">@ViewBag.AmcCount</span><span class="rfi-sub">contracted</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Renewals Due</span><span class="rfi-num neg">@ViewBag.RenewCount</span><span class="rfi-sub">contract expiry</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Month Spend</span><span class="rfi-num">@money(ViewBag.MonthExpense)</span><span class="rfi-sub">AED</span></div>
+    </div>
+
+    <div class="rfi-grid-cal">
+        <div class="rfi-card">
+            <div class="rfi-callegend">
+                <span><i class="dot" style="background:#f59e0b"></i> Maintenance</span>
+                <span><i class="dot" style="background:#6366f1"></i> AMC</span>
+                <span><i class="dot" style="background:#ef4444"></i> Renewal due</span>
+                <span><i class="dot" style="background:#14b8a6"></i> Task / Inspection</span>
+            </div>
+            <div class="rfi-cal">
+                <div class="rfi-cal-dow"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+                <div id="calGrid" class="rfi-cal-grid"></div>
+            </div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-list"></i> Next 60 Days</h3>
+            <div id="agenda" class="rfi-agenda"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+  var ev=@Html.Raw(ViewBag.Events ?? "[]"), up=@Html.Raw(ViewBag.Upcoming ?? "[]");
+  var firstDow=@ViewBag.FirstDow, dim=@ViewBag.DaysInMonth, todayDay=@ViewBag.TodayDay, ym='@(ViewBag.Year)-'+String(@ViewBag.Month).padStart(2,'0');
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var clr={maint:'#f59e0b',amc:'#6366f1',renew:'#ef4444',task:'#14b8a6'};
+  // group events by day
+  var byDay={};
+  ev.forEach(function(e){ (byDay[e.day]=byDay[e.day]||[]).push(e); });
+  var html='';
+  for(var i=0;i<firstDow;i++) html+='<div class="rfi-cal-cell empty"></div>';
+  for(var d=1;d<=dim;d++){
+    var list=byDay[d]||[];
+    html+='<div class="rfi-cal-cell'+(d==todayDay?' today':'')+'">'+
+          '<div class="rfi-cal-day">'+d+'</div>'+
+          list.slice(0,4).map(function(e){return '<div class="rfi-cal-ev" style="border-left-color:'+clr[e.kind]+'" title="'+esc(e.title)+' — '+esc(e.sub)+'"><b>'+esc(e.title)+'</b><span>'+esc(e.sub)+'</span></div>';}).join('')+
+          (list.length>4?'<div class="rfi-cal-more">+'+(list.length-4)+' more</div>':'')+
+          '</div>';
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  // agenda
+  document.getElementById('agenda').innerHTML = up.length ? up.map(function(a){
+    return '<div class="rfi-agitem"><span class="rfi-agdot" style="background:'+clr[a.kind]+'"></span>'+
+           '<div class="rfi-agbody"><b>'+esc(a.title)+'</b><span>'+esc(a.sub)+'</span></div>'+
+           '<div class="rfi-agright"><span class="rfi-agdate">'+esc(a.date)+'</span>'+(a.amount?'<span class="rfi-agamt">'+m(a.amount)+'</span>':'')+'</div></div>';
+  }).join('') : '<div class="rfi-empty">Nothing scheduled in the next 60 days</div>';
+})();
+</script>

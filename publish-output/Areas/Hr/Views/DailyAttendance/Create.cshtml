@@ -1,0 +1,318 @@
+@model QuickSoft.ViewModel.DailyAttendanceViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Daily Attendance";
+    ViewBag.Active = "Payroll";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Create", "DailyAttendance", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Daily Attendance</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("DailyAttendance List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/DailyAttendance">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.HiddenFor(a => a.DailyAttendanceId)
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="form-group col-md-4">
+                @Html.Label("Daily / Monthly", null, new { @class = "control-label" })
+                @Html.DropDownListFor(m => m.ddlType, (SelectList)ViewBag.Type, new { id = "ddlType", @class = "form-control select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-4 emptype">
+                @Html.Label("Employee", null, new { @class = "control-label" })
+                @Html.DropDownListFor(m => m.EmployeeId, (SelectList)ViewBag.Employee, "", new { id = "ddlEmployee", @class = "form-control select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-4 emptype">
+                @Html.Label("Month Year", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBoxFor(m => m.MonthYear, "{0:MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group col-md-4 select2-box depttype">
+                @Html.Label("Department", null, new { @class = "control-label" })
+                @Html.DropDownList("Department", (SelectList)new SelectList(new List<SelectListItem>{
+                new SelectListItem() {Text = "All", Value="0"}
+
+            }, "Value", "Text")
+              , "", new { id = "ddlDepartment", @class = "form-control select2", @required = "required" })
+            </div>
+            <div class="form-group col-md-4 depttype">
+                @Html.Label("Date", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBoxFor(m => m.AtDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="box-body">
+            <div id="imgload" class="text-center">
+                <img src="/img/loading.gif" alt="this slowpoke moves" width="20" />
+            </div>
+            <div class="form-group col-md-6 attdiv">
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover nopadding bg-gray" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Date</th>
+                                <th class="text-center">Attendance Type </th>
+                               
+                                <th class="text-center">Over Time (@Model.OTHr)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addattendance"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="form-group col-md-6 attdiv">
+                <div class="form-group col-md-12 text-center bg-gray">
+                    <label>Attendance</label>
+                </div>
+                @if (Model.AtType.Count > 0)
+                {
+                    for (int i = 0; i < Model.AtType.Count; i++)
+                    {
+                        <div class="form-group col-md-6">
+                            <label>@Model.AtType[i].Name</label>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <input type="number" class="form-control text-right attypesel" value="0" id="Att_@Model.AtType[i].Id" readonly />
+                        </div>
+                    }
+                }
+                <div class="form-group col-md-12"><hr /></div>
+                <div class="form-group col-md-6">
+                    <label>Total Days</label>
+                </div>
+                <div class="form-group col-md-6">
+                    <input type="number" class="form-control text-right" id="AtTotalDay" readonly />
+                </div>
+                <div class="form-group col-md-6">
+                    <label>Total Over Time</label>
+                </div>
+                <div class="form-group col-md-6">
+                    <input type="number" class="form-control text-right" value="0.00" id="TotOverTime" readonly />
+                </div>
+            </div>
+
+
+
+            <div class="form-group col-md-12 deptattdiv">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover nopadding bg-gray" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Employee</th>
+                                <th class="text-center">Attendance Type </th>
+
+                                <th class="text-center">Over Time (@Model.OTHr)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptaddattendance"></tbody>
+                    </table>
+                </div>
+            </div>
+
+
+            <div class="form-group col-md-12 btndiv">
+                <div class="text-center">
+                    <button type="submit" id="save" class="btn btn-info" tabindex="28">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Submit
+                    </button>
+                    <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='" + @Url.Action("Index", "DailyAttendance") + "'");">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+@Html.Partial("../Common/_ModalCreate")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/dailyattendance")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('#MonthYear').datepicker({
+            format: 'MM-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            viewMode: "months",
+            minViewMode: "months"
+        });
+        $('#AtDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+
+        $(document).ready(function () {
+            $("#ddlEmployee").select2({
+                placeholder: 'Search by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "empty"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $(".attdiv").hide();
+            $(".deptattdiv").hide();
+            $(".btndiv").hide();
+            $(".depttype").hide();
+
+            var emp = $("#ddlEmployee").val();
+            var monthyear = $("#MonthYear").val();
+            if (emp != null && monthyear != null) {
+                bindAttendance();
+            }
+
+            $("#ddlDepartment").select2({
+                placeholder: 'Search by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Department/SearchDepartment",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+                        return {
+                            results: data,
+                            pagination: {
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#imgload").hide();
+        });
+
+
+        $('body').on('change', '#ddlType', function (e) {
+            $("#ddlEmployee").val(null).trigger("change");
+            $("#MonthYear").val("");
+
+            $("#ddlDepartment").val(null).trigger("change");
+            $("#AtDate").val("");
+            $(".attdiv").hide();
+            $(".deptattdiv").hide();
+            $(".btndiv").hide();
+
+            var type = $(this).val();
+            if (type == 0) {
+                $(".emptype").show();
+                $(".depttype").hide();
+            } else {
+                $(".emptype").hide();
+                $(".depttype").show();
+            }
+        });
+
+
+        $('body').on('change', '#ddlEmployee', function (e) {
+            $("#imgload").show();
+            bindAttendance();
+        });
+        $('body').on('change', '#MonthYear', function (e) {
+            $("#imgload").show();
+            bindAttendance();
+        });
+
+
+        $('body').on('change', '#ddlDepartment', function (e) {
+            $("#imgload").show();
+            bindDeptAttendance();
+        });
+        $('body').on('change', '#AtDate', function (e) {
+            $("#imgload").show();
+            bindDeptAttendance();
+        });
+
+
+        $('#createForm').on('submit', function (e) {
+            e.preventDefault();
+
+            if ($("#createForm").valid()) {
+                var url = $('#createForm')[0].action;
+                var formData = new FormData(this);
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '@Url.Action("Index", "DailyAttendance")';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+
+        });
+    </script>
+}

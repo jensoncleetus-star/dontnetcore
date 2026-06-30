@@ -1,0 +1,48 @@
+@{
+    ViewBag.Title = "Tenant Ledger";
+    ViewBag.Active = "Master";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#9333ea,#a855f7 55%,#c084fc)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-user"></i></div>
+            <div><h1>Tenant Ledger</h1><p>Contracts, rent invoices &amp; balances per tenant</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <select id="tenantPick" class="rfi-pick"></select>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Tenant</span><span class="rfi-num" style="font-size:17px">@ViewBag.TenantName</span><span class="rfi-sub">@ViewBag.TenantCode</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Active Contracts</span><span class="rfi-num">@ViewBag.ActiveContracts</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Contracted Rent</span><span class="rfi-num pos">@money(ViewBag.TotContracted)</span><span class="rfi-sub">AED / yr</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Billed</span><span class="rfi-num">@money(ViewBag.TotBilled)</span><span class="rfi-sub">AED invoiced</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Deposit Held</span><span class="rfi-num">@money(ViewBag.TotDeposit)</span><span class="rfi-sub">AED</span></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-file-text-o"></i> Tenancy Contracts</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Property / Unit</th><th>Start</th><th>End</th><th class="r">Rent</th><th class="r">Deposit</th><th class="c">Status</th><th></th></tr></thead><tbody id="tlContracts"></tbody></table></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-usd"></i> Rent Invoices</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Voucher</th><th>Property</th><th>Date</th><th class="r">Amount (AED)</th></tr></thead><tbody id="tlRentals"></tbody></table></div>
+    </div>
+</div>
+<script>
+(function(){
+  var tenants=@Html.Raw(ViewBag.Tenants ?? "[]"), sel=@(ViewBag.SelectedId ?? 0);
+  var contracts=@Html.Raw(ViewBag.Contracts ?? "[]"), rentals=@Html.Raw(ViewBag.Rentals ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var pick=document.getElementById('tenantPick');
+  pick.innerHTML=tenants.map(function(t){return '<option value="'+t.id+'"'+(t.id==sel?' selected':'')+'>'+esc(t.name)+'</option>';}).join('');
+  pick.addEventListener('change',function(){ window.location.href='/Property/PropertyInsights/TenantLedger?id='+this.value; });
+  document.getElementById('tlContracts').innerHTML = contracts.length ? contracts.map(function(c){
+    return '<tr><td><b>'+esc(c.property)+'</b> <span class="rfi-chip g">'+esc(c.unit)+'</span></td><td>'+esc(c.start)+'</td><td>'+esc(c.end)+'</td><td class="r">'+m(c.rent)+'</td><td class="r">'+m(c.deposit)+'</td><td class="c">'+(c.active?'<span class="rfi-chip g">Active</span>':'<span class="rfi-chip">Closed</span>')+'</td><td><a class="rfi-lk" href="/Property/TenancyContract/Edit/'+c.Id+'">Open</a></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="rfi-empty">No contracts for this tenant</td></tr>';
+  document.getElementById('tlRentals').innerHTML = rentals.length ? rentals.map(function(r){
+    return '<tr><td>'+esc(r.voucher)+'</td><td>'+esc(r.property)+'</td><td>'+esc(r.date)+'</td><td class="r">'+m(r.amount)+'</td></tr>';
+  }).join('') : '<tr><td colspan="4" class="rfi-empty">No rent invoices</td></tr>';
+})();
+</script>

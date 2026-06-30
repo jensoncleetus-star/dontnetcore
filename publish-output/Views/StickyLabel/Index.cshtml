@@ -1,0 +1,140 @@
+﻿@model QuickSoft.Models.StickyLabel
+@{
+    ViewBag.Title = "View Labels";
+    ViewBag.SubTitle = "Label";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Labels</h3>
+        <p class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create StickyLabel"))
+                {*@
+            <a href="/StickyLabel/Create" class="btn btn-info modal-create"><i class="glyphicon glyphicon-plus"></i> Create New</a>
+            @*}*@
+        </p>
+    </div>
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="LabelList">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">Id</td>
+                    <td data-priority="2">Label Name</td>
+                    <td data-priority="3">Label Color</td>
+                    <td data-priority="3">Created Date</td>
+                    <td data-priority="3">Status</td>
+                    <td data-priority="3">Created By</td>
+                    <td data-priority="4">Actions</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@{ var Model = "modal-md";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalEdit", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        var oTable = $('#LabelList').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/StickyLabel/GetLabel',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columns": [
+                 {
+                     "data": "Id", "name": "Id",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+                    { "data": "LabelName", "name": "LabelName" },
+                    { "data": "LabelColor", "name": "LabelColor" },
+                    { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertToDate(data); } },
+                    {
+                        "name": "Status", "data": function (data) {
+                            if (data.Status == 0) {
+                                return '<i class="badge bg-green" style="font-size: small" >Active</i>';
+                            }
+                            else {
+                                return '<i class="badge bg-red" style="font-size: small" >Inactive</i>';
+                            }
+                        }
+                    },
+                    { "data": "User", "name": "User" },
+                    {
+                        "name": "Id", "data": function (data) {
+                            var rest = "";
+                            @{
+                             //if (User.IsInRole("Dev") || User.IsInRole("Edit StickyLabel"))
+                            //    {
+                                        actData += "<a class=\"modal-edit\" href=\"/StickyLabel/Edit/'+ data.Id +'\" title=\"Edit Label\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                @*}*@
+                             //if (User.IsInRole("Dev") || User.IsInRole("Delete StickyLabel"))
+                            //    {
+                                        actData += "<a class=\"modal-delete\" href=\"/StickyLabel/Delete/'+ data.Id +'\" title=\"Delete Label\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                @*}*@
+                              }
+                            return rest = '@Html.Raw(actData)';
+                        }
+                    },
+            ]
+
+        })
+
+        /* Create function for sticky Labels */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* Edit function for Sticky Labels */
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* Delete Function for Sticky Labels */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+    </script>
+}

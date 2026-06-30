@@ -1,0 +1,471 @@
+@{
+
+    ViewBag.Title = "Search Sales Order Entry";
+    ViewBag.SubTitle = "Sales Order";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Sales Order</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="Scaffold" value="@ViewBag.BusinessType" />
+            <div class="form-group col-md-4">
+                @Html.Label("Order No", null, new { @class = "control-label" })
+                @Html.TextBox("OrderNo", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Customer", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.Employee, new { @class = "form-control input-sm" })
+            </div>
+            @if (@ViewBag.ProjChk == 0)
+            {
+                <div class="form-group col-md-4">
+                    @Html.Label("Project", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlProject", (SelectList)ViewBag.getProj, "All", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.Label("Task", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlProTask", (SelectList)ViewBag.getProTask, "All", new { @class = "form-control input-sm" })
+                </div>
+            }           
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+
+            @if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div class="form-group col-sm-4">
+                    @Html.Label("Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("SaleType", (SelectList)ViewBag.Type, new { @class = "form-control input-sm", @onchange = "HType();" })
+                </div>
+
+                <div id="HireTypeDiv">
+                    <div class="form-group col-sm-4">
+                        @Html.Label("HireType", null, new { @class = "control-label" })
+                        @Html.DropDownList("HireType", (SelectList)ViewBag.HiType, "All", new { id = "ddlHType", @class = "form-control select2" })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @onchange = "DateSet();" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="QReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Sales Order Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Order No</td>
+                        <td>Date</td>
+                        <td>Customer</td>
+                        <td>TRN</td>
+                        <td class="headeralign">Grand Total Amount</td>
+                        <td>Validity (Days)</td>
+                        <td>Sales Executive</td>
+                        <td>Created By</td>
+                        <td id="SaleTy">SaleType</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th colspan="4"></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            //for set default date
+
+            $('#HireTypeDiv').hide();
+            //$("#SaleType").val(1);
+            $('#SaleType option:contains(POS)').remove();
+
+            $("#SaleType").prop('selectedIndex', 0);
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#QReport').hide();
+            CallRepCustomer();
+            CallRepEmployee();
+
+        });
+
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                "deferLoading": 0,
+                "ordering": false,
+                "ajax": {
+                    "url": '/MyReports/GetSalesOrder',
+                    "data": function (data) {
+                        data.vno = $('#OrderNo').val();
+                        data.customer = $('#ddlCustomer').val();
+                        data.employee = $('#ddlEmployee').val();
+                        data.fromdate = $('#From').val();
+                        data.todate = $('#To').val();
+                        data.SType = $('#SaleType').val();
+                        data.HireType = $('#ddlHType').val();
+                        data.HdateFrom = $('#FromDate').val();
+                        data.HdateTo = $('#ToDate').val();
+                        data.project = $('#ddlProject').val();
+                        data.task = $('#ddlProTask').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                     {
+                         "data": "SalesOrderId", "name": "SalesOrderId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "BillNo", "name": "BillNo" },
+                    { "data": "SODate", "name": "SODate", "render": function (data) { return convertToDate(data); } },
+                    { "data": "Customer", "name": "Customer" },
+                    { "data": "TaxRegNo", "name": "TaxRegNo" },
+                    { "data": "SOGrandTotal", "name": "SOGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SOValidity", "name": "SOValidity", "sClass": "numberright" },
+                    { "data": "EmpName", "name": "EmpName" },
+                    { "data": "User", "name": "User" },
+                    {
+                        "data": "SaleType", "name": "SaleType", "render": function (data) {
+                            if (data == 2) {
+                                return 'Hire';
+                            }
+                            else {
+                                return 'Sale';
+                            }
+
+                        }
+
+                    }
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                    {
+                        extend: 'print',//
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                  title: "",
+                  footer: true,
+                  filename: function () {
+                      return 'sales Order-Report';
+                  },
+                  message: function () {
+                      var head = '<table class="tblcompact table table-bordered"><thead>' +
+                          ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>sales Order Report</h4></th></tr>' +
+                          ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                      return head;
+                      },
+                      customize: function (win) {
+                      // $(win.document.body)
+                      //.css('font-size', '10pt')
+                      //.css('padding', '1px');
+                      $(win.document.body).find('table, th,tr, td ')
+                         // .css('border', 'inherit')
+                          .css('font-size', '10pt')
+                          .css('padding', '5px')
+                          .addClass('compact');
+                      $(win.document.body).append('</td></tr></tbody>')
+
+                  }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'sales Order-Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Sales Order Report \n' +
+                            // 'Quot No : ' + $('#QuotNo').val() + '\n' +
+                             'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+              {
+                  extend: 'pdf',//
+                  title: "",
+                  footer: true,
+                  filename: function () {
+                      return 'sales Order-Report';
+                  },
+                  message: function () {
+                      var head = '' + $('#cname').val() + '\n' +
+                       '' + $('#caddress').val() + '\n' +
+                       ' Sales Order Report \n' +
+                      // 'Quot No : ' + $('#QuotNo').val() + '\n' +
+                       'From :  ' + $('#From').val() + ' To :' + $('#To').val() + '';
+                      return head;
+                  },
+                  pageSize: 'A4',
+                  exportOptions: {
+                      columns: ':visible'
+                  },
+                  customize: function (doc) {
+                      doc.pageMargins = [10, 10, 10, 10];
+                      doc.defaultStyle.fontSize = 10;
+                      doc.styles.tableHeader.fontSize = 10;
+                      doc.styles.title.fontSize = 12;
+                      // Header font and bg color
+                      doc.styles.tableHeader.fillColor = '#d3d3d3';
+                      doc.styles.tableHeader.color = 'black';
+                      // Remove spaces around page title
+                      doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                      doc.content[1].table.widths = [
+                      '8%',
+                      '10%',
+                      '12%',
+                      '12%',
+                      '15%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '13%'
+                      ]
+
+                      var objLayout = {};
+                      // Horizontal line thickness
+                      objLayout['hLineWidth'] = function (i) { return .5; };
+                      // Vertikal line thickness
+                      objLayout['vLineWidth'] = function (i) { return .5; };
+                      //// Horizontal line color
+                      //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                      //// Vertical line color
+                      //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                      // Left padding of the cell
+                      objLayout['paddingLeft'] = function (i) { return 4; };
+                      // Right padding of the cell
+                      objLayout['paddingRight'] = function (i) { return 4; };
+                      // Inject the object in the document
+                      doc.content[1].layout = objLayout;
+                     // Footer font and bg color
+                      doc.styles.tableFooter.fillColor = '#d3d3d3';
+                      doc.styles.tableFooter.color = 'black';
+                  }
+              },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+
+                    // Total over all pages
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                         pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }                    
+                }
+
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#QReport').show();
+            });
+            var Scaffold = $('#Scaffold').val();
+            if (Scaffold != "Scaffold") {
+                var column1 = oTable.column(9);
+                column1.visible(false);
+            } else {
+                var column1 = oTable.column(9);
+                column1.visible(true);
+            }
+            function reload_table() {
+                oTable.clear().draw();
+                oTable.ajax.reload(null, false); //reload datatable ajax
+            }
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+
+            $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/SalesOrder/Edit/" + data.SalesOrderId + "";
+                $(location).attr('href', url);
+            });
+
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+        function HType() {
+            var Type = $('#SaleType').val();
+            if (Type == 2) {
+                $('#HireTypeDiv').show();
+            }
+            else {
+                $('#HireTypeDiv').hide();
+            }
+        }
+        function DateSet() {
+            var ndate = $('#FromDate').val();
+
+            $('#ToDate').datepicker({
+                startDate: ndate,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+        }
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            CallProject();
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+    </script>
+}

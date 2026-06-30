@@ -1,0 +1,127 @@
+﻿@using QuickSoft.Models
+@model QuickSoft.ViewModel.ProTaskUpdatViewModel
+@{
+    var status = Model.Status;
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Update Process </h4>
+</div>
+<div class="modal-body">
+    <div class="updateLoc">
+    @if ((status == TKUpdateStatus.Assigned || status == TKUpdateStatus.Reassigned || status == TKUpdateStatus.Started || status == TKUpdateStatus.Accepted) && ViewBag.Access != "No")
+    {
+        using (Html.BeginForm("EditMyStatus", "ProTaskNonTech", FormMethod.Post, new { role = "form", id = "editform", @class = "form-horizontal" }))
+        {
+            <script type="text/javascript">
+                $('form#popupForm').removeData("validator");
+                $('form#popupForm').removeData("unobtrusiveValidation");
+                $.validator.unobtrusive.parse($('form#popupForm'));
+            </script>
+            @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+            @Html.HiddenFor(model => model.ProTaskId)
+            @Html.HiddenFor(model => model.Lattitude)
+            @Html.HiddenFor(model => model.Longitude)
+            @Html.HiddenFor(model => model.Location)
+
+            <div class="box-body">
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Status, new { @class = "control-label col-sm-4" })
+                    <div class="col-sm-8">
+                        @{
+                            var options = "";
+                            if (status == TKUpdateStatus.Assigned || status == TKUpdateStatus.Reassigned)
+                            {
+                                options = "<option value='1'>Accept</option><option value='2'>Reject</option>";
+                            }
+                            else if (status == TKUpdateStatus.Accepted)
+                            {
+                                options = "<option value='3'>Work Started</option>";
+                            }
+                            else if (status == TKUpdateStatus.Started)
+                            {
+                                options = "<option value='4'>Work Pending</option><option value='5'>Work Completed</option>";
+                            }
+                        }
+                        <select class="form-control" data-val="true" data-val-required="The Status field is required." id="Status" name="Status" required="required">
+                            @Html.Raw(options)
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    @Html.LabelFor(m => m.Remarks, new { @class = "control-label col-sm-4" })
+                    <div class="col-sm-8">
+                        @Html.TextAreaFor(m => m.Remarks, new { @class = "form-control input-sm", @placeholder = "Enter Description..", @rows = "5" })
+                    </div>
+                </div>
+                @{
+                    if (status == TKUpdateStatus.Started)
+                    {
+                        <div class="file-loading">
+                            <input id="input-24" name="input24[]" type="file" multiple>
+                        </div>
+                    }
+                }
+                @foreach (var arr in @ViewBag.image)
+                {
+                    check = "\"/uploads/taskimages/" + arr.FileName + "\"";
+                    strImage += check + ',';
+                    partialconfig += "{ key:" + arr.TaskImageId + " }" + ',';
+                }
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="box-footer">
+                        <input type="submit" class="btn btn-info col-sm-offset-4" value="Update" />
+                        <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                    </div>
+                </div>
+            </div>
+       
+          }
+        }
+        else
+        {
+    <h3>Sorry You Dont Have Access To Update Task. Please Contact Admin... </h3>
+}
+   </div>
+</div>
+<script type="text/javascript">
+    //function getFileInput() {
+    
+    $(document).ready(function () {
+        $("#input-24").fileinput({
+            //uploadUrl: "/ProTask/ImageAdd/"+ $("#ProTaskId").val(),
+            uploadAsync: false,
+            overwriteInitial: false,
+            showUpload: false,
+            initialPreview: [@Html.Raw(strImage)
+            ],
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+            allowedFileExtensions: ["jpg", "jfif", "png"],
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+            deleteUrl: "/ProTask/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+    });
+   // }
+</script>

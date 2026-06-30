@@ -1,0 +1,146 @@
+@model QuickSoft.ViewModel.filedocumentsViewModel
+    @{ 
+
+    string check = "";
+    string url = "";
+    string strImage = "";
+    string partialconfig = "";
+
+
+    int ci = 0;
+
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit FileDocument</h4>
+</div>
+
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "filedocumentstore", FormMethod.Post, new { id = "createform", enctype = "multipart/form-data" }))
+    {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(m => m.filedocumentsid);
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group  col-md-12">
+                    @Html.LabelFor(model => model.Title, htmlAttributes: new { @class = "control-label" })*
+                    @Html.EditorFor(model => model.Title, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus", @required = "true" } })
+                </div>
+
+                <div class="form-group  col-md-12">
+                    @Html.LabelFor(model => model.Notes, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Notes, new { @class = "form-control input-sm", autofocus = "autofocus", @style = "width:100%;height:250px !important" })
+                </div>
+
+                <div class="form-group col-md-12">
+                    @Html.LabelFor(m => m.AssignedMembers, new { @class = "control-label" }) *
+                    @Html.ListBoxFor(m => m.AssignedMembers, (MultiSelectList)ViewBag.team, new { @id = "AssignedUsers", @class = "form-control select2 AsgnUsers", @name = "AssignedMembers[]", @multiple = "multiple" })
+                </div>
+                <div class="form-group col-md-12">
+                    @Html.Label("Documents", null, new { @class = "control-label" })
+                    <div class="file-loading">
+                        <input id="input-24" name="input24[]" type="file" multiple>
+                    </div>
+                </div>
+                @foreach (var arr in @ViewBag.image)
+                {
+                    check = "\"/uploads/commondocuments/" + arr.FileName + "\"";
+                    strImage += check + ',';
+
+                    partialconfig += "{ key:" + arr.TaskImageId + " }" + ',';
+
+                }
+
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    @*<input type="submit" value="Submit" class="btn btn-info col-sm-offset-4" />*@
+                    <button type="submit" id="save" class="btn btn-success col-sm-offset-4" tabindex="26">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                    </button>
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" onclick="@("window.location.href='/filedocumentstore/create'");" />
+                </div>
+            </div>
+        </div>
+        <style>
+            .glyphicon-download
+            {
+                font-size:20px;
+            }
+        </style>
+        @section style{
+            @Styles.Render("~/css/bootstrap-fileinput")
+            @Styles.Render("~/css/bootstrap-fileinput-rtl")
+        }
+        @section scripts{
+            @Scripts.Render("~/js/jqueryval")
+            @Scripts.Render("~/js/bootstrap-fileinput")
+            @Scripts.Render("~/js/bootstrap-piexif")
+            @Scripts.Render("~/js/bootstrap-purify")
+            @Scripts.Render("~/js/bootstrap-sortable")
+        }
+
+<script>
+
+            $(document).ready(function () {
+
+
+                $("#AssignedUsers").select2();
+                   $("#input-24").fileinput({
+                       initialPreview: [@Html.Raw(strImage)],
+                        initialPreviewDownloadUrl: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: true,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+                       deleteUrl: "/filedocumentstore/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+
+            });
+
+
+                                  //  CallMC();
+</script>
+    }
+</div>
+
+

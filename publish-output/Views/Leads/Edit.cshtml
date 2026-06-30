@@ -1,0 +1,1874 @@
+@model QuickSoft.ViewModel.LeadsViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Leads";
+    ViewBag.Active = "Master";
+    int di = 0;
+    int ci = 0;
+}
+<div class="box box-info container-fluid">
+
+    @if (ViewBag.format == 1)
+    {
+        using (Html.BeginForm("Edit", "Leads", FormMethod.Post, new { id = "createForm", role = "form", enctype = "multipart/form-data" }))
+        {
+
+
+            <input type="hidden" class="form-control" id="RowCount" value="0" placeholder="">
+            <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
+
+
+            <div class="box-header with-border row">
+                <h4 class="card-title container-fluid"><b>LEADS</b></h4>
+                <div class="pull-right">
+                    @if (@ViewBag.LastEntry != 0)
+                    {
+                        if (User.IsInRole("Dev") || User.IsInRole("Edit Leads"))
+                        {
+                            <a class="btn bg-black no-border" href="/Leads/Edit/@ViewBag.LastEntry">
+                                <i class="fa fa-step-backward"></i>
+                            </a>
+                        }
+                    }
+                    @if (User.IsInRole("Dev") || User.IsInRole("Leads List"))
+                    {
+                        <a class="btn btn-success no-border" href="/Leads">
+                            <i class="fa fa-fw fa-history"></i> List
+                        </a>
+                    }
+                </div>
+            </div>
+            <br />
+            @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+            <div class="box-body">
+                <div class="container-fluid row">
+                    <div class="form-group col-md-4">
+
+                        @Html.LabelFor(model => model.CustomerCode, htmlAttributes: new { @class = "control-label" })*
+                        @Html.EditorFor(model => model.CustomerCode, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                    </div>
+                    <div class="form-group  col-md-4">
+                        <label for="male">Lead Name*</label>
+                        @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { id = "customernameedit", @class = "form-control", @placeholder = "Enter Lead Name", @required = "required", tabindex = 2 } })
+                        @*@Html.DropDownListFor(model => model.CustomerName, (SelectList)ViewBag.CustName, new { @class = "form-control input-sm select2", @required = "required", @placeholder = "Lead Name", tabindex = 2 })*@
+
+
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.TaxRegNo, htmlAttributes: new { @class = "control-label" })
+                        @Html.EditorFor(model => model.TaxRegNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @placeholder = "Enter Tax RegNo", tabindex = 3 } })
+                    </div>
+                </div>
+                <br />
+
+                <div class="container-fluid row">
+                    @if (@ViewBag.EnableCRM == 0)
+                    {
+
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.SourceOfLead, htmlAttributes: new { @class = "control-label" })
+                            @if (User.IsInRole("Dev") || User.IsInRole("Create SourceOfLead"))
+                            {
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 8 })
+                                    <span class="input-group-btn">
+                                        <a href="/SourceOfLead/Create" class="modal-create btn btn-default" title="Add SourceOfLead"><i class="glyphicon glyphicon-plus"></i></a>
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 8 })
+                            }
+                        </div>
+                    }
+                    <div class="form-group col-md-4">
+                        @Html.Label("Skill Set", null, htmlAttributes: new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create LeadType"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.ScopeOfWork, (MultiSelectList)ViewBag.LeadType, new { id = "ddlleadtype", @class = "form-control select2",  tabindex = 6, @name = "LeadType[]", @multiple = "multiple" })
+
+
+                            </div>
+                        }
+                        else
+                        {
+
+                            @Html.DropDownListFor(m => m.ScopeOfWork, (MultiSelectList)ViewBag.LeadType, new { id = "ddlleadtype", @class = "form-control select2",  tabindex = 6, @name = "LeadType[]", @multiple = "multiple" })
+
+                        }
+                        <div class="margin-bottom" id="checklist2">
+                        </div>
+                    </div>
+
+
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.LeadStat, htmlAttributes: new { @class = "control-label" })
+
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create LeadStatus"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.LeadStat, (SelectList)ViewBag.NextActions, new { id = "ddlLeadState", @class = "form-control select2", @required = "required", tabindex = 6, @style = "display:none;" })
+                                @Html.DropDownListFor(model => model.CurrentAction, (SelectList)ViewBag.CurrentActions, new { @class = "form-control input-sm select2", tabindex = 12 })
+
+                                <span class="input-group-btn">
+                                    <a href="/LeadStatus/Create" class="modal-add btn btn-success btn-flat" title="Add Lead Status"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(model => model.CurrentAction, (SelectList)ViewBag.CurrentActions, new { @class = "form-control input-sm select2", tabindex = 12 })
+
+                                @Html.DropDownListFor(m => m.LeadStat, (SelectList)ViewBag.NextActions, new { id = "ddlLeadState", @class = "form-control select2", @required = "required", tabindex = 6, @style = "display:none;" })
+                            </div>
+                        }
+                    </div>
+
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("Customer Name", null, new { @class = "control-label" })
+
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.CustomerID, (SelectList)ViewBag.Customr, new { id = "ddlCustomer", @class = "form-control select2", @placeholder = "Enter Customer" })
+                            <span class="input-group-btn">
+                                <a href="/Customer/Create" class="add btn btn-success btn-flat" target="_new"><i class="fa fa-1x fa-plus-circle"></i></a>
+                            </span>
+                        </div>
+
+                    </div>
+
+
+
+
+                </div>
+
+                <div class="container-fluid row">
+
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.LeadLevel, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownList("LeadLevel", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "Small", Value="Small"},
+                            new SelectListItem() {Text = "Medium", Value="Medium"},
+                            new SelectListItem() {Text = "High", Value="High"},
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LeadLevel", @required = "required", tabindex = 7 })
+                    </div>
+
+                    <div class="form-group  col-md-2">
+                        @Html.LabelFor(model => model.StartDatee, htmlAttributes: new { @class = "control-label " })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.StartDatee, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2 ">
+                        @Html.LabelFor(model => model.EndDatee, htmlAttributes: new { @class = "control-label" })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.EndDatee, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2 ">
+                        <div class="bootstrap-timepicker">
+                            <label class="control-label" for="Alias">End Time</label>
+                            <div class="input-group">
+
+
+                                @Html.TextBoxFor(m => m.EndTime, "{0:hh:mm tt}", new { @class = "form-control timepicker", @autocomplete = "off", @value = "" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-clock-o"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-4 col-xs-12">
+                        @Html.EditorFor(model => model.Ref5, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Link", tabindex = 10 } })
+                        @Html.Label("Google Map Link", null, htmlAttributes: new { @class = "control-label small-standalone-label" })
+                    </div>
+                </div>
+
+                <div class="container-fluid row">
+
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.Country, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownListFor(model => model.CountryID, (SelectList)ViewBag.Country, new { @class = "form-control input-sm select2", tabindex = 10 })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.State, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownListFor(model => model.StateID, (SelectList)ViewBag.States, new { @class = "form-control input-sm select2", tabindex = 11 })
+
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.Location, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownListFor(model => model.LocationID, (SelectList)ViewBag.Location, new { @class = "form-control input-sm select2", tabindex = 12 })
+                    </div>
+                </div>
+                <br />
+                <div class="container-fluid row">
+
+
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.LeadCondition, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownListFor(model => model.LeadCondition, (SelectList)ViewBag.LeadCondition, new { @class = "form-control input-sm select2", tabindex = 12 })
+                    </div>
+
+                    @*<div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.CurrentAction, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.CurrentAction, (SelectList)ViewBag.CurrentActions, new { @class = "form-control input-sm select2", tabindex = 12 })
+                        </div>*@
+                    <div class="form-group col-md-4" style="display:none;">
+                        @Html.LabelFor(model => model.NextAction, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownListFor(model => model.NextAction, (SelectList)ViewBag.NextActions, new { @class = "form-control input-sm select2", tabindex = 12 })
+                    </div>
+                </div>
+                <br />
+                <div class="container-fluid row">
+
+
+                    <!--<d<iv class="col-sm-2 form-group">-->
+                    @*@Html.LabelFor(model => model.DateTime, htmlAttributes: new { @class = "control-label" })*
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(model => model.DateTime, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                        </div>*@
+                    <!--</div>-->
+
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.SalesPerson, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownListFor(model => model.SalesPerson, (SelectList)ViewBag.AssignedTo, new { @class = "form-control input-sm select2", tabindex = 12 })
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.Address, htmlAttributes: new { @class = "control-label " })
+                        @Html.TextAreaFor(model => model.Address, new { @class = "form-control", @placeholder = "Enter Address", tabindex = 9 })
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(model => model.Remark, htmlAttributes: new { @class = "control-label" })
+                        @Html.EditorFor(model => model.Remark, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Lead Remark", tabindex = 3 } })
+                    </div>
+                    <div class="col-md-4 col-xs-12 form-group">
+                        @Html.Label("Open/Close", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(model => model.OpenClose, (IEnumerable<SelectListItem>)ViewBag.OpnCls, new { @class = "form-control" })
+                    </div>
+                </div>
+
+                <div class="container-fluid row">
+                    <button style="width: 200px;    margin-top: 1rem;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button">Add Contact &ensp;<i class="fa fa-plus-circle" aria-hidden="true" style="float: right;margin-top: 0.3rem;"></i></button>
+                </div>
+                <div class="container-fluid row">
+                    <div class="form-group input_fields_wrap ">
+
+                        <table class="table table-condensed table-hover" id="contactTbl">
+
+
+                            @{
+
+
+                                if (Model != null && Model.LstContacts != null && Model.LstContacts.Count > 0)
+                                {
+                                    List<QuickSoft.Models.Country> CountryCodelist = ViewBag.CountryCodes;
+
+                                    foreach (var item in Model.LstContacts.ToList())
+                                    {
+                                        <div class="contactdiv">
+
+
+
+                                            <div class="row" style="margin-top: 1rem;">
+                                                <div class="col-md-2">
+                                                    <label class="control-label">Country Code</label>
+                                                    <div class="input-group">
+                                                        <select id="Type" class="form-control" name="LstContacts[@ci].CountryID">
+                                                            @{
+                                                                foreach (var data in CountryCodelist)
+                                                                {
+                                                                    if (data.CountryID == item.CountryID)
+                                                                    {
+                                                                        <option value="@data.CountryID" selected="selected">@data.CountryName (@data.CountryCode)</option>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <option value="@data.CountryID">@data.CountryName (@data.CountryCode)</option>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        </select>
+                                                        @*<input type="text" value="@item.Country" name="LstContacts[@ci].Country" class="form-control">*@
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Mobile</label>
+                                                    <div class="input-group">
+                                                        <input type="text" value="@item.Mobile" name="LstContacts[@ci].Mobile" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Email Id</label>
+                                                    <div class="input-group">
+                                                        <input type="email" value="@item.EmailId" name="LstContacts[@ci].EmailId" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="control-label">Website</label>
+                                                    <div class="input-group">
+                                                        <input type="text" value="@item.Website" name="LstContacts[@ci].Website" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <a href="javascript:void(0);" class="remove_button"><i style="color:red; top: 1.3rem; position: relative; " class="fa fa-trash" aria-hidden="true"></i></a>
+                                            </div>
+                                            <div class="row " style="margin-top: 1rem;">
+                                                <div class="col-md-2" hidden style="display:none;">
+                                                    <label class="control-label">id</label>
+                                                    <div class="input-group">
+                                                        <input type="text" value="@item.ContactID" name="LstContacts[@ci].ContactID" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="control-label">TypeOfContact </label>
+                                                    <div class="input-group">
+                                                        @*<input type="hidden" name="LstContacts[@(di)].ContactId" value="@item.ContactID" id="docu" />*@
+                                                        <select id="Type" class="form-control" name="LstContacts[@ci].ContactTypeID">
+                                                            @{
+                                                                List<QuickSoft.Models.ContactType> typelist = ViewBag.TypeList;
+
+                                                                foreach (var data in typelist)
+                                                                {
+                                                                    if (data.ContactId == item.ContactTypeID)
+                                                                    {
+                                                                        <option value="@data.ContactId" selected="selected">@data.Type</option>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <option value="@data.ContactId">@data.Type</option>
+                                                                    }
+                                                                }
+                                                            }
+
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+
+                                                    <label class="control-label">First Name</label>'
+                                                    <div class="input-group">
+
+                                                        <input type="text" name="LstContacts[@ci].FirstName" class="form-control" value="@item.FirstName" required>'
+
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-md-3">
+
+                                                    <label class="control-label">Last Name</label>
+                                                    <div class="input-group">
+
+                                                        <input type="text" name="LstContacts[@ci].LastName" class="form-control" value="@item.LastName">
+
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-md-3">
+
+                                                    <label class="control-label">Company Name</label>'
+                                                    <div class="input-group">
+
+                                                        <input type="text" name="LstContacts[@ci].Name" class="form-control" value="@item.Name">
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                        ci++;
+
+                                    }
+                                }
+                            }
+                        </table>
+                    </div>
+                </div>
+
+
+                <div class="container-fluid row">
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(m => m.AssignType, new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Task Team"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @*@Html.DropDownListFor(m => m.AssignTypeAll, (SelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple" })*@
+                                @Html.ListBoxFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple", @style = "width:100%" })
+                                <span class="input-group-btn">
+                                    <a href="/Team/Create" class="modal-create btn btn-success btn-flat" title="Add AssignType"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @*@Html.DropDownListFor(m => m.AssignTypeAll, (SelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple" })*@
+                            @Html.ListBoxFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple", @style = "width:100%" })
+                        }
+                    </div>
+                    <div class="form-group col-md-4">
+                        @Html.LabelFor(m => m.AssignedTo, new { @class = "control-label" }) *
+                        @Html.ListBoxFor(m => m.AssignedToo, (MultiSelectList)ViewBag.Employees, new { @id = "AssignedUsers", @class = "form-control select2 porder", @name = "AssignedToo[]", @multiple = "multiple", @style = "width:100%" })
+                    </div>
+                    @if (User.IsInRole("Lead To Task Convert"))
+                    {
+                        <div class="form-group col-md-4">
+                            @Html.Label("Convert To Task", null, new { @class = "control-label" }) *
+                            @Html.CheckBoxFor(m => m.converttotask);
+                        </div>
+                    }
+                </div>
+                <div class="container-fluid row">
+                    <button style="width: 200px; margin-top: 1rem;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button2">Documents Attach &ensp;<i class="fa fa-plus-circle" aria-hidden="true" style="float: right;margin-top: 0.3rem;"></i></button>
+                </div>
+
+
+                <div class="container-fluid row">
+                    <div class="form-group input_fields_wrap2">
+
+                        <table class="table table-condensed table-hover" id="tblDcmnt">
+
+                            @{
+
+
+                                if (Model != null && Model.LstLeadDocument != null && Model.LstLeadDocument.Count > 0)
+                                {
+                                    foreach (var item in Model.LstLeadDocument.ToList())
+                                    {
+                                        List<QuickSoft.Models.DocumentType> doclist = ViewBag.DocList;
+
+                                        <div class="row" style="margin-top: 1rem;">
+                                            <div class="col-md-2" hidden>
+                                                <label class="control-label">Document id</label>
+                                                <div class="input-group">
+                                                    <input type="text" value="@item.LeadDocumentId" name="LstLeadDocument[@di].LeadDocumentId" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="control-label">Document Type</label>
+                                                <div class="input-group">
+                                                    @*<input type="text" value="@item.DoucumentType" class="form-control">*@
+                                                    <select id="Type" class="form-control" name="LstLeadDocument[@(di)].DocumentTypeID">
+                                                        @{
+                                                            foreach (var data in doclist)
+                                                            {
+                                                                if (data.ID == item.DocumentTypeID)
+                                                                {
+                                                                    <option value="@data.ID" selected="selected">@data.Name</option>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <option value="@data.ID">@data.Name</option>
+                                                                }
+                                                            }
+                                                        }
+
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="control-label">Expiry</label>
+                                                <div class="input-group">
+                                                    <input type="date" value="@item.Expiry.ToString("yyyy-MM-dd")" name="LstLeadDocument[@di].Expiry" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="control-label">Notes</label>
+                                                <div class="input-group">
+                                                    <input type="text" value="@item.Notes" name="LstLeadDocument[@di].Notes" class="form-control">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="control-label">Choose Image</label>
+                                                <div class="input-group">
+                                                    <input type="file" value="@item.FileName" name="LstLeadDocument[@di].FileName" class="form-control file-upload-info">
+
+                                                </div>
+                                                <a href="/uploads/leaddocuments/@item.FileName" target="_new">Open</a>
+                                            </div>
+                                            <a href="javascript:void(0);" class="remove_button"><i style="color:red; top: 2.5rem; position: relative; left: 0.5rem;" class="fa fa-trash" aria-hidden="true"></i></a>
+                                        </div>
+
+
+
+
+
+                                        di++;
+
+                                    }
+                                }
+                            }
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        var fmap = "";
+                        if (Model.FieldMap[i].Field == "Ref1")
+                        {
+                            fmap = Model.Ref1;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref2")
+                        {
+                            fmap = Model.Ref2;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref3")
+                        {
+                            fmap = Model.Ref3;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref4")
+                        {
+                            fmap = Model.Ref4;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref5")
+                        {
+                            fmap = Model.Ref5;
+                        }
+
+                        <div class="form-group col-md-3">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            @if (Model.FieldMap[i].Type == "Dropdown")
+                            {
+                                if (Model.FieldMap[i].Field == "Ref1")
+                                {
+                                    @Html.DropDownList("Ref1", (SelectList)ViewBag.VRef1, new { @id = "Ref1", @class = "form-control input-sm select2 ref" })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref2")
+                                {
+                                    @Html.DropDownList("Ref2", (SelectList)ViewBag.VRef2, new { @id = "Ref2", @class = "form-control input-sm select2 ref" })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref3")
+                                {
+                                    @Html.DropDownList("Ref3", (SelectList)ViewBag.VRef3, new { @id = "Ref3", @class = "form-control input-sm select2 ref" })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref4")
+                                {
+                                    @Html.DropDownList("Ref4", (SelectList)ViewBag.VRef4, new { @id = "Ref4", @class = "form-control input-sm select2 ref" })
+                                }
+                                if (Model.FieldMap[i].Field == "Ref5")
+                                {
+                                    @Html.DropDownList("Ref5", (SelectList)ViewBag.VRef5, new { @id = "Ref5", @class = "form-control input-sm select2 ref" })
+                                }
+
+                            }
+                            else
+                            {
+                                <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="@fmap">
+                            }
+                        </div>
+
+                    }
+                }
+            </div>
+
+            <div class="box-footer clearfix">
+                <button type="submit" id="save" class="btn btn-info" tabindex="28">
+                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                </button>
+                <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='" + @Url.Action("Index", "Leads") + "'");">Cancel</button>
+            </div>
+        }
+
+    }
+    else
+    {
+        <div id="format2">
+            @* <a href="javascript:void(0)" style="button" onclick="hideformat2()">Format 1</a>*@
+            @using (Html.BeginForm("Edit", "Leads", FormMethod.Post, new { id = "createForm", role = "form", enctype = "multipart/form-data" }))
+            {
+
+                <input type="hidden" value="@ViewBag.format" id="format" />
+                <input type="hidden" id="SelProTask" />
+                <input type="hidden" class="form-control" id="RowCount" value="0" placeholder="">
+                <input type="hidden" class="form-control" id="documentRowcount" value="0" placeholder="">
+
+
+                <div class="box-header with-border row">
+                    <h4 class="card-title container-fluid"><b>LEADS</b></h4>
+                    <div class="pull-right">
+
+                        @if (@ViewBag.LastEntry != 0)
+                        {
+                            if (User.IsInRole("Dev") || User.IsInRole("Edit Leads"))
+                            {
+                                <a class="btn bg-black no-border" href="/Leads/Edit/@ViewBag.LastEntry">
+                                    <i class="fa fa-step-backward"></i>
+                                </a>
+                            }
+                        }
+                        @if (User.IsInRole("Dev") || User.IsInRole("Leads List"))
+                        {
+                            <a class="btn btn-success no-border" href="/Leads">
+                                <i class="fa fa-fw fa-history"></i> List
+                            </a>
+                        }
+                    </div>
+                </div>
+                @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+                <br />
+                <div class="box-body">
+
+                    @*<br />*@
+
+
+                    <div class="container-fluid row">
+                        <div class="form-group  col-md-2">
+                            @Html.Label("Date", null, htmlAttributes: new { @class = "control-label " })
+                            <div class="input-group date">
+                                <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                                @Html.TextBoxFor(m => m.StartDatee, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            </div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            @Html.Label("Customer Name", null, htmlAttributes: new { @class = "control-label" })
+                            <input id="CustomerName" name="CustomerName" value="" type="hidden" />
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.CustomerID, (SelectList)ViewBag.Customr, new { id = "ddlCustomer", @class = "form-control select2", @placeholder = "Enter Customer" })
+                                <span class="input-group-btn">
+                                    <a href="/Customer/AddCustomer" class="modal-create btn btn-success btn-flat" title="Add Customer"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div>
+
+                        </div>
+                        @if (@ViewBag.EnableCRM == 0)
+                        {
+
+                            <div class="form-group col-md-4" style="display:none;">
+                                @Html.LabelFor(model => model.SourceOfLead, htmlAttributes: new { @class = "control-label" })
+                                @if (User.IsInRole("Dev") || User.IsInRole("Create SourceOfLead"))
+                                {
+                                    <div class="input-group input-group-sm">
+                                        @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 8 })
+                                        <span class="input-group-btn">
+                                            <a href="/SourceOfLead/Create" class="modal-create btn btn-default" title="Add SourceOfLead"><i class="glyphicon glyphicon-plus"></i></a>
+                                        </span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 8 })
+                                }
+                            </div>
+                        }
+                        <div class="form-group col-md-4">
+                            @Html.Label("Scope of work", null, htmlAttributes: new { @class = "control-label" })
+                            @if (User.IsInRole("Dev") || User.IsInRole("Create LeadType"))
+                            {
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(m => m.ScopeOfWork, (SelectList)ViewBag.LeadType, new { id = "ddlleadtype", @class = "form-control select2", @required = "required", tabindex = 6, @name = "LeadType[]", @multiple = "multiple" })
+
+                                    <span class="input-group-btn">
+                                        <a href="/LeadStatus/Create" class="modal-add btn btn-success btn-flat" title="Add Lead Status"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+
+                                @Html.DropDownListFor(m => m.ScopeOfWork, (MultiSelectList)ViewBag.LeadType, new { id = "ddlleadtype", @class = "form-control select2", @required = "required", tabindex = 6, @name = "LeadType[]", @multiple = "multiple" })
+                            }
+                            <div class="margin-bottom" id="checklist2">
+                            </div>
+                        </div>
+
+                        <div class="form-group col-md-4">
+                            @Html.Label("Explantion to customer", null, new { @class = "control-label" })
+                            @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "", tabindex = 3, @style = "width:100%" })
+                        </div>
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.NextAction, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.NextAction, (SelectList)ViewBag.LeadStatus, new { @class = "form-control input-sm select2", tabindex = 12 })
+                        </div>
+                        <div class="form-group col-md-2 ">
+                            @Html.LabelFor(model => model.EndDatee, htmlAttributes: new { @class = "control-label" })
+                            <div class="input-group date">
+                                <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                                @Html.TextBoxFor(m => m.EndDatee, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            </div>
+                        </div>
+
+                        <div class="form-group col-md-2 ">
+                            <div class="bootstrap-timepicker">
+                                <label class="control-label" for="Alias">Next Time</label>
+                                <div class="input-group">
+
+
+                                    @Html.TextBoxFor(m => m.EndTime, "{0:hh:mm tt}", new { @class = "form-control timepicker", @autocomplete = "off", @value = "" })
+                                    <div class="input-group-addon">
+                                        <i class="fa fa-clock-o"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="form-group col-md-4" style="display:none;">
+                            @Html.LabelFor(model => model.LeadStat, htmlAttributes: new { @class = "control-label" })*
+                            @if (User.IsInRole("Dev") || User.IsInRole("Create LeadStatus"))
+                            {
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(model => model.CurrentAction, (SelectList)ViewBag.LeadStatus, new { @class = "form-control input-sm select2", tabindex = 12 })
+
+                                    @Html.DropDownListFor(m => m.LeadStat, (SelectList)ViewBag.LeadStatus, new { id = "ddlLeadStatt", @class = "form-control select2", @required = "required", tabindex = 6, @style = "display:none;" })
+                                    <span class="input-group-btn">
+                                        <a href="/LeadStatus/Create" class="modal-add btn btn-success btn-flat" title="Add Lead Status"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(model => model.CurrentAction, (SelectList)ViewBag.CurrentAction, new { @class = "form-control input-sm select2", tabindex = 12 })
+
+                                @Html.DropDownListFor(m => m.LeadStat, (SelectList)ViewBag.LeadStat, new { id = "ddlLeadStatt", @class = "form-control select2", @required = "required", tabindex = 6, @style = "display:none;" })
+                            }
+                        </div>
+
+
+
+                        <div class="container-fluid row" style="display:none">
+                            <div class="form-group col-md-4">
+                                @Html.LabelFor(model => model.CustomerCode, htmlAttributes: new { @class = "control-label" })*
+                                @Html.EditorFor(model => model.CustomerCode, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                            </div>
+                            <div class="form-group  col-md-4">
+                                <label for="male">Lead Name*</label>
+                                @* @Html.DropDownListFor(model => model.CustomerName, (SelectList)ViewBag.CustName, new { id = "CustomerNamelead", @class = "form -control input-sm select2", @required = "required", @placeholder = "Lead Name", tabindex = 2 })*@
+                            </div>
+                            <div class="form-group col-md-4">
+                                @Html.LabelFor(model => model.TaxRegNo, htmlAttributes: new { @class = "control-label" })*
+                                @Html.EditorFor(model => model.TaxRegNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @placeholder = "Enter Lead Task", tabindex = 3 } })
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="container-fluid row">
+
+                        <div class="form-group col-md-4" style="display:none">
+                            @Html.LabelFor(model => model.LeadLevel, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownList("LeadLevel", new SelectList(new List<SelectListItem>
+                            {
+                                new SelectListItem() {Text = "Small", Value="Small"},
+                                new SelectListItem() {Text = "Medium", Value="Medium"},
+                                new SelectListItem() {Text = "High", Value="High"},
+                            }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LeadLevel", @required = "required", tabindex = 7 })
+                        </div>
+
+
+
+                       
+                    </div>
+
+                    <div class="container-fluid row" style="display:none;">
+
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.Country, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.CountryID, (SelectList)ViewBag.Country, new { @class = "form-control input-sm select2", tabindex = 10 })
+                        </div>
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.State, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.StateID, (SelectList)ViewBag.States, new { @class = "form-control input-sm select2", tabindex = 11 })
+
+                        </div>
+
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.Location, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.LocationID, (SelectList)ViewBag.Location, new { @class = "form-control input-sm select2", tabindex = 12 })
+                        </div>
+
+                    </div>
+                    <br />
+                    <div class="container-fluid row" style="display:none;">
+
+
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.LeadCondition, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.LeadCondition, (SelectList)ViewBag.LeadCondition, new { @class = "form-control input-sm select2", tabindex = 12 })
+                        </div>
+
+                        @*<div class="form-group col-md-4">
+                                @Html.LabelFor(model => model.CurrentAction, htmlAttributes: new { @class = "control-label " })
+                                @Html.DropDownListFor(model => model.CurrentAction, (SelectList)ViewBag.CurrentAction, new { @class = "form-control input-sm select2", tabindex = 12 })
+                            </div>*@
+                          </div>
+                    <br />
+                    <div class="container-fluid row" style="display:none;">
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(model => model.NextAction, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.NextAction, (SelectList)ViewBag.LeadStatus, new { @class = "form-control input-sm select2", tabindex = 12 })
+                        </div>
+
+                        <!--<div class="col-sm-2 form-group">-->
+                        @*@Html.LabelFor(model => model.DateTime, htmlAttributes: new { @class = "control-label" })*
+                            <div class="input-group date">
+                                <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                                @Html.TextBoxFor(model => model.DateTime, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm" })
+                            </div>*@
+                        <!--</div>-->
+
+                        <div class="form-group col-md-4" style="display:none">
+                            @Html.LabelFor(model => model.SalesPerson, htmlAttributes: new { @class = "control-label " })
+                            @Html.DropDownListFor(model => model.SalesPerson, (SelectList)ViewBag.AssignedTo, new { @class = "form-control input-sm select2", tabindex = 12 })
+                        </div>
+
+                        <div class="form-group col-md-4" style="display:none">
+                            @Html.LabelFor(model => model.Address, htmlAttributes: new { @class = "control-label " })
+                            @Html.TextAreaFor(model => model.Address, new { @class = "form-control", @placeholder = "Enter Address", tabindex = 9 })
+                        </div>
+
+
+                        <div class="form-group col-md-4 col-xs-12" >
+                            @Html.Label("Open/Close", null, new { @class = "control-label" })
+                            <div class="input-group">
+                                @Html.DropDownListFor(model => model.OpenClose, new SelectList(new List<SelectListItem>
+                                       {
+                                        new SelectListItem() {Text = "Open", Value="0"},
+                                        new SelectListItem() {Text = "Closed", Value="1"},
+                                       }, "Value", "Text"), new { @class = "form-control input-sm", @name = "Emirate" })
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="container-fluid row" style="display:none;">
+                        <button style="width: 200px;    margin-top: 1rem;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button">Add Contact &ensp;<i class="fa fa-plus-circle" aria-hidden="true" style="float: right;margin-top: 0.3rem;"></i></button>
+                    </div>
+                    <div class="container-fluid row">
+                        <div class="form-group input_fields_wrap">
+
+                        </div>
+                    </div>
+
+
+                    <div class="container-fluid row">
+                        <div class="form-group col-md-4" style="display:none;">
+                            @Html.LabelFor(m => m.AssignType, new { @class = "control-label" })
+                            @if (User.IsInRole("Dev") || User.IsInRole("Create Task Team"))
+                            {
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple" })
+                                    <span class="input-group-btn">
+                                        <a href="/Team/Create" class="modal-create btn btn-success btn-flat" title="Add AssignType"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2 AssignType", @name = "AssignTypeAll[]", @multiple = "multiple" })
+                            }
+                        </div>
+                        <div class="form-group col-md-4">
+                            @Html.LabelFor(m => m.AssignedTo, new { @class = "control-label" }) *
+                            @Html.ListBoxFor(m => m.AssignedToo, (MultiSelectList)ViewBag.Employees, new { @id = "AssignedUsers", @class = "form-control select2 porder", @name = "AssignedToo[]", @multiple = "multiple", @style = "width:100%" })
+
+                        </div>
+
+                        @*<div class="form-group col-md-6">
+                                @Html.LabelFor(m => m.AssignedTo, new { @class = "control-label col-sm-4" })
+                                @Html.ListBoxFor(m => m.AssignedTo, (SelectList)ViewBag.AssignedTo, new { @class = "form-control", tabindex = 8 })
+                            </div>*@
+                    </div>
+                    <div class="container-fluid row">
+                        <button style="width: 200px; margin-top: 1rem;" type="submit" class="btn btn-primary btn-rounded btn-fw add_field_button2">Documents Attach &ensp;<i class="fa fa-plus-circle" aria-hidden="true" style="float: right;margin-top: 0.3rem;"></i></button>
+                    </div>
+
+
+                    <div class="container-fluid row">
+                        <div class="form-group input_fields_wrap2">
+
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="display:none;">
+                    @if (Model.FieldMap.Count > 0)
+                    {
+                        for (int i = 0; i < Model.FieldMap.Count; i++)
+                        {
+                            <div class="form-group col-md-3">
+                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                                @if (Model.FieldMap[i].Type == "Dropdown")
+                                {
+                                    if (Model.FieldMap[i].Field == "Ref1")
+                                    {
+                                        @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef1, new { @id = "Ref1", @class = "form-control input-sm select2 ref" })
+                                    }
+                                    if (Model.FieldMap[i].Field == "Ref2")
+                                    {
+                                        @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef2, new { @id = "Ref2", @class = "form-control input-sm select2 ref" })
+                                    }
+                                    if (Model.FieldMap[i].Field == "Ref3")
+                                    {
+                                        @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef3, new { @id = "Ref3", @class = "form-control input-sm select2 ref" })
+                                    }
+                                    if (Model.FieldMap[i].Field == "Ref4")
+                                    {
+                                        @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef4, new { @id = "Ref4", @class = "form-control input-sm select2 ref" })
+                                    }
+                                    if (Model.FieldMap[i].Field == "Ref5")
+                                    {
+                                        @Html.DropDownListFor(m => m.FieldMap[i].Field, (SelectList)ViewBag.VRef5, new { @id = "Ref5", @class = "form-control input-sm select2 ref" })
+                                    }
+                                }
+                                else
+                                {
+                                    <input class="form-control select2" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="">
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
+
+                <div class="box-footer clearfix">
+                    <button type="submit" id="save" class="btn btn-success" tabindex="28">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+                    <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='" + @Url.Action("Index", "Leads") + "'");">Cancel</button>
+                </div>
+            }
+
+        </div>
+        <script>
+
+            $('body').on('change', '#ddlCustomer', function (e) {
+                $("#CustomerName").val($(this).text());
+                $("#TaxRegNo").val($('#CustomerName').text());
+            });
+            $('body').on('change', '#ddlleadtype', function (e) {
+                var CheckID = $(this).val();
+                $("#SelProTask").val($(this).val());
+                var itnote = false;
+                $.ajax({
+                    url: '/ScopeOfWorkChecklist/GetCheckItems',
+                    dataType: 'json',
+                    data: {
+                        CheckID: $("#SelProTask").val(),
+                        custid:getQueryString(''),
+                    },
+                    cache: true,
+                    success: function (data) {
+                        var lengt = data.length;
+                        var checkdata = "";
+                        $('#checklist2').html('');
+
+                        var norepat = "";
+                        $.each(data, function (i, item) {
+                            var addnote = "";
+                            checkdata = "<tr>"
+                            var check = "";
+                            var ck = "";
+                            if (item.checkedornot == true)
+                                check = "checked";
+                            if (1 == 1) {
+                                if (norepat != item.work) {
+                                    checkdata += "<tr><Td colspan='3'>" + item.work + "</td></tr>";
+                                    norepat = item.work;
+                                }
+                                checkdata += "<td style='width:50px;'><input name='bstmodel[" + (i) + "].Check' " + check + " id='checkbox_" + item.Id + "' type=\"checkbox\" name=\"note\" onchange='notechange(" + item.Id + ")'" + check+" ></input></td>" +
+                                    "<td><label for='" + item.Id + "'>" + item.Name + "</label></td>" +
+                                    "<input type='hidden' name='bstmodel[" + (i) + "].Id' data-name='Id' class='checkid_" + item.Id + "' value='" + item.Id + "' id='checkid_" + item.Id + "'/> " +
+
+                                    "</td>"
+                                    ;
+                            }
+                            else {
+                                checkdata += "<td style='width:50px;'></td>" +
+                                    "<td><label for='" + item.Id + "'>" + item.Name + "</label></td>" +
+                                    "<input type='hidden' name='bstmodel[" + (i) + "].Id' data-name='Id' class='checkid_" + item.Id + "' value='" + item.Id + "' id='checkid_" + item.Id + "'/> " +
+                                    "</td>"
+                                    ;
+                            }
+                         if(item.Note!=null)
+                             addnote += "<td><textarea style='height:100px;width:200px;' data-name='Note' name='bstmodel[" + (i) + "].Note' id='addnote_" + item.Id + "' class='addnote_" + item.Id + " form-control text-left addnote' placeholder='Enter note'>" + item.Note + "</textarea></td> "
+                         else
+                                addnote += "<td><textarea style='height:100px;width:200px;' data-name='Note' name='bstmodel[" + (i) + "].Note' id='addnote_" + item.Id + "' class='addnote_" + item.Id + " form-control text-left addnote' placeholder='Enter note'></textarea></td> "
+
+                            checkdata += addnote + "</tr><br />"
+                            $('#checklist2').append(checkdata);
+                        });
+                    }
+                });
+            });
+            function notechange(arg) {
+                ////$('#addnote_' + arg).prop
+                ////var $input = $(obj);
+                var $input = $('#checkbox_' + arg).prop('checked');
+                if ($input) {
+                    $('#addnote_' + arg).show();
+                }
+                else {
+                    $('#addnote_' + arg).hide();
+                    $('#addnote_' + arg).text("");
+                }
+            }
+        </script>
+    }
+</div>
+<div id="modal-add" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
+@Html.Partial("../Common/_ModalCreate")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/Mobile")
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $("#ddlleadtype").select2({
+                placeholder: 'Search Sales Person by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/LeadType/getleadtype",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+ 
+            $("#SalesPerson").select2({});
+            $("#CurrentAction").select2({});
+            $("#ddlLeadType").select2({
+                placeholder: 'Search Sales Person by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/LeadType/getleadtype",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('#ddlleadtype').trigger("change");
+            $('#ddlCustomer').trigger("change");
+            
+            $("#ddlSalesPerson").select2({
+                placeholder: 'Search Sales Person by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            AddMobile();
+            SrcOfLead();
+            CallLeadStatus();
+            SearchCustExists();
+            //$("#CustomerName").select2({
+            //    tags: true
+            //});
+        });
+
+
+        $(document).on('change', '#Mobile', function (event) {
+            var phno = $("#Mobile").val();
+            $.ajax({
+                url: '/Customer/GetMObileExists',
+                type: "GET",
+                dataType: "JSON",
+                data: { MobNo: phno },
+                success: function (result) {
+                    if (result == 1) {
+                        alert("Mobile Number Already Exists.");
+                        $("#Mobile").select2("val", "");
+                    }
+                }
+            });
+        });
+
+        $(document).on('change', '#Phone', function (event) {
+
+            var phno = $("#Phone").val();
+            $.ajax({
+                url: '/Customer/GetPhoneExists',
+                type: "GET",
+                dataType: "JSON",
+                data: { PhNo: phno },
+                success: function (result) {
+                    if (result == 1) {
+                        alert("Phone Number Already Exists.");
+                        $("#Phone").select2("val", "");
+                    }
+                }
+            });
+        });
+        $(document).on('change', '#EmailId', function (event) {
+            var email = $("#EmailId").val();
+            $.ajax({
+                url: '/Customer/GetEmailExists',
+                type: "GET",
+                dataType: "JSON",
+                data: { Email: email },
+                success: function (result) {
+                    if (result == 1) {
+                        alert("EmailId Already Exists.");
+
+                    }
+                }
+            });
+        });
+
+        $(document).on('change', '#CustomerName', function (event) {
+            //var cname = $("#CustomerName").text();
+            //$.ajax({
+            //    url: '/Customer/GetNameExists',
+            //    type: "GET",
+            //    dataType: "JSON",
+            //    data: { cname: cname },
+            //    success: function (result) {
+            //        if (result == 1) {
+            //            alert(" Already Exists.");
+            //        }
+            //    }
+            //});
+            //$('#CustomerName').val(null).trigger("change");
+        });
+
+
+        /*Assigned To Portion Here*/
+        $("#AssignedTo").select2({
+            placeholder: 'Search Employees by Name',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchTeamMember",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        //lead: $('#TeamLead').val()
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        /*Add LeadStatus here*/
+        $('div').on('click', '.modal-add', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-add');
+        });
+        $('#modal-add').on('submit', '#typeform', function (e) {
+            var url = $('#modal-add #typeform')[0].action;
+            var text = $("#StatusType").val();
+            $('#ddlLeadStat option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#modal-add #typeform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-add').modal('hide');
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id);//attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlLeadStat').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+
+            e.preventDefault();
+        });
+
+        $('body').on('click', '.modal-close-btn', function () {
+            $('#modal-add').modal('hide');
+            $('#modal-add').removeData('bs.modal');
+        });
+        $('#modal-add').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            var text = $("#SrcName").val();
+            $('#ddlSrcLead option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#modal-create #createform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-create').modal('hide');
+
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id);//.attr("selected", "selected");
+                        newOption.html(text);
+                        $('#ddlSrcLead').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            });
+
+            e.preventDefault();
+
+        });
+
+        /* function for Edit popup */
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+        AddItemPopUp();
+
+
+
+        $("#input-24").fileinput({
+            overwriteInitial: false,
+            showUpload: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+            // allowedFileExtensions: ["jpg", "png"],
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jpeg", "jfif", "doc", "docx", "pdf", "txt"],
+            fileActionSettings: {
+                showUpload: false,
+            },
+            //maxImageWidth: 1000,
+            //maxImageHeight: 1000,
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        });
+        $("#Phone").select2({
+
+            tags: true,
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchContactCreate",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#Mobile").select2({
+
+            tags: true,
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Leads/SearchContactCreate",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+
+
+
+    </script>
+
+
+    <script type="text/javascript">
+
+        var Countrys = '<option value="0">--Select--</option>';
+
+        $(document).ready(function () {
+            $.ajax({
+                type: "GET",
+                url: "/Customer/GetCountryCode",
+                data: "{}",
+                success: function (data) {
+                    for (var i = 0; i < data.length; i++) {
+                        Countrys += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                    }
+                }
+            });
+        });
+
+
+        $(document).ready(function () {
+            var max_fields = 10; //maximum input boxes allowed
+            var wrapper = $(".input_fields_wrap"); //Fields wrapper
+            var add_button = $(".add_field_button"); //Add button ID
+
+            var x = 1; //initlal text box count
+            var s = '<option value="0">--Select--</option>';
+
+            $(document).ready(function () {
+                $.ajax({
+                    type: "GET",
+                    url: "/Customer/GetContactTypes",
+                    data: "{}",
+                    success: function (data) {
+                        for (var i = 0; i < data.length; i++) {
+                            s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                        }
+                    }
+                });
+            });
+
+            $(add_button).click(function (e) { //on add input button click
+                e.preventDefault();
+                if (x < max_fields) { //max input box allowed
+
+                    var rowno = @ci;//document.getElementById('RowCount').value;
+                    //paste here
+                    $(wrapper).append('<div class="contactdiv">' +
+                        '<div class="row" style="margin-top: 1rem;">' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Country Code</label>' +
+                        '<div class="input-group">' +
+                        '<select class="form-control"  name="LstContacts[' + rowno + '].CountryID" tabindex="30"  id="CountryID' + rowno + '"  tabindex="34">' + Countrys +
+                        '</select>' +
+                        /*  '<input type="text"  name="LstContacts[' + rowno + '].Country" class="form-control" required>' +*/
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Mobile Number</label>' +
+                        '<div class="input-group">' +
+                        '<select  name="LstContacts[' + rowno + '].Mobile" class="form-control mobilenumber select2"  required onchange="loadcontact(' + rowno + ',this)"  id="Mobile' + rowno + '"  tabindex="35" ></select>' +
+                        ' </div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Email Id</label>' +
+                        '<div class="input-group">' +
+                        '<select   name="LstContacts[' + rowno + '].EmailId" class="form-control select2 emailid" id="EmailId' + rowno + '" onchange="loadcontactemail(' + rowno + ',this)"></select>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Website</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].Website" class="form-control"  id="Website' + rowno + '">' +
+                        '</div>' +
+                        '</div>' +
+                        '<a href="javascript:void(0);" class="remove_button"><i style="color:red;margin-top: 1.5rem;" class="fa fa-trash" aria-hidden="true"></i></a></div>' +
+                        '<div class= "row" style = "margin-top: 1rem;" > ' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Contact Type</label>' +
+                        '<div class="input-group">' +
+                        '<select class="form-control"  name="LstContacts[' + rowno + '].ContactTypeID" tabindex="30" id="ContactTypeID' + rowno + '">' + s +
+                        '</select>' +
+                        '</div>' +
+                        '</div>' +
+
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">First Name</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].FirstName" class="form-control"  tabindex="31"  required id="firstname' + rowno + '" > ' +
+                        ' </div>' +
+                        ' </div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Last Name</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].lastname" class="form-control" id="lastname' + rowno + '"  tabindex="32">' +
+                        ' </div>' +
+                        ' </div>' +
+                        '<div class="col-md-3">' +
+                        '<label class="control-label">Company Name</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text"  name="LstContacts[' + rowno + '].Name" class="form-control"  id="Name' + rowno + '"  tabindex="33">' +
+                        ' </div>' +
+                        ' </div>' +
+                        ' </div>' +
+                        '</div > ');
+
+                    x++;
+
+                    rowno++;
+                    document.getElementById('RowCount').value = rowno;
+                    callselect();
+                }
+            });
+            $(wrapper).on('click', '.remove_button', function (e) {
+                e.preventDefault();
+
+                $(this).parent().parent().remove(); //Remove field html
+                x--; //Decrement field counter
+            });
+        });
+        function loadcontact(i, obj) {
+            $('.mobilenumber').select2('destroy');
+            var s = $("#Mobile" + i).val();
+            s = s.replace(/^0+/, '');
+            var opt = '<option value="' + s + '" selected>' + s + '</option>'
+            $("#Mobile" + i).append(opt);
+            mobileload();
+            $.ajax({
+                url: "/Customer/getcontactsbymobile",
+                type: "GET",
+                dataType: "JSON",
+                data: { mobile: obj.value },
+                success: function (result) {
+
+
+                    $("#firstname" + i).val(result[0].FirstName);
+                    $("#Website" + i).val(result[0].Website);
+                    $('.emailid').select2('destroy');
+                    var opt = '<option value="' + result[0].EmailId + '" selected>' + result[0].EmailId + '</option>'
+                    $("#EmailId" + i).append(opt);
+
+                    $("#EmailId" + i).val(result[0].EmailId);
+
+
+                    $("#Mobile" + i).val(result[0].MobileNum);
+                    $("#CountryID" + i).val(result[0].CountryID);
+                    $("#Name" + i).val(result[0].Name + "," + result[0].Address);
+                    $("#lastname" + i).val(result[0].LastName);
+                    $("#ContactTypeID" + i).val(result[0].ContactTypeID);
+
+
+
+                    emailload();
+
+
+                }
+            });
+        }
+        function loadcontactemail(i, obj) {
+            $.ajax({
+                url: "/Customer/getcontactsbyemail",
+                type: "GET",
+                dataType: "JSON",
+                data: { email: obj.value },
+                success: function (result) {
+
+                    $("#firstname" + i).val(result[0].FirstName);
+                    $("#Website" + i).val(result[0].Website);
+                    $("#EmailId" + i).val(result[0].EmailId);
+                    $('.mobilenumber').select2('destroy');
+                    var opt = '<option value="' + result[0].MobileNum + '" selected>' + result[0].MobileNum + '</option>'
+                    $("#Mobile" + i).append(opt);
+
+                    //$("#Mobile" + i).val(result[0].MobileNum);
+                    $("#CountryID" + i).val(result[0].CountryID);
+                    $("#Name" + i).val(result[0].Name + "," + result[0].Address);
+                    $("#lastname" + i).val(result[0].LastName);
+                    $("#ContactTypeID" + i).val(result[0].ContactTypeID);
+
+                    mobileload();
+
+
+
+
+                }
+            });
+        }
+        function callselect() {
+            mobileload();
+            emailload();
+
+
+        }
+        function mobileload() {
+            $('.mobilenumber').select2({
+                tags: true,
+
+
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchMobilecontact",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+
+                    },
+                    cache: true
+                },
+            });
+        }
+        function emailload() {
+            $('.emailid').select2({
+                tags: true,
+
+
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchEmailcontact",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+
+
+
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+
+                    },
+                    cache: true
+                },
+            });
+        }
+    </script>
+
+    <script type="text/javascript">
+
+        var s = '<option value="0">--Select--</option>';
+
+        $(document).ready(function () {
+            $.ajax({
+                type: "GET",
+                url: "/Customer/GetDocTypes",
+                data: "{}",
+                success: function (data) {
+                    for (var i = 0; i < data.length; i++) {
+                        s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                    }
+                }
+            });
+        });
+
+
+        $(document).ready(function () {
+            var max_fields = 10; //maximum input boxes allowed
+            var wrapper2 = $(".input_fields_wrap2"); //Fields wrapper
+            var add_button = $(".add_field_button2"); //Add button ID
+
+            var x = 1; //initlal text box count
+            var totalRowCount = jQuery('#tblDcmnt').find('tr').index();
+
+            $(add_button).click(function (e) { //on add input button click
+                e.preventDefault();
+                if (x < max_fields) { //max input box allowed
+
+
+                    var rowno =  @di ;
+
+
+
+                    //paste here
+                    $(wrapper2).append('<div class="row" style="margin-top: 1rem;">' +
+
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Document Type</label>' +
+                        '<div class="input-group">' +
+                        '<select class="form-control" id="DocumentTypeID" name="LstLeadDocument[' + rowno + '].DocumentTypeID" tabindex="30">' + s +
+                        '</select>' +
+                       /* '<input type="text" name="LstLeadDocument[' + rowno + '].DoucumentType" class="form-control">' +*/
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Expiry</label>' +
+                        '<div class="input-group">' +
+                        '<input type="date" name="LstLeadDocument[' + rowno + '].Expiry" class="form-control">' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Notes</label>' +
+                        '<div class="input-group">' +
+                        '<input type="text" name="LstLeadDocument[' + rowno + '].Notes" class="form-control">' +
+                        ' </div>' +
+                        '</div>' +
+                        '<div class="col-md-2">' +
+                        '<label class="control-label">Choose Image</label>' +
+                        ' <div class="input-group">' +
+                        '<input type="file" name="LstLeadDocument[' + rowno + '].FileName" class="form-control file-upload-info" >' +
+
+                        '</div>' +
+                        '</div>' +
+                        '<a href="javascript:void(0);" class="remove_button"><i style="color:red; top: 2.5rem; position: relative; left: 0.5rem;" class="fa fa-trash" aria-hidden="true"></i></a></div>');
+
+                    x++;
+
+                    rowno++;
+                    document.getElementById('documentRowcount').value = rowno;
+                }
+            });
+            $(wrapper2).on('click', '.remove_button', function (e) {
+                e.preventDefault();
+
+                $(this).parent('div').remove(); //Remove field html
+                x--; //Decrement field counter
+            });
+        });
+    </script>
+
+    <script type="text/javascript">
+
+        var date = new Date();
+        date.setDate(date.getDate());
+        $('.date').datepicker({
+            startDate: date,
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+        $(document).ready(function () {
+            $(function () {
+                $(".textarea").wysihtml5();
+            });
+
+
+            $('#StartDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#EndDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            $("#ddlTaskType").select2({});
+            CallEmployee();
+            CallLeadPipeCust();
+            CallProject();
+            CallTeam();
+            //$("#AssignedUsers").prop("disabled", true);
+            $("#AssignedUsers").select2({
+                placeholder: 'Search Employees by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlAssignedTo").select2({
+                placeholder: 'Search User',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployeeUserRem",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $(".ref").select2({
+                tags: true
+            });
+            CallTaskStatus();
+            CallTaskNameTag();
+
+            var prochk = '@ViewBag.ProjChk';
+            if (prochk == 'active') {
+                $('#AssignedUsers').prop('required', true);
+                $('#AssignedUsers').attr('data-msg-required', "Assigned To field is required");
+            } else {
+                $('#AssignedUsers').prop('required', false);
+                $('#AssignedUsers').attr('data-msg-required', "");
+            }
+            var tsktype = '@ViewContext.RouteData.Values["id"]';
+            $("#Redirection").val(tsktype);
+            AddMobile();
+
+            $("#Location").select2({
+                tags: true
+            });
+
+            $(".ref").each(function () {
+                var refval = $(this).attr('Id');
+                $(this).attr('name', refval);
+            });
+
+        });
+
+
+
+
+
+
+        $('body').on('change', '#AssignTypeAll', function (e) {
+            var assign = $("#AssignTypeAll").val();
+            AssignTypeChange(assign);
+            CallTaskStatus();
+        });
+
+
+
+
+
+    </script>
+}

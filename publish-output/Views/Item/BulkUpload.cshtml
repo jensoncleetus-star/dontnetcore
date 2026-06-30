@@ -1,0 +1,364 @@
+﻿@model QuickSoft.ViewModel.ItemViewModel
+@{
+    ViewBag.Title = "Create Item";
+    ViewBag.SubTitle = "Item";
+    ViewBag.Active = "Master";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("BulkUpload", "Item", FormMethod.Post, new { id = "fileupload", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Item</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Item"))
+                {
+                    <a class="btn btn-success no-border" href="/Item">
+                        <i class="fa fa-fw fa-history"></i> Items List
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-sm-12">
+                <div class="callout callout-danger">
+                    <h4> Warning </h4>
+                    <ul>
+                        <li>Maximum Number of Item on an Excel Sheet is '500'</li>
+                        <li>Item Name is Mandatory</li>
+                        <li>Predefined Units on system are Gms., Kgs., Metre, Pcs. and Box</li>
+                        <li>For Jewellery Unit is predefined as Pcs.</li>
+                        <li>For Item With Vat - 5% mention Tax as 5 other wise it will take tax as "Zero Rated" </li>
+                        <li>All Fields Are Case Sensitive</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-sm-12 form-group top-10">
+                <input type="file" id="excelfile" /><br/>
+                <input type="button" id="upexcel" class="btn btn-primary btn-xs" value="Upload" onclick="ExportToTable()" />
+                <input type="button" id="dwformat" class="btn btn-default btn-xs" value="Download Format" />
+            </div>
+        </div>
+        <div class="box-footer">
+
+            <div id="excelup">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists">Item <i class="text-danger">*</i></th>
+                                <th class="text-center">Unit</th>
+                                <th class="text-center">Opening Stock </th>
+                                <th class="text-center">Category </th>
+                                <th class="text-center">Brand </th>
+                                <th class="text-center">MRP </th>
+                                <th class="text-center"> </th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr></tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button type="submit" id="save" class="btn btn-success">
+                    <span class="glyphicon glyphicon-floppy-disk"></span> Save Items
+                </button>
+                <div class="form-group pull-right">
+
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/sheetjs")
+    
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#excelup').hide();
+        });
+
+        $("#dwformat").click(function () {
+            window.location.href = '@Url.Action("DownloadExcel", "Item")';
+        });
+        function delete_dt() {
+            var table = document.getElementById("addinvoiceItem");
+            var rowCount = table.rows.length;
+            while(table.rows.length > 0) {
+                table.deleteRow(0);
+
+            }
+        }
+        //Excel working
+        function ExportToTable() {
+            delete_dt();
+            
+            $('#excelup').show();
+            $("#chkexcel").val("true");
+            //var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;
+            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+            /*Checks whether the file is a valid excel file*/
+            if (regex.test($("#excelfile").val())) {
+                // if (regex.test($("#excelfile").val().toLowerCase())) {
+                var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
+                if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
+                    xlsxflag = true;
+                }
+                /*Checks whether the browser supports HTML5*/
+                if (typeof (FileReader) != "undefined") {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        ///*Converts the excel data in to object*/
+                        var data = new Uint8Array(reader.result);
+
+                        //if (xlsxflag) {
+                        var workbook = XLSX.read(data, { type: 'array' });
+                        //}
+                        //else {
+                        //    var workbook = XLS.read(data, { type: 'array' });
+                        //}
+                        /*Gets all the sheetnames of excel in to a variable*/
+                        var sheet_name_list = workbook.SheetNames;
+                        var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
+                        sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
+                            /*Convert the cell value to Json*/
+                            //if (xlsxflag) {
+                            var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y], { defval: '' })
+                            //}
+                            //else {
+                            //    var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
+                            //}
+
+                            if (exceljson.length > 0 && cnt == 0) {
+                                BindTable(exceljson, '#exceltable');
+                                cnt++;
+                            }
+                        });
+                        $('#exceltable').show();
+                    }
+                    if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
+                        reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+                    }
+                    else {
+                        reader.readAsBinaryString($("#excelfile")[0].files[0]);
+                    }
+                }
+                else {
+                    alert("Sorry! Your browser does not support HTML5!");
+                }
+            }
+            else {
+                $('#excelup').hide();
+                alert("Please upload a valid Excel file!");
+            }
+        }
+        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
+            var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/
+            var data = [];
+            $('#addinvoiceItem').html('');
+            $.each(jsondata, function (i, item1) {
+                //console.log(item1);
+                var parameters = {};
+                parameters.Prefix = ((typeof item1.Prefix === "undefined") ? "" : item1.Prefix);
+                parameters.ItemName = (typeof item1.Item === "undefined") ? (typeof item1.Description === "undefined" ? "" : item1.Description) : item1.Item;
+                parameters.ItemNameArabic = ((typeof item1['Arabic Name'] === "undefined") ? "" : item1['Arabic Name']);
+                parameters.Category = (typeof item1.Category === "undefined") ? (typeof item1['Sub Category'] === "undefined" ? "General" : item1['Sub Category']) : item1.Category;
+                parameters.Brand = ((typeof item1.Brand === "undefined") ? "General" : item1.Brand)
+                parameters.Supplier = (typeof item1.Supplier === "undefined") ? (typeof item1['Supplier Ref'] === "undefined" ? "General" : item1['Supplier Ref']) : item1.Supplier;
+                parameters.ItemQuantity = parseFloat(((typeof item1.Qty === "undefined") ? (typeof item1.ItemQuantity === "undefined" ? "0" : item1.ItemQuantity) : item1.Qty)) || 0;
+                parameters.PurchasePrice = parseFloat(((typeof item1.PurchasePrice === "undefined") ? "0" : item1.PurchasePrice)).toFixed(2) || 0;
+                parameters.MRP = parseFloat((typeof item1.MRP === "undefined") ? (typeof item1['Tag Price'] === "undefined" ? "0" : item1['Tag Price']) : item1.MRP).toFixed(2) || 0;
+                parameters.BPrice = parseFloat(((typeof item1.BasePrice === "undefined") ? (typeof item1.Cost === "Undefined" ? "0" : item1.Cost) : item1.BasePrice)).toFixed(2) || 0;
+                parameters.SellingPrice = parseFloat((typeof item1.SellingPrice === "undefined") ? (typeof item1['Tag Price'] === "undefined" ? "0" : item1['Tag Price']) : item1.SellingPrice).toFixed(2) || 0;
+                parameters.Tagline1 = (typeof item1.Tagline1 === "undefined") ? (typeof item1['Tag Line 1'] === "undefined" ? "0" : item1['Tag Line 1']) : item1.Tagline1;
+                parameters.Tagline2 = (typeof item1.Tagline2 === "undefined") ? (typeof item1['Tag Line 2'] === "undefined" ? "0" : item1['Tag Line 2']) : item1.Tagline2;
+                parameters.Tagline3 = (typeof item1.Tagline3 === "undefined") ? (typeof item1['Tag Line 3'] === "undefined" ? "0" : item1['Tag Line 3']) : item1.Tagline3;
+                parameters.Tagline4 = (typeof item1.Tagline4 === "undefined") ? (typeof item1['Tag Line 4'] === "undefined" ? "0" : item1['Tag Line 4']) : item1.Tagline4;
+                parameters.Tagline5 = (typeof item1.Tagline5 === "undefined") ? (typeof item1['Tag Line 5'] === "undefined" ? "0" : item1['Tag Line 5']) : item1.Tagline5;
+                parameters.Tax = parseFloat(((typeof item1.Tax === "undefined") ? "0" : item1.Tax)).toFixed(2) || 0;
+                parameters.Unit = ((typeof item1.Unit === "undefined") ? "" : item1.Unit);
+                //parameters.Barcode = ((typeof item1.Barcode === "undefined") ? "" : item1.Barcode);
+                parameters.PartNumber = ((typeof item1['Part Number'] === "undefined") ? "" : item1['Part Number']);
+                parameters.Size = ((typeof item1.Size === "undefined") ? "" : item1.Size);
+                parameters.Color = ((typeof item1.Color === "undefined") ? "" : item1.Color);
+                parameters.ItemDescription = ((typeof item1['Item Description'] === "undefined") ? "" : item1['Item Description']);
+                parameters.MinStock = ((typeof item1['Minimum Stock'] === "undefined") ? "0" : item1['Minimum Stock']);
+                parameters.Commission = parseFloat((typeof item1.Commission === "undefined") ? "0" : item1.Commission).toFixed(2);
+                parameters.ItemCode = ((typeof item1.ItemCode === "undefined") ? "" : item1.ItemCode);
+
+                var Division = (typeof item1.Division === "undefined") ? "G" : item1.Division;
+                switch (Division) {
+                    case 'OBJ' :
+                    case 'OBJECT':
+                        parameters.Division = 4;
+                        break;
+                    case 'DIAMOND':
+                    case 'D':
+                        parameters.Division = 2;
+                        break;
+                    case 'WATCH':                   
+                    case 'W':
+                        parameters.Division = 3;
+                        break;
+                    default:
+                        parameters.Division = 1;
+                        break;
+                }
+               if (parameters.ItemName != "" ) {
+                   bulkupload('addinvoiceItem', parameters)
+                }
+            })
+
+
+
+        }
+
+        function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/
+            var columnSet = [];
+            var headerTr$ = $('<tr />');
+            for (var i = 0; i < jsondata.length; i++) {
+                var rowHash = jsondata[i];
+                for (var key in rowHash) {
+                    if (rowHash.hasOwnProperty(key)) {
+                        if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/
+                            columnSet.push(key);
+                            headerTr$.append($('<th />').html(key));
+                        }
+                    }
+                }
+            }
+            $(tableid).append(headerTr$);
+            return columnSet;
+        }
+
+
+        $('#fileupload').on('submit', function (e) {
+            e.preventDefault();
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+
+            var data = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.array = data;
+            submitForm(parameters);
+
+        });
+        function submitForm(parameters) {
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/Item/BulkUploadItem",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+
+                },
+                success: function (e) {
+                    var mybody = $("body").html();
+                    if (e.status == true) {
+                        {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+
+                        window.location.href = '@Url.Action("Index", "Item")';
+
+                    } else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+
+        }
+
+        var count = 1, type = '';
+        limits = 500;
+        //Add Row
+        var pcount = 2;
+        function bulkupload(t, Item) {
+            if (count == limits) alert("You have reached the limit of adding " + count + " inputs");
+            else {
+                var Option = "";
+                var optionunit = "";
+                var required = "";
+                var slno = $('#addinvoiceItem tr').length + 1;
+
+                var row = "<tr class='item_' id='item_" + count + "'>";
+                //var baseprice = 0;
+                //var mrp = 0;
+                var htdata = "";
+                var itemnote = "";
+                var divid = "item_name_" + Item.ItemName;
+
+                if (count == 1) {
+                    required = 'required="required"';
+                }                
+                data = "<td class='text-center' id=" + divid + "> " + slno + " </td>" +
+                        "<td ><input class='form-control item_name_" + count + "' type='text' " + required + "  data-id='" + count + "' id='item_name_" + count + "' data-msg-required='The Item field is required' placeholder='Type Item Name' value='" + Item.ItemName + "'/> </td>" +
+                        "<td style='width:100px;'><input class='form-control unit_name_" + count + "' value='" + Item.Unit + "' id='unit_name_" + count + "'  data-id='" + count + "' id='unit_name'/></td>" +
+                        "<td><input type='number' name='product_quantity[]' id='total_qntt_" + count + "' value='" + Item.ItemQuantity + "'  class='total_qntt_" + count + " form-control text-right quty' placeholder='0' value='0' </td>" +
+                        "<input type='hidden' name='product_rate[]' " + required + " id='price_item_" + count + "' value='" + Item.MRP + "' class='price_item_" + count + " form-control text-right totrate' placeholder='0.00' min='0' /><input type='hidden' data-value='" + Item.BPrice + "' value='" + Item.BPrice + "' name='base_rate' id='base_rate_" + count + "'>  " +
+                        "<input type='hidden' id='tax_" + count + "' class='form-control text-right tax tax_" + count + "' value='" + Item.Tax + "' /><input type='hidden' class='item_partnumber' name='item_partnumber' id='partnumber_" + count + "' value='" + Item.PartNumber + "'/>" +
+                        "<input type='hidden' class='itemdescription_" + count + " form-control text-right' name='itemdescription' value='" + Item.ItemDescription + "' id='itemdescription_" + count + "'/> " +
+                        "<input type='hidden' class='item_namearabic_" + count + "' value='" + Item.ItemNameArabic + "' name='item_namearabic_' id='item_namearabic_" + count + "'/> " +
+                        "<input type='hidden' class='item_color_" + count + "' value='" + Item.Color + "' name='item_color' id='item_color_" + count + "'/> " +
+                        "<td><input type='text' class='category_" + count + "' value='" + Item.Category + "'  name='category' id='category_" + count + "'/> </td>" +
+                        "<td><input type='text' class='brand_" + count + "' value='" + Item.Brand + "'  name='brand' id='brand_" + count + "'/></td> " +
+                        "<input type='hidden' class='selitem_pprice_" + count + "' value='" + Item.PurchasePrice + "' name='selitem_pprice' id='selitem_pprice_" + count + "'/> " +
+                        "<input type='hidden' class='selitem_size_" + count + "' value='" + Item.Size + "' name='selitem_size' id='selitem_size_" + count + "'/> " +
+                        "<td><input type='number' class='selitem_psprice_" + count + "' value='" + Item.SellingPrice + "' name='selitem_psprice' id='selitem_psprice_" + count + "'/> </td>" +
+                        "<input type='hidden' class='item_description_" + count + "' value='" + Item.ItemDescription + "' name='item_description' id='item_description_" + count + "'/> " +
+                        "<input type='hidden' class='tagline1_" + count + "' value='" + Item.Tagline1 + "'  name='tagline1' id='tagline1_" + count + "'/> " +
+                        "<input type='hidden' class='tagline2_" + count + "' value='" + Item.Tagline2 + "'  name='tagline2' id='tagline2_" + count + "'/> " +
+                        "<input type='hidden' class='tagline3_" + count + "' value='" + Item.Tagline3 + "'  name='tagline3' id='tagline3_" + count + "'/> " +
+                        "<input type='hidden' class='tagline4_" + count + "' value='" + Item.Tagline4 + "' name='tagline4' id='tagline4_" + count + "'/> " +
+                        "<input type='hidden' class='tagline5_" + count + "' value='" + Item.Tagline5 + "' name='tagline5' id='tagline5_" + count + "'/> " +
+                        "<input type='hidden' class='prefix_" + count + "' value='" + Item.Prefix + "' name='prefix' id='prefix_" + count + "'/> " +
+                        "<input type='hidden' class='division_" + count + "' value='" + Item.Division + "' name='division' id='division_" + count + "'/> " +
+                        "<input type='hidden' class='supplier_" + count + "' value='" + Item.Supplier + "' name='supplier' id='supplier_" + count + "'/>" +
+                        "<input type='hidden' class='minstock_" + count + "' value='" + Item.MinStock + "' name='minstock_' id='minstock_" + count + "'/>" +
+                        "<input type='hidden' class='commission_" + count + "' value='" + Item.Commission + "' name='commission_' id='commission_" + count + "'/>" +
+                        "<input type='hidden' class='ItemCode_" + count + "' value='" + Item.ItemCode + "' name='ItemCode_' id='ItemCode_" + count + "'/>" +
+
+                        "</td>" +
+                        "<td class='text-center'><button  style='text-align: right;' class='btn btn-danger' type='button' value='Delete' onclick='deleteRow(this)'><i class='fa fa-trash fa-1x'></i></button>" + itemnote + htdata + "</td>";
+                row += data + "</tr>";
+                $('#' + t).append(row);
+
+                count++;
+
+            }
+        }
+        function deleteRow(t) {
+            var classname = $(t).closest('tr').attr('class');
+                var e = t.parentNode.parentNode;
+                e.parentNode.removeChild(e);
+            var i = 1;
+            $('#addinvoiceItem tr').each(function () {
+                $(this).find('td:first').text(i);
+                i++;
+            });
+        }        
+
+    </script>
+}

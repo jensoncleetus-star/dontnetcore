@@ -10734,8 +10734,7 @@ namespace QuickSoft.Controllers
                                               // group i by i.Customer into g
                                               select new
                                               {
-                                                  Total = i.SESubTotal
-                                                  //  Total = g.Sum(x => x.SESubTotal - x.SEDiscount)
+                                                  Total = i.SESubTotal - i.SEDiscount  // Calc fix (N4): net of discount (was gross SESubTotal; legacy intent shown in the line below)
                                               }).Sum(x => x.Total) ?? 0,
                          //.FirstOrDefault().Total ?? 0,
                          SaletaxAmt = (decimal?)(from i in db.SalesEntrys
@@ -10747,7 +10746,7 @@ namespace QuickSoft.Controllers
                                                  select new
                                                  {
                                                      Total = g.Sum(x => x.SETaxAmount)
-                                                 }).FirstOrDefault().Total ?? 0,
+                                                 }).Sum(z => (decimal?)z.Total) ?? 0,   // Calc fix (N4): sum across ALL the employee's customers (was FirstOrDefault — kept only the first)
                          SaletotAmt = (decimal?)(from i in db.SalesEntrys
                                                  where (fromdate == "" || EF.Functions.DateDiffDay(i.SEDate, fdate) <= 0) && i.Status == 1 &&
                                                  (todate == "" || EF.Functions.DateDiffDay(i.SEDate, tdate) >= 0) &&
@@ -10768,7 +10767,7 @@ namespace QuickSoft.Controllers
                                                select new
                                                {
                                                    Total = g.Sum(x => x.SRSubTotal - x.SRDiscount)
-                                               }).FirstOrDefault().Total ?? 0,
+                                               }).Sum(z => (decimal?)z.Total) ?? 0,   // Calc fix (N4): sum across ALL the employee's customers (was FirstOrDefault — kept only the first)
                          RetuntaxAmt = (decimal?)(from i in db.SalesReturns
                                                   where (fromdate == "" || EF.Functions.DateDiffDay(i.SRDate, fdate) <= 0) &&
                                                   (todate == "" || EF.Functions.DateDiffDay(i.SRDate, tdate) >= 0) &&
@@ -10778,7 +10777,7 @@ namespace QuickSoft.Controllers
                                                   select new
                                                   {
                                                       Total = g.Sum(x => x.SRTaxAmount)
-                                                  }).FirstOrDefault().Total ?? 0,
+                                                  }).Sum(z => (decimal?)z.Total) ?? 0,   // Calc fix (N4): sum across ALL the employee's customers (was FirstOrDefault — kept only the first)
                          RetuntotAmt = (decimal?)(from i in db.SalesReturns
                                                   where (fromdate == "" || EF.Functions.DateDiffDay(i.SRDate, fdate) <= 0) &&
                                                   (todate == "" || EF.Functions.DateDiffDay(i.SRDate, tdate) >= 0) &&
@@ -10788,7 +10787,7 @@ namespace QuickSoft.Controllers
                                                   select new
                                                   {
                                                       Total = g.Sum(x => x.SRGrandTotal)
-                                                  }).FirstOrDefault().Total ?? 0,
+                                                  }).Sum(z => (decimal?)z.Total) ?? 0,   // Calc fix (N4): sum across ALL the employee's customers (was FirstOrDefault — kept only the first)
 
                          NoOfVchSale = (int?)(from i in db.SalesEntrys
                                               where (fromdate == "" || EF.Functions.DateDiffDay(i.SEDate, fdate) <= 0) && i.Status == 1 &&
@@ -11218,7 +11217,7 @@ namespace QuickSoft.Controllers
                               Amount=gpr.Sum(o=>o.SEGrandTotal),
                           }).OrderBy(a => a.name).ToList();
                 vmodel.Payment = cs;
-               vmodel.pysicalcash= db.AccountsTransactions.Where(o => o.Account == 504 || o.Account ==3&&  o.CreatedDate<=fdate2).Select(o => o.Debit - o.Credit).Sum();
+               vmodel.pysicalcash= db.AccountsTransactions.Where(o => (o.Account == 504 || o.Account ==3) &&  o.CreatedDate<=fdate2).Select(o => o.Debit - o.Credit).Sum(); // Calc fix: parenthesized account test — && bound tighter than ||, so Account==504 rows had ignored the date bound (pulled future-dated cash in).
                 // Item wise
                 var itemWise = (from a in db.Items
                                 join b in db.SEItemss on a.ItemID equals b.Item
@@ -12972,21 +12971,18 @@ namespace QuickSoft.Controllers
             }
 
 
+            // Calc fix (N3): removed the unused HireDetails LEFT join (it fanned out every header total ×N for hire
+            // invoices; `h` was never projected) AND restored the filters — was aggregating ALL sales (cancelled,
+            // every MC, every date). Filters now mirror the `sreturn` sibling below exactly (SE fields vs SR).
             var sale = (from a in db.SalesEntrys
-                        join h in db.HireDetails on new { h1 = a.SalesEntryId, h2 = "Sales" }
-                        equals new { h1 = h.Reference, h2 = h.Section } into hir
-                        from h in hir.DefaultIfEmpty()
-                            //where (customer == 0 || a.Customer == customer)
-                            //&& (emp == 0 || emp == null || a.SECashier == emp)
-                            //&& (From == "" || EF.Functions.DateDiffDay(a.SEDate, fdate) <= 0) && a.Status == 1
-                            //&& (To == "" || EF.Functions.DateDiffDay(a.SEDate, tdate) >= 0)
-                            //&& ((!MCList.Any() && ddmc == null) || MCArray.Contains(a.MaterialCenter) || ddmc == a.MaterialCenter)
-                            //&& (project == 0 || project == null || a.Project == project)
-                            //&& (task == 0 || task == null || a.ProTask == task)
-                            //&& (stype == "" || a.SaleType == St)
-                            //&& (htype == 0 || htype == null || h.HireType == htype)
-                            //&& (hfrom == "" || EF.Functions.DateDiffDay(h.StartDate, hfrmdate) <= 0)
-                            //&& (hto == "" || EF.Functions.DateDiffDay(h.EndDate, htodate) >= 0)
+                        where (customer == 0 || a.Customer == customer)
+                         && (emp == 0 || emp == null || a.SECashier == emp)
+                         && (From == "" || EF.Functions.DateDiffDay(a.SEDate, fdate) <= 0) && a.Status == 1
+                         && (To == "" || EF.Functions.DateDiffDay(a.SEDate, tdate) >= 0)
+                         && ((!MCList.Any() && ddmc == null) || MCArray.Contains(a.MaterialCenter) || ddmc == a.MaterialCenter)
+                         && (project == 0 || project == null || a.Project == project)
+                         && (task == 0 || task == null || a.ProTask == task)
+                         && (stype == "" || a.SaleType == St)
                         select new
                         {
                             Date = a.SEDate,

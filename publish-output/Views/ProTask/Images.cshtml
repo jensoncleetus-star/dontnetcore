@@ -1,0 +1,69 @@
+﻿@model QuickSoft.ViewModel.ProTaskViewModel
+@{
+    Layout = null;
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>View Task Images</h4>
+</div>
+<div class="modal-body">
+@using (Html.BeginForm("ImageAdd", "ProTask", FormMethod.Post, new { id = "imgform", role = "form", enctype = "multipart/form-data" }))
+{
+    <div class="file-loading">
+        <input id="input-24" name="input24[]" type="file" multiple>
+    </div>
+    foreach (var arr in @ViewBag.image)
+    {
+        check = "\"/uploads/protaskdocuments/" + arr.FileName + "\"";
+        strImage += check + ',';
+        partialconfig += "{ key:" + arr.TaskImageId + " }" + ',';
+    }
+
+}
+</div>
+<script type="text/javascript">
+    //var krajeeGetCount = function(id) {
+    //    var cnt = $('#' + id).fileinput('getFilesCount');
+    //    return cnt === 0 ? 'You have no files remaining.' :
+    //        'You have ' +  cnt + ' file' + (cnt > 1 ? 's' : '') + ' remaining.';
+    //};
+
+    function getFileInput() {
+        $("#input-24").fileinput({
+            uploadUrl: "/ProTask/ImageAdd/"+@ViewBag.TaskId,
+            uploadAsync: false,
+            overwriteInitial: false,
+            initialPreview: [@Html.Raw(strImage)],
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'image',
+            previewClass: "bg-warning",
+            allowedFileTypes: ["image"],
+           // allowedFileExtensions: ["jpg", "png"],
+            resizePreference: 'width',
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+            resizeImage: true,
+            deleteUrl: "/ProTask/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function() {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function() {
+            setTimeout(function() {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+    }
+</script>
+
+

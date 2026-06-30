@@ -1,0 +1,144 @@
+@model QuickSoft.ViewModel.FileDocumentViewModel
+@{
+    ViewBag.Title = "Create File Documents";
+    ViewBag.SubTitle = "File Documents";
+    ViewBag.Active = "Settings";
+
+}
+<div class="box box-info">
+    @using (Html.BeginForm("Add", "FileDocument", FormMethod.Post, new { id = "createform", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Customer</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("FileDocument List"))
+                {
+                    <a class="btn btn-success no-border" href="/FileDocument/Index">
+                        <i class="fa fa-fw fa-history"></i> Document List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group col-md-6">
+                    @Html.Label("Document Name", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.DocumentName, new { htmlAttributes = new { @class = "form-control" } })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Expiry Date", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBoxFor(model => Model.ExpiryDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker date input-sm" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-8">
+                    @Html.Label("Document Note", null, new { @class = "control-label" })
+                    @Html.TextAreaFor(m => m.Note, new { @class = "form-control input-sm textarea", rows = 4 })
+                </div>
+                <div class="form-group col-md-4">
+                    @Html.LabelFor(model => model.Status, new { @class = "control-label" })
+                    @Html.EnumDropDownListFor(model => model.Status, new { @class = "form-control" })
+                </div>
+                <div class="form-group col-md-12">
+                    <div class="file-loading">
+                        @Html.TextBoxFor(model => model.Document, new { @id = "fileupload", @class = "file", name = "fileupload", multiple = "multiple", type = "file" })
+                    </div>
+                </div>
+            </div>
+            <div class="form-group pull-right">
+                <button type="submit" id="Save" class="btn btn-success">
+                    <span class="glyphicon"></span> Save
+                </button>
+                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/FileDocument/Index'");">Cancel</button>
+            </div>
+        </div>
+
+    }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    <script type="text/javascript">
+        var date = new Date();
+        date.setDate(date.getDate());
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        function data() {
+            var formData = new FormData($('#createform')[0]);
+            console.log(formData);
+            console.log($('#createform').serialize());
+            return formData;
+        }
+        $("#fileupload").fileinput({
+            //uploadAsync: false,
+            //uploadUrl: $('#createform')[0].action,
+            //uploadExtraData: data()
+        });
+
+        /* Create function for File Document */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        @*$('#createform').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#createform").valid()) {
+                var url = $('#createform')[0].action;
+                var formData = new FormData(this);
+                var files = $("#fileupload").get(0);
+                if (files.length > 0) {
+                    for (var i = 0; i < files.length; i++) {
+                        formData.append("fileupload", files[i]);
+                    }
+                }
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            window.location.href = '@Url.Action("Index", "FileDocument")';
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });*@
+
+    </script>
+}

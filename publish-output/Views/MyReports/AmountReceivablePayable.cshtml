@@ -1,0 +1,121 @@
+@{
+    ViewBag.Title = "Amount Receivable & Payable";
+    ViewBag.SubTitle = "Amount Receivable & Payable";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Customer Outstanding</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("AmountReceivablePayable", "MyReports", FormMethod.Post, new { id = "ReceivablePayableForm" }))
+        {
+            <div class="form-group col-md-2 lblpadding ">
+                <label class="control-label"><input type="checkbox" value="true" name="pdc" id="pdc" /> Include PDC Entries</label>
+            </div>
+            <div class="form-group col-md-2" style="display:none">
+                @Html.Label("Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Sundry Debtors", Value="1"}
+
+
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+            </div>
+
+            <div class="form-group col-md-2" id="CusDiv">
+                @Html.Label("Salesman", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "All", Value="0"},
+
+                    }, "Value", "Text"), new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-2">
+    @Html.Label("Date", null, new { @class = "control-label" })
+        <div class="input-group date">
+            @Html.TextBox("OnDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+            <div class="input-group-addon">
+                <i class="fa fa-calendar"></i>
+            </div>
+        </div>
+    </div>
+    <div class="box-footer col-md-12">
+        <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+        <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+    </div>
+    }
+</div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        CallEmployeeall();
+        $('#OnDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        $('#OnDate').datepicker('setDate', today);
+    });
+    $("#pdc").on("change", function () {
+        if ($("#pdc").prop("checked") == true) {
+            var date = new Date();
+            var today = new Date(date.getFullYear()+2, date.getMonth(), date.getDate());
+            $('#OnDate').datepicker('setDate', today);
+
+        }
+        else {
+            var date = new Date();
+            var today = new Date(date.getFullYear() , date.getMonth(), date.getDate());
+            $('#OnDate').datepicker('setDate', today);
+        }
+    });
+    function CallEmployeeall() {
+
+        //bind to employee
+        $("#ddlEmployee").select2({
+            placeholder: 'Search by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "all"
+
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+    }
+</script>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+    </script>
+    }

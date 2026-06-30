@@ -1,0 +1,577 @@
+@{
+    ViewBag.Title = "Search Monthly Sales";
+    ViewBag.SubTitle = "Monthly Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Monthly Sales</h3>
+    </div>
+
+    <div class="box-body">
+        <form id="search-form">
+             <div class="row">
+
+                    @if (@ViewBag.EnableMCcheck == 0)
+                    {
+                        <div class="form-group col-md-4">
+                            @Html.Label("Material Center", null, new { @class = "control-label" })
+                            @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                        </div>
+                    }
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("From", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("From", "", "{0:MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        @Html.Label("To", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("To", "", "{0:MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+
+          
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+    <input type="hidden" id="todate" value="@ViewBag.todate" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Sales Entry Report</h3>
+    </div>
+    <div class="box-body">
+
+
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <th>S/N</th>
+                        <th>Month-Year</th>
+                        <th>Taxable Sale Amount</th>
+                        <th>Sale Tax</th>
+                        <th>Total Sale Amount</th>
+                        <th>Taxable Sale Return Amount</th>
+                        <th>Sale Return Tax</th>
+                        <th>Total Sale Return Amount</th>
+                        <th>Net Sale Amount</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'MM-yyyy',
+            startView: "months",
+            minViewMode: "months",
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            /*hided the datas still before pressing the dubmit button*/
+            $('#StockReport').hide();
+            //end
+            $('#From').datepicker({
+                format: 'MM-yyyy',
+                startView: "months",
+                minViewMode: "months",
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#To').datepicker({
+                format: 'MM-yyyy',
+                startView: "months",
+                minViewMode: "months",
+                autoclose: true,
+                allowInputToggle: true
+            });
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth());
+            var priordate = new Date(date.getFullYear(), date.getMonth() - 1);
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            CallRepMCUser();
+        });
+        function searchData(data) {
+            data.fromdate = $('#From').val();
+            data.todate = $('#To').val();
+            data.ddmc = $('#ddlMC').val();
+
+        }
+        function showdatatable() {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "stateSave": true,
+                "bDestroy": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": false,
+                "ajax": {
+                    "url": '/SalesReport/GetMonthlySale',
+                    "data": function (data) {
+                        data = searchData(data);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+
+                    {
+                        "data": "SESubTotal", "name": "SESubTotal",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    {
+                        "data": "MonthYear", "name": "MonthYear",
+                        "render": function (data) { return (data); }
+                    },
+
+                    //{ "data": "TotalSaleCount", "name": "TotalSaleCount" },
+                    { "data": "SESubTotal", "name": "SESubTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SESaleTaxAmount", "name": "SESaleTaxAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SEGrandTotal", "name": "SEGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+
+                    //{ "data": "TotalSaleReturnCount", "name": "TotalSaleReturnCount" },
+                    { "data": "SRSubTotal", "name": "SRSubTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SRSaleTaxAmount", "name": "SRSaleTaxAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SRGrandTotal", "name": "SRGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "NetAmount", "name": "NetAmount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'SalesReport';
+                        },
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Monthly-Sales Report</h4></th></tr>' +
+                                ' <tr><th><span class="text-right pull-left"> From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                            $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                                .css('min-width', '80px');
+                            //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                            //    .css('padding', '0px');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'SalesReport';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Monthly-Sales Report \n' +
+                                'From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            //columns: [0,1,2,3,4,5,6,7,8]
+                            columns: ':visible'
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'SalesReport';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Monthly Sales Report \n' +
+                                'From :  ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            //columns: [0,1,2,3,4,5,6,7,8]
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+
+                            doc.styles.title.fontSize = 12;
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            //doc.content[1].table.widths = [
+                            //'5%',
+                            //'10%',
+                            //'12%',
+                            // '12%',
+                            // '12%',
+                            // '12%',
+                            // '12%',
+                            // '12%',
+                            // '10%'
+                            // ]
+
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+
+                        }
+                    }
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    //// Total over all pages
+                    //total = api
+                    //    .column(1)
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //    .column(1, { page: 'current' })
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Update footer
+                    //$(api.column(1).footer()).html(
+                    //     pageTotal.toFixed(2)
+                    //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+
+                    // Total over all pages
+                    total = api
+                        .column(2)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(2, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(2).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(4)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(4, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(4).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(5).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    // Total over all pages
+                    total = api
+                        .column(6)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(6, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(6).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    // Total over all pages
+                    total = api
+                        .column(7)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(7, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(7).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    // Total over all pages
+                    total = api
+                        .column(8)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(8, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(8).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                    oTable.column(1).visible(true);
+                }
+
+            });
+            //for showing the datatable when click the submit button
+
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+                oTable.draw();
+                $('#SReport').show();
+                $('#UserTable').show();
+
+
+
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        }
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+    </script>
+}

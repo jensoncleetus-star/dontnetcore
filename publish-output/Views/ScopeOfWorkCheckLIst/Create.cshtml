@@ -1,0 +1,156 @@
+@model QuickSoft.ViewModel.ScopeOfWorkViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Check List";
+    ViewBag.Active = "Settings";
+}
+
+@using (Html.BeginForm("Create", "ScopeOfWorkCheckList", FormMethod.Post, new { id = "saleform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Check List</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    
+                        <a class="btn bg-black no-border" href="/ScopeOfWorkCheckList/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    
+                }
+               
+                    <a class="btn btn-success no-border" href="/ScopeOfWorkCheckList">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Stage", null, new { @class = "control-label" })
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownListFor(model => model.Stage, (SelectList)ViewBag.leadstatus, new { id = "ddlPStatus", @class = "form-control" })
+                        <span class="input-group-btn">
+                            <button type="button" href="/LeadType/Create" class="btn btn-info modal-create"><i class="fa fa-1x fa-plus-circle"></i></button>
+                        </span>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalchecklist">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists">List Name </th>
+                                <th class="text-center">Add Note</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="addchecklist"></tbody>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="col-md-6">
+                            <div class="form-group pull-right">
+                                <button type="submit" id="save" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Checklist/Index'");">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@Html.Partial("../Common/_ModalCreate")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/checklist")
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#Stage').select2();
+            addrow('addchecklist', 'checklist', '', '');
+        });
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#pstatform', function (e) {
+            e.preventDefault();
+            var url = $('#pstatform')[0].action;
+            var data = $('#pstatform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('#saleform').on('submit', function (e) {
+            e.preventDefault();
+            submitForm();
+
+        });
+        function submitForm() {
+
+            var Stage = $('#ddlPStatus').val();
+            var CheckList = [Stage]
+
+
+            //sales
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').not('.checklist_').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+            var data = HTMLtbl.getData($('#normalchecklist'));
+
+            var parameters = {};
+            parameters.array = data;
+            parameters.data = CheckList;
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/ScopeOfWorkCheckList/CreateChecklist",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                        $("button").prop('disabled', false);
+                        window.location.href = '@Url.Action("Index", "ScopeOfWorkChecklist")';
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+        }
+
+    </script>
+}

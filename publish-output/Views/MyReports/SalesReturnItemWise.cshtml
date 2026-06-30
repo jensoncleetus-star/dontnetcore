@@ -1,0 +1,240 @@
+@{
+    ViewBag.Title = "Search Sale return";
+    ViewBag.SubTitle = "Item Wise Summary";
+    ViewBag.Active = "Report";
+
+}
+@if (!IsPost)
+{
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Search Sales Return Item Wise</h3>
+        </div>
+        <div class="box-body">
+            @using (Html.BeginForm("SalesReturnItemWise", "MyReports", FormMethod.Post, new { id = "popupForm" }))
+            {
+                <form id="search-form">
+                    <input type="hidden" id="cname" value="@ViewBag.CName" />
+                    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Item Category", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItemCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+                    </div>
+
+                    @if (@ViewBag.EnableMCcheck == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.Label("Material Center", null, new { @class = "control-label" })
+                            @Html.DropDownList("ddmc", (SelectList)ViewBag.MC, new { @class = "form-control input-sm select2" })
+                        </div>
+                    }
+                    <div class="box-footer col-md-3 lblpadding">
+                        <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Search</button>
+                        <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+
+    @section style{
+        @Styles.Render("~/css/bootstrap-datepicker")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/bootstrap-datepicker")
+        <script type="text/javascript">
+            $('.date').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            })
+            $(document).ready(function () {
+                CallRepMCUser();
+                //ItemCategory();
+                $('#To').datepicker({
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                $('#From').datepicker({
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true
+                });
+                var date = new Date();
+                var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                //var fromdat = today.getMonth(-1);
+                var d = new Date();
+                d.setMonth(d.getMonth() - 1);
+                $('#To').datepicker('setDate', today);
+                $('#From').datepicker('setDate', d);
+
+                $("#ddlItemCategory").select2({
+                    placeholder: 'Search Item Category',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/ItemCategory/SearchItemCategory",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                x: "all"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                $("#ddmc").select2({
+                    placeholder: 'Search Material Center by Name or Code',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/MC/SearchMCUser",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                x: "All"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            });
+        </script>
+    }
+}
+else
+{
+    @model QuickSoft.ViewModel.DailySummaryViewModel
+
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">Sale Return Category Wise</h3>
+            <div class="pull-right">
+                <button class="btn btn-success no-border" id="printthis">
+                    <i class="fa fa-fw fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-md-12 pos-preview">
+                <div id="invoice-POS" class="printit">
+                    <center id="top">
+                        @if (@ViewBag.CLogo != null)
+                        {
+                            <div class="logo"><img class="img-responsive" src="../uploads/company/@ViewBag.CLogo" /></div>
+                        }
+                        <div class="detail">
+                            <h3>@ViewBag.CName</h3>
+                            <h5>
+                                @ViewBag.CAddress<br>
+                                @if (@ViewBag.CPhone != null)
+                                {
+                                    <span>
+                                        @ViewBag.CPhone
+                                    </span>
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span> , @ViewBag.CPMob</span>
+                                    }
+                                    <br />
+                                }
+                                else
+                                {
+                                    if (@ViewBag.CPMob != null)
+                                    {
+                                        <span>@ViewBag.CPMob</span>
+                                        <br />
+                                    }
+                                }
+                                @ViewBag.CEmail<br>
+                                @if (@ViewBag.CTaxRegNo != null)
+                                {
+                                    <span>TRN: @ViewBag.CTaxRegNo</span>
+                                }
+                            </h5>
+                            <h5>Reading Date :  @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.Date)) </h5>
+                            <h5>Reading By   : @Model.by </h5>
+                            @*<h5>Time : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.time)) </h5>*@
+                            <h5>Report From   : @Model.from   To   :@Model.to</h5>
+                            <h5>Category   : @Model.category</h5>
+                            
+                        </div>
+                    </center>
+                    @if (Model.SaleRetItemCatWise != null)
+                    {
+                        <div class="text-center">
+                            <h4>
+                                Summary By Sales Return Items
+                            </h4>
+                        </div>
+                        <div id="mid">
+                            <div class="detail">
+                                <p><b>Item Name</b> : <span><b>Quantity</b></span></p>
+                                @foreach (var itm in Model.SaleRetItemCatWise)
+                                {
+                                    <p><b>@itm.Name</b> : <span>@itm.Quantity @itm.PUName</span></p>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    @section style{
+        @Styles.Render("~/css/posprint")
+    }
+    @section Scripts {
+        @Scripts.Render("~/js/printThis")
+        <script type="text/javascript">
+            $('#printthis').on("click", function () {
+                $(".printit").printThis();
+            });
+            $(document).ready(function () {
+
+
+            });
+
+        </script>
+    }
+}

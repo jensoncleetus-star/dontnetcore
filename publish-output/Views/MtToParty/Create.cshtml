@@ -1,0 +1,409 @@
+@model QuickSoft.ViewModel.MtToPartyViewModel
+@{
+    ViewBag.Title = "Create Materials Issued To Party";
+    ViewBag.SubTitle = "Materials Issued To Party";
+    ViewBag.Active = "Transactions";
+    string IRateCheck = "inactive";
+}
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("Create", "MtToParty", FormMethod.Post, new { id = "MtToPartyform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Materials Issued To Party</h3>
+            <div class="pull-right">
+
+
+                @*@if (User.IsInRole("Dev") || User.IsInRole("MtFromParty List"))
+                    {*@
+                <a class="btn btn-success no-border" href="/MtToParty/Index">
+                    <i class="fa fa-fw fa-history"></i> Materials Issued List
+                </a>
+                @*}*@
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Voucher No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                    @Html.HiddenFor(model => model.Voucher)
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(model => model.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.MtToType, new { id = "ddlMtType", @class = "form-control" })
+                </div>
+
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("Party", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Accounts"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(model => model.Party, (SelectList)ViewBag.Party, new { id = "ddlParty", @class = "form-control select2", @required = "required" })
+                            <span class="input-group-btn">
+                                <a href="/Accounts/Create" class="btn btn-default modal-create btnpartyAdd" title="Add Party"><i class="glyphicon glyphicon-plus"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(model => model.Party, (SelectList)ViewBag.Party, "", new { id = "ddlParty", @class = "form-control select2", @required = "required" })
+                    }
+                </div>
+
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create MC"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(model => model.MC, (SelectList)ViewBag.MCbag, new { id = "ddlMC", @class = "form-control select2", @required = "required" })
+                            <span class="input-group-btn">
+                                <a href="/MC/Create" class="btn btn-default modal-create btnMcAdd" title="Add Party"><i class="glyphicon glyphicon-plus"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(model => model.MC, (SelectList)ViewBag.MCbag, "", new { id = "ddlMC", @class = "form-control select2", @required = "required" })
+                    }
+                </div>
+
+                <div class="col-sm-6 form-group">
+                    @Html.Label("Description : ", null, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Description, new { @class = "form-control", @rows = 3 })
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="normalinvoice">
+                    <thead>
+                        <tr>
+                            <th class="text-center">S/N</th>
+                            <th class="text-center">Item <i class="text-danger">*</i></th>
+                            <th class="text-center">Unit</th>
+                            <th class="text-center">Qty <i class="text-danger">*</i></th>
+                            <th class="text-center">Price <i class="text-danger">*</i></th>
+                            <th class="text-center">Amount</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="addinvoiceItem"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td> <b>Total</b> </td>
+                            <td class="text-left"> <label id="ToItemCount"></label> </td>
+                            <td></td>
+                            <td class="text-right"> <label id="ToItemQnt"></label> </td>
+                            <td class="text-right">
+                                <label id="ToItemPrice"></label>
+                            </td>
+                            <td class="text-right"> <label id="ToItemAmount"></label> </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3"></div>
+
+
+
+            <div class="form-group col-md-6 no-padding pull-right">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="billsundry">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center">Bill Sundry</th>
+                                <th class="text-center">Value</th>
+                                <th class="text-center">Type</th>
+                                <th class="text-center">Amount</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addbillsundry"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="form-group col-md-2 no-padding pull-right">
+                @Html.Label("Total Amount", null, new { @class = "control-label" })
+                @Html.TextBoxFor(model => model.TotalAmount, new { id = "GrandTotal", @class = "form-control", @readonly = "readonly" })
+            </div>
+        </div>
+        <div class="col-md-6"></div>
+        <div class="row">
+            <div class="col-md-6">
+
+                <div class="form-group col-md-6 no-paddingleft">
+                </div>
+                <div class="form-group pull-right">
+                    <button type="submit" id="save" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                    </button>
+                    <button type="submit" id="print" class="btn btn-success">
+                        <span class="glyphicon glyphicon-print"></span> Save And Print
+                    </button>
+                    @if (@ViewBag.CheckMail == 0)
+                    {
+                        <button type="submit" id="sendmail" class="btn btn-success">
+                            <span class="glyphicon glyphicon-envelope"></span> Save And Mail
+                        </button>
+                    }
+                    <button type="button" class="btn btn-warning" onclick="window.location.href='/MtToParty/Index'">Cancel</button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModeItemCreate")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/wysihtml5")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/partymaterials")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/wysihtml5")
+
+
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(document).ready(function () {
+            $("#MtToType").prop('selectedIndex', 0);
+
+            searchItem();
+            ItemCategory();
+            ItemBrand();
+
+            $("#ddlParty").select2({
+                placeholder: 'Search Party by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccounts",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: ""
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+
+            $("#ddlMC").select2({
+                placeholder: 'Search MC by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/MC/SearchMC",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: ""
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+        });
+
+
+        addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
+        addbillsundry('addbillsundry', 'sales', '0.00', '', '0.00', '');
+
+
+        $('#MtToPartyform').on('submit', function (e) {
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            var warnmsg=@ViewBag.WarnMsg;
+            if(warnmsg == 0){
+                var WMsg = confirm("Do you want to Save..?");
+                if(WMsg==true){
+                    SaveFunction(fnval);
+                }else{
+                }
+            }else{
+                SaveFunction(fnval);
+            }
+        });
+
+
+        function SaveFunction(fnval) {
+
+            if ($("#MtToPartyform").valid()) {
+
+                var VoucherNo = $('#VoucherNo').val();
+                var Date = $('#Date').val();
+
+                var MtType = $('#ddlMtType').val();
+                var Party = $('#ddlParty').val();
+                var MatCent = $('#ddlMC').val();
+                var Description = $('#Description').val();
+
+                var TotItemCount = $('#ToItemCount').text();
+                var TotItemQuantity = $('#ToItemQnt').text();
+                var TotPrice = $('#ToItemPrice').text();
+                var TotAmount = $('#GrandTotal').val();
+
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+                var HTMLtblbs = {
+                    getData: function (table) {
+                        var bsData = [];
+                        table.find('tr').not(':first').not('.bs_').each(function (rowIndex, r) {
+                            var cols = {};
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                itid = $(this).attr('data-name').split(' ')[0];
+                                itval = ($(this).val() != "") ? $(this).val() : $(this).text();
+                                cols[itid] = itval;
+
+                            });
+                            bsData.push(cols);
+                        });
+                        return bsData;
+                    }
+                }
+                var bsData = HTMLtblbs.getData($('#billsundry'));
+                var salesEntry = [ VoucherNo, Date, MtType, Party, MatCent, Description, TotItemCount,
+                    TotItemQuantity, TotPrice, TotAmount ];
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+                var parameters = {};
+                parameters.array = data;
+                parameters.mtdata = salesEntry;
+                parameters.bsmodel = { 'sebsundrys': bsData }
+
+                if (fnval == "save") {
+                    submitForm(fnval, parameters);
+                } else if (fnval == "print") {
+                    submitForm(fnval, parameters);
+                } else if (fnval == "sendmail") {
+                    if ($('#custEmailId').val() != "") {
+                        submitForm(fnval, parameters);
+                    } else {
+                        $('.ajax_response', res_danger).text("Party Email Address Not Found..!!");
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                }
+            }
+        }
+
+        function submitForm(fnval, parameters) {
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/MtToParty/CreateMt",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+                },
+                success: function (e) {
+                    if (e.status == true) {
+                        $('.ajax_response', res_success).text(e.message);
+                        $('.AlertDiv').prepend(res_success);
+                        window.location.href = '@Url.Action("Create", "MtToParty", new { id = "", type = "" })';
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); //enable button
+                    }
+                }
+            });
+        }
+        AddItemPopUp();
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+
+    </script>
+}

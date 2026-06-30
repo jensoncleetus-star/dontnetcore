@@ -1,0 +1,143 @@
+﻿@model IEnumerable<QuickSoft.Models.ItemDocument>
+@{
+    Layout = null;
+}
+
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>View Item Document</h4>
+    <p class="pull-right">
+        <a href="/Item/DocumentAdd/@Request.Url.Segments.Last()" class="btn btn-info modal-link-create"><i class="glyphicon glyphicon-plus"></i> Add New</a>
+    </p>
+</div>
+<div class="modal-body">
+    <table class="table table-bordered table-hover" id="UserTable" width="100%">
+        <thead>
+            <tr class="bg-gray">
+                <td>Document</td>
+                <td>Action</td>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr id="@Html.DisplayFor(modelItem => item.ItemDocumentID)">
+                    <td>
+                        @*<img src="~/uploads/itemimages/@Html.DisplayFor(modelItem => item.ItemID)/@Html.DisplayFor(modelItem => item.FileName)" width="50" height="50" />*@
+                       <a href="~/uploads/itemdocuments/@Html.DisplayFor(modelItem => item.ItemID)/@Html.DisplayFor(modelItem => item.FileName)" target="_blank">@Html.DisplayFor(modelItem => item.FileName)</a>
+
+                    </td>
+                    <td>
+                        @Html.ActionLink("Delete", "DocumentDelete", new { id = item.ItemDocumentID }, new { @class = "modal-link-delete" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div id="modal-container3" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    function fadeAlert() {
+        window.setTimeout(function () {
+            $(".alert-message").alert("close");
+        }, 5000);
+    }
+
+    $(document).ready(function () {
+        $('.table').on('click', '.modal-link-delete', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container3');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-container3').on('submit', '#popupFormItemDocument', function (e) {
+            var url = $('#popupFormItemDocument')[0].action;
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#popupFormItemDocument').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-container3').modal('hide');
+                        $('.ajax_response', res_success).text(data.message);
+                        $('.AlertDiv').prepend(res_success);
+                        $('#' + data.Id).remove();
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+            e.preventDefault();
+        })
+        
+
+        $('div').on('click', '.modal-link-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container3');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-container3').on('submit', '#popupFormItemDocumentAdd', function (e) {
+            var url = $('#popupFormItemDocumentAdd')[0].action;
+            var formData = new FormData($('#popupFormItemDocumentAdd')[0]);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-container3').modal('hide');
+                        $('.ajax_response', res_success).text(data.message);
+                        $('.AlertDiv').prepend(res_success);
+                        //$('#' + data.Id).remove();
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+            e.preventDefault();
+        })
+
+        
+
+        //$('#modal-container3').on('submit', '#popupFormItemDocumentAdd', function (e) {
+        //    var url = $('#popupFormItemDocumentAdd')[0].action;
+        //    var formData = new FormData($('#popupFormItemDocumentAdd')[0]);
+        //    $.ajax({
+        //        type: "POST",
+        //        url: url,
+        //        contentType: this.enctype,
+        //        data: formData,
+        //    })
+        //    e.preventDefault();
+        //})
+
+
+        $('body').on('click', '.closed', function () {
+            $('#modal-container3').modal('hide');
+            $('#modal-container3').removeData('bs.modal');
+        });
+
+        $('#modal-container3').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+    });
+    
+</script>
+
+

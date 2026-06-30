@@ -1,0 +1,615 @@
+﻿@model QuickSoft.ViewModel.ContactformViewModel
+@{
+    ViewBag.Title = "Edit Contact";
+    ViewBag.SubTitle = "Contact";
+    ViewBag.Active = "Utility";
+    int cnt = 0;
+}
+<style>
+    .remove_button {
+        position: absolute;
+        right: 1rem;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="~/Content/css/shared/style.css">
+<!-- Layout styles -->
+<link rel="stylesheet" href="~/Content/css/demo_1/style.css">
+<!-- End Layout styles -->
+
+<div class="box box-info">
+    @using (Html.BeginForm("Edit", "Contact", FormMethod.Post, new { id = "createForm", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Contacts</h3>
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Contact"))
+                    {
+                        <a class="btn bg-black no-border" href="/Contact/Edit/@ViewBag.LastEntry">
+                            Contact
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Contact List"))
+                {
+                    <a class="btn btn-success no-border" href="/Contact">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="box-body">
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+            @*<div class="form-group col-md-4">
+            @Html.LabelFor(model => model.Group, htmlAttributes: new { @class = "control-label" })*
+            @Html.DropDownListFor(m =s> m.Group, (SelectList)ViewBag.ParentModules, new { @class = "form-control" })
+        </div>*@
+            <div class="row">
+                <div class="form-group col-md-3">
+                    <label class="control-label">Contact Code</label>
+                    @Html.EditorFor(model => model.ContactCode, new { htmlAttributes = new { @class = "form-control", @placeholder = "Contact ID", @readonly = "readonly" } })
+                </div>
+                <div class="form-group col-md-3">
+                    <label class="control-label">First Name</label><i class="text-danger">*</i>
+                    @Html.EditorFor(model => model.FirstName, new { htmlAttributes = new { @class = "form-control", @placeholder = "First Name", @required = "required"} })
+                </div>
+                <div class="form-group col-md-3">
+                    <label class="control-label">Last Name</label><i class="text-danger">*</i>
+                    @Html.EditorFor(model => model.LastName, new { htmlAttributes = new { @class = "form-control", @placeholder = "Last Name", @required = "required" } })
+                </div>
+                <div class="form-group col-md-3">
+                    <label class="control-label">Name</label>
+                    @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control", @placeholder = "Company Name", @required = "required" } })
+                </div>
+            </div>
+
+            <div class="row">
+
+                <div class="form-group col-md-3">
+                    <label class="control-label">Contact Group</label>
+                    <div class="input-group">
+                        @Html.DropDownListFor(model => model.ContactGroupID, (SelectList)ViewBag.ContactGroup, "", new { id = "ContactGroupID", @class = "form-control select2" })
+                    </div>
+                </div>
+
+                <div class="form-group col-md-2">
+                    <label class="control-label">Country</label>
+                    <div class="input-group">
+                        @Html.DropDownListFor(model => model.CountryID, (SelectList)ViewBag.Country, "", new { id = "CountryID", @class = "form-control select2" })
+                    </div>
+                </div>
+
+                <div class="form-group col-md-2">
+                    <label class="control-label">Website</label>
+                    @Html.EditorFor(model => model.Website, new { htmlAttributes = new { @class = "form-control", @placeholder = "Website" } })
+                </div>
+               
+                @****************************Row for Mobile No. And Email ID**************************************@
+                <div class="form-group col-md-5 ">
+                    <div id="AddDetails"></div>
+                </div>
+
+            </div>
+            @***************************************Row for Add Attachment*****************************************@
+            <div class="row">
+                <div class="form-group col-md-12">
+                    <input type="button" class="btn btn-info  pull-left" value="Add Attachments(+)" id="btnAddDocu" onclick="AddDocs()" />
+                </div>
+            </div>
+
+            <div id="documents">
+
+                @foreach (var item in (List<QuickSoft.Models.CustomerDocument>)ViewBag.cuslists)
+                {
+                    List<QuickSoft.Models.DocumentType> doclist = ViewBag.DocList;
+
+                    <div class="row">
+                        <div class="form-group col-md-2">
+                            <label class="control-label">Document Type</label>
+                            <input type="hidden" name="CustomerDocumentViewModel[@(cnt)].DocumnetId" value="@item.DocumnetId" id="docu" />
+                            <select id="Type" class="form-control" name="CustomerDocumentViewModel[@(cnt)].DocumentTypeID">
+                                @{
+                                    foreach (var data in doclist)
+                                    {
+                                        if (data.ID == item.DocumentTypeID)
+                                        {
+                                            <option value="@data.ID" selected="selected">@data.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@data.ID">@data.Name</option>
+                                        }
+                                    }
+                                }
+
+                            </select>
+                            @*<input class="form-control" name="CustomerDocumentViewModel[@(cnt)].DoucumentType" placeholder="Document Type" type="text" value="@item.">*@
+                        </div>
+                        <div class="form-group col-md-2 ">
+                            <label class="control-label">Expiry</label>
+                            <input class="form-control date" name="CustomerDocumentViewModel[@(cnt)].Expiry" placeholder="Expiry" type="text" value="@item.Expiry">
+                        </div>
+                        <div class="form-group col-md-2">
+                            <label class="control-label">Notes</label>
+                            <input class="form-control" name="CustomerDocumentViewModel[@(cnt)].Notes" placeholder="Notes" type="text" value="@item.Notes">
+                        </div>
+                        <div class="form-group col-md-2">
+                            <label class="control-label">Choose File</label>
+                            <a href="@Url.Content("~/UploadedFiles/"+item.FilePath)">@Url.Content("~/UploadedFiles/" + item.FilePath)</a>
+                        </div>
+                        <a href="javascript:void(0);" class="remove_button"><i style="color:red;" onclick="removeDoc(this)" class="fa fa-trash" aria-hidden="true"></i></a>
+                    </div>
+
+                    cnt++;
+                 }
+            </div>
+
+        </div>
+
+        <div class="box-footer clearfix">
+            <input type="submit" class="btn btn-info" value="Update" id="btnSubmit" />
+            <input type="button" class="btn btn-default" value="Cancel" onclick="@("window.location.href='/Contact/Index'");" />
+        </div>
+        <div id="divmobile">
+        </div>
+     }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/Mobile")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+<script type="text/javascript">
+
+    var rowno = 0;
+
+        $(document).ready(function () {
+
+            var ContactID = getQueryString('');
+
+            if (ContactID != null) {
+
+                $.ajax({
+                    url: '/Contact/GetMobile',
+                    dataType: 'json',
+                    data: { CnId: ContactID },
+                    cache: true,
+                    success: function (data) {
+
+                        var count = 0;
+                        $.each(data, function (i, item) {
+
+                            AddMobile(item.Mob, item.Name);
+
+                            //Function for appending rows for MobileNo and EmailID by passing parameters(only for the retrieving data)
+                            AddDetails(item.Mob, item.Name, item.ID);
+
+                            count++;
+                        });
+
+                        if (count == 0) {
+                            AddMobile();
+                            AddDetails();
+                        }
+                    }
+                });
+            }
+
+            $("#State").select2();
+
+        });
+
+        function emailload() {
+
+            $('.emailid').select2({
+                tags: true,
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Customer/SearchEmailcontacts",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+
+                    },
+                    cache: true
+                },
+            });
+        }
+
+        function mobileload() {
+
+            $('.mobilenumber').select2({
+                tags: true,
+                minimumInputLength: 0,
+                placeholder: '5xxxxxxxx',
+                ajax: {
+                    url: "/Customer/SearchMobilecontacts",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            x: "All",
+                            page: params.page || 0,
+                        };
+                    },
+
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+
+                            results: data
+                        };
+
+                    },
+                    cache: true
+                },
+            });
+        }
+
+         //Function to load EmailID for corresponding MobileNo.
+        function LoadEmailForMobile(rowno, obj) {
+
+            $.ajax({
+                url: "/Customer/getcontactsbymobiles",
+                type: "GET",
+                dataType: "JSON",
+                data: { mobile: obj.value },
+                success: function (result) {
+
+                    var count = 0;
+                    //checking is there a result
+                    $.each(result, function () {
+                        count=1;
+                    });
+
+                    //for a selected value that is already in Mobile Dropdown
+                    if (count != 0)
+                    {
+                        $('.emailid').select2('destroy');
+                        var opt = '<option value="' + result[0].EmailId + '" selected>' + result[0].EmailId + '</option>'
+
+                        //changing the value of EmailID.
+                        $("#EmailId" + rowno).append(opt);
+                        $("#EmailId" + rowno).val(result[0].EmailId);
+                    }
+
+                    emailload();
+                }
+            });
+
+            //Function to check correct format for Mobile Number
+            CheckMobileNo(obj.value, rowno);
+        }
+
+        //Function to load MobileNo. for corresponding EmailID.
+        function LoadMobileForEmail(rowno, obj) {
+
+            $.ajax({
+                url: "/Customer/getcontactsbyemails",
+                type: "GET",
+                dataType: "JSON",
+                data: { email: obj.value },
+                success: function (result) {
+
+                    var count = 0;
+                    //checking is there a result
+                    $.each(result, function () {
+                        count = 1;
+                    });
+
+                     //for a selected value that is already in Email Dropdown
+                    if (count != 0)
+                    {
+                        $('.mobilenumber').select2('destroy');
+                        var opt = '<option value="' + result[0].Mobile + '" selected>' + result[0].Mobile + '</option>'
+
+                        //changing the value of MobileNo.
+                        $("#Mobile" + rowno).append(opt);
+                        $("#Mobile" + rowno).val(result[0].Mobile);
+                    }
+
+                    mobileload();
+                }
+            });
+        }
+
+        /* function for Create popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            var url = $('#createform')[0].action;
+            var text = $("#GpName").val();
+            $('#Group option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#createform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-create').modal('hide');
+
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('#Group').append(newOption);
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+
+            e.preventDefault();
+        });
+
+        var s = '<option value="0">--Select--</option>';
+
+        $(document).ready(function () {
+
+            $.ajax({
+                type: "GET",
+                url: "/Contact/GetDocTypes",
+                data: "{}",
+                success: function (data) {
+                    for (var i = 0; i < data.length; i++) {
+                        s += '<option value="' + data[i].ID + '">' + data[i].Name + '</option>';
+                    }
+                }
+            });
+
+        });
+        var docCount = @cnt;
+        function AddDocs() {
+
+            var html = '<div class="row">' +
+                '<div class="form-group col-md-2">' +
+                ' <select class="form-control" id = "DocumentTypeID" name = "CustomerDocumentViewModel[' + docCount + '].DocumentTypeID" tabindex = "30" > ' + s+
+                '</select>' +
+                '</div><div class="form-group col-md-2 ">' +
+                '<input class="form-control date" name="CustomerDocumentViewModel[' + docCount + '].Expiry" placeholder="Expiry"  type="text" value="">' +
+                '</div><div class="form-group col-md-2">' +
+                '<input class="form-control" name="CustomerDocumentViewModel[' + docCount + '].Notes" placeholder="Notes"  type="text" value="">' +
+                '</div><div class="form-group col-md-2">' +
+                '<input type="file" name="CustomerDocumentViewModel[' + docCount + '].File">' +
+
+                '</div>' +
+                '<a href="javascript:void(0);" class="remove_button"><i style="color:red;" onclick="removeDoc(this)" class="fa fa-trash" aria-hidden="true"></i></a></div>';
+
+            $(html).appendTo($("#documents"));
+            docCount++;
+
+            $('.date').datepicker({
+
+            });
+        }
+
+        function removeDoc(_this) {
+            var val = $(_this).parent().parent().find('#docu').val();
+
+            if (confirm("Are you sure?")) {
+                $.ajax({
+                    type: "POST",
+                    url: "/Contact/DeleteDocument",
+                    data: { id: val },
+                    success: function (data) {
+                        if (data.status) {
+
+                            alert(data.message);
+                            $(_this).parent().parent().remove();
+                        }
+                        else {
+                            alert(data.message);
+                        }
+                        fadeAlert();
+                    }
+                })
+            }
+        }
+        var max_fields  =   10; //maximum input boxes allowed
+        var x           =   1; //initlal text box count
+
+        //Function to append rows for Mobile And EmailID
+        function AddDetails(Mobile, Name, ID) {
+
+            var AddField    =   0;
+            var index       =   1;
+
+            //For displaying selected values for dropdown 'Mobile'
+            if (Mobile != undefined) {
+                //var mob = '<option value="0">--Select--</option>';
+                var mob = '';
+                mob += '<option value="' + Mobile + '">' + Mobile + '</option>';
+            }
+            else {
+                mob = "";
+            }
+
+            //For displaying selected values for dropdown 'EmailID'
+            if (Name != undefined) {
+                //var email = '<option value="0">--Select--</option>';
+                var email = '';
+                email += '<option value="' + Name + '">' + Name + '</option>';
+            }
+            else {
+                email = '';
+             }
+
+            //For displaying selected values for dropdown 'EmailID'
+            if (ID == undefined)
+                ID = 0
+
+            if (rowno != 0)
+                index = rowno - 1;
+
+            var mobnum = $('#Mobile' + index).val();
+            var EmailId = $('#EmailId' + index).val();
+
+            //Appending first row
+            if (rowno == 0)
+                AddField = 1;
+
+            //Appending row only if Mobile entered (only for first row-->because 1 mobile is mandatory)
+            if (rowno == 1 && mobnum != null && mobnum != "")
+                AddField = 1;
+
+            //Appending row only if Mobile or Email entered (Except for first row)
+            if (rowno > 1 && ((mobnum != null && mobnum != "") || EmailId != null))
+                AddField = 1;
+
+            //Appending rows(max 10 rows allowed)
+            if ((AddField == 1) && (x < max_fields)) {
+
+                var html = '<div class="input-group mobSet" style="margin-bottom:10px;">' +
+                                '<input type="hidden" name="MobileViewModel[' + rowno + '].ID" class = "id" value="'+ ID +'" id="Id' + rowno + '" />'+
+                                '<div class="input-group col-md-5" >' +
+                                    '<label class="control-label">Mobile</label>' +
+                                    '<select  name="MobileViewModel[' + rowno + '].Num" class="form-control mobilenumber select2" id="Mobile' + rowno + '" onchange="LoadEmailForMobile(' + rowno + ',this)" tabindex="4"  >'+mob+'</select>' +
+                                '</div>' +
+
+                                '<div class="col-md-5">' +
+                                    '<label class="control-label">Email Id</label>' +
+                                    '<select name="MobileViewModel[' + rowno + '].Name" class="form-control emailid select2 " id="EmailId' + rowno + '" onchange="LoadMobileForEmail(' + rowno + ',this)" tabindex="4">' + email +'</select>' +
+                                '</div>' +
+
+                                '<span class="input-group-btn mb-add"><button type="button" class="btn btn-flat btn-success"  style="margin-top: 25px;" onclick="AddDetails()"><i class="fa fa-plus" ></i></button></span>' +
+                                '<span class="input-group-btn mb-dlt hide"><button type="button" class="btn btn-flat btn-danger" style="margin-top: 25px;" onclick="deleteMobileRow(this,' + rowno + ')"><i class="fa fa-trash"></i></button></span>' +
+                            '</div>';
+
+                    $(html).appendTo($("#AddDetails"));
+                    rowno++;
+
+                    resetMbbtn();
+
+                    //Function to load dropdowns
+                    mobileload();
+                    emailload();
+             }
+
+        }
+
+        //function to hide and show 'Add' and 'Delete' Buttons
+        function resetMbbtn() {
+            var i = 0;
+            var mbLen = $(".mobSet").length;
+
+            $('.mobSet').each(function (index, element) {
+
+                var inputId = $(this).find('.id');
+                var inputMb = $(this).find('.mobilenumber');
+                var inputemail = $(this).find('.emailid');
+
+                //To update the index value of 'name, ID & Onchange Event' of each rows while appending or deleting
+                inputId.attr('name', 'MobileViewModel[' + i + '].ID');
+                inputId.attr('id', 'Id' + i);
+
+                inputMb.attr('name', 'MobileViewModel[' + i + '].Num');
+                inputMb.attr('id', 'Mobile' + i);
+                inputMb.attr('onchange', 'LoadEmailForMobile(' + i + ', this)');
+
+                inputemail.attr('name', 'MobileViewModel[' + i + '].Name');
+                inputemail.attr('id', 'EmailId' + i);
+                inputemail.attr('onchange', 'LoadMobileForEmail(' + i + ', this)');
+
+                var dltbtn = $(this).find('.mb-dlt');
+                var addbtn = $(this).find('.mb-add');
+
+                if (index === (mbLen - 1)) {
+                    if (addbtn.hasClass('hide')) {
+                        addbtn.removeClass('hide');
+                    }
+                    if (!dltbtn.hasClass('hide')) {
+                        dltbtn.addClass('hide');
+                    }
+                }
+                else {
+                    if (!addbtn.hasClass('hide')) {
+                        addbtn.addClass('hide');
+                    }
+                    if (dltbtn.hasClass('hide')) {
+                        dltbtn.removeClass('hide');
+                    }
+                }
+
+                i++;
+            });
+        }
+
+        //function to delete rows
+        function deleteMobileRow(t, arg) {
+
+            if (rowno == 1) alert("Sorry You Can't Delete This Row.");
+            else {
+                var e = t.parentNode.parentNode;
+                e.parentNode.removeChild(e);
+                rowno--;
+            }
+            resetMbbtn();
+    }    
+
+    //Function to check correct format for Mobile Number
+    function CheckMobileNo(MobileNo, i) {
+
+        var NumbersOnly = /[^0-9]/g;
+        var NewMob = (MobileNo.replace(NumbersOnly, ""));
+
+        if (MobileNo != NewMob) {
+            alert("Please Select Correct Format For Mobile..(Numbers Only)");
+
+            var opt = '<option value="" selected>5xxxxxxxx</option>'
+
+            $("#Mobile" + i).append(opt);
+            mobileload();
+        }
+        else if (MobileNo.length > 9) {
+            alert("Only 9 numbers are allowed...")
+            var opt = '<option value="" selected >5xxxxxxxx</option>'
+
+            $("#Mobile" + i).append(opt);
+            mobileload();
+        }
+        else {
+
+            //Replacing 0 at first position of Mobile No.
+            var NwMob = MobileNo.replace(/^0+/, '');
+           
+            var opt = '<option value="' + NwMob + '" selected>' + NwMob + '</option>'
+
+            $("#Mobile" + i).append(opt);
+            mobileload();
+        }
+    }
+
+</script>
+}

@@ -1,0 +1,135 @@
+@model QuickSoft.Models.InvoiceTemplate
+@{
+    Layout = null;
+    var sizeMap = new System.Collections.Generic.Dictionary<string, string> { { "A4", "A4" }, { "A5", "A5" }, { "A3", "A3" }, { "Letter", "letter" }, { "Legal", "legal" } };
+    var pg = sizeMap.ContainsKey(Model.PaperSize ?? "A4") ? sizeMap[Model.PaperSize] : "A4";
+    var orient = Model.Orientation == "landscape" ? "landscape" : "portrait";
+    var designJson = string.IsNullOrWhiteSpace(Model.DesignJson) ? "{\"paper\":\"A4\",\"orientation\":\"portrait\",\"elements\":[]}" : Model.DesignJson;
+    var subLabel = ViewBag.InvoiceNo != null ? ("Invoice " + ViewBag.InvoiceNo) : "sample preview";
+    var realData = ViewBag.DataJson != null ? (string)ViewBag.DataJson : "null";
+    var realItems = ViewBag.ItemsJson != null ? (string)ViewBag.ItemsJson : "null";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@Model.Name — Preview</title>
+    <style>
+        @@page { size: @pg @orient; margin: 8mm; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .bar { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 10px 16px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 8px rgba(15,23,42,.05); }
+        .bar .ttl { font-weight: 700; }
+        .bar .sp { flex: 1; }
+        .bar a, .bar button { border: 0; cursor: pointer; border-radius: 9px; padding: 8px 16px; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .bar .back { background: #f1f5f9; color: #334155; }
+        .bar .print { background: linear-gradient(135deg,#6366f1,#3b82f6); color: #fff; box-shadow: 0 6px 16px rgba(59,130,246,.35); }
+        .stage { padding: 24px; display: flex; justify-content: center; }
+        .sheet { background: #fff; position: relative; box-shadow: 0 6px 28px rgba(15,23,42,.18); }
+        .el { position: absolute; box-sizing: border-box; overflow: hidden; }
+        .it { width: 100%; border-collapse: collapse; }
+        .it th, .it td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; }
+        .it th { background: #eef2ff; color: #3730a3; }
+        .tt { width: 100%; border-collapse: collapse; }
+        .tt td { padding: 3px 6px; }
+        .tt td.r { text-align: right; }
+        .logo { border: 1px dashed #c7d2fe; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
+        @@media print {
+            html, body { background: #fff; }
+            .bar { display: none !important; }
+            .stage { padding: 0; }
+            .sheet { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <span class="ttl">@Model.Name</span>
+        <span style="color:#64748b;font-size:13px;">@Model.PaperSize @Model.Orientation · @subLabel</span>
+        @if (ViewBag.RenderError != null)
+        {
+            <span style="color:#dc2626;font-size:13px;font-weight:600;">⚠ @ViewBag.RenderError</span>
+        }
+        <span class="sp"></span>
+        <a class="back" href="@Url.Action("Index","InvoiceTemplate")">Back</a>
+        <button class="print" onclick="window.print()">🖨 Print</button>
+    </div>
+    <div class="stage"><div class="sheet" id="sheet"></div></div>
+
+    <script>
+    (function () {
+        var design = @Html.Raw(designJson);
+        if (!design || !Array.isArray(design.elements)) design = { paper:'@Model.PaperSize', orientation:'@orient', elements:[] };
+
+        // representative SAMPLE data (slice 3a). Real-invoice binding = slice 3b.
+        var DATA = {
+            'COMPANY_HEADER.Name':'Your Company L.L.C', 'COMPANY_HEADER.Address':'Office 101, Business Bay, Dubai, UAE',
+            'COMPANY_HEADER.TRN':'TRN: 100123456700003', 'COMPANY_HEADER.Phone':'+971 4 123 4567', 'COMPANY_HEADER.Email':'info@@yourcompany.com',
+            'CUSTOMER.Name':'ABC Trading L.L.C', 'CUSTOMER.Address':'Al Quoz, Dubai, UAE', 'CUSTOMER.TRN':'TRN: 100987654300003', 'CUSTOMER.Phone':'+971 50 987 6543',
+            'INVOICE.Number':'INV-2026-00042', 'INVOICE.Date':'14-06-2026', 'INVOICE.PONumber':'PO-7781', 'INVOICE.SalesExecutive':'Jenson C.', 'INVOICE.PaymentTerms':'30 Days',
+            'SUMMARY.SubTotal':'1,250.00', 'SUMMARY.TaxAmount':'62.50', 'SUMMARY.TotalDiscount':'50.00', 'SUMMARY.GrandTotal':'1,262.50',
+            'SUMMARY.AmountInWords':'One Thousand Two Hundred Sixty Two and 50/100 Dirhams', 'SUMMARY.OutstandingBalance':'0.00'
+        };
+        var LABELS = { 'COMPANY_HEADER.Logo':'Company Logo' };
+        // REAL invoice data (when ?invoiceId= was supplied); otherwise fall back to the SAMPLE map.
+        var REAL = @Html.Raw(realData);
+        function val(k){
+            if (REAL) return REAL.hasOwnProperty(k) ? REAL[k] : '';
+            return DATA.hasOwnProperty(k) ? DATA[k] : (k ? ('['+k+']') : '');
+        }
+
+        var PAPER = { A4:[794,1123], A5:[559,794], A3:[1123,1587], Letter:[816,1056], Legal:[816,1344] };
+        function paperPx(){ var s = PAPER[design.paper] || PAPER.A4; return design.orientation==='landscape' ? [s[1],s[0]] : [s[0],s[1]]; }
+
+        var SAMPLE_ITEMS = [
+            ['1','Premium Widget','PCS','5','100.00','25.00','525.00'],
+            ['2','Service Charge','NOS','2','250.00','25.00','525.00'],
+            ['3','Spare Part A','PCS','4','50.00','10.00','210.00']
+        ];
+        var REALITEMS = @Html.Raw(realItems);
+        var ITEMS = REALITEMS || SAMPLE_ITEMS;
+
+        function inner(el){
+            if (el.type==='text')  return '<div>'+ (el.text||'') +'</div>';
+            if (el.type==='field') return '<div>'+ val(el.field) +'</div>';
+            if (el.type==='image') {
+                var imgSrc = el.src || '';
+                if (el.field === 'COMPANY_HEADER.Logo') { var lv = val('COMPANY_HEADER.Logo'); if (lv && lv.charAt(0)==='/') imgSrc = lv; }
+                if (imgSrc) return '<img src="'+imgSrc+'" onerror="this.style.display=&#39;none&#39;" style="width:100%;height:100%;object-fit:contain;" />';
+                return '<div class="logo">'+ (LABELS[el.field]||'Image') +'</div>';
+            }
+            if (el.type==='line')  return '<div style="border-top:2px solid #0f172a;"></div>';
+            if (el.type==='items') {
+                var h = '<table class="it"><thead><tr><th>#</th><th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Amount</th></tr></thead><tbody>';
+                ITEMS.forEach(function(r){ h += '<tr><td>'+(r[0]||'')+'</td><td>'+(r[1]||'')+'</td><td>'+(r[2]||'')+'</td><td>'+(r[3]||'')+'</td><td>'+(r[4]||'')+'</td><td>'+(r[5]||'')+'</td><td style="text-align:right">'+(r[6]||'')+'</td></tr>'; });
+                return h + '</tbody></table>';
+            }
+            if (el.type==='totals') {
+                return '<table class="tt">'
+                    + '<tr><td>Sub Total</td><td class="r">'+val('SUMMARY.SubTotal')+'</td></tr>'
+                    + '<tr><td>Discount</td><td class="r">'+val('SUMMARY.TotalDiscount')+'</td></tr>'
+                    + '<tr><td>VAT 5%</td><td class="r">'+val('SUMMARY.TaxAmount')+'</td></tr>'
+                    + '<tr style="border-top:2px solid #0f172a;font-weight:700;"><td>Grand Total</td><td class="r">'+val('SUMMARY.GrandTotal')+'</td></tr>'
+                    + '</table>';
+            }
+            return '';
+        }
+
+        var sheet = document.getElementById('sheet');
+        var p = paperPx(); sheet.style.width = p[0]+'px'; sheet.style.height = p[1]+'px';
+        design.elements.forEach(function(el){
+            var d = document.createElement('div');
+            d.className = 'el';
+            d.style.left=(el.x||0)+'px'; d.style.top=(el.y||0)+'px'; d.style.width=(el.w||160)+'px';
+            if (el.h) d.style.height=el.h+'px';
+            d.style.fontSize=(el.fontSize||12)+'px';
+            d.style.fontWeight=el.bold?'700':'400';
+            d.style.textAlign=el.align||'left';
+            d.innerHTML = inner(el);
+            sheet.appendChild(d);
+        });
+    })();
+    </script>
+</body>
+</html>

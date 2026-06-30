@@ -1,0 +1,460 @@
+@model QuickSoft.Models.Journal
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Journal";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Journal"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+             "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+              "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Journal Voucher</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Journal"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Property/PJournalV/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+
+        <div class="search-body col-md-12" id="advsearch"> 
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-2">
+                        @Html.Label("Voucher No", null, new { @class = "control-label" })
+                        @Html.TextBox("InvoiceNo", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2" id="crecreditsale">
+                        @Html.Label("Created By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Payment Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "All", Value=""},
+                        new SelectListItem() {Text = "Cash", Value="0"},
+                        new SelectListItem() {Text = "PDC", Value="1"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("VAT Nature", null, new { @class = "control-label" })
+                        @Html.DropDownList("VATNature", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value=""},
+                            new SelectListItem() {Text = "Not Applicable", Value="0"},
+                            new SelectListItem() {Text = "Registered Expense (B2B)", Value="1"},
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "VATNature", tabindex = 3 })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAllJournal", "JournalV", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="PoTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Voucher No</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="3">MOPayment</td>
+                        <td data-priority="5">VAT Nature</td>
+                        <td data-priority="7">Amount</td>
+                        <td data-priority="1">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+
+@section scripts{
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            $('#advsearch').hide();
+        });
+        var oTable = $('#PoTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "bLengthChange": false,
+            "ajax": {
+                "url": '/JournalV/GetData',
+                "data": function (data) {
+                    data.InvoiceNo = $('#InvoiceNo').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.user = $('#ddlCreatedBy').val();
+                    data.type = $('#ddlType').val();
+                    data.vnature = $('#VATNature').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [6,7],
+                "orderable": false
+            }],
+            "columns": [
+                    {
+                        "data": "JournalId", "name": "JournalId",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                { "data": "VoucherNo", "name": "VoucherNo" },
+                { "data": "Date", "name": "Date", "render": function (data) { return convertToDate(data); } },
+                { "data": "modeofpay", "name": "modeofpay" },
+                { "data": "VATNature", "name": "VATNature" },
+                { "data": "Paying", "name": "Paying", render: $.fn.dataTable.render.number(",", ".", 2) },
+
+                {
+                    "name": "JournalId", "data": function (data) {
+                        var rest = "";
+                        if (data.editable == 0) {
+
+                            @{
+                                //if (User.IsInRole("Dev") || User.IsInRole("View Journal"))
+                                {
+                                    actData += "<a class=\"details\" href=\"/Property/PJournalV/Details/'+ data.JournalId +'\" title=\"View Journal Entry\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit Journal"))
+                                {
+                                    actData += "<a href = \"/Property/PJournalV/Edit/' + data.JournalId + '\" title=\"Edit Journal\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete Journal"))
+                                {
+                                    actData += "<a class=\"modal-delete\" href =\"/Property/PJournalV/Delete/'+ data.JournalId +'\" title=\"Delete Journal\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Download Journal"))
+                                {
+                                    actData += "<a class=\"modal-link-download\" href=\"/Property/PJournalV/Download/'+ data.JournalId +'\" title=\"Download Journal\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                                    actData += "<a target=\"_blank\" href=\"/Property/PJournalV/Print/'+ data.JournalId +'\" title=\"Print Journal Voucher\"><i class=\"fa fa-lg fa-print\"></i></a> ";
+                                }
+                    }
+                            rest = '@Html.Raw(actData)';
+
+                        }
+                        return rest;
+
+                    }
+                },
+                {
+                    "name": "JournalId", "data": function (data) {
+                        var rest = "";
+                        @{
+                    if (User.IsInRole("Dev") || User.IsInRole("Delete Journal"))
+                    {
+                        delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.JournalId +'></input>";
+                    }
+                }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ],
+            buttons: [
+               'colvis',
+               {
+                   extend: 'print',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Journal';
+                   },
+                   columnDefs: [
+                       { width: 400, targets: 2 }
+                   ],
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   message: function () {
+                       var head = '<table class="tblcompact table table-bordered"><thead>' +
+                       ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Journal</h4></th></tr>';
+                       return head;
+                   },
+                   customize: function (win) {
+                       // $(win.document.body)
+                       //.css('font-size', '10pt')
+                       //.css('padding', '1px');
+                       $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                       $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                           .css('font-size', '10pt')
+                           .css('padding', '5px')
+                           .addClass('compact');
+                       $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                           .css('min-width', '80px');
+                       //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                       //    .css('padding', '0px');
+                       $(win.document.body).append('</td></tr></tbody>')
+
+                   }
+               }, 'copy', 'csv', //'excel',
+               {
+                   extend: 'pdf',//
+                   title: "",
+                   footer: true,
+                   filename: function () {
+                       return 'Journal';
+                   },
+                   message: function () {
+                       var head = 'Journal';
+                       return head;
+                   },
+                   pageSize: 'A4',
+                   exportOptions: {
+                       columns: ':visible'
+                   },
+                   customize: function (doc) {
+                       doc.pageMargins = [10, 10, 10, 10];
+                       doc.defaultStyle.fontSize = 10;
+                       doc.styles.tableHeader.fontSize = 10;
+                       doc.styles.title.fontSize = 12;
+                       // Header font and bg color
+                       doc.styles.tableHeader.fillColor = '#d3d3d3';
+                       doc.styles.tableHeader.color = 'black';
+                       // Remove spaces around page title
+                       doc.content[0].text = doc.content[0].text.trim();
+
+
+                       doc.styles['td:nth-child(2)'] = {
+                           width: '100%',
+                           'max-width': '100%'
+                       }
+
+                       var objLayout = {};
+                       // Horizontal line thickness
+                       objLayout['hLineWidth'] = function (i) { return .5; };
+                       // Vertikal line thickness
+                       objLayout['vLineWidth'] = function (i) { return .5; };
+                       //// Horizontal line color
+                       //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                       //// Vertical line color
+                       //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                       // Left padding of the cell
+                       objLayout['paddingLeft'] = function (i) { return 4; };
+                       // Right padding of the cell
+                       objLayout['paddingRight'] = function (i) { return 4; };
+                       // Inject the object in the document
+                       doc.content[1].layout = objLayout;
+                       // Footer font and bg color
+                       doc.styles.tableFooter.fillColor = '#d3d3d3';
+                       doc.styles.tableFooter.color = 'black';
+
+                   }
+               },
+                @Html.Raw(deleteBTn)
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#PoTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            }
+        });
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(7);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(7);
+            column1.visible(false);
+        }
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for delete popup */
+        $('#PoTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+
+                $('#InvoiceNo').val("");
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                $('#ddlCreatedBy').val(0);
+                oTable.draw();
+            }
+
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            //$('#ToDate').datepicker('setDate', today);
+            //$('#FromDate').datepicker('setDate', priordate);
+
+
+            $("#ddlPayFrom").select2({
+                placeholder: 'Search From Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccounts",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#ddlPayTo").select2({
+                placeholder: 'Search To Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/SearchAccounts",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        /* function for view detail popup */
+        $('#PoTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+    </script>
+}

@@ -1,0 +1,641 @@
+@model QuickSoft.ViewModel.StockTransferViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "MCConversion";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+}
+
+<div class="box box-default">
+    @using (Html.BeginForm("stockcomparison", "Forecast", FormMethod.Post, new { id = "search-form", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Stock comparison</h3>
+        </div>
+        <div class="box-body">
+            <form id="search-form">
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+
+                <div class="form-group col-md-2">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("Mc From", null, new { @class = "control-label" }) *
+
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownList("ddlMCFrom", (SelectList)ViewBag.MCbag, new { id = "ddlMCFrom", @class = "form-control select2", @required = "required" })
+
+                    </div>
+
+
+                </div>
+                <div class="col-sm-2 form-group" id="partyid">
+                    @Html.Label("MC To", null, new { @class = "control-label" }) *
+
+                    <div class="input-group input-group-sm">
+                        @Html.DropDownList("ddlMCTo", (SelectList)ViewBag.MCbag, new { id = "ddlMCTo", @class = "form-control select2", @required = "required" })
+
+                    </div>
+
+
+                </div>
+              
+
+
+                <div class="box-footer col-md-12">
+                    <button type="submit" class="btn btn-info col-sm-offset-5" id="save">Submit</button>
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            </form>
+        </div>
+    }
+</div>
+
+@Styles.Render("~/css/bootstrap-datepicker")
+@Styles.Render("~/css/bootstrap-timepicker")
+
+@Scripts.Render("~/js/bootstrap-datepicker")
+@Scripts.Render("~/js/bootstrap-timepicker")
+
+<script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+
+        });
+    </script>
+    <table class="display table table-bordered table-hover" id="UserTable">
+        <thead>
+            <tr class="bg-gray">
+                <td data-priority="1">S/N</td>
+                <td>Supplier Name</td>
+                <td>Item Code</td>
+                <td>Item Name</td>
+                <td>Unit Price</td>
+                <td>Net Movement Qty</td>
+                <td>Current Stock Mc from</td>
+                <td>Current Stock Mc To</td>
+                <td>1month Forecast Qty Mcfrom</td>
+              
+                <td>1month Forecast Qty Mcto</td>
+
+            </tr>
+        </thead>
+        <tbody></tbody>
+        @*<tfoot>
+            <tr>
+                <th>Total:</th>
+                <th></th>
+
+                <th></th>
+                <th></th>
+                <th></th>
+
+            </tr>
+        </tfoot>*@
+    </table>
+
+   <script>
+            //for set default date
+            var flag = 0;
+            var diffTime = 0;
+            var diffDays = 0;
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+                const date1 = new Date($("#From").val());
+                const date2 = new Date($("#To").val());
+                diffTime = Math.abs(date2 - date1);
+                var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                var mcfrom = $("#ddlMCFrom").val();
+                var mcto = $("#ddlMCTo").val();
+                if (flag == 0) {
+                    showdatatable(mcfrom, mcto);
+
+                    flag = 1
+                }
+                else {
+
+
+                    $('#UserTable').DataTable().destroy();
+                    showdatatable(mcfrom, mcto);
+                }
+                    //oTable.draw();
+                
+
+
+            });
+    $(document).ready(function () {
+        $('#To').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $('#From').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var priordate = new Date(new Date().setDate(today.getDate() - 30));
+        $('#To').datepicker('setDate', today);
+        $('#From').datepicker('setDate', priordate);
+        $("#ddlMCFrom").select2({
+            placeholder: 'Search Material Centre by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/MC/SearchMC",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: ""
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#ddlMCTo").select2({
+            placeholder: 'Search Material Centre by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/MC/SearchMC",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: ""
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+    });
+
+
+    function showdatatable(mcfrom,mcto) {
+
+      
+        var datefrom = $("#From").val();
+        var dateto = $("#To").val();
+        function searchData(data, mcfrom,mcto) {
+            // data.stockable = $('input[name="stockable"]').prop('checked');
+            
+           
+
+            data.datefrom = $("#From").val();
+                 data.dateto = $("#To").val();
+            //-------------------------------------------------------
+            data.ddmcfrom = mcfrom;
+            data.ddmcto = mcto;
+           
+        }
+      
+           var  oTable1 = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar,
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                //"deferLoading": 0, // disable default ajax loading
+                "bLengthChange": false,
+                "paging": true,
+              "bDestroy": true,
+                "pageLength": 5000,
+                "ordering": true,
+                "columnDefs": [{
+                    "targets": [4],
+                    "sClass": "numberright"
+               }],
+                 "ajax": {
+                    "url": '/Forecast/GetStockcomparison',
+                    "data": function (data) {
+                        data = searchData(data,mcfrom,mcto);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+               },
+
+                "columns": [
+                    {
+                        "data": "IItemID", "name": "IItemID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "suppliername", "name": "suppliername" },
+                    { "data": "IItemCode", "name": "IItemCode" },
+                    {
+                        "name": "IItemName", "data": function (data) {
+
+                              @{
+                    var urls = "";
+
+                    urls = "'<a href=\"#\" >'+  data.IItemCode+' '+data.IItemName +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+
+
+
+                        }
+                    },
+                    { "data": "IPurchasePrice", "name": "IPurchasePrice" },
+                     { "data": "netvalue", "name": "netvalue", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    {
+                        "data": "currstock", "name": "currstock",
+                        "render": function (data) {
+                            if (data < 0) {
+                                return "0";
+                            }
+                            else {
+                                return data;
+                            }
+                        }
+                    },
+                    {
+                        "data": "currstockmcto", "name": "currstockmcto",
+                        "render": function (data) {
+                            if (data < 0) {
+                                return "0";
+                            }
+                            else {
+                                return data;
+                            }
+                        }
+                    },
+                    {
+                        "name": "1monthForecastqty", "data": function (data) {
+                            var currentStock = 0;
+                            var purchaseqty = 0;
+                            if (data.currstock < 0) {
+                                 currentStock = 0;
+                            }
+                            else {
+                                 currentStock = data.currstock;
+                            }
+                            var moment = Math.abs(1 * data.onemonth);
+                            if (currentStock > moment) {
+                                 purchaseqty = 0;
+                            }
+
+                            else {
+                                var balacestock = currentStock - (moment);
+
+                                if (balacestock > moment) {
+                                     purchaseqty = 0;
+                                }
+                                else if (balacestock < 0) {
+                                    var Revbalancestock = (moment - currentStock);
+
+                                    if (Revbalancestock == moment) {
+                                        purchaseqty = Revbalancestock;
+
+
+                                    }
+                                    else if (Revbalancestock < moment) {
+
+                                        purchaseqty = moment - (moment - Revbalancestock);
+
+                                    }
+                                }
+                                else {
+                                    if (balacestock > 0) {
+                                        if (balacestock > moment) {
+                                             purchaseqty = 0;
+                                        }
+                                        else {
+                                             purchaseqty = moment - (moment - balacestock);
+                                        }
+                                    }
+                                    else {
+                                         purchaseqty = moment;
+                                    }
+                                }
+                            }
+                            const format = (num, decimals) => num.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            });
+                            if (purchaseqty == undefined) {
+                                return "0";
+                            }
+                            else {
+                                return format(parseFloat(purchaseqty).toFixed(2));
+                            }
+
+
+                        }
+                    },
+                    {
+                        "name": "1monthForecastqtymcto", "data": function (data) {
+                            var currentStock = 0;
+                            var purchaseqty = 0;
+                            if (data.currstockmcto < 0) {
+                                 currentStock = 0;
+                            }
+                            else {
+                                 currentStock = data.currstockmcto;
+                            }
+                            var moment = Math.abs(1 * data.onemonthmcto);
+                            if (currentStock > moment) {
+                                 purchaseqty = 0;
+                            }
+
+                            else {
+                                var balacestock = currentStock - (moment);
+
+                                if (balacestock > moment) {
+                                     purchaseqty = 0;
+                                }
+                                else if (balacestock < 0) {
+                                    var Revbalancestock = (moment - currentStock);
+
+                                    if (Revbalancestock == moment) {
+                                        purchaseqty = Revbalancestock;
+
+
+                                    }
+                                    else if (Revbalancestock < moment) {
+
+                                        purchaseqty = moment - (moment - Revbalancestock);
+
+                                    }
+                                }
+                                else {
+                                    if (balacestock > 0) {
+                                        if (balacestock > moment) {
+                                             purchaseqty = 0;
+                                        }
+                                        else {
+                                             purchaseqty = moment - (moment - balacestock);
+                                        }
+                                    }
+                                    else {
+                                         purchaseqty = moment;
+                                    }
+                                }
+                            }
+                            const format = (num, decimals) => num.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            });
+                            if (purchaseqty == undefined) {
+                                return "0";
+                            }
+                            else {
+                                return format(parseFloat(purchaseqty).toFixed(2));
+                            }
+
+
+                        }
+                    },
+                           ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock Movement</h4></th></tr>' +
+                                ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Stock Report (Item Wise)';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Stock Movement \n';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            //doc.styles['td:nth-child(2)'] = {
+                            //    width: '100%',
+                            //    'max-width': '100%'
+                            //}
+
+                            doc.content[1].table.widths = [
+                                '8%',
+                                '25%',
+                                '10%',
+                                '14%',
+                                '14%',
+                                '14%',
+                                '14%'
+                            ]
+
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+
+
+                    },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 :
+
+                            typeof i === 'number' ?
+                                i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                        .column(2)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(2, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(2).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                    //// Total over all pages
+                    //total = api
+                    //    .column(8)
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //    .column(8, { page: 'current' })
+                    //    .data()
+                    //    .reduce(function (a, b) {
+                    //        return intVal(a) + intVal(b);
+                    //    }, 0);
+
+                    //// Update footer
+                    //$(api.column(8).footer()).html(
+                    //     pageTotal.toFixed(2)
+                    //    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+               },
+               
+           });
+
+}
+
+
+</script>
+
+
+
+
+
+
+

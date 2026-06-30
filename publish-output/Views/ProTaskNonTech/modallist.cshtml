@@ -1,0 +1,353 @@
+﻿@model QuickSoft.Models.Customer
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Leads";
+    ViewBag.Active = "Master";
+    string actEdit = "";
+    string actDelete = "";
+    string actData = "";
+    string actDatas = "";
+    string actImg = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    string refreshBTn = "{text: 'Refresh', className: 'btn-primary', action: function(e, dt, node, config) {" +
+             " $('#UserTable').DataTable().ajax.reload();" +
+              " }},";
+    var rowCount1 = 19;
+    var rowCount2 = 20;
+
+    var Ref1 = 0;
+    var Ref2 = 0;
+    var Ref3 = 0;
+    var Ref4 = 0;
+    var Ref5 = 0;
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Leads"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+             "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+              "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+@Styles.Render("~/css/datatable")
+
+<table class="table table-bordered table-hover" id="MyTable">
+    <thead>
+        <tr class="bg-gray">
+            <td data-priority="1">SI No</td>
+            <td data-priority="1"><div style="width:30px">Task Code</div></td>
+            <td data-priority="1"><div style="width:200px">Task Name</div></td>
+            <td data-priority="2">Task Type</td>
+            <td data-priority="4">Project</td>
+            <td data-priority="4"><div style="width:200px">Customer</div></td>
+            <td data-priority="4"><div style="width:100px">Mobile</div></td>
+            <td data-priority="4">Location</td>
+            <td data-priority="2">Task Status</td>
+            <td data-priority="4">Assigned To</td>
+            <td data-priority="5">Start Time</td>
+            <td data-priority="5">End Time</td>
+            <td data-priority="6">Sales Person</td>
+            <td data-priority="6">Created By</td>
+            <td data-priority="6">Priority</td>
+            <td data-priority="5">Reminder Date</td>
+            <td data-priority="5">Reminder Status</td>
+            <td data-priority="1">Last Updated</td>
+            <td data-priority="6">Last Updated User</td>
+            <td data-priority="7">Task Details</td>
+            @if (1==2)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    <td data-priority="7"></td>
+                }
+            }
+
+            <td data-priority="2">Action</td>
+            <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+@{var Model = "";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+<script type="text/javascript">
+    var getQueryString = function (field, url) {
+        var href = url ? url : window.location.href;
+        var id = href.substring(href.lastIndexOf('/') + 1);
+        return id ? id : null;
+    }
+        var leadid = getQueryString1('protaskstatus');
+        var type = getQueryString1('type');
+        var url;
+        if (type == 0) {
+            url = '/ProTaskNonTech/GetAllTaskdash';
+        }
+        else {
+            url = '/ProTaskNonTech/GetAllTaskdashexp';
+    }
+    var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            stateSave: true,
+            responsive: true,
+            "bLengthChange": false,
+         "ajax": {
+
+             "url": url,
+
+             "data": function (data) {
+                 data.protaskstatus = leadid;
+                
+
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "order": [[17, "desc"]],
+            
+            "columns": [
+                 {
+                     "data": "ProTaskId", "name": "ProTaskId",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+                { "data": "TaskCode", "name": "TaskCode" },
+                {
+                    "name": "TaskName", "data": function (data) {
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("View ProTask"))
+                            {
+                                actData += "'<a href=\"/ProTask/Details/'+ data.ProTaskId +'\"  target=\"_new\">'+ data.TaskName +'</a>' ";
+                            }
+                            else
+                            {
+                                actData += "data.TaskName";
+                            }
+                        }
+                        return @Html.Raw(actData);
+                    }
+                },
+                { "data": "TypeName", "name": "TypeName" },
+                {
+                    "name": "ProjectName", "data": function (data) {
+                        var prname = data.ProjectName;
+                        if (prname != null) {
+                            @{
+                                var datas = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("View Project"))
+                                {
+                                    datas = "'<a href=\"/Project/Details/'+ data.Project +'\" target=\"_new\">'+ data.ProjectName +'</a>' ";
+                                }
+                                else
+                                {
+                                    datas = "data.ProjectName";
+                                }
+                            }
+                            return @Html.Raw(datas);
+                        }
+                        else {
+                            var datas = "";
+                            return (datas);
+                        }
+                    }
+                },
+                  {
+                      "name": "CustomerName", "data": function (data) {
+                          if (data.CustomerName != "No Customer") {
+                              @{
+                                  var dataz = "";
+                                  if (User.IsInRole("Dev") || User.IsInRole("View Customer"))
+                                  {
+                                      dataz = "'<a href=\"/Customer/Details/'+ data.CustomerID +'\"  target=\"_new\"  target=\"_new\">'+ data.CustomerName +'</a>' ";
+                                  }
+                                  else
+                                  {
+                                      dataz = "data.CustomerName";
+                                  }
+                              }
+                              return @Html.Raw(dataz);
+                          }
+                          return "-";
+                      }
+                  },
+                  {
+                      "name": "Mobile", "data": function (data) {
+                          var datas = "";
+                          $.each(data.mobmodel, function (i, item) {
+                              if (item.Num != null) {
+                                  if (datas != "") {
+                                      datas += ", ";
+                                  }
+                                  datas += '<a href="tel:' + item.Num + '">' + item.Num + '</a>';
+                              }
+                          });
+                          return datas;
+                      }
+                  },
+                { "data": "Location", "name": "Location" },
+                { "data": "TaskStat", "name": "TaskStat" },
+                {
+                    "name": "AssignedTo", "data": function (data) {
+                        var datas = "";
+                        $.each(data.AssignedTo, function (i, item) {
+                            if (datas != "") {
+                                datas += ", ";
+                            }
+                            datas += item.FirstName + " " + item.LastName;
+                        })
+                        return datas;
+                    }
+                },
+                 {
+                     "name": "StartTime",
+                     "data": function (data) {
+                         if (data.StartTime != null) {
+                             return convertDateTime(data.StartTime);
+                         } else if (data.StartDate != null) {
+                             return convertToDate(data.StartDate);
+                         } else { return ""; }
+                     }
+                 },
+                {
+                    "name": "EndTime",
+                    "data": function (data) {
+                        if (data.EndTime != null) {
+                            return convertDateTime(data.EndTime);
+                        } else if (data.EndDate != null) {
+                            return convertToDate(data.EndDate);
+                        } else { return ""; }
+                    }
+                },
+               { "data": "EmpName", "name": "EmpName" },
+                { "data": "UserName", "name": "UserName" },
+                {
+                    "name": "Priority", "data": function (data) {
+                        var datas = "";
+                        if (data.Priority == "Low") {
+                            datas = "<span class='text-blue'>LOW</span>";
+                        }
+                        else if (data.Priority == "Medium") {
+                            datas = "<span class='text-orange'>MEDIUM</span>";
+                        }
+                        else {
+                            datas = "<span class='text-red'>HIGH</span>";
+                        }
+                        return datas;
+                    }
+                },
+                {
+                    "data": "ReminderDate", "name": "ReminderDate",
+                    "render": function (data) {
+                        if (data != null) {
+                            var date = convertDateTime(data);
+                            return date.toString();
+                        } else return "";
+                    }
+                },
+                  {
+                      "name": "validity", "data": function (data) {
+                          if (data.ReminderDate != null) {
+                              if (data.validity == "Expired") {
+                                  return '<i class="badge bg-red" style="font-size: small" >Expired</i>';
+                              }
+                              else {
+                                  return '<i class="badge bg-orange" style="font-size: small" >Upcoming</i></a>';
+                              }
+                          } else { return null; }
+                      }
+                  },
+                   {
+                       "name": "ldate", "data": function (data) {
+                           var result = "";
+                           if (data.ldate != null) {
+                               result = LastUpdatedIn(data.ldate);
+                           }
+                           return (result);
+                       }
+                   },
+                    { "data": "Updateduser", "name": "Updateduser" },
+                    {
+                        "data": "TaskDetails", "name": "TaskDetails", "render": function (data) {
+                            if (data != null && data.length > 200) {
+                                return data.substr(0, 200) + '...';
+                            }
+                            else {
+                                return data;
+                            }
+                        }
+                    },
+            
+                {
+                    "name": "ProTaskId", "data": function (data) {
+                        var rest = "";
+                        if (((data.devcheck == true || data.editcheck == true) && data.allcheck == true) || (data.CreatedBy == data.UserId)) {
+                            @{
+                                actEdit = "<a class=\"btn btn-icons btn-rounded btn-edit\" href=\"/ProTask/Edit/'+ data.ProTaskId +'\" title=\"Edit Task\" ><i class=\"fa fa-pencil\" ></i></a> ";
+                            }
+                            rest += '@Html.Raw(actEdit)';
+                        }
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete ProTask"))
+                            {
+                                actDelete += "<a class=\"modal-delete btn btn-icons btn-rounded btn-delete\" href=\"/ProTask/Delete/'+ data.ProTaskId +'\" title=\"Delete Task\"><i class=\"fa fa-trash\" ></i></a> ";
+                            }
+                            //if (User.IsInRole("Dev") || User.IsInRole("Edit ProTask"))
+                            // {
+                            //     actImg += "<a class=\"modal-image\" href=\"/ProTask/Images/'+ data.ProTaskId +'\" title=\"View Task Images\"><i class=\"fa fa-lg fa-file-image-o\" ></i></a> ";
+                            //}
+
+                            actEdit += "<a class=\"Updation\" onclick=\"detailsRemark(' + data.ProTaskId + ')\" title=\"View Remarks\"><i class=\"fa-lg fa fa-calendar\" ></i></a> ";
+
+                            }
+                        if ("@ViewBag.Remind" == "active") {
+                            @{
+                                        actData = "";
+                                        actData += "<a class=\"UpdationRe\" onclick=\"detailsRemind(' + data.ProTaskId + ')\" title=\"View Reminder\"><i class=\"fa-lg fa fa-bell\" ></i></a> ";
+                                        actData += "<a class=\"modal-create\" href=\"/Reminder/AddReminder/'+ data.ProTaskId +'/Task\" title=\"Add Reminder\"><i class=\"fa-lg fa fa-sticky-note\" ></i></a> ";
+                                    }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        rest += '@Html.Raw(actImg)';
+                        rest += '@Html.Raw(actDelete)';
+
+                        return rest;
+                    }
+                },
+                {
+                    "name": "ProTaskId", "data": function (data) {
+                        var rest = "";
+                        @{
+                                if (User.IsInRole("Dev") || User.IsInRole("Delete ProTask"))
+                                {
+                                    delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.ProTaskId +'></input>";
+                                }
+                            }
+                        return rest = '@Html.Raw(delchk)';
+                    }
+                },
+            ],
+      
+            
+        });
+
+
+</script>
+}

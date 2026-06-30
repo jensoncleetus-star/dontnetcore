@@ -1,0 +1,54 @@
+@{
+    ViewBag.Title = "Portfolio Performance";
+    ViewBag.Active = "Reports";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#7c3aed,#8b5cf6 55%,#a78bfa)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-trophy"></i></div>
+            <div><h1>Portfolio Performance</h1><p>Return on investment &amp; rental yield per property</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/ProfitLoss" class="rfi-btn"><i class="fa fa-line-chart"></i> P&amp;L</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Portfolio Value</span><span class="rfi-num">@money(ViewBag.TotValue)</span><span class="rfi-sub">AED — registered</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Net Annual Income</span><span class="rfi-num pos">@money(ViewBag.TotNet)</span><span class="rfi-sub">AED / yr</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Avg Yield</span><span class="rfi-num">@ViewBag.AvgYield%</span><span class="rfi-sub">net / value</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Best Yield</span><span class="rfi-num pos">@ViewBag.BestYield%</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Valued Properties</span><span class="rfi-num">@ViewBag.Valued</span><span class="rfi-sub">have a price</span></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-bar-chart"></i> Rental Yield by Property (%)</h3>
+        <div id="pfChart" class="rfi-bars"></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-table"></i> Performance Detail</h3>
+        <div class="rfi-tbl">
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th class="r">Value</th><th class="r">Net Income</th><th class="c">Yield</th><th class="c">Payback</th></tr></thead>
+                <tbody id="pfBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+  var rows=@Html.Raw(ViewBag.Rows ?? "[]"), chart=@Html.Raw(ViewBag.Chart ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var max=1; chart.forEach(function(c){max=Math.max(max,c.value);});
+  document.getElementById('pfChart').innerHTML = chart.length ? chart.map(function(c){var w=Math.round(c.value/max*100);
+    return '<div class="rfi-bar-row"><div class="rfi-bar-top"><span>'+esc(c.label)+'</span><span>'+c.value+'%</span></div><div class="rfi-bar-track"><div class="rfi-bar-fill" style="width:'+w+'%;background:linear-gradient(90deg,#7c3aed,#a78bfa)"></div></div></div>';
+  }).join('') : '<div class="rfi-empty">No registered property values yet</div>';
+  document.getElementById('pfBody').innerHTML = rows.length ? rows.map(function(r){
+    return '<tr><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.ptype)+'</td><td class="r">'+m(r.value)+'</td>'+
+      '<td class="r '+(r.net>=0?'pos':'neg')+'">'+m(r.net)+'</td>'+
+      '<td class="c"><span class="rfi-chip '+(r.value>0?'g':'')+'">'+(r.value>0?r.yld+'%':'—')+'</span></td>'+
+      '<td class="c">'+(r.payback>0?r.payback+' yrs':'—')+'</td></tr>';
+  }).join('') : '<tr><td colspan="6" class="rfi-empty">No properties</td></tr>';
+})();
+</script>

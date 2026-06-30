@@ -1,0 +1,343 @@
+﻿@model QuickSoft.ViewModel.CustomerViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "Customer";
+    ViewBag.Active = "Master";
+}
+<div class="box box-info">
+    @using (Html.BeginForm("BulkUpload", "Customer", FormMethod.Post, new { id = "fileupload", role = "form", enctype = "multipart/form-data" }))
+    {
+        <div class="box-header with-border">
+            <h3 class="box-title">Customer</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Customer"))
+                {
+                    <a class="btn btn-success no-border" href="/Customer">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="box-body">
+            <div class="col-sm-12">
+                <div class="callout callout-danger">
+                    <h4> Warning </h4>
+                    <ul>
+                        <li>Maximum Number of Item on an Excel Sheet is '500'</li>
+                        <li>Customer Name is Mandatory</li>
+                        <li>All Fields Are Case Sensitive</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-sm-12 form-group top-10">
+                <input type="file" id="excelfile" /><br />
+                <input type="button" id="upexcel" class="btn btn-primary btn-xs" value="Upload" onclick="ExportToTable()" />
+                <input type="button" id="dwformat" class="btn btn-default btn-xs" value="Download Format" />
+            </div>
+        </div>
+        <div class="box-footer">
+
+            <div id="excelup">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">S/N</th>
+                                <th class="text-center item-lists">Customer Name <i class="text-danger">*</i></th>
+                                <th class="text-center">Customer Alias</th>
+                                <th class="text-center">TRN</th>
+                                <th class="text-center">Credit Limit </th>
+                                <th class="text-center">Credit Period(days)</th>
+                                <th class="text-center">Location</th>
+                                <th class="text-center">Address</th>
+                                <th class="text-center">Phone</th>
+                                <th class="text-center">Mobile</th>
+                                <th class="text-center">Email</th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr></tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button type="submit" id="save" class="btn btn-success">
+                    <span class="glyphicon glyphicon-floppy-disk"></span> Save Items
+                </button>
+                <div class="form-group pull-right">
+
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/sheetjs")
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#excelup').hide();
+        });
+
+        $("#dwformat").click(function () {
+            window.location.href = '@Url.Action("DownloadExcel", "Customer")';
+        });
+        function delete_dt() {
+            var table = document.getElementById("addinvoiceItem");
+            var rowCount = table.rows.length;
+            while(table.rows.length > 0) {
+                table.deleteRow(0);
+            }
+        }
+        //Excel working
+        function ExportToTable() {
+            delete_dt();
+
+            $('#excelup').show();
+            $("#chkexcel").val("true");
+            //var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;
+            var regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx)$/;
+            /*Checks whether the file is a valid excel file*/
+            if (regex.test($("#excelfile").val())) {
+                // if (regex.test($("#excelfile").val().toLowerCase())) {
+                var xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
+                if ($("#excelfile").val().toLowerCase().indexOf(".xlsx") > 0) {
+                    xlsxflag = true;
+                }
+                /*Checks whether the browser supports HTML5*/
+                if (typeof (FileReader) != "undefined") {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        ///*Converts the excel data in to object*/
+                        var data = new Uint8Array(reader.result);
+
+                        //if (xlsxflag) {
+                        var workbook = XLSX.read(data, { type: 'array' });
+                        //}
+                        //else {
+                        //    var workbook = XLS.read(data, { type: 'array' });
+                        //}
+                        /*Gets all the sheetnames of excel in to a variable*/
+                        var sheet_name_list = workbook.SheetNames;
+                        var cnt = 0; /*This is used for restricting the script to consider only first sheet of excel*/
+                        sheet_name_list.forEach(function (y) { /*Iterate through all sheets*/
+                            /*Convert the cell value to Json*/
+                            //if (xlsxflag) {
+                            var exceljson = XLSX.utils.sheet_to_json(workbook.Sheets[y], { defval: '' })
+                            //}
+                            //else {
+                            //    var exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[y]);
+                            //}
+
+                            if (exceljson.length > 0 && cnt == 0) {
+                                BindTable(exceljson, '#exceltable');
+                                cnt++;
+                            }
+                        });
+                        $('#exceltable').show();
+                    }
+                    if (xlsxflag) {/*If excel file is .xlsx extension than creates a Array Buffer from excel*/
+                        reader.readAsArrayBuffer($("#excelfile")[0].files[0]);
+                    }
+                    else {
+                        reader.readAsBinaryString($("#excelfile")[0].files[0]);
+                    }
+                }
+                else {
+                    alert("Sorry! Your browser does not support HTML5!");
+                }
+            }
+            else {
+                $('#excelup').hide();
+                alert("Please upload a valid Excel file!");
+            }
+        }
+        function BindTable(jsondata, tableid) {/*Function used to convert the JSON array to Html Table*/
+            var columns = BindTableHeader(jsondata, tableid); /*Gets all the column headings of Excel*/
+            var data = [];
+            $('#addinvoiceItem').html('');
+            $.each(jsondata, function (i, item1) {
+                //console.log(item1);
+                var parameters = {};
+                parameters.CusName = (typeof item1.CusName === "undefined") ? (typeof item1['Customer Name'] === "undefined" ? "0" : item1['Customer Name']) : item1.CusName;
+                parameters.CusAlias = (typeof item1.CusAlias === "undefined") ? (typeof item1['Customer Alias'] === "undefined" ? "0" : item1['Customer Alias']) : item1.CusAlias;
+                parameters.TRN = (typeof item1.TRN === "undefined") ? (typeof item1['Tax RegNo'] === "undefined" ? "0" : item1['Tax RegNo']) : item1.TRN;
+                parameters.CreditLimit = (typeof item1.CreditLimit === "undefined") ? (typeof item1.CreditLimit === "Credit Limit" ? "" : item1['Credit Limit']) : item1.CreditLimit;
+                parameters.CreditPeriod = (typeof item1.CreditPeriod === "undefined") ? (typeof item1.CreditPeriod === "Credit Period" ? "" : item1['Credit Period']) : item1.CreditPeriod;
+                parameters.Location = (typeof item1.TRN === "undefined") ? (typeof item1['Location'] === "undefined" ? "0" : item1['Location']) : item1.Location;
+                parameters.Address = (typeof item1.Address === "undefined") ? (typeof item1.Address === "Address" ? "" : item1['Address']) : item1.Address;
+                parameters.Phone = (typeof item1.Phone === "undefined") ? (typeof item1['Phone'] === "undefined" ? "0" : item1['Phone']) : item1.Phone;
+                parameters.Mobile = (typeof item1.Mobile === "undefined") ? (typeof item1.Mobile === "Mobile" ? "" : item1['Mobile']) : item1.Mobile;
+                parameters.Email = (typeof item1.Email === "undefined") ? (typeof item1['Email Id'] === "undefined" ? "0" : item1['Email Id']) : item1.Email;
+
+                parameters.City = (typeof item1.City === "undefined") ? (typeof item1['City'] === "undefined" ? "0" : item1['City']) : item1.City;
+                parameters.Emirate = (typeof item1.Emirate === "undefined") ? (typeof item1.Emirate === "Emirate" ? "" : item1['Emirate']) : item1.Emirate;
+                parameters.Zip = (typeof item1.Zip === "undefined") ? (typeof item1['Zip'] === "undefined" ? "0" : item1['Zip']) : item1.Zip;
+
+                parameters.Fax = (typeof item1.Fax === "undefined") ? (typeof item1['Fax'] === "undefined" ? "0" : item1['Fax']) : item1.Fax;
+                parameters.Reference = (typeof item1.Reference === "undefined") ? (typeof item1.Reference === "Reference" ? "" : item1['Reference']) : item1.Reference;
+                parameters.ContactPerson = (typeof item1.ContactPerson === "undefined") ? (typeof item1['Contact Person'] === "undefined" ? "0" : item1['Contact Person']) : item1.ContactPerson;
+
+                parameters.BankName = (typeof item1.BankName === "undefined") ? (typeof item1['Bank Name'] === "undefined" ? "0" : item1['Bank Name']) : item1.BankName;
+                parameters.AccountNo = (typeof item1.AccountNo === "undefined") ? (typeof item1.AccountNo === "Account No" ? "" : item1['Account No']) : item1.AccountNo;
+                parameters.IbanNo = (typeof item1.IbanNo === "undefined") ? (typeof item1['Iban No'] === "undefined" ? "0" : item1['Iban No']) : item1.IbanNo;
+
+                parameters.BranchName = (typeof item1.BranchName === "undefined") ? (typeof item1['Branch Name'] === "undefined" ? "0" : item1['Branch Name']) : item1.BranchName;
+                parameters.Swift = (typeof item1.Swift === "undefined") ? (typeof item1.Swift === "Swift" ? "" : item1['Swift']) : item1.Swift;
+                parameters.OpeningBalance = (typeof item1.OpeningBalance === "undefined") ? (typeof item1['Opening Balance'] === "undefined" ? "0" : item1['Opening Balance']) : item1.OpeningBalance;
+                parameters.DebitCredit = (typeof item1.DebitCredit === "undefined") ? (typeof item1['Debit/Credit'] === "undefined" ? "0" : item1['Debit/Credit']) : item1.DebitCredit;
+
+                
+                if (parameters.ItemName != "") {
+                   bulkupload('addinvoiceItem', parameters)
+                }
+            })
+        }
+
+        function BindTableHeader(jsondata, tableid) {/*Function used to get all column names from JSON and bind the html table header*/
+            var columnSet = [];
+            var headerTr$ = $('<tr />');
+            for (var i = 0; i < jsondata.length; i++) {
+                var rowHash = jsondata[i];
+                for (var key in rowHash) {
+                    if (rowHash.hasOwnProperty(key)) {
+                        if ($.inArray(key, columnSet) == -1) {/*Adding each unique column names to a variable array*/
+                            columnSet.push(key);
+                            headerTr$.append($('<th />').html(key));
+                        }
+                    }
+                }
+            }
+            $(tableid).append(headerTr$);
+            return columnSet;
+        }
+
+
+        $('#fileupload').on('submit', function (e) {
+            e.preventDefault();
+            var HTMLtbl = {
+                getData: function (table) {
+                    var data = [];
+                    table.find('tr').not(':first').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+                }
+            }
+
+            var data = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.array = data;
+            submitForm(parameters);
+
+        });
+        function submitForm(parameters) {
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/Customer/BulkUploadCustomer",
+                data: JSON.stringify(parameters),
+                beforeSend: function () {
+                    $("button").prop('disabled', true); // disable button
+
+                },
+                success: function (e) {
+                    var mybody = $("body").html();
+                    if (e.status == true) {
+                        {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                        }
+
+                        window.location.href = '@Url.Action("Index", "Customer")';
+
+                    } else {
+                        $('.ajax_response', res_danger).text(e.message);
+                        $('.AlertDiv').prepend(res_danger);
+                        $("button").prop('disabled', false); // enable button
+                    }
+                }
+            });
+
+        }
+
+        var count = 1, type = '';
+        limits = 500;
+        //Add Row
+        var pcount = 2;
+        function bulkupload(t, Item) {
+            if (count == limits) alert("You have reached the limit of adding " + count + " inputs");
+            else {
+                var Option = "";
+                var optionunit = "";
+                var required = "";
+                var slno = $('#addinvoiceItem tr').length + 1;
+
+                var row = "<tr class='item_' id='item_" + count + "'>";
+                //var baseprice = 0;
+                //var mrp = 0;
+                var htdata = "";
+                var itemnote = "";
+                var divid = "cus_name_" + Item.CusName;
+
+                if (count == 1) {
+                    required = 'required="required"';
+                }
+                data = "<td class='text-center' id=" + divid + "> " + slno + " </td>" +
+                        "<td ><input class='form-control cusname_" + count + "' type='text' " + required + "  data-id='" + count + "' id='cus_name_" + count + "' data-msg-required='The Item field is required' placeholder='Type Customer Name' value='" + Item.CusName + "'/> </td>" +
+                        "<td ><input class='form-control alias_" + count + "' type='text' data-id='" + count + "' id='alias_" + count + "' placeholder='Type Customer Alias' value='" + Item.CusAlias + "'/> </td>" +
+                        "<td ><input class='form-control trn_" + count + "' type='text' data-id='" + count + "' id='trn_" + count + "' placeholder='Type TRN' value='" + Item.TRN + "'/> </td>" +
+                        "<td ><input class='form-control creditlimit_" + count + "' type='text'  data-id='" + count + "' id='creditlimit_" + count + "' placeholder='Type Credit Limit Name' value='" + Item.CreditLimit + "'/> </td>" +
+                        "<td ><input class='form-control creditperiod_" + count + "' type='text'  data-id='" + count + "' id='creditperiod_" + count + "' placeholder='Type Credit Period' value='" + Item.CreditPeriod + "'/> </td>" +
+                        "<td ><input class='form-control location_" + count + "' type='text' data-id='" + count + "' id='location_" + count + "' placeholder='Type Location' value='" + Item.Location + "'/> </td>" +
+                        "<td ><input class='form-control address_" + count + "' type='text'  data-id='" + count + "' id='address_" + count + "' placeholder='Type Address' value='" + Item.Address + "'/> </td>" +
+                        "<td ><input class='form-control phone_" + count + "' type='text'  data-id='" + count + "' id='phone_" + count + "' placeholder='Type Phone' value='" + Item.Phone + "'/> </td>" +
+                        "<td ><input class='form-control mobile_" + count + "' type='text' data-id='" + count + "' id='mobile_" + count + "' placeholder='Type Mobile' value='" + Item.Mobile + "'/> </td>" +
+                        "<td ><input class='form-control email_" + count + "' type='text'  data-id='" + count + "' id='email_" + count + "' placeholder='Type Mail Id' value='" + Item.Email + "'/> </td>" +
+
+                         "<input type='hidden' class='city_" + count + "' value='" + Item.City + "'  name='city' id='city_" + count + "'/> " +
+                        "<input type='hidden' class='emirate_" + count + "' value='" + Item.Emirate + "'  name='emirate' id='emirate_" + count + "'/> " +
+                        "<input type='hidden' class='zip_" + count + "' value='" + Item.Zip + "'  name='zip' id='zip_" + count + "'/> " +
+                        "<input type='hidden' class='fax_" + count + "' value='" + Item.Fax + "' name='fax' id='fax_" + count + "'/> " +
+                        "<input type='hidden' class='reference_" + count + "' value='" + Item.Reference + "' name='reference' id='reference_" + count + "'/> " +
+                        "<input type='hidden' class='contactperson_" + count + "' value='" + Item.ContactPerson + "' name='contactperson' id='contactperson_" + count + "'/> " +
+                        "<input type='hidden' class='bank_" + count + "' value='" + Item.BankName + "' name='bank' id='bank_" + count + "'/> " +
+                        "<input type='hidden' class='account_" + count + "' value='" + Item.AccountNo + "' name='account' id='account_" + count + "'/>" +
+                        "<input type='hidden' class='iban_" + count + "' value='" + Item.IbanNo + "' name='iban' id='iban_" + count + "'/>" +
+                        "<input type='hidden' class='branch_" + count + "' value='" + Item.BranchName + "' name='branch' id='branch_" + count + "'/>" +
+                        "<input type='hidden' class='swift_" + count + "' value='" + Item.Swift + "' name='swift' id='swift_" + count + "'/>" +
+                         "<input type='hidden' class='openingbalance_" + count + "' value='" + Item.OpeningBalance + "' name='openingbalance' id='openingbalance_" + count + "'/>" +
+                        "<input type='hidden' class='debit_" + count + "' value='" + Item.DebitCredit + "' name='debit' id='debit_" + count + "'/>" +
+
+                        "</td>" +
+                        "<td class='text-center'><button  style='text-align: right;' class='btn btn-danger' type='button' value='Delete' onclick='deleteRow(this)'><i class='fa fa-trash fa-1x'></i></button>" + itemnote + htdata + "</td>";
+                row += data + "</tr>";
+                $('#' + t).append(row);
+
+                count++;
+
+            }
+        }
+        function deleteRow(t) {
+            var classname = $(t).closest('tr').attr('class');
+                var e = t.parentNode.parentNode;
+                e.parentNode.removeChild(e);
+            var i = 1;
+            $('#addinvoiceItem tr').each(function () {
+                $(this).find('td:first').text(i);
+                i++;
+            });
+        }
+
+    </script>
+}

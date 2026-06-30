@@ -1,0 +1,441 @@
+@{
+    ViewBag.Title = "Search Item Wise Sale";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<style>
+    .form-actions input[value=Cancel] {
+        position: relative;
+        top: 0px !important;
+    }
+
+    #pullsearch {
+        background-color: dodgerblue;
+        color: white;
+    }
+
+    #tabledraw {
+        background-color: palevioletred;
+        color: white;
+    }
+
+    input[type=button] {
+        position: relative;
+        top: 26px;
+    }
+
+    .input-group .input-group-addon {
+        border-radius: 0px 37px 37px 0px !important;
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+        margin-left: -10px !important;
+    }
+
+    .date {
+        height: 34px !important;
+        margin-bottom: 0px;
+    }
+
+    tfoot {
+        font-weight: bold;
+    }
+
+    .sh-styling {
+        /*box-shadow: 5px 8px 16px 5px rgba(0,0,0,0.3);*/
+        box-shadow: -1px -2px 49px 0px rgba(0,0,0,0.1);
+        border-radius: 5px;
+    }
+
+        .sh-styling:hover {
+            box-shadow: -1px -2px 49px 0px rgba(0,0,0,0.3);
+            transform: scale(1.003);
+            -webkit-transition: 0.5s;
+        }
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+
+    #DDlItemwise {
+        margin-bottom: 0px !important;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Item Wise Sale</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("ItemWisenew", "SalesReport", FormMethod.Post, new { id = "popupForm" }))
+        {
+            <div class="row">
+                <div class="col-md-3">
+                    <div id="list1" class="dropdown-check-list" tabindex="100">
+                        <span class="anchor" style="z-index:0;">Select Fields</span>
+                        <ul class="items">
+                            <li><input type="checkbox" id="liItemwise" value="ItemWise" checked /> Item Wise</li>
+                            <li><input type="checkbox" id="liBrandwise" value="BrandWise" /> Brand Wise</li>
+                            <li><input type="checkbox" id="liSalesExecutiveWise" value="SalesExecutiveWise" /> Sales Executive Wise</li>
+                            <li><input type="checkbox" id="liCategoryWise" value="CategoryWise" /> Category Wise</li>
+                            <li><input type="checkbox" id="liSalesmanWise" value="SalesmanWise" /> Salesman Wise</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+            @*<div class="form-group" hidden>
+                    @Html.TextBox("RadioValue", new { @class = "form-control  input-sm" })
+                </div>*@
+            if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div class="form-group col-sm-4">
+                    @Html.Label("Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("SaleType", (SelectList)ViewBag.Type, new { @class = "form-control input-sm" })
+                </div>
+            }
+            if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-4">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                </div>
+            }
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4" id="DDlItemwise">
+                @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                @Html.ListBox("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2", @multiple = "multiple", @name = "ddlItem[]" })
+            </div>
+            <div class="form-group col-md-4" id="DDlBrandwise">
+                @Html.Label("Item Brand", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItemBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4" id="DDlExecutivewise">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExec, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4" id="DDlCategorywise">
+                @Html.Label("Item Category", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItemCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4" id="DDlSalesManwise">
+                @Html.Label("Sales Man", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlSalesman", (SelectList)ViewBag.SalesMan, new { @class = "form-control input-sm select2" })
+            </div>
+
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+
+        }
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+
+            //$("#RadioValue").val("");
+            $('#DDlBrandwise').hide();
+            $('#DDlExecutivewise').hide();
+            $("#DDlCategorywise").hide();
+            $("#DDlSalesManwise").hide();
+
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+
+        });
+        ItemSearchable();
+        CallRepMCUser();
+        CallRepEmployee();
+
+        var checkList = document.getElementById('list1');
+        /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+        checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+            if (checkList.classList.contains('visible'))
+                checkList.classList.remove('visible');
+            else
+                checkList.classList.add('visible');
+        }
+        $(document).on("click", function (event) {
+
+            var element1 = $("#list1");
+
+            if (element1 !== event.target && !element1.has(event.target).length) {
+                checkList.classList.remove('visible');
+            }
+        });
+        //$('.check').change(function () {
+
+        //    $(".anchor").text($(this).val());
+        //    $("#RadioValue").val($(this).val());
+        //    if ($(this).val() == 'BrandWise') {
+        //        $("#DDlBrandwise").show();
+        //        $("#DDlItemwise").hide();
+        //        $("#DDlExecutivewise").hide();
+        //        //var datetd = new Date();
+        //        //datetd.setDate(datetd.getDate());
+
+        //        //$('#CreDates').datepicker({
+        //        //    endDate: datetd,
+        //        //    format: 'dd-mm-yyyy',
+        //        //    autoclose: true,
+        //        //    allowInputToggle: true
+        //        //});
+
+        //        //var date = new Date();
+        //        //var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        //        //$('#CreDates').datepicker('setDate', today);
+        //    } else if ($(this).val() == 'SalesExecutiveWise') {
+        //        $("#DDlExecutivewise").show();
+        //        $("#DDlItemwise").hide();
+        //        $("#DDlBrandwise").hide();
+        //    }
+        //    else {
+        //        //$('#CreDates').val(null);
+        //        $("#DDlExecutivewise").hide();
+        //        $("#DDlBrandwise").hide();
+        //        $("#DDlItemwise").show();
+        //        //$('#manhourtable').DataTable().draw();
+        //    }
+        //});
+        $("#ddlSalesman").select2({
+            placeholder: 'Search by Name ',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Employee/SearchEmployee",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term || "",
+                        page: params.page || 0,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 0;
+
+                    return {
+                        results: data,
+                        pagination: {
+                            //more: (params.page * 10) < 50
+                            more: true
+                        }
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#ddlItemCategory").select2({
+            placeholder: 'Search Item Category',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemCategory/SearchCategory",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        $("#ddlItemBrand").select2({
+            placeholder: 'Search Item Brand',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/ItemBrand/SearchBrand",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "all"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        var _show = 0;
+        $("ul li input:checkbox").click(function () {
+            if ($("#liBrandwise").prop("checked") == true) {
+                $("#DDlBrandwise").show();
+            }
+            else {
+                //$("#ddlItemBrand").val(0);
+                $('#ddlItemBrand').val(0).trigger("change");
+                $("#DDlBrandwise").hide();
+            }
+            if ($("#liSalesExecutiveWise").prop("checked") == true) {
+                $("#DDlExecutivewise").show();
+
+            }
+            else {
+                $('#ddlEmployee').val(0).trigger("change");
+               // $("#ddlEmployee").val("");
+                $("#DDlExecutivewise").hide();
+
+            }
+            if ($("#liCategoryWise").prop("checked") == true) {
+                $("#DDlCategorywise").show();
+
+            }
+            else {
+                $('#ddlItemCategory').val(0).trigger("change");
+                // $("#ddlEmployee").val("");
+                $("#DDlCategorywise").hide();
+
+            }
+            if ($("#liSalesmanWise").prop("checked") == true) {
+                $("#DDlSalesManwise").show();
+
+            }
+            else {
+                $('#ddlSalesman').val(0).trigger("change");
+                // $("#ddlEmployee").val("");
+                $("#DDlSalesManwise").hide();
+
+            }
+            if ($("#liItemwise").prop("checked") == true) {
+                $("#DDlItemwise").show();
+
+            }
+            else {
+                $('#ddlItem').val(null).trigger("change");
+                // $("#ddlEmployee").val("");
+                $("#DDlItemwise").hide();
+
+            }
+
+        });
+    </script>
+}
+
+
+

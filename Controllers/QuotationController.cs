@@ -1727,8 +1727,8 @@ namespace QuickSoft.Controllers
                 //// execute sp sql 
                 string sql = String.Format("EXEC {0} {1};", "SP_InsertQuotationItems", "@TableType");
                 //// execute sql 
-                QuickSoft.Helpers.DocumentTotals.RecomputeQuotation(db, quotationId); // forward-correctness: header = SUM(lines)
                 db.Database.ExecuteSqlRaw(sql, parameter);
+                QuickSoft.Helpers.DocumentTotals.RecomputeQuotation(db, quotationId); // Calc fix: recompute MUST run AFTER the SP line insert. Was inverted (ran first against 0 lines), persisting QuotSubTotal/Tax = 0 on autosave.
 
                 if (bsmodel != null)
                 {
@@ -3067,8 +3067,8 @@ namespace QuickSoft.Controllers
                         //// execute sp sql 
                         string sql = String.Format("EXEC {0} {1};", "SP_InsertQuotationItems", "@TableType");
                         //// execute sql 
-                QuickSoft.Helpers.DocumentTotals.RecomputeQuotation(db, quotEntryId); // forward-correctness: header = SUM(lines)
                         var ret = db.Database.ExecuteSqlRaw(sql, parameter);
+                QuickSoft.Helpers.DocumentTotals.RecomputeQuotation(db, quotEntryId); // Calc fix: recompute MUST run AFTER the SP line insert. Was inverted (ran first against 0 lines), zeroing the header on edit.
                         if (ret > 0)
                         {
                             db.DummyQuotItems.RemoveRange(db.DummyQuotItems.Where(a => a.Quotation == quotEntryId));

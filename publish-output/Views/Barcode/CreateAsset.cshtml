@@ -1,0 +1,240 @@
+﻿@{
+    ViewBag.Title = "Generate Barcode";
+    ViewBag.SubTitle = "Generate Barcode";
+    ViewBag.Active = "Utility";
+}
+<div class="box box-default">
+    <style>
+        #barcodetable body {
+            text-align: center;
+        }
+
+        #barcodetable td {
+            text-align: center;
+            padding-bottom: 0px;
+            padding-top: 7px;
+        }
+
+        #barcodetable h4 {
+            margin-bottom: -6px;
+            z-index: 1;
+            position: relative;
+            font-size: 0.9em;
+        }
+
+        .brcode {
+            width: 150px;
+            height: 60px;
+        }
+
+        #barcodetable {
+            font-size: .9em;
+            margin-bottom: 0px;
+        }
+
+        p {
+            font-size: .65em;
+        }
+    </style>
+    <div class="box-header with-border">
+        <h3 class="box-title">Generate Barcode of Assets</h3>
+    </div>
+    <div class="box-body">
+        <form class="form-horizontal">
+            <input type="hidden" id="bcvalue" />
+            <input type="hidden" id="itmname" />
+            <input type="hidden" id="itmprice" />
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <div class="form-group">
+                <label class="control-label col-md-4">Asset Account</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("ddlAssetAccounts", (SelectList)ViewBag.AssetAccounts, new { @class = "form-control input-sm", @required = "required" })
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">Asset Name</label>
+                <div class="col-sm-4">
+                    @Html.DropDownList("ddlAssets", (SelectList)ViewBag.ddlAssets, new { @class = "form-control input-sm", @required = "required" })
+                </div>
+                <div class="col-sm-2">
+                    <select name="Unit" id="Unit" style="height: 30px;"></select>
+                    <input type="hidden" id="UnitName" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">Print Quantity</label>
+                <div class="col-sm-4">
+                    <input type="number" value="1" class="form-control input-sm" id="labelRows" />
+                </div>
+                <div class="col-sm-4 no-print" id="brdiv">
+                    <table class="table" id="barcodetable"></table>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="button" class="btn btn-info col-sm-offset-5" value="Print Barcode" id="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "Home") + "'");">Cancel</button>
+            </div>
+            <div id="cont" class="hidden">
+                <svg id="barcode"></svg>
+            </div>
+        </form>
+    </div>
+</div>
+@Html.Partial("_printBarcode")
+@section style{
+}
+
+@section Scripts {
+@Scripts.Render("~/js/JsBarcode")
+<script type="text/javascript">
+
+      $(document).ready(function () {
+
+          //DropDown Asset Account
+          $("#ddlAssetAccounts").select2({
+              placeholder: 'Search Account by Name',
+              minimumInputLength: 0,
+              ajax: {
+                  url: "/AssetToInventory/SpecialAccounts",
+                  dataType: 'json',
+                  type: "POST",
+                  delay: 50,
+                  data: function (params) {
+
+                      return {
+                          q: params.term,
+                          Group: "Fixed Assets",
+                          page: params.page
+                      };
+                  },
+                  processResults: function (data, params) {
+                      params.page = params.page || 1;
+
+                      return {
+                          results: data
+                      };
+                  },
+                  cache: true
+              },
+          });
+
+      });
+
+        //To retrieve Assets, while changing Asset Accounts
+        $('body').on('change', '#ddlAssetAccounts', function (e) {
+
+            //Clearing Current value of Asset Dropdown
+            $("#ddlAssets").val("");
+
+            var AssetAccntID = $(this).val();
+
+            //Calling function to load Assets
+            LoadAssetsForAccounts(AssetAccntID)
+
+        });
+
+        //Function to load Assets corresponding to the Asset Account.
+        function LoadAssetsForAccounts(AssetAccntID) {
+
+            //DropDown Assets
+            $("#ddlAssets").select2({
+                placeholder: 'Search Asset by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/AssetToInventory/GetAssetsByAccount",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            AccountID: AssetAccntID,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        }
+
+      //To retrieve Assets, while changing Asset Accounts
+      $('body').on('change', '#ddlAssets', function (e) {
+
+          var AssetId = $(this).val();
+
+          $.ajax({
+              url: "/AssetToInventory/GetAssetDetails",
+              type: "GET",
+              dataType: "JSON",
+              data: { AssetId: AssetId },
+              success: function (data) {
+
+                  $("#barcodetable tr").remove();
+                  if (data.Barcode != null && data.Barcode != "") {
+
+                      //add unit
+                      var newOption = $('<option></option>');
+                      if (data.PriUnit != null) {
+
+                          newOption.val(data.UnitId).html(data.PriUnit);
+                         
+                          $('#Unit').html('');
+                          $('#Unit').append(newOption);
+                      }
+                      else {
+                          $('#Unit').html('');
+                          newOption.val(data.UnitId).html(data.PriUnit);
+                          $('#Unit').append(newOption);
+                          $("#UnitName").val(data.PriUnit);
+                      }
+
+                      $("[id$=bcvalue]").val(data.Barcode);
+                      $("[id$=itmname]").val(data.AssetName);
+
+                      printSticker('barcode', data.Barcode);
+                      showbarcode();
+                      $("#brdiv").show();
+                  }
+                  else {
+                      alert("Barcode Not Found");
+                      $("#ddlAssets").select2('close');
+                      $("#ddlAssets").val(null).trigger("change");
+                      $('#Unit').empty();
+                      $("#brdiv").hide();
+                  }
+              }
+          });
+      });
+
+      function showbarcode() {
+          var itemName = $('#itmname').val();    
+          var CName = $('#cname').val();
+          var image = $('#cont').html();
+          var table = "";
+          var str = '<h4>' + CName + '</h4><div>' + image + '</div><p style="margin-top: -12px; line-height: 10px;position: relative;">' + itemName + '<br>' + $('#itmprice').val() + '</p>';
+          table = "<tr><td> " + str + "</td></tr>";
+          $('#barcodetable').append(table);
+      }
+
+       $("#Submit").click(function () {
+           var Asset = $('#ddlAssets').val();
+           var AssetAccount = $('#ddlAssetAccounts').val();
+           if (Asset != "") {
+                bindbarcode();
+                window.location.href = '@Url.Action("CreateAsset", "Barcode")';
+           }
+           else if (AssetAccount == "")
+               alert("Please Select Asset Account..");
+           else 
+               alert("Please Select Asset Name..");
+       });
+
+</script>
+}

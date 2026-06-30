@@ -1,0 +1,327 @@
+@model QuickSoft.ViewModel.SalesEntryViewModel
+@{
+    Layout = "~/Views/Shared/_AppLayout.cshtml";
+    ViewBag.Title = "Edit Sales Entry";
+    ViewBag.SubTitle = "Edit Sales Entry";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+    string IRateCheck = "inactive";
+
+}
+
+@if (User.IsInRole("Dev") || User.IsInRole("ReadOnly Item Rate"))
+{
+    IRateCheck = "active";
+}
+@using (Html.BeginForm("UpdateSale", "CreditSale", FormMethod.Post, new { id = "saleform", role = "form" }))
+{
+    <div class="box box-info">
+        <input type="hidden" id="Tout" value="@TimeOut" />
+        <div class="box-header with-border">
+            <h3 class="box-title">SalesEntry-Invoice</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Sales Entry List"))
+                {
+                    <a class="btn btn-success no-border" href="/app/sales/index.html">
+                        <i class="fa fa-fw fa-history"></i> SalesEntry List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <input type="hidden" id="ROnlyRate" value="@IRateCheck" />
+            <input type="hidden" id="ContType" value="@ViewBag.ContType" />
+            <input type="hidden" id="VoucherType" value="Sales" />
+            <input type="hidden" id="batchcheck" value="@ViewBag.BatchWiseStock" />
+            <div class="row">
+                @if (@ViewBag.BusinessType == "Scaffold")
+                {
+                    <div class="form-group col-xs-6">
+                        @Html.Label("Type", null, new { @class = "control-label" }) *
+                        @Html.EnumDropDownListFor(model => model.SaleType, new { @class = "form-control", @required = "required", data_msg_required = "The Sale type field is required" })
+                    </div>
+                }
+                <div class="col-xs-6 form-group ">
+                    @Html.Label("Invoice No", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Invoice Edit Permission"))
+                    {
+                        @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    }
+                    else
+                    {
+                        @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+                    }
+                    @Html.HiddenFor(model => model.SENo)
+                </div>
+                <div class="col-xs-6 form-group ">
+                    @Html.Label("PO No", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.PONo, new { htmlAttributes = new { @class = "form-control" } })
+                </div>
+                <div class="col-xs-6 form-group">
+                    @Html.LabelFor(model => model.SEDate, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.SEDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-xs-6">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.MaterialCenter, (SelectList)ViewBag.MC, new { id = "ddlMC", @class = "form-control select2" })
+                    </div>
+                }
+                <div class="col-xs-6 form-group">
+                    @Html.Label("Sale Type", null, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.SalesType, new SelectList(Model.SalesTypes, "Id", "Name"), new { id = "SalesType", @class = "form-control" })
+                </div>
+                <div class="col-xs-6 form-group">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                    {
+                        
+                            @Html.DropDownListFor(m => m.SECashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                        
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.SECashier, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                </div>
+
+                <div class="col-xs-6 form-group">
+                    @Html.Label("Payment Type", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.CustomerType, new { @class = "form-control" })
+                </div>
+                <div class="col-xs-6 form-group" id="creditsale">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Customr, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required" })
+                            
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Customr, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required" })
+                    }
+                </div>
+
+                @if (@ViewBag.ProjChk == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.LabelFor(m => m.Project, new { @class = "control-label" })
+                        @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                        {
+                            <div class="input-group input-group-sm">
+                                @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                                <span class="input-group-btn">
+                                    <a href="/Project/AddProject" class="modal-project btn btn-success btn-flat" title="Add Project"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                        }
+                    </div>
+                }
+                @if (@ViewBag.BCEnable == 0)
+                {
+                    <div class="form-group col-xs-6">
+                        <label class="control-label">Item BarCode</label>
+                        <input type="text" class="form-control barcode" />
+                    </div>
+                }
+
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-xs-6">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+                @if (@ViewBag.EnableCurrency == 0)
+                {
+                    <div class="form-group col-xs-6">
+                        @Html.LabelFor(model => model.Currency, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Currency, (SelectList)ViewBag.CurrencyVal, new { id = "ddlCurrency", @class = "form-control select2" })
+                    </div>
+                    <div class="form-group col-xs-6">
+                        @Html.LabelFor(model => model.ConvertionRate, new { @class = "control-label" })
+                        @Html.EditorFor(model => model.ConvertionRate, new { htmlAttributes = new { @class = "form-control" } })
+                    </div>
+                }
+                @if (@ViewBag.BusinessType == "Scaffold")
+                {
+                    <div class="form-group col-xs-6">
+                        @Html.LabelFor(model => model.HSCode, new { @class = "control-label" })
+                        @Html.TextBoxFor(m => m.HSCode, new { @class = "form-control" })
+                    </div>
+                    <div class="form-group col-xs-6">
+                        @Html.LabelFor(model => model.PaymentTerms, new { @class = "control-label" })
+                        @Html.TextBoxFor(model => model.PaymentTerms, new { @class = "form-control", @placeholder = "Payment Terms", @rows = 2 })
+                    </div>
+                    <div id="HireType">
+                        <div class="form-group col-xs-6">
+                            @Html.LabelFor(m => m.HireType, new { @class = "control-label" }) *
+                            @Html.DropDownListFor(m => m.HireType, (SelectList)ViewBag.HiType, new { id = "ddlHType", @class = "form-control select2", @required = "required", data_msg_required = "The Hire type field is required" })
+                        </div>
+                        <div class="form-group col-xs-6">
+                            @Html.Label("From Date", null, new { @class = "control-label" }) *
+                            <div class="input-group date">
+                                @Html.TextBoxFor(model => model.FromDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required", data_msg_required = "The Start Date field is required" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-xs-6">
+                            @Html.Label("To Date", null, new { @class = "control-label" }) *
+                            <div class="input-group date">
+                                @Html.TextBoxFor(model => model.ToDate, "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off", @required = "required", data_msg_required = "The End Date field is required" })
+                                <div class="input-group-addon">
+                                    <i class="fa fa-calendar"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-item" id="normalinvoice">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Items</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                    </table>
+                    <table class="table table-bordered table-hover">
+                        <tr>
+                            <th colspan="2"> Total</th>
+                        </tr>
+                        <tr>
+                            <th> Qty</th>
+                            <td class="text-right">
+                                <label id="ItemQty"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th> SubTotal</th>
+                            <td class="text-right">
+                                <label id="SubTotal"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th> Discount</th>
+                            <td class="text-right">
+                                <label id="ItemDisc"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Tax</th>
+                            <td class="text-right">
+                                <label id="total_tax_amount"></label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Amount</th>
+                            <td class="text-right">
+                                <label id="total"></label>
+                            </td>
+                        </tr>
+
+                        
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            @Html.Label("Location :", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Location, new { htmlAttributes = new { @class = "form-control" } })
+                        </div>
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                            @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                        </div>
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.SENote, new { @class = "form-control", @placeholder = "Terms And Conditions", @rows = 4 })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-BS" id="billsundry">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">Bill Sundry</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="addbillsundry"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <div class="form-group col-md-6 no-paddingleft">
+                            <div id="divpaymethod">
+                                @Html.LabelFor(m => m.PaymentMethod, htmlAttributes: new { @class = "control-label" })
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(m => m.PaymentMethod, (SelectList)ViewBag.PayMethod, new { @id = "ddlPayMethod", @class = "form-control select2" })
+                                    <span class="input-group-btn">
+                                        <a href="/PaymentMethod/Create" class="modal-create btn btn-success btn-flat" title="Add New"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6 no-padding">
+                            @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.SEGrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                        </div>
+                        <div class="form-group col-md-6 hidden no-paddingleft" id="amountpaid">
+                            @Html.Label("Paid Amount:", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.SEPaidAmount, new { htmlAttributes = new { @id = "PaidAmount", @class = "form-control text-right", @value = "0", @placeholder = "0.00" } })
+
+                        </div>
+                        <div class="form-group col-md-6 hidden no-padding" id="amountdue">
+                            @Html.Label("Due :", null, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.SEDueAmount, new { htmlAttributes = new { @id = "DueAmount", @class = "form-control text-right", @value = "0.00", @readonly = "readonly" } })
+                            <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                        </div>
+                        @if (@ViewBag.EnableCurrency == 0)
+                        {
+                            <div class="row">
+                                <div class="form-group col-md-6 no-padding pull-right">
+                                    @Html.Label("FC :", null, new { @class = "control-label" })
+                                    @Html.EditorFor(model => model.FCTotal, new { htmlAttributes = new { @id = "FCTotal", @class = "form-control text-right", @readonly = "readonly" } })
+                                </div>
+                            </div>
+                        }
+                        <div class="form-group pull-right">
+                            <button type="submit" id="save" class="btn btn-success btnupd">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                            </button>              
+                            <button type="submit" id="print" class="btn btn-success">
+                                <span class="glyphicon glyphicon-print"></span> Update And Print
+                            </button>              
+                            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                            <input type="hidden" value="@ViewBag.DefMc" id="DefMc">
+                            <input type="hidden" value="@ViewBag.BusinessType" id="BusinessType">
+                            <input type="hidden" value="@ViewBag.POS" id="POS">
+                            <input type="hidden" value="@TimeOut" id="TimeOut">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="batchStock"></div>
+}
+@{
+    @Html.Action("POSInvoice", "InvoiceLayout", new { type = "Sale" })
+}

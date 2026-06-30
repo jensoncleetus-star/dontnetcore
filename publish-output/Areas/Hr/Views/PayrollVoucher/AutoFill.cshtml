@@ -1,0 +1,278 @@
+@model QuickSoft.ViewModel.PayrollVoucherAutoFillViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Payroll Voucher Auto Fill</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <input type="hidden" id="SelEmployee" />
+                    @*<div class="form-group col-md-4">
+                        @Html.Label("Process For", null, htmlAttributes: new { @class = "control-label " })
+                        @Html.DropDownList("ProcessFor", (SelectList)ViewBag.ProFor, new { @class = "form-control input-sm" })
+                    </div>*@
+                    <div class="col-sm-6 form-group">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.VFromDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                        </div>
+                    </div>
+                    <div class="col-sm-6 form-group">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                            @Html.TextBoxFor(m => m.VToDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" , @required = "required" })
+                        </div>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label class="control-label col-sm-4">Employee</label>
+                        @Html.ListBox("ddlEmployee", (SelectList)ViewBag.SelVal, new {@id= "ddlEmployee", @class = "form-control select2 textwidth multiple" , @required = "required" })
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label class="control-label col-sm-4">Acccount</label>
+                        @Html.DropDownListFor(m => m.VAcccount, (SelectList)ViewBag.Acc, "", new { id = "ddlVAccount", @class = "form-control select2"})
+                     </div>
+
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group text-center">
+                    <input type="button" class="btn btn-success" id="autofillbtn" value="Add">
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal">
+                </div>
+            </div>
+            <script>
+                $('.datepicker').datepicker({
+                    format: 'dd-mm-yyyy',
+                    autoclose: true,
+                    allowInputToggle: true,
+                    startDate: '01-01-2011',
+                    endDate: '+30d'
+                });
+                jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+                $("#ddlEmployee").select2({
+                    placeholder: 'Search Parent Grade Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/SalaryStructure/SearchParentGrade",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $("#ddlVAccount").select2({
+                    placeholder: 'Search Account By Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Accounts/AllAccounts",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "empty"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 0;
+                            return {
+                                results: data,
+                                pagination: {
+                                    //more: (params.page * 10) < 50
+                                    more: true
+                                }
+                            };
+                        },
+                        cache: true
+                    },
+                    templateResult: SelectToGroup,
+                    templateSelection: ToSetFormatSelection,
+                });
+
+                $('body').on('change', '#ddlEmployee', function (e) {
+                    $("#SelEmployee").val($("#ddlEmployee").val());
+                });
+
+                $("#autofillbtn").click(function () {
+                    var ProcessFor = null; //$("#ProcessFor").val();
+                    var FromDate = $("#VFromDate").val();
+                    var ToDate = $("#VToDate").val();
+                    var SelEmp = $("#SelEmployee").val();
+                    var Acc = $("#ddlVAccount").val();
+
+                    var seldate = $("#PRDate").val().split('-');
+                    var dateYear = parseInt(seldate[2]);
+                    var dateMonth = parseInt(seldate[1]);
+                    var dateDay = parseInt(seldate[0]);
+                    var monthdays = daysInMonth(dateMonth, dateYear);
+
+
+                    if (SelEmp == "" || SelEmp == null) {
+                        alert("Please Select Employee..!!");
+                    } else {
+                        $.ajax({
+                            url: '/Hr/PayrollVoucher/GetAutoFillVoucherDetail',
+                            dataType: 'json',
+                            data: { ProcessFor: ProcessFor, FromDate: FromDate, ToDate: ToDate, SelEmp: SelEmp, Acc: Acc },
+                            cache: true,
+                            success: function (data) {
+                                $('#addempitem').html('');
+                                $('#FromDate').val(FromDate);
+                                $('#ToDate').val(ToDate);
+                                $('#ddlAccount').val(Acc);
+                                $('#ddlAccount').trigger('change');
+                                $('#emplbody').html('');
+                                $.each(data.SLEmp, function (i, itemz) {
+                                    $('.empSet').each(function (index, element) {
+                                        var i = 0;
+                                        var input0 = $(this).attr('class');
+                                        if (input0 == "empSet emps_") {
+                                            $(this).remove();
+                                        }
+                                    });
+
+                                    AddEmployee(itemz.EMPId, itemz.EMPName);
+                                    addemphead(itemz.EMPId);
+
+                                    ////funemployee('emplbody', '', item.EMPName, item.EMPId);
+                                    if (itemz.SalStr != null) {
+                                        var prate = 0;
+                                        var rateprice = 0;
+                                        var type = "";
+                                        $.each(itemz.SalStr, function (j, item) {
+                                         
+                                            //if (item.HeadType == 0) {
+                                            //    type = "Dr";
+                                            //    if (item.CalType == 3) {
+                                            //        if (item.CalculationPeriod == "Months") {
+                                            //            //
+                                            //            if (item.Basis == 0) {
+                                            //                if (item.AtType == 1 && item.Leave == "Absent") {
+                                            //                    if (item.AtUnit == "Days") {
+                                            //                        var monthsal = parseFloat(item.Rate / monthdays);
+                                            //                        var minval = monthsal * item.AtValue;
+                                            //                        rateprice = parseFloat(item.Rate - minval);
+                                            //                    }
+                                            //                }
+                                            //                if (item.AtType == 4 && item.Leave == "PRESENT") {
+                                            //                    if (item.AtUnit == "Days") {
+                                            //                        var monthsal = parseFloat(item.Rate / monthdays);
+                                            //                        var minval = monthsal * item.AtValue;
+                                            //                        rateprice = parseFloat(minval);
+                                            //                    }
+                                            //                }
+                                            //            }
+                                            //            //
+                                            //            if (item.Basis == 1) {
+                                            //                if (item.AtType == 1 && item.Leave == "Absent") {
+                                            //                    if (item.AtUnit == "Days") {
+                                            //                        var monthsal = parseFloat(item.Rate / item.days);
+                                            //                        var minval = monthsal * item.AtValue;
+                                            //                        rateprice = parseFloat(item.Rate - minval);
+                                            //                    }
+                                            //                }
+                                            //                if (item.AtType == 4 && item.Leave == "PRESENT") {
+                                            //                    if (item.AtUnit == "Days") {
+                                            //                        var monthsal = parseFloat(item.Rate / item.days);
+                                            //                        var minval = monthsal * item.AtValue;
+                                            //                        rateprice = parseFloat(minval);
+                                            //                    }
+                                            //                }
+                                            //            }
+                                            //        }
+                                            //    }
+                                            //    if (item.CalType == 2) {
+                                            //        rateprice = item.Rate;
+                                            //    }
+                                            //    if (item.CalType == 0) {
+                                            //        rateprice = 0.00;
+                                            //    }
+                                            //    if (item.CalType == 4) {
+                                            //        if (item.AtType == 3)//overtime hrs
+                                            //        {
+                                            //            var minval = item.Rate * item.AtValue;
+                                            //            rateprice = parseFloat(minval);
+                                            //        }
+                                            //    }
+                                            //}
+                                            //if (item.HeadType == 1) {
+                                            //    type = "Cr";
+                                            //    if (item.CalType == 2) {
+                                            //        rateprice = item.Rate;
+                                            //    }
+                                            //    if (item.CalType == 0) {
+                                            //        rateprice = 0.00;
+                                            //    }
+                                            //}
+                                            //if (item.HeadType == 7) {
+                                            //    type = "Cr";
+                                            //    if (item.CalType == 0) {
+                                            //        rateprice = 0.00;
+                                            //    }
+                                            //}
+                                            //if (item.HeadType == 3) {
+
+                                            //    if (item.CalType == 1) {
+                                            //        $.each(item.compute, function (i, itemz) {
+                                            //            if (itemz.Amountgreatethan < item.Rate < itemz.Amountupto) {
+                                            //                if (item.Computed == 0) {
+                                            //                    type = "Cr";
+                                            //                }
+                                            //                if (item.Computed == 1) {
+                                            //                    type = "Dr";
+                                            //                }
+                                            //                //if (item.Computed == "CurrentSubtotal") {
+
+                                            //                //}
+                                            //                //if (item.Computed == "SpecifiedFormula") {
+
+                                            //                //}
+                                            //                if (itemz.Slabtype == 1) {//percentage
+                                            //                    rateprice = (item.Rate) * (itemz.value / 100);
+                                            //                } else {//value
+                                            //                    rateprice = itemz.value;
+                                            //                }
+                                            //            }
+                                            //        });
+                                            //    }
+                                            //}
+
+
+                                            addempitem('addempitem', '', item.PayHead, item.PayHeadId, item.rateprice, item.EmpId, item.EmpName, item.type,item.CalType, item);
+                                            calsubtotal(j, item.EmpId);
+                                        });
+                                        CalculateTotal();
+                                        $(".grtoal").show();
+
+                                    }
+                                });
+                                AddEmployee();
+
+                            }
+                        });
+                        $(this).closest(".modal").modal('hide');
+                    }
+                });
+            </script>
+        </div>
+    </div>
+</div>
+

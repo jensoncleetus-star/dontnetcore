@@ -1,0 +1,243 @@
+﻿@model QuickSoft.Models.ContactGroup
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Contact Group";
+    ViewBag.Active = "Utility";
+    string actData = "";
+    bool userRole = false;
+    string delchk = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Contact Group"))
+    {
+        userRole = true;
+    }
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Contact Group</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Contact Group"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/ContactGroup/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAll", "ContactGroup", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="GroupTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">#</td>
+                        <td data-priority="1">Name</td>
+                        <td data-priority="2">Group Name</td>
+                        <td data-priority="1"> Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                  
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        if (User.IsInRole("Dev") || User.IsInRole("Delete Contact Group"))
+        {
+            <div class="box-footer text-right col-md-12" id="sub">
+                <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+            </div>
+        }
+    }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#advsearch').hide();
+            $('[data-confirm]').click(function (e) {
+                if ($('.checkbox:checked').length > 0) {
+                    if (!confirm(jQuery(this).attr("data-confirm"))) {
+                        e.preventDefault();
+                    }
+                } else {
+                    alert("Please Select Rows..!!");
+                    e.preventDefault();
+                }
+            });
+        });
+        ///*Bind for tax group*/
+        var oTable = $('#GroupTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/ContactGroup/GroupGetData',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [3, 4],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Name", "name": "Name" },
+                 { "data": "Parent", "name": "Parent" },
+                  //{
+                  //    "name": "Status", "data": function (data) {
+                  //        if (data.Status == 1) {
+                  //            return '<a href="/ContactGroup/ContactStatus/' + data.id + '/active " class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                  //        }
+                  //        else {
+                  //            return '<a href="/ContactGroup/ContactStatus/' + data.id + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                  //        }
+                  //    }
+                  //},
+                 //{
+                 //    "data": "id", "name": "id", "render": function (data) {
+                 //        return '<a class="modal-edit" href="/ContactGroup/Edit/' + data + '" title="Edit Contact Group"><i class="fa fa-lg fa-edit" ></i></a> ' +
+                 //              '<a class="modal-delete" href="/ContactGroup/Delete/' + data + '" title="Delete Contact Group"><i class="fa fa-lg fa-trash" ></i></a>';
+                 //    }
+                 //},
+                  {
+                      "name": "id", "data": function (data) {
+                          var rest = "";
+                          if (data.Editable == 0) {
+                              @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit Contact Group"))
+                                  {
+                                      actData += "<a class=\"modal-edit\" href=\"/ContactGroup/Edit/'+ data.id +'\" title=\"Edit ContactGroup\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                  }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete Contact Group"))
+                                  {
+                                      actData += "<a class=\"modal-delete\" href=\"/ContactGroup/Delete/'+ data.id +'\" title=\"Delete ContactGroup\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                              return rest = '@Html.Raw(actData)';
+                          }
+                          return rest;
+                      }
+                  },
+                   {
+                       "name": "id", "data": function (data) {
+                           var rest = "";
+                           @{
+                               if (User.IsInRole("Dev") || User.IsInRole("Delete Contact Group"))
+                               {
+                                   delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                               }
+                           }
+                           return rest = '@Html.Raw(delchk)';
+                       }
+                   },
+            ], "drawCallback": function (settings) {
+                var table = $('#GroupTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(4);
+            column1.visible(true);
+            $('.dt-button.btn-danger').show();
+        } else {
+            var column1 = oTable.column(4);
+            column1.visible(false);
+            $('.dt-button.btn-danger').hide();
+        }
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+            Table.draw(false);
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            Table.draw(false);
+        });
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            Table.draw(false);
+        });
+
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+            Table.draw(false);
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+    </script>
+}

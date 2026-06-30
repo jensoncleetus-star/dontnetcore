@@ -1,0 +1,490 @@
+@model QuickSoft.ViewModel.ReceiptViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Receipt";
+    ViewBag.Active = "Transactions";
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+@using (Html.BeginForm("Editprintpost", "Receipt", FormMethod.Post, new { id = "recform", role = "form" }))
+{
+    <div class="box box-info" style="display:none">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Receipt</h3>
+            <input type="hidden" id="chkPdc" value='@ViewBag.chkPdc' />
+            <input type="hidden" id="PdcDate" value='@Model.PDCDate' />
+            <input type="hidden" id="VoucherType" value="Receipt" />
+            <input type="hidden" id="ReceiptID" value="@ViewBag.ReceiptId" />
+
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Receipt"))
+                    {
+                        <a class="btn bg-black no-border" href="/Receipt/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Receipt"))
+                    {
+                        <a class="btn bg-black no-border" href="/Receipt/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create Receipt"))
+                    {
+                        <a class="btn bg-black no-border" href="/Receipt/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Receipt List"))
+                {
+                    <a class="btn btn-success no-border" href="/Receipt">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-3 form-group ">
+                    @Html.LabelFor(model => model.VoucherNo, new { @class = "control-label" }) *
+                    @if (ViewBag.EditVoucher == 0)
+                    {
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+                    }
+                    else
+                    {
+                        @Html.EditorFor(model => model.VoucherNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly", tabindex = 1 } })
+                    }
+                </div>
+                <div class="col-sm-3 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 2 })
+                    </div>
+                </div>
+                <div class="col-sm-3 form-group">
+                    @Html.LabelFor(model => model.MOPayment, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.MOPayment, new { @id = "MoPay", @class = "form-control", @onchange = "modechange()", tabindex = 3 })
+                </div>
+                <div class="col-sm-3 form-group">
+                    @Html.Label("PDCDate", null, htmlAttributes: new { @class = "control-label", @id = "PDC", })
+                    @Html.Label("CDCDate", null, htmlAttributes: new { @class = "control-label", @id = "CDC", })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PDCDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", tabindex = 4 })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-sm-3">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+                <div class="col-sm-3 form-group">
+                    @Html.LabelFor(m => m.PayTo, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Bank Accounts"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, new { id = "ddlpayto", @class = "form-control select2", @required = "required", tabindex = 5 })
+                            <span class="input-group-btn">
+                                <button type="button" href="/Master/BankAccountscreate" class="modal-create btn btn-success btn-flat" tabindex="6"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.PayTo, (SelectList)ViewBag.PaidTo, new { id = "ddlpayto", @class = "form-control select2", @required = "required", tabindex = 5 })
+                    }
+                    <div id="accbalanceto" class="form-group" style="display:none">
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetailsto"></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3 form-group">
+                    @Html.LabelFor(m => m.PayFrom, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(m => m.PayFrom, (SelectList)ViewBag.Paidfrom, new { id = "ddlpayfrom", @class = "form-control select2", @required = "required", tabindex = 7 })
+                    <div id="accbalance" class="form-group" style="display:none">
+                        <label>Account Summary</label>
+                        <div class="input-group input-group-sm">
+                            <label class="text-danger" id="accdetails"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-3 form-group" id="checkno">
+                    @Html.LabelFor(model => model.CheckNo, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.CheckNo, new { htmlAttributes = new { @class = "form-control", @required = "required", data_msg_required = "Check Number is Required", tabindex = 8 } })
+                </div>
+                <div class="form-group col-sm-3" id="bank">
+                    @Html.LabelFor(model => model.Bank, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.Bank, new { htmlAttributes = new { @class = "form-control", tabindex = 9 } })
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.leafno, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.leafno, new { htmlAttributes = new { @class = "form-control", tabindex = 9 } })
+                </div>
+                <div id="divproject" hidden>
+                    @if (@ViewBag.ProjChk == 0)
+                    {
+                        <div class="form-group col-sm-3">
+                            @Html.LabelFor(m => m.Project, new { @class = "control-label" })
+                            @if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                            {
+                                <div class="input-group input-group-sm">
+                                    @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                                    <span class="input-group-btn">
+                                        <a href="/Project/AddProject" class="modal-project btn btn-success btn-flat" title="Add Project"><i class="fa fa-1x fa-plus-circle"></i></a>
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                @Html.DropDownListFor(m => m.Project, (SelectList)ViewBag.getProj, "", new { id = "ddlProject", @class = "form-control select2" })
+                            }
+                        </div>
+                        <div class="form-group col-sm-3">
+                            @Html.LabelFor(m => m.ProTask, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "", new { id = "ddlProTask", @class = "form-control select2" })
+                        </div>
+                    }
+                </div>
+
+            </div>
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        var fmap = "";
+                        if (Model.FieldMap[i].Field == "Ref1")
+                        {
+                            fmap = Model.Ref1;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref2")
+                        {
+                            fmap = Model.Ref2;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref3")
+                        {
+                            fmap = Model.Ref3;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref4")
+                        {
+                            fmap = Model.Ref4;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref5")
+                        {
+                            fmap = Model.Ref5;
+                        }
+
+                        <div class="form-group col-sm-3">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="@fmap">
+                        </div>
+                    }
+                }
+            </div>
+            <div>
+                <div class="table-responsive hight-250" id="invoice"><hr /></div>
+                <div class="row">
+                    <div class="col-md-6">
+
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Remarks", tabindex = 9 })
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.Discount, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Discount, new { htmlAttributes = new { @id = "Discount", @class = "form-control text-right", @value = "0.00", tabindex = 10 } })
+                        </div>
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.GrandTotal, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.GrandTotal, new { htmlAttributes = new { @id = "GrandTotal", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 10 } })
+                        </div>
+                        <div class="form-group col-md-6 col-md-offset-6 no-padding">
+                            @Html.LabelFor(model => model.Paying, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Paying, new { htmlAttributes = new { @id = "Paying", @class = "form-control text-right", @min = "0.01", @value = "0.00", tabindex = 11 } })
+                        </div>
+                        <div class="form-group col-md-6 no-padding hidden">
+                            @Html.LabelFor(model => model.Balance, new { @class = "control-label" })
+                            @Html.EditorFor(model => model.Balance, new { htmlAttributes = new { @id = "Balance", @class = "form-control text-right", @value = "0.00", @readonly = "readonly", tabindex = 12 } })
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <hr />
+        <div class="form-group pull-right">
+            <div class="form-group no-padding text-right" style="display:none;">
+                <div class="checkbox-inline">
+                    <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                    <label class="control-label" for="hideheader">Hide Header In Print</label>
+                </div>
+            </div>
+            <input type="hidden" value="" name="submittype" id="submittype" />
+   
+            <button type="submit" id="print" class="btn btn-success" tabindex="14">
+                <span class="glyphicon glyphicon-print"></span> Print
+            </button>
+            <button type="button" tabindex="15" class="btn btn-warning" onclick="@("window.location.href='/Receipt/Index'");">Cancel</button>
+            <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+            <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+        </div>
+    </div>
+}
+@*----------------------For File Attachment----------------------------*@
+<div class="form-group" style="display:none;">
+    @Html.Label("Documents", null, new { @class = "control-label" })
+    <div class="file-loading">
+        <input id="input-24" name="input24[]" type="file" multiple>
+    </div>
+</div>
+@foreach (var arr in @ViewBag.Image)
+{
+    check = "\"/uploads/ReceiptDocuments/" + arr.FileName + "\"";
+
+    strImage += check + ',';
+
+    partialconfig += "{ key:" + arr.DocumentID + " }" + ',';
+}
+@*----------------------------------------------------------------------*@
+
+@if (ViewBag.BusinessType == "Scaffold")
+{
+    @Html.Partial("_Voucher1")
+}
+else
+{
+    @Html.Partial("_Voucher")
+}
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModelProject")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    <script src="~/Content/js/receipt.js?c=2"></script>
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            searchInvoice();
+            $("#ddlpayfrom").trigger("change")
+            $('#PDCDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var MOP = $('#MoPay').val();
+            var hid = (MOP == 2) ? $('#CDC').show() && $('#PDC').hide() : ($('#PDC').show() && $('#CDC').hide());
+            modechange();
+
+            $('.sup').hide();
+            PaymentTo();
+            PaymentFrom();
+
+            var accid = $('#ddlpayto').val();
+            accbalanceto(accid);
+
+            var entry = getQueryString('');
+            if (entry != null) {
+                $.ajax({
+                    url: '/Receipt/GetReceiptBill',
+                    dataType: 'json',
+                    data: { entry: entry },
+                    cache: true,
+                    success: function (data) {
+                        if (data != "") {
+                            bindinvoiceNew();
+                            $('#addinvoiceItem').html('');
+                            $.each(data, function (i, item) {
+                                //var amt = item.Balance < item.Amount ? item.Balance : item.Amount;
+                                addrows('addinvoiceItem', 'edit', item.id, item.BillNo, item.Date, item.Balance, item.Amount, item.type, item.NewRefName, item.Type);
+                            });
+                            addrows('addinvoiceItem', 'edit', '', '', '', '0.00', '0.00');
+                            RowTotal();
+                            cashBalance();
+                        }
+                    }
+                });
+            }
+
+            var accid = $('#ddlpayfrom').val();
+            chkacctype(accid);
+            CallProjectAll();
+            CallTask();
+        });
+
+        // on change function of payto
+        $('body').on('change', '#ddlpayfrom', function (e) {
+            var accid = $(this).val();
+            var accidto = $("#ddlpayto").val();
+
+            if (accid != accidto) {
+                accbalance(accid);
+                chkacctype(accid);
+            } else {
+                alert("PayFrom And PayTo Should be Different..!!");
+                $('#ddlpayfrom').val(null).trigger('change');
+            }
+        });
+
+        $('body').on('change', '#ddlpayto', function (e) {
+            var accid = $(this).val();
+            var accidfr = $("#ddlpayfrom").val();
+            if (accid != accidfr) {
+                accbalanceto(accid);
+            } else {
+                alert("PayTo And PayFrom Should be Different..!!");
+                $('#ddlpayto').val(null).trigger('change');
+            }
+        });
+
+        // onchange function for paying
+        $('body').on('change', '#Paying', function (e) {
+            cashBalance();
+        });
+
+        // onchange function for modpaying
+        $('body').on('change', '#MoPay', function (e) {
+            var MOP = $('#MoPay').val();
+            var hid = (MOP == 2) ? $('#CDC').show() && $('#PDC').hide() : ($('#PDC').show() && $('#CDC').hide());
+            modechange();
+        });
+
+        $('body').on('change', '#Discount', function (e) {
+            var totalPaid = $("#Paying").val();
+            var discount = $("#Discount").val();
+            if (parseFloat(discount) <= parseFloat(totalPaid)) {
+                cashBalance();
+            } else {
+                $("#Discount").val("0.00");
+                alert("Discount Should Less Than Amount..!!");
+            }
+        });
+
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+
+        $('#recform').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#recform").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                $('#submittype').val(fnval);
+                formsubmition(fnval);
+            }
+        });
+
+        /* function for Create popup */
+
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        $('span').on('click', '.modal-project', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-project');
+            //datepickerInit();
+        });
+        ProjectPopup();
+    </script>
+
+    <script type="text/javascript">
+       $("#input-24").fileinput({
+            initialPreview: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: false,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+           initialPreviewFileType: 'image',
+            initialPreviewDownloadUrl: [@Html.Raw(strImage)],
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+         deleteUrl: "/Receipt/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+
+    </script>
+}

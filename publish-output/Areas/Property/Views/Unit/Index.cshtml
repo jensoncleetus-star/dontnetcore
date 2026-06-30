@@ -1,0 +1,373 @@
+@model QuickSoft.Models.PropertyUnit
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Unit";
+    ViewBag.Active = "Payroll";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    // if (User.IsInRole("Dev") || User.IsInRole("Delete Broker"))
+    // {
+    userRole = true;
+    deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+         "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+          "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    // }
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Unit </h3>
+        <div class="pull-right">
+            @*@if (User.IsInRole("Dev") || User.IsInRole("Create Payhead"))
+                {*@
+            <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+            <a class="btn btn-info no-border" href="/Property/Unit/Create">
+                <i class="glyphicon glyphicon-plus"></i> Create
+            </a>
+            @*}*@
+        </div>
+    </div>
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+        <input type="hidden" id="remId" />
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <div class="row">
+                    <div class="form-group col-md-2 select2-box">
+                        @Html.Label("Name", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlUnit", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2 select2-box">
+                        @Html.Label("Property", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlProperty", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2 select2-box">
+                        @Html.Label("Unit Type", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlUnitType", (SelectList)ViewBag.Alldata, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAll", "Unit", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">#</td>
+                        <td data-priority="2">Code</td>
+                        <td data-priority="2">Name</td>
+                        <td data-priority="5">Property</td>
+                        <td data-priority="5">Unit Type</td>
+                        <td data-priority="5">Feature</td>
+                        <td data-priority="2">Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+        <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+    }
+</div>
+
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/property")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+@Scripts.Render("~/js/Mobile")
+
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(document).ready(function () {
+            $('#comp').hide();
+            $('#advsearch').hide();
+            GetUnitType(1);
+            GetProperty(1);
+            GetUnit(1);
+            AddMobile();
+        });
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/Property/Unit/GetUnit',
+                "type": "POST",
+                "data": function (data) {
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.Unit = $('#ddlUnit').val();
+                    data.UnitType = $('#ddlUnitType').val();
+                    data.Property = $('#ddlProperty').val();
+                },
+                "datatype": "json"
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{ orderable: false, targets: -1 }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Code", "name": "Code" },
+
+                 { "data": "Name", "name": "Name" },
+
+                { "data": "Property", "name": "Property" },
+
+                 { "data": "UnitType", "name": "UnitType" },
+
+
+
+                  {
+                      "name": "Feature", "data": function (data) {
+                          var datas = "";
+                          $.each(data.feature, function (i, item) {
+                              if (datas != "") {
+                                  datas += ", ";
+                              }
+                              datas += item.Feature
+                          })
+                          return datas;
+                      }
+                  },
+
+
+
+
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         @{
+                            //if (User.IsInRole("Dev") || User.IsInRole("Edit Payhead"))
+                            //{
+                            actData += "<a href=\"/Property/Unit/Details/'+ data.id +'\" title=\"View Property \"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                            //}
+                            //if (User.IsInRole("Dev") || User.IsInRole("Edit Payhead"))
+                            //{
+                            actData += "<a href=\"/Property/Unit/Edit/'+ data.id +'\" title=\"Edit Property\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                             //}
+                             //if (User.IsInRole("Dev") || User.IsInRole("Delete Payhead"))
+                             //{
+                                 actData += "<a class=\"modal-delete\" href=\"/Property/Unit/Delete/'+ data.id +'\" title=\"Delete Property\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                             //}
+                              }
+                         return rest = '@Html.Raw(actData)';
+                     }
+                 },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         @{
+                             //    if (User.IsInRole("Dev") || User.IsInRole("Delete Broker"))
+                             //   {
+                             delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                             //   }
+                         }
+                         return rest = '@Html.Raw(delchk)';
+                     }
+                 },
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Broker </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Broker",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+
+
+            },
+            @Html.Raw(deleteBTn)
+            ],
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+
+
+            }
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+
+            if ($('#srch').hasClass('btn-primary')) {
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+
+                $('#ddlProperty').val(0).trigger("change");
+                $('#ddlUnit').val(0).trigger("change");
+                $('#ddlUnitType').val(0).trigger("change");
+                oTable.draw();
+            }
+        });
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createmainForm', function (e) {
+            e.preventDefault();
+            var url = $('#createmainForm')[0].action;
+            var data = $('#createmainForm').serialize();
+            createajax(url, data, '#modal-create');
+        });
+    </script>
+}

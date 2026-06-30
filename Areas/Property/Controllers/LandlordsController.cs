@@ -76,7 +76,7 @@ namespace QuickSoft.Areas.Property.Controllers
             //    ttype = (TxType == "0") ? Type.ItemWise : Type.Exempt;
             //}
 
-            var userpermission = true;// User.IsInRole("All Landlords");
+            var userpermission = User.IsInRole("All Landlords"); // Security S21: was hardcoded true (IDOR — leaked all rows); matches this controller's own line 649.
             var UserId = User.Identity.GetUserId();
 
             var uDev = User.IsInRole("Dev");

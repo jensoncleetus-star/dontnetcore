@@ -793,7 +793,7 @@ namespace QuickSoft.Controllers
         public ActionResult Editprint(long id)
         {
             
-            var userpermission = true;// User.IsInRole("All Payment Entry");
+            var userpermission = User.IsInRole("All Payment Entry"); // Security S12: was hardcoded `true` (IDOR — any user could open any voucher by id). Role-holders still see all; others are scoped to their own.
             var UserId = User.Identity.GetUserId();
             Payment pay = db.Payments.Where(x => (x.CreatedBy == UserId || userpermission == true) && x.PaymentId == id).FirstOrDefault();
             if (pay == null)
@@ -1012,7 +1012,7 @@ namespace QuickSoft.Controllers
         }
         public ActionResult Edit(long id)
         {
-            var userpermission = true;// User.IsInRole("All Payment Entry");
+            var userpermission = User.IsInRole("All Payment Entry"); // Security S12: was hardcoded `true` (IDOR — any user could open any voucher by id). Role-holders still see all; others are scoped to their own.
             var UserId = User.Identity.GetUserId();
             Payment pay = db.Payments.Where(x => (x.CreatedBy == UserId || userpermission == true) && x.PaymentId == id).FirstOrDefault();
             if (pay == null)
@@ -1608,10 +1608,11 @@ namespace QuickSoft.Controllers
                         if (pdcaccdet1 != null)
                         {
                             var aid = pdcaccdet1.Id;
+                            // Calc fix: debit PayTo by full PaytoAmount (not minus Discount). Matches Create + the sibling Edit branch (line ~1731); the `-Discount` form left the entry unbalanced by the discount amount.
                             if(pdcDate==null)
-                            com.UpdateAccountTrasaction(aid, PaytoAmount-Discount , 0, vmodel.PayTo, "Payment", PaymentId, DC.Debit, vdate, pdcaccdet1.Status, vmodel.Project, vmodel.ProTask);
+                            com.UpdateAccountTrasaction(aid, PaytoAmount , 0, vmodel.PayTo, "Payment", PaymentId, DC.Debit, vdate, pdcaccdet1.Status, vmodel.Project, vmodel.ProTask);
                             else
-                            com.UpdateAccountTrasaction(aid, PaytoAmount-Discount, 0, vmodel.PayTo, "Payment", PaymentId, DC.Debit, pdcDate, pdcaccdet1.Status, vmodel.Project, vmodel.ProTask);
+                            com.UpdateAccountTrasaction(aid, PaytoAmount, 0, vmodel.PayTo, "Payment", PaymentId, DC.Debit, pdcDate, pdcaccdet1.Status, vmodel.Project, vmodel.ProTask);
 
                         }
 

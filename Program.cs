@@ -26,7 +26,7 @@ if (string.IsNullOrWhiteSpace(conn))
     if (!builder.Environment.IsDevelopment())
         throw new System.InvalidOperationException(
             "ConnectionStrings:DefaultConnection is not configured. Set it (per branch database) before running in Production.");
-    conn = @"Server=.\SQLEXPRESS;Database=blankdbdotnecore;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
+    conn = @"Server=.\SQLEXPRESS;Database=emirtechlatest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
 }
 
 // EF Core 10 translates `list.Contains(column)` via OPENJSON, which fails on SQL Server databases at an
@@ -60,6 +60,12 @@ builder.Services.ConfigureApplicationCookie(o =>
     o.LoginPath = "/Users/Login";
     o.LogoutPath = "/Users/LogOff";
     o.AccessDeniedPath = "/Home/Unauthorize";
+    // Security hardening (audit S16): HttpOnly + SameSite=Lax on the auth cookie. Secure flag is set only once
+    // HTTPS is enforced (Security:RequireHttps) so the current plain-HTTP pilots keep working — flip at TLS cutover.
+    o.Cookie.HttpOnly = true;
+    o.Cookie.SameSite = SameSiteMode.Lax;
+    o.Cookie.SecurePolicy = builder.Configuration.GetValue<bool>("Security:RequireHttps")
+        ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
 });
 
 // Keep the auth cookie tiny: store the (large, many-role) AuthenticationTicket server-side and put
@@ -79,7 +85,15 @@ builder.WebHost.ConfigureKestrel(o =>
 });
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSession();   // legacy Session["..."] usage
+builder.Services.AddSession(o =>   // legacy Session["..."] usage
+{
+    // Security hardening (audit S16): match the auth-cookie posture for the session cookie.
+    o.Cookie.HttpOnly = true;
+    o.Cookie.IsEssential = true;
+    o.Cookie.SameSite = SameSiteMode.Lax;
+    o.Cookie.SecurePolicy = builder.Configuration.GetValue<bool>("Security:RequireHttps")
+        ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+});
 // Runtime Razor compilation so the 1,779 legacy views compile on-demand during the port.
 // Keep controller JSON in PascalCase (PropertyNamingPolicy = null) — the legacy DataTables/jQuery code
 // references PascalCase keys (e.g. { data: "BillNo" }); Core's System.Text.Json default camelCases them
@@ -124,6 +138,22 @@ builder.Services.AddHostedService<QuickSoft.Helpers.PropertyReminderService>();
 // global AutoValidateAntiforgeryToken once the token-less legacy forms (mobile App views) are inventoried.
 builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
 
+// Security hardening (audit S8): close the open-by-default authorization gap. Until now authorization was
+// opt-in per action (BaseController had no [Authorize]; no fallback policy), so any action without an explicit
+// [QkAuthorize] was reachable unauthenticated. This fallback policy makes EVERY endpoint require an authenticated
+// user UNLESS it is explicitly [AllowAnonymous] (login, register, forgot-password, OTP downloads, error pages,
+// installation, the mobile loginapp). The built-in policy honors [AllowAnonymous] natively; QkAuthorize was also
+// updated to honor it (BaseController.cs) so class-level [QkAuthorize] controllers don't block their own anon actions.
+// Default ON (secure). Emergency-rollback valve for the live pilot: set "Security": { "RequireAuthByDefault": false }
+// in appsettings.Production.json and restart if a missed [AllowAnonymous] endpoint surfaces — no code change/redeploy.
+if (builder.Configuration.GetValue("Security:RequireAuthByDefault", true))
+{
+    builder.Services.AddAuthorization(o =>
+        o.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build());
+}
+
 // Response compression (Brotli + Gzip) compresses plain .js/.css/json on the fly — replacing the stale
 // pre-compressed .gz/.br files the old IIS setup relied on. (.js serves as text/javascript, which isn't in
 // the default compressible set, so extend MimeTypes.)
@@ -153,9 +183,14 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    // Clickjacking defense (modern replacement for the deprecated X-Frame-Options) — frame-ancestors only,
-    // so it does NOT block the legacy inline scripts (a full script-src CSP is deferred to the UI phase).
-    context.Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self'";
+    // CSP hardening (audit S3): enforce the directives that add real XSS-escalation defense WITHOUT touching the
+    // legacy inline scripts — verified safe by scan: 0 <object>/<embed>, 0 <base>, 0 cross-origin <form action>.
+    //   frame-ancestors 'self' — clickjacking defense (replaces X-Frame-Options)
+    //   object-src 'none'      — blocks plugin/<embed>-based script execution
+    //   base-uri 'self'        — blocks <base> injection (a stored-XSS escalation that re-points relative script URLs)
+    //   form-action 'self'     — blocks form-based data exfiltration to attacker origins
+    // A full script-src CSP (the inline-script + CDN allow-list / nonces) is deferred to the UI phase.
+    context.Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'";
     context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
     await next();
 });
@@ -176,6 +211,25 @@ app.UseResponseCompression();
 // .webmanifest, so without this it would be sent as application/octet-stream and ignored by browsers).
 var pwaContentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
 pwaContentTypes.Mappings[".webmanifest"] = "application/manifest+json";
+// Security hardening (audit S14): the user-upload folder accepts arbitrary extensions (no allow-list at
+// the ~67 upload handlers). Neutralize stored-XSS / phishing-host at the SERVING layer for ALL of them at
+// once: never serve script/markup files (.html/.svg/.js/.cshtml/...) from /uploads — they 404. Legitimate
+// images/pdf/office/csv continue to serve normally (X-Content-Type-Options:nosniff is already global, so a
+// .jpg can't be content-sniffed into HTML). Defense-in-depth: also add an extension allow-list at upload time.
+var blockedUploadExt = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+{ ".html", ".htm", ".xhtml", ".shtml", ".svg", ".js", ".mjs", ".xml", ".cshtml", ".razor", ".aspx", ".asp",
+  ".ascx", ".php", ".phtml", ".jsp", ".htaccess", ".swf", ".xhtm" };
+app.Use(async (context, next) =>
+{
+    var p = context.Request.Path.Value;
+    if (p != null && p.StartsWith("/uploads", System.StringComparison.OrdinalIgnoreCase)
+        && blockedUploadExt.Contains(System.IO.Path.GetExtension(p)))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
 // Performance (audit P4): browser-cache static assets so navigations stop re-fetching them.
 // Fonts/images rarely change -> 7 days; css/js -> 1 day (theme iterations during UAT only need
 // a hard refresh within that window; bump at go-live if desired).
@@ -246,7 +300,7 @@ if (app.Environment.IsDevelopment())
         return r.Succeeded
             ? Results.Ok($"password set for {user} (id={u.Id})")
             : Results.BadRequest(string.Join("; ", r.Errors.Select(e => e.Description)));
-    });
+    }).AllowAnonymous();   // Security S8: dev bootstrap must be reachable before login (Development builds only)
 
     // DEV-ONLY: model-vs-schema diff — finds mapped entity properties whose column is ABSENT from the
     // emirtechlatest schema (would crash on INSERT/UPDATE) + entities whose table is missing. JSON. Remove before deploy.
@@ -279,7 +333,7 @@ if (app.Environment.IsDevelopment())
         }
         finally { if (wasClosed) conn.Close(); }
         return Results.Json(issues);
-    });
+    }).AllowAnonymous();   // Security S8 (Development builds only)
 
     // DEV-ONLY: invoke the forward-correctness header-recompute directly (golden-tests the helper
     // without driving the full multi-request save flow). Remove before deploy.
@@ -289,7 +343,7 @@ if (app.Environment.IsDevelopment())
         else if (type == "quot") QuickSoft.Helpers.DocumentTotals.RecomputeQuotation(db, id);
         else return Results.BadRequest("type must be sale|quot");
         return Results.Ok($"recomputed {type} {id}");
-    });
+    }).AllowAnonymous();   // Security S8 (Development builds only)
 
     // DEV-ONLY: compile every .cshtml through the RUNTIME Razor compiler (the production code path) and
     // report any view that fails — proves complete view-migration without single-assembly precompilation
@@ -323,7 +377,7 @@ if (app.Environment.IsDevelopment())
             }
         }
         return Results.Json(new { total, ok, failed = fails.Count, fails });
-    });
+    }).AllowAnonymous();   // Security S8 (Development builds only)
 }
 
 app.Run();

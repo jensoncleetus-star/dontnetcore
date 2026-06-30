@@ -1,0 +1,712 @@
+@model QuickSoft.Models.Accounts
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Master";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string statData = "";
+    bool userRole = false;
+    string delchk = "";
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Bank Accounts"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+               "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#payform').submit(); e.preventDefault();} " +
+                "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Bank Accounts</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Bank Accounts"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/master/BankAccountscreate">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+
+        <div class="row">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="liaccntname" />Account Name</li>
+                        <li><input type="checkbox" id="lialias" />Alias</li>
+                        <li><input type="checkbox" id="liaccntno" />Account Number</li>
+                        <li><input type="checkbox" id="librnchname" />Branch Name</li>
+                        <li><input type="checkbox" id="liIBANno" />IBAN Number</li>
+                        <li><input type="checkbox" id="liswift" />Swift</li>
+                        <li><input type="checkbox" id="listatus" />Status</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchaccntname">
+                                    @Html.Label("Account Name", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlAccount", (SelectList)ViewBag.Accts, new { @class = "form-control" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchalias">
+                                    @Html.Label("Alias", null, new { @class = "control-label" })
+                                    @Html.TextBox("Alias", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchaccntno">
+                                    @Html.Label("Account Number", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlAccNum", (SelectList)ViewBag.AccNo, new { @class = "form-control" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchbrnchname">
+                                    @Html.Label("Branch Name", null, new { @class = "control-label" })
+                                    @Html.TextBox("BrName", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchBANno">
+                                    @Html.Label("IBAN Number", null, new { @class = "control-label" })
+                                    @Html.TextBox("IbanNo", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchswiftno">
+                                    @Html.Label("Swift", null, new { @class = "control-label" })
+                                    @Html.TextBox("SwiftNo", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="searchstatus">
+                                    @Html.Label("Status", null, new { @class = "control-label" })
+                                    @Html.DropDownList("Status", (SelectList)ViewBag.ItStatus, new { @class = "form-control" })
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @using (Html.BeginForm("DeleteAllBankAcc", "Master", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr>
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Name</td>
+                        <td data-priority="1">Alias</td>
+                        <td data-priority="2">Account Number</td>
+                        <td data-priority="9">Branch</td>
+                        <td data-priority="2">IBAN No</td>
+                        <td data-priority="2">Swift</td>
+                        <td data-priority="2">Opening Balance</td>
+                        <td data-priority="2">Current Balance</td>
+                        <td data-priority="9">Note</td>
+                        <td data-priority="2">Status</td>
+                        <td data-priority="1"> Action</td>
+                        <td data-priority="2"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete Bank Accounts"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#advsearchlist').hide();
+        });
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/master/BankAccountsData',
+                "data": function (data) {
+                    data.ddlAccount = $('#ddlAccount').val();
+                    data.BrName = $('#BrName').val();
+                    data.IbanNo = $('#IbanNo').val();
+                    data.SwiftNo = $('#SwiftNo').val();
+                    data.Stats = $('#Status').val();
+                    data.ddlAccNum = $('#ddlAccNum').val();
+                    data.Alias = $('#Alias').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [9,10,11,12],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Name", "name": "Name" },
+                   { "data": "Alias", "name": "Alias" },
+                 { "data": "AccountNo", "name": "AccountNo" },
+                 { "data": "BranchName", "name": "BranchName" },
+                 { "data": "IbanNo", "name": "IbanNo" },
+                 { "data": "Swift", "name": "Swift" },
+                 { "data": "OpnBalance", "name": "OpnBalance" },
+                {
+                    "data": function (data) {
+                        var CurBalance;
+                        CurBalance = (data.Debit > data.Credit) ? ((data.Debit - data.Credit).toFixed(2) + " Dr") : ((data.Credit - data.Debit).toFixed(2) + " Cr.");
+                        return CurBalance;
+                    }
+                },
+                 { "data": "Note", "name": "Note" },
+                 {
+
+                     "name": "Status", "data": function (data) {
+                         var rest = "";
+                         if (data.Status == 1) {
+                             @{
+                                        if (User.IsInRole("Dev") || User.IsInRole("Bank Accounts Status"))
+                                        {
+                                            statData = "<a class=\"modal-change\" href=\"/master/BankAccountsStatus/'+ data.id +'/active\" title=\"Click To Active\"><i class=\"badge bg-red\" >Inactive</i></a> ";
+                                        }
+
+                                    }
+                             return rest = '@Html.Raw(statData)';
+                         }
+                         else {
+                             @{
+                                         if (User.IsInRole("Dev") || User.IsInRole("Bank Accounts Status"))
+                                         {
+                                             statData = "<a class=\"modal-change\" href=\"/master/BankAccountsStatus/'+ data.id +'/inactive\" title=\"Click To Inactive\"><i class=\"badge bg-green\" >Active</i></a> ";
+                                         }
+                                     }
+                             return rest = '@Html.Raw(statData)';
+                         }
+
+                     }
+                 },
+
+
+                  {
+                      "name": "id", "data": function (data) {
+                          var rest = "";
+                          @{
+                              //if (User.IsInRole("Dev") || User.IsInRole("View Bank Accounts"))
+                              {
+                                  actData += "<a class=\"modal-edit\" href=\"/master/ViewDetails/'+ data.id +'\" title=\"View Bank Accounts\"><i class=\"fa fa-lg fa-search-plus\" ></i></a> ";
+                              }
+                              if (User.IsInRole("Dev") || User.IsInRole("Edit Bank Accounts"))
+                              {
+                                  actData += "<a class=\"modal-edit\" href=\"/master/BankAccountsEdit/'+ data.id +'\" title=\"Edit Bank Accounts\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                              }
+                              if (User.IsInRole("Dev") || User.IsInRole("Delete Bank Accounts"))
+                              {
+                                  actData += "<a class=\"modal-delete\" href=\"/master/BankAccountsDelete/'+ data.id +'\" title=\"Delete Bank Accounts\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                              }
+                              }
+                          return rest = '@Html.Raw(actData)';
+                      }
+                  },
+                  {
+                      "name": "id", "data": function (data) {
+                          var rest = "";
+                          @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete Bank Accounts"))
+                                  {
+                                      delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                                  }
+                              }
+                          return rest = '@Html.Raw(delchk)';
+                      }
+                  },
+
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis',
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Bank Accounts </h4></th></tr>' +
+                        ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', 'excel',
+
+            {
+                extend: 'pdf',//
+                title: "Bank Accounts",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+              @Html.Raw(deleteBTn)
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(12);
+            column1.visible(true);
+            $('.dt-button.btn-danger').show();
+        }
+        else {
+            var column1 = oTable.column(12);
+            column1.visible(false);
+            $('.dt-button.btn-danger').hide();
+        }
+
+       //Button Close
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearchlist').toggle();
+
+            /*******  To uncheck all the checkboxes in the Select List  ************/
+            var checkboxes = document.querySelectorAll("input[type='checkbox']");
+            checkboxes.forEach(function (Checkbox) {
+                Checkbox.checked = false;
+            });
+
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else {
+                if ($('#srch').hasClass('btn-danger')) {
+                    $('#srch').addClass('btn-primary');
+                    $('#srch').removeClass('btn-danger');
+                }
+                /*******  To clear all the data entered  *********/
+                $('#ddlAccount').val(0).trigger("change");
+                $('#Alias').val("");
+                $('#ddlAccNum').val(0).trigger("change");
+                $('#BrName').val("");
+                $('#IbanNo').val("");
+                $('#SwiftNo').val("");
+                $('#Status').val("").trigger("change");                
+                oTable.draw();
+            }
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            GetBranch();
+        });
+
+        $('#modal-edit').on('shown.bs.modal', function (e) {
+            GetBranch();
+        });
+
+        //Account Number
+        $("#ddlAccNum").select2({
+                placeholder: 'Search Account Number',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Master/SearchBankAccountNo",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+        });
+
+        //Account Name
+        $("#ddlAccount").select2({
+            placeholder: 'Search Item Category',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Master/SearchBankAccounts",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                        x: "All"
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        $('body').on('change', '#AccountNo', function (e) {
+            var bankno = $('#AccountNo').val();//CustomerCheck
+            var bid = $('#BankId').val();
+            var bname = $('#Name').val();
+            $.ajax({
+                url: '/Master/BankAccCheck',
+                type: "GET",
+                dataType: "JSON",
+                data: { Account: bankno,Bankname:bname, BankId: bid },
+                success: function (rslt) {
+                    if (rslt == true) {
+                        alert("Account Number already Exists")
+                        $('#AccountNo').val('');
+                    }
+                }
+            });
+
+        });
+
+       var checkList = document.getElementById('list1');
+       /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+       checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+           if (checkList.classList.contains('visible'))
+               checkList.classList.remove('visible');
+           else
+               checkList.classList.add('visible');
+       }
+
+       /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+       $("ul li input:checkbox").click(function () {
+
+           var _show = 0;
+
+           //Account Name
+           if ($("#liaccntname ").prop("checked") == true) {
+               $("#searchaccntname").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlAccount').val(0).trigger("change");
+               $("#searchaccntname").hide();
+               oTable.draw();
+           }
+
+           //Alias
+           if ($("#lialias").prop("checked") == true) {
+               $("#searchalias").show();
+               _show = 1;
+           }
+           else {
+               $("#Alias").val("");
+               $("#searchalias").hide();
+               oTable.draw();
+           }
+
+           //Account No.
+           if ($("#liaccntno").prop("checked") == true) {
+               $("#searchaccntno").show();
+               _show = 1;
+           }
+           else {
+               $('#ddlAccNum').val(0).trigger("change");
+               $("#searchaccntno").hide();
+               oTable.draw();
+           }
+
+           //Branch Name
+           if ($("#librnchname").prop("checked") == true) {
+               $("#searchbrnchname").show();
+               _show = 1;
+           }
+           else {
+               $('#BrName').val("");
+               $("#searchbrnchname").hide();
+               oTable.draw();
+           }
+
+           //IBAN Number
+           if ($("#liIBANno").prop("checked") == true) {
+               $("#searchBANno").show();
+               _show = 1;
+           }
+           else {
+               $('#IbanNo').val("");
+               $("#searchBANno").hide();
+               oTable.draw();
+           }
+
+           //Swift
+           if ($("#liswift").prop("checked") == true) {
+               $("#searchswiftno").show();
+               _show = 1;
+           }
+           else {
+               $('#SwiftNo').val("");
+               $("#searchswiftno").hide();
+               oTable.draw();
+           }
+
+           //Status
+           if ($("#listatus").prop("checked") == true) {
+               $("#searchstatus").show();
+               _show = 1;
+           }
+           else {
+               $('#Status').val("").trigger("change");
+               $("#searchstatus").hide();
+               oTable.draw();
+           }
+
+           if (_show == 1) {
+               $('#advsearchlist').show();
+           }
+           else {
+               $('#advsearchlist').hide();
+           }
+       });
+
+       /******* Function to hide dropdown checklist while clicking outside it ********/
+       $(document).on("click", function (event) {
+
+           var element1 = $("#list1");
+
+           if (element1 !== event.target && !element1.has(event.target).length) {
+               checkList.classList.remove('visible');
+           }
+       });
+
+    </script>
+}

@@ -1,0 +1,168 @@
+﻿@model QuickSoft.ViewModel.ItemTaskViewModel
+
+@{
+    ViewBag.Title = "ItemTask List";
+    ViewBag.SubTitle = "Item Task";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string actData1 = "";
+}
+
+
+
+<div class="box box-info">
+    @using (Html.BeginForm("Create", "ItemTask", FormMethod.Post, new { id = "createForm", role = "form" }))
+    {
+
+
+        <div class="box-header with-border">
+            <h3 class="box-title">Item Task</h3>
+
+            <div class="pull-right">
+
+        <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+        <a class="btn btn-info no-border" href="/ProTask/MyTask">
+        <i class="glyphicon glyphicon-plus"></i>Create
+        </a>
+
+        </div>
+            <br />
+            <br />
+
+
+
+            @*<div class="pull-right">
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create HireType"))
+                    {
+                        <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                        <a class="btn btn-info no-border modal-create" href="/HireType/Create">
+                            <i class="glyphicon glyphicon-plus"></i> Create Hire Type
+                        </a>
+                    }
+                </div>*@
+      
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="GroupTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">#</td>
+                        <td data-priority="2">Item</td>
+
+                        <td data-priority="2">Unit</td>
+                        <td data-priority="4">Quantity</td>
+
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+
+    
+
+}
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        ///*Bind for tax group*/
+        var oTable = $('#GroupTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/ItemTask/GetData',
+
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columns": [
+                {
+                    "data": "id", "name": "id",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "ItemName", "name": "ItemName" },
+
+
+                { "data": "ItemUnitName", "name": "ItemUnitName" },
+
+                { "data": "Quantity", "name": "Quantity" },
+
+
+            ]
+        });
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+            oTable.draw(false);
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            oTable.draw(false);
+        });
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            oTable.draw(false);
+        });
+
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+            oTable.draw(false);
+        });
+
+    </script>
+}
+
+

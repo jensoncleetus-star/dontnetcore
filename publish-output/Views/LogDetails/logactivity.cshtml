@@ -1,0 +1,179 @@
+@{
+    ViewBag.Title = "Log Details";
+    ViewBag.SubTitle = "Log Details";
+    ViewBag.Active = "Log Details";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Log Details</h3>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box-body search-box" id="advsearchlist">
+                <div class="search-body col-md-12" style="background:none;">
+                    <form id="search-form">
+                        <div class="row">
+                            <div class="form-group col-md-2 " id="searchfromdate">
+                                @Html.Label("From Date", null, new { @class = "control-label" })
+                                <div class="input-group date">
+                                    @Html.TextBox("FromDate", "01-07-2024", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                                    <div class="input-group-addon">
+                                        <i class="fa fa-calendar"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group col-md-2 " id="searchtodate">
+                                @Html.Label("To Date", null, new { @class = "control-label" })
+                                <div class="input-group date">
+                                    @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                                    <div class="input-group-addon">
+                                        <i class="fa fa-calendar"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group col-md-3" id="searchvouchertype" style="">
+                                @Html.Label("Transaction Type ", null, new { @class = "control-label temp2" })
+                                @Html.DropDownList("ddltrantype", new SelectList(new List<SelectListItem>
+                                          {
+                                 new SelectListItem() {Text = "monitor", Value="monitor"},
+
+                                          new SelectListItem() {Text = "All", Value=""},
+
+
+                                          new SelectListItem() {Text = "Quotation", Value="Quotation"},
+                                          new SelectListItem() {Text = "Sales", Value="SalesEntry"},
+                                            new SelectListItem() {Text = "Sales Return", Value="SalesReturn"},
+                                              new SelectListItem() {Text = "Purchase", Value="PurchaseEntry"},
+                                                new SelectListItem() {Text = "Purchase Return", Value="PurchaseReturn"},
+                           new SelectListItem() {Text = "Payment", Value="Payment"},
+                             new SelectListItem() {Text = "Receipt", Value="Receipt"},
+                               new SelectListItem() {Text = "Journal", Value="Journal"},
+                                          }, "Value", "Text"), new { @class = "form-control input-sm" })
+                            </div>
+                            <div class="form-group col-md-2 " id="searchcreatdby">
+                                @Html.Label("User", null, new { @class = "control-label" })
+                                @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                            </div>
+                            <div class="form-group col-md-2" id="search">
+                                <input type="submit" class="btn btn-submit" value="Submit" />
+                            </div>
+                            <div class="form-group col-md-2" id="close">
+                                <input type="button" class="btn btn-close" value="Close" />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" style="display:none" id="logTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td>S/N</td>
+                    <td>Voucher No</td>
+                    <td>Ip</td>
+                    <td>Details</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+
+
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+
+    <script type="text/javascript">
+        $('#FromDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+
+        $('#ToDate').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+      
+        $("#ddlCreatedBy").select2({});
+      //  $('#logTable').DataTable({});
+        var FromDate = $('#FromDate').val();
+        var ToDate = $('#ToDate').val();
+        var trantype = $('#ddltrantype').val();
+        var user = $('#ddlCreatedBy').val();
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            $('#logTable').show();
+            $("#logTable").dataTable().fnDestroy();
+            if (2==2) {
+
+
+
+                var otable = $('#logTable').DataTable({
+                    
+                    "processing": true, // for show progress bar
+                    "retrieve": true,
+                    "serverSide": true, // for process server side
+                    //"filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "pageLength": 100000000,
+                    "ajax": {
+                        "url": '/LogDetails/GetDataLog',
+                        "type": "POST",
+                        "data": function (data) {
+
+                            data.trantype = $('#ddltrantype').val();
+                            data.FromDate = $('#FromDate').val();
+                            data.ToDate = $('#ToDate').val();
+                            data.user = $('#ddlCreatedBy').val();
+
+                        },
+                        "datatype": "json"
+
+                    },
+                    "order": [[0, "desc"]],
+                    "columnDefs": [{ orderable: false, targets: -1 }],
+                    "columns": [
+                        {
+                            "data": "id", "name": "id",
+                            "render": function (data, type, row, meta) {
+                                return meta.row + meta.settings._iDisplayStart + 1;
+                            }
+                        },
+                        { "data": "voucherno", "name": "voucherno" },
+                        { "data": "ip", "name": "ip" },
+                        { "data": "details", "name": "details" },
+                        //{
+                        //    "name": "details",
+                        //    "data": function (data) {
+                        //        if (data.CustomerType == 0) {
+                        //            return "Credit";
+                        //        } else {
+                        //            return "Cash";
+                        //        }
+                        //    }
+                        //}
+                    ]
+                })
+
+            }
+           else {
+            }
+        });
+        oTable.page.len(100000).draw();
+    </script>
+}
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}

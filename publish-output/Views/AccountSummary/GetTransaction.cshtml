@@ -1,0 +1,318 @@
+﻿@model QuickSoft.ViewModel.TransactionSummaryViewModel
+@{
+    ViewBag.Title = "Transaction Summary";
+    ViewBag.SubTitle = "Account Summary";
+    ViewBag.Active = "Accounts";
+    var sl = 0;
+    decimal SaleCr = 0;
+    decimal SaleDr = 0;
+    decimal PurCr = 0;
+    decimal PurDr = 0;
+    decimal PayCr = 0;
+    decimal PayDr = 0;
+    decimal RecCr = 0;
+    decimal RecDr = 0;
+    decimal JourCr = 0;
+    decimal JourDr = 0;
+    decimal SRetCr = 0;
+    decimal SRetDr = 0;
+    decimal PRetCr = 0;
+    decimal PRetDr = 0;
+    decimal ConCr = 0;
+    decimal ConDr = 0;
+    decimal DrnoteCr = 0;
+    decimal DrnoteDr = 0;
+    decimal CrnoteCr = 0;
+    decimal CrnoteDr = 0;
+    decimal toOpBalCr = 0;
+    decimal toOpBalDr = 0;
+    decimal toclBalCr = 0;
+    decimal toclBalDr = 0;
+    string totalOpening = "";
+    string totalClosing = "";
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Transaction Summary</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body scroll-x">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="fromdate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))" />
+            <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))" />
+            <table class="table" id="ScrollTable">
+                <thead>
+                    <tr>
+                        <td colspan="24">
+                            From : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))  - @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Account</td>
+                        <td>Opening Balance</td>
+                        <td>Sales (Debit)</td>
+                        <td>Sales (Credit)</td>
+                        <td>Purchase (Debit)</td>
+                        <td>Purchase (Credit)</td>
+                        <td>Payment (Debit)</td>
+                        <td>Payment (Credit)</td>
+                        <td>Receipt (Debit)</td>
+                        <td>Receipt (Credit)</td>
+                        <td>Journal (Debit)</td>
+                        <td>Journal (Credit)</td>
+                        <td>Dr.Note (Debit)</td>
+                        <td>Dr.Note (Credit)</td>
+                        <td>Cr.Note (Debit)</td>
+                        <td>Cr.Note (Credit)</td>
+                        <td>Sales Return (Debit)</td>
+                        <td>Sales Return (Credit)</td>
+                        <td>Purchase Return (Debit)</td>
+                        <td>Purchase Return (Credit)</td>
+                        <td>Contra (Debit)</td>
+                        <td>Contra (Credit)</td>
+                        <td>Closing Balance</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Ledger)
+                    {
+                        string OPbalance = "";
+                        decimal balanceCr = 0;
+                        decimal balanceDr = 0;
+                        OPbalance = item.Opening["amount"] + " " + item.Opening["type"];
+                        if ((string)item.Opening["type"] == "Cr")
+                        {
+                            balanceCr = (decimal)item.Opening["amount"];
+                            toOpBalCr += balanceCr;
+                        }
+                        else
+                        {
+                            balanceDr = (0 - (decimal)item.Opening["amount"]);
+                            toOpBalDr += balanceDr;
+                        }
+                        var Debit = balanceDr + item.SaleDr + item.PurDr + item.PayDr + item.RecDr + item.JourDr + item.DrnoteDr + item.CrnoteDr + item.SRetDr + item.PurDr + item.ConDr;
+                        var Credit = balanceCr + item.SaleCr + item.PurCr + item.PayCr + item.RecCr + item.JourCr + item.DrnoteCr + item.CrnoteCr + item.SRetCr + item.PurCr + item.ConCr;
+                        var amountype = (Debit > Credit) ? " Dr." :" Cr.";
+                        var subtotal = (Debit > Credit) ? (Debit - Credit) : (Credit - Debit);
+                        var amount = subtotal + amountype;
+                        toclBalCr += (amountype == " Dr.")? subtotal : 0;
+                        toclBalDr += (amountype != " Dr.")? subtotal : 0;
+                        SaleCr += item.SaleCr;
+                        SaleDr += item.SaleDr;
+                        PurCr += item.PurCr;
+                        PurDr += item.PurDr;
+                        PayCr += item.PayCr;
+                        PayDr += item.PayDr;
+                        RecCr += item.RecCr;
+                        RecDr += item.RecDr;
+                        JourCr += item.JourCr;
+                        JourDr += item.JourDr;
+                        SRetCr += item.SRetCr;
+                        SRetDr += item.SRetDr;
+                        PRetCr += item.PRetCr;
+                        PRetDr += item.PRetDr;
+                        ConCr += item.ConCr;
+                        ConDr += item.ConDr;
+                        DrnoteCr += item.DrnoteCr;
+                        DrnoteDr += item.DrnoteDr;
+                        CrnoteCr += item.CrnoteCr;
+                        CrnoteDr += item.CrnoteDr;
+
+                        sl++;
+
+                        <tr>
+                            <td>@sl</td>
+                            <td>@item.Name</td>
+                            <td>@OPbalance </td>
+                            <td>@item.SaleDr </td>
+                            <td>@item.SaleCr </td>
+                            <td>@item.PurDr </td>
+                            <td>@item.PurCr </td>
+                            <td>@item.PayDr </td>
+                            <td>@item.PayCr </td>
+                            <td>@item.RecDr </td>
+                            <td>@item.RecCr </td>
+                            <td>@item.JourDr </td>
+                            <td>@item.JourCr </td>
+                            <td>@item.DrnoteDr </td>
+                            <td>@item.DrnoteCr </td>
+                            <td>@item.CrnoteDr </td>
+                            <td>@item.CrnoteCr </td>
+                            <td>@item.SRetDr </td>
+                            <td>@item.SRetCr </td>
+                            <td>@item.PurDr </td>
+                            <td>@item.PurCr </td>
+                            <td>@item.ConDr </td>
+                            <td>@item.ConCr </td>
+                            <td>@amount </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    @{ 
+                        totalOpening = (toOpBalDr > toOpBalCr) ? (toOpBalDr - toOpBalCr)+" Dr." : (toOpBalCr - toOpBalDr)+" Cr.";
+                        totalClosing = (toclBalDr > toclBalCr) ? (toclBalDr - toclBalCr) + " Dr." : (toclBalCr - toclBalDr) + " Cr.";
+                    }
+                    <tr>
+                        <td></td>
+                        <td>TOTAL</td>
+                        <td>@totalOpening</td>
+                        <td>@SaleDr</td>
+                        <td>@SaleCr</td>
+                        <td>@PurDr</td>
+                        <td>@PurCr</td>
+                        <td>@PayDr</td>
+                        <td>@PayCr</td>
+                        <td>@RecDr</td>
+                        <td>@RecCr</td>
+                        <td>@JourDr</td>
+                        <td>@JourCr</td>
+                        <td>@DrnoteDr</td>
+                        <td>@DrnoteCr</td>
+                        <td>@CrnoteDr</td>
+                        <td>@CrnoteCr</td>
+                        <td>@SRetDr</td>
+                        <td>@SRetCr</td>
+                        <td>@PurDr</td>
+                        <td>@PurCr</td>
+                        <td>@ConDr</td>
+                        <td>@ConCr</td>
+                        <td>@totalClosing</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var oTable = $('#ScrollTable').DataTable({
+                "processing": true,
+                "serverSide": false,
+                "filter": false,
+                "orderMulti": false,
+                "bLengthChange": true,
+                "paging": true,
+                "deferLoading": 0,
+                "ordering": false,
+                "pageLength": 50,
+                "order": [[0, "asc"]],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                 {
+                     extend: 'print',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Ledger-Report';
+                     },
+                     message: function () {
+                         var head = '<table class="tblcompact table table-bordered"><thead>' +
+                         '<tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Transaction Summary</h4></th></tr>' +
+                         '</thead></tr>' +
+                         '<tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                         return head;
+                     },
+                     customize: function (win) {
+
+                         $(win.document.body).find('table, th,tr, td ')
+                            // .css('border', 'inherit')
+                             .css('font-size', '10pt')
+                             .css('padding', '5px')
+                             .addClass('compact');
+                         $(win.document.body).append('</td></tr></tbody>')
+
+                     }
+                 }, 'copy', 'csv', //'excel',
+                 {
+                     extend: 'excel',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Ledger-Report';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Transaction Summary \n' +
+                          'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                         return head;
+                     },
+                     //exportOptions: {
+                     //    columns: [0, 1, 2, 3, 4, 5]
+                     //},
+                 },
+                 {
+                     extend: 'pdf',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Ledger-Report';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Transaction Summary \n' +
+                          'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                         return head;
+                     },
+                     //exportOptions: {
+                     //    columns: [0, 1, 2, 3, 4, 5]
+                     //},
+                     customize: function (doc) {
+                         doc.styles['td:nth-child(2)'] = {
+                             width: '100px',
+                             'max-width': '100px'
+                         }
+                         doc.pageMargins = [10, 10, 10, 10];
+                         doc.defaultStyle.fontSize = 10;
+                         doc.styles.tableHeader.fontSize = 10;
+                         doc.styles.title.fontSize = 12;
+                         // Header font and bg color
+                         doc.styles.tableHeader.fillColor = '#d3d3d3';
+                         doc.styles.tableHeader.color = 'black';
+                         // Remove spaces around page title
+                         doc.content[0].text = doc.content[0].text.trim();
+
+                         //doc.content[1].table.widths = [
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //]
+
+                         var objLayout = {};
+                         // Horizontal line thickness
+                         objLayout['hLineWidth'] = function (i) { return .5; };
+                         // Vertikal line thickness
+                         objLayout['vLineWidth'] = function (i) { return .5; };
+                         //// Horizontal line color
+                         //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                         //// Vertical line color
+                         //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                         // Left padding of the cell
+                         objLayout['paddingLeft'] = function (i) { return 4; };
+                         // Right padding of the cell
+                         objLayout['paddingRight'] = function (i) { return 4; };
+                         // Inject the object in the document
+                         doc.content[1].layout = objLayout;
+                         // Footer font and bg color
+                         doc.styles.tableFooter.fillColor = '#d3d3d3';
+                         doc.styles.tableFooter.color = 'black';
+                     }
+
+                 },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip"
+            });
+        });
+    </script>
+}

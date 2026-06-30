@@ -1,0 +1,373 @@
+
+@{
+    ViewBag.Title = "Search Tax Report";
+    ViewBag.SubTitle = "Tax Report";
+    ViewBag.Active = "Tax Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Tax Report</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @required = "required", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Emirate", null, new { @class = "control-label" })
+                @Html.DropDownList("Emirate", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "All", Value=""},
+                        new SelectListItem() {Text = "Abu Dhabi", Value="Abu Dhabi"},
+                        new SelectListItem() {Text = "Ajman", Value="Ajman"},
+                        new SelectListItem() {Text = "Dubai", Value="Dubai"},
+                        new SelectListItem() {Text = "Fujairah", Value="Fujairah"},
+                        new SelectListItem() {Text = "Ras al-Khaimah", Value="Ras al-Khaimah"},
+                        new SelectListItem() {Text = "Sharjah", Value="Sharjah"},
+                        new SelectListItem() {Text = "Umm al-Quwain", Value="Umm al-Quwain"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm" })
+            </div>
+            <div class="box-footer col-md-12">
+                <button type="submit" class="btn btn-info col-sm-offset-5" id="btn">Submit</button>
+                <button type="button" class="btn btn-default" tabindex="27" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="TaxReport">
+
+    <div class="box-header with-border">
+        <h3 class="box-title">View Tax Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered table-responsive table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>Details.</td>
+                        <td>Taxable Amount.</td>
+                        <td>Tax</td>
+                        <td>Ret. Amount</td>
+                        <td>Ret. Tax</td>
+                        <td>Nett Amt.</td>
+                        <td>Nett. Tax</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="numberright">
+                        <td class="numberleft">
+                            <label id="lblsale"></label>
+                        </td>
+                        <td>
+                            <label id="lbltaxables"></label>
+                        </td>
+                        <td>
+                            <label id="lbltaxs"></label>
+                        </td>
+                        <td>
+                            <label id="lblramts"></label>
+                        </td>
+                        <td>
+                            <label id="lblrtaxs"></label>
+                        </td>
+                        <td>
+                            <label id="lblnetamts"></label>
+                        </td>
+                        <td>
+                            <label id="lblnettaxs"></label>
+                        </td>
+                    </tr>
+                    <tr class="numberright">
+                        <td class="numberleft">
+                            <label id="lblpurchase"></label>
+                        </td>
+                        <td>
+                            <label id="lbltaxablep"></label>
+                        </td>
+                        <td>
+                            <label id="lbltaxp"></label>
+                        </td>
+                        <td>
+                            <label id="lblramtp"></label>
+                        </td>
+                        <td>
+                            <label id="lblrtaxp"></label>
+                        </td>
+                        <td>
+                            <label id="lblnetamtp"></label>
+                        </td>
+                        <td>
+                            <label id="lblnettaxp"></label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Nett Tax Payable (Output - (Opening +
+                            Input))
+                        </td>
+                        <td class="numberright">
+                            <label id="lbltaxpayable"></label>
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Tax to be Paid (Nett Tax - Payment)
+                        </td>
+                        <td class="numberright">
+                            <label id="lbltobepaid"></label>
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        $(document).ready(function () {
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+            $('#TaxReport').hide();
+           
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+
+            $("#UserTable").dataTable().fnDestroy();
+
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/TaxReports/GetTax",
+                data: JSON.stringify({
+                    fromdate: $('#From').val(),
+                    todate: $('#To').val(),
+                    emirates: $('#Emirate').val()
+                }),
+                success: function (e) {
+                    $('#TaxReport').show();
+
+                    $('#lblfdate').text(e.fromdate);
+                    $('#lbltodate').text(e.todate);
+
+                    //sale
+                    $("[id$=lblsale]").text("sales");
+                    $("[id$=lbltaxables]").text((e.SETaxableAmt).toFixed(2));
+                    $("[id$=lbltaxs]").text(e.SETaxAmt.toFixed(2));
+                    $("[id$=lblramts]").text(e.SRTaxableAmt.toFixed(2));
+                    $("[id$=lblrtaxs]").text(e.SRTaxAmt.toFixed(2));
+
+                    $("[id$=lblnetamts]").text((e.SETaxableAmt - e.SRTaxableAmt).toFixed(2));
+                    $("[id$=lblnettaxs]").text((e.SETaxAmt - e.SRTaxAmt).toFixed(2));
+
+                    //purchase
+                    $("[id$=lblpurchase]").text("purchase");
+                    $("[id$=lbltaxablep]").text((e.PETaxableAmt).toFixed(2));
+                    $("[id$=lbltaxp]").text(e.PETaxAmt.toFixed(2));
+                    $("[id$=lblramtp]").text(e.PRTaxableAmt.toFixed(2));
+                    $("[id$=lblrtaxp]").text(e.PRTaxAmt.toFixed(2));
+
+                    $("[id$=lblnetamtp]").text((e.PETaxableAmt - e.PRTaxableAmt).toFixed(2));
+                    $("[id$=lblnettaxp]").text((e.PETaxAmt - e.PRTaxAmt).toFixed(2));
+
+                    $("[id$=lbltaxpayable]").text(((e.SETaxAmt  - e.SRTaxAmt) - (e.PETaxAmt - e.PRTaxAmt)).toFixed(2));
+                    $("[id$=lbltobepaid]").text((((e.SETaxAmt - e.SRTaxAmt) + e.JouOUT) - ((e.PETaxAmt - e.PRTaxAmt)+e.Payment + e.JouIN)).toFixed(2));
+
+                    $('#UserTable').DataTable({
+                            "processing": true, // for show progress bar
+                            "filter": false, // this is for disable filter (search box)
+                            "orderMulti": false, // for disable multiple column at once
+                            "bLengthChange": false,
+                            "paging": false,
+                            "deferLoading": 0,
+                            "ordering": false,
+                            "columnDefs": [{
+                                "targets": [1, 2, 3, 4, 5, 6],
+                                "sClass": "numberright"
+                            }],
+                         buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                            {
+                                extend: 'print',//
+                                title: "",
+                                footer: true,                               
+                                filename: function () {
+                                    return 'Tax Summary Report';
+                                },
+                                message: function () {
+                                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                     ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Tax Summary Report</h4></th></tr>' +
+                                     ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To : ' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>';
+                                    return head;
+                                },
+                                customize: function (win) {
+                                    $(win.document.body).find('table, th,tr, td ')
+                                       // .css('border', 'inherit')
+                                        .css('font-size', '10pt')
+                                        .css('padding', '5px')
+                                        .addClass('compact');
+                                    $(win.document.body).append('</td></tr></tbody>')
+
+                                }
+                            }, 'copy', 'csv', //'excel',
+                            {
+                                extend: 'excel',//
+                                title: "",
+                                filename: function () {
+                                    return 'Tax Summary Report';
+                                },
+                                footer: true,
+                                message: function () {
+                                    var head = '' + $('#cname').val() + '\n' +
+                                     '' + $('#caddress').val() + '\n' +
+                                     ' Tax Summary Report \n' +
+                                     'From :  ' + $('#From').val() + ' To : ' + $('#To').val() + '';
+                                    return head;
+                                },
+                                pageSize: 'A4',
+                                exportOptions: {
+                                    columns: [0, 1, 2, 3, 4, 5, 6]
+                                },
+                            },
+                            {
+                                extend: 'pdf',//
+                                title: "",
+                                footer: true,
+                                filename: function () {
+                                    return 'Tax Summary Report';
+                                },
+                                message: function () {
+                                    var head = '' + $('#cname').val() + '\n' +
+                                     '' + $('#caddress').val() + '\n' +
+                                     ' Tax Summary Report \n' +
+                                     'From :  ' + $('#From').val() + ' To : ' + $('#To').val() + '';
+                                    return head;
+                                },
+                                pageSize: 'A4',
+                                exportOptions: {
+                                    columns: [0, 1, 2, 3, 4, 5, 6]
+                                },
+                                customize: function (doc) {
+                                    doc.pageMargins = [10, 10, 10, 10];
+                                    doc.defaultStyle.fontSize = 10;
+                                    // Header font and bg color
+                                    doc.styles.tableHeader.fillColor = '#d3d3d3';
+                                    doc.styles.tableHeader.color = 'black';
+                                    doc.styles.tableHeader.fontSize = 10;
+                                    doc.styles.title.fontSize = 12;
+                                    // Remove spaces around page title
+                                    doc.content[0].text = doc.content[0].text.trim();
+                                    doc.content[1].table.widths = [
+                                    '15%',
+                                    '15%',
+                                    '10%',
+                                    '15%',
+                                    '15%',
+                                    '15%',
+                                    '15%'
+                                    ]
+
+                                    var objLayout = {};
+                                    // Horizontal line thickness
+                                    objLayout['hLineWidth'] = function (i) { return .5; };
+                                    // Vertikal line thickness
+                                    objLayout['vLineWidth'] = function (i) { return .5; };
+                                    //// Horizontal line color
+                                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                                    //// Vertical line color
+                                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                                    // Left padding of the cell
+                                    objLayout['paddingLeft'] = function (i) { return 4; };
+                                    // Right padding of the cell
+                                    objLayout['paddingRight'] = function (i) { return 4; };
+                                    // Inject the object in the document
+                                    doc.content[1].layout = objLayout;
+                                    // Footer font and bg color
+                                    doc.styles.tableFooter.fillColor = '#d3d3d3';
+                                    doc.styles.tableFooter.color = 'black';
+                                }
+                            },
+
+                         ],
+                         sDom: "lBfr<'datatable-scroll't>ip",
+                        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+                    });
+                },
+
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    $("#UserTable").dataTable().$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        });
+
+        //function reload_table() {
+        //    oTable.clear().draw();
+        //    oTable.ajax.reload(null, false); //reload datatable ajax
+        //}
+
+    </script>
+}

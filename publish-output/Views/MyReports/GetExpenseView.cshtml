@@ -1,0 +1,231 @@
+﻿
+@model QuickSoft.ViewModel.LedgerprofitViewModel
+@{
+
+    ViewBag.Title = "Expense";
+    ViewBag.SubTitle = "Expense Report";
+    ViewBag.Active = "Accounts";
+    decimal balance = 0;
+    var sl = 0;
+
+    var colspan = 12;
+
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="fromdate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))" />
+            <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))" />
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+
+
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Entry Date</td>
+                        <td>Invoice No</td>
+
+                        <td>Purpose</td>
+                        <td>Ledger</td>
+                        <td>Amount</td>
+
+                        @*<td>Short Narration</td>*@
+                    </tr>
+                </thead>
+                <tbody>
+
+                    @foreach (var item in Model.Ledger)
+                    {
+
+
+                        sl++;
+
+                        <tr>
+                            <td>@sl</td>
+                            <td>@Convert.ToString(string.Format("{0:dd-MM-yyyy}", item.transdate))</td>
+
+
+                            @if (item.Pupose.Contains("Journal"))
+                            {
+                                <td><a href="/Property/PJournalV/Edit/@item.referance" target="_new">@Html.DisplayFor(m => item.voucherno)- Details</td>
+                            }
+                            else if (item.Pupose.Contains("Payment"))
+                            {
+                                <td><a href="/Property/PPayment/Edit/@item.referance" target="_new">@Html.DisplayFor(m => item.voucherno)- Details</td>
+                            }
+                            else if (item.Pupose.Contains("Receipt"))
+                            {
+                                <td><a href="/Property/PReceipt/Edit/@item.referance" target="_new">@Html.DisplayFor(m => item.voucherno)- Details</a></td>
+                            }
+
+
+
+
+
+
+
+
+
+                            <td>@Html.DisplayFor(m => item.Pupose)</td>
+                            <td>@Html.DisplayFor(m => item.ledger)</td>
+                            <td>@item.amount </td>
+
+
+                        </tr>
+                        balance = balance + Convert.ToDecimal(item.amount);
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>Total :</td>
+                        <td>@balance</td>
+
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                "order": [[0, "asc"]],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                 {
+                     extend: 'print',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Ledger-Report';
+                     },
+                     message: function () {
+                         var head = '<table class="tblcompact table table-bordered"><thead>' +
+                         ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Ledger Report</h4></th></tr>' +
+                         '<tr><th><span class="text-left"></span><span class="text-right pull-right">   '  + '</span></th></tr></thead></tr>' +
+                         ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                         return head;
+                     },
+                     customize: function (win) {
+
+                         $(win.document.body).find('table, th,tr, td ')
+                            // .css('border', 'inherit')
+                             .css('font-size', '10pt')
+                             .css('padding', '5px')
+                             .addClass('compact');
+                         $(win.document.body).append('</td></tr></tbody>')
+
+                     }
+                 }, 'copy', 'csv', //'excel',
+                 {
+                     extend: 'excel',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Ledger-Report';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Ledger Report \n' +
+                           ' Account : '  + '\n' +
+                          'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                         return head;
+                     },
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: [0, 1, 2, 3, 4, 5, 6, 7,8]
+                     },
+                 },
+                 {
+                     extend: 'pdf',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Ledger-Report';
+                     },
+                     message: function () {
+                         var head = '' + $('#cname').val() + '\n' +
+                          '' + $('#caddress').val() + '\n' +
+                          ' Ledger Report \n' +
+                          ' Account : '  + '\n' +
+                          'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                         return head;
+                     },
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: [0, 1, 2, 3, 4, 5, 6, 7,8]
+                     },
+                     customize: function (doc) {
+                         doc.styles['td:nth-child(2)'] = {
+                             width: '100px',
+                             'max-width': '100px'
+                         }
+                         doc.pageMargins = [10, 10, 10, 10];
+                         doc.defaultStyle.fontSize = 10;
+                         doc.styles.tableHeader.fontSize = 10;
+                         doc.styles.title.fontSize = 12;
+                         // Header font and bg color
+                         doc.styles.tableHeader.fillColor = '#d3d3d3';
+                         doc.styles.tableHeader.color = 'black';
+                         // Remove spaces around page title
+                         doc.content[0].text = doc.content[0].text.trim();
+
+                         //doc.content[1].table.widths = [
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'10%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //'15%',
+                         //]
+
+                         var objLayout = {};
+                         // Horizontal line thickness
+                         objLayout['hLineWidth'] = function (i) { return .5; };
+                         // Vertikal line thickness
+                         objLayout['vLineWidth'] = function (i) { return .5; };
+                         //// Horizontal line color
+                         //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                         //// Vertical line color
+                         //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                         // Left padding of the cell
+                         objLayout['paddingLeft'] = function (i) { return 4; };
+                         // Right padding of the cell
+                         objLayout['paddingRight'] = function (i) { return 4; };
+                         // Inject the object in the document
+                         doc.content[1].layout = objLayout;
+                         // Footer font and bg color
+                         doc.styles.tableFooter.fillColor = '#d3d3d3';
+                         doc.styles.tableFooter.color = 'black';
+                     }
+
+                 },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip"
+            });
+        });
+    </script>
+}
+

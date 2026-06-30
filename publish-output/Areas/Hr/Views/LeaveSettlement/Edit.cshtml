@@ -1,0 +1,475 @@
+@model QuickSoft.ViewModel.LeaveSettlementViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Leave Settlement";
+    ViewBag.Active = "Payroll";
+    var TimeOut = @ViewBag.TMOut;
+}
+@using (Html.BeginForm("Edit", "LeaveSettlement", FormMethod.Post, new { id = "editForm", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Leave Settlement</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("LeaveSettlement List"))
+                {
+                    <a class="btn btn-success no-border" href="/Hr/LeaveSettlement">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                @Html.HiddenFor(a => a.LeaveSettlementID)
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Employee, new { @class = "control-label" })*
+                    @Html.DropDownListFor(m => m.Employee, (SelectList)ViewBag.Employ, new { id = "ddlEmployee", @class = "form-control select2", @required = "required" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.Date, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.LeaveStartDate, new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.LeaveStartDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(m => m.ExpectedResumeDate, new { @class = "control-label" })
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.ExpectedResumeDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+            </div>
+            @if (@ViewBag.BranchCheck == 0){
+                <div class="row">
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                </div>
+            }
+            <hr />
+            <div class="row">
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Joining Date", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.JoiningDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Last Duty Resume Date", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.LastDutyResumeDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Total Working Days", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.TotalWorkingDays, new { @class = "form-control input-sm", @readonly = "readonly", @required = "required" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("No of Days Worked", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.DaysWorked, new { @class = "form-control input-sm", @readonly = "readonly" , @required = "required" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Leave Entitled", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.LeaveEntitled, new { @class = "form-control input-sm", @readonly = "readonly", @required = "required" })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Leave Salary", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.LeaveSalary, new { @class = "form-control input-sm", @readonly = "readonly" , @required = "required" })
+                </div>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Basic Salary", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.BasicSalary, new { @class = "form-control input-sm", @readonly = "readonly" })
+                </div>
+                <div class="col-sm-12">
+                    <div class="col-sm-6">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover display" id="fsaddtable">
+                                <thead>
+                                    <tr>
+                                        <th class="W45p">Earnings<i class="text-danger"></i></th>
+                                        <th class="W45p">Amount<i class="text-danger"></i></th>
+                                        <th class="text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fsaddbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover display" id="fsdedtable">
+                                <thead>
+                                    <tr>
+                                        <th class="W45p">Deduction<i class="text-danger"></i></th>
+                                        <th class="W45p">Amount<i class="text-danger"></i></th>
+                                        <th class="text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fsdedbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="col-sm-2 form-group pull-right">
+                        @Html.Label("Net Amount", null, htmlAttributes: new { @class = "control-label" })
+                        @Html.TextBoxFor(m => m.NetAmount, new { @class = "form-control input-sm", @required = "required", @readonly = "readonly" })
+                    </div>
+                </div>
+                @*@if (Model.FieldPayHead.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldPayHead.Count; i++)
+                    {
+                        decimal? pgrate = Model.payheaddetail.Where(a => a.PayHeadId == @Model.FieldPayHead[i].ID).Select(a => a.Rate).FirstOrDefault() ?? 0;
+                        //var amtval = (pgrate != 0) ? pgrate : 0;
+                        <div class="col-sm-2 form-group">
+                            <input type="hidden" name="payheaddetail[@i].PayHeadId" value="@Model.FieldPayHead[i].ID" />
+                            <label class="control-label" for="FieldName"> @Model.FieldPayHead[i].Name</label>
+                            <input type="number" class="form-control input-sm" id="payheaddetail[@i].Rate" name="payheaddetail[@i].Rate" value="@pgrate">
+                        </div>
+                    }
+                }*@
+            </div>
+            <hr />
+            <div class="col-md-12 pull-right">
+                <div class="form-group">
+                    @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                    @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                </div>
+
+                <div class="form-group pull-right">
+                    <button type="submit" id="save" class="btn btn-success">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                    </button>
+                    <button type="submit" id="print" class="btn btn-success">
+                        <span class="glyphicon glyphicon-print"></span> Update And Print
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="@("window.location.href='/Hr/LeaveSettlement/Index'");">Cancel</button>
+                    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+                    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@{
+    var Modelv = "modal-lg";
+}
+@Html.Partial("_Voucher")
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/attendance")
+    @Scripts.Render("~/js/sheetjs")
+    @Scripts.Render("~/js/FinalSettlement")
+    @Scripts.Render("~/js/num2words")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            CallEmployeeLeaveApp();
+
+            $('#LeaveStartDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ExpectedResumeDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var FSID = getQueryString('');
+            if (FSID != null) {
+                $.ajax({
+                    url: '/Hr/LeaveSettlement/GetPayheads',
+                    dataType: 'json',
+                    data: { ID: FSID },
+                    cache: true,
+                    success: function (data) {
+                        var addcount = 0;
+                        var dedcount = 0;
+                        if (data != "") {
+                            $('#fsaddbody').html('');
+                            $.each(data, function (i, item) {
+                                if (item.Type == 9) {
+                                    AddFsadd('fsaddbody', 'edit', item.Payhead, item.Amount, item.Name);
+                                    searchFinalAddType();
+                                    addcount++;
+                                }
+                                else {
+                                    AddFsded('fsdedbody', 'edit', item.Payhead, item.Amount, item.Name);
+                                    searchFinaldedType();
+                                    dedcount++;
+                                }
+                            });
+                        }
+                        if (addcount == 0) {
+                            AddFsadd('fsaddbody', 'edit', "", "", "", "");
+                            searchFinalAddType();
+                        }
+                        if (dedcount == 0) {
+                            AddFsded('fsdedbody', 'edit', "", "", "", "");
+                            searchFinaldedType();
+
+                        }
+                    }
+                });
+            }
+
+        });
+
+        /* function for Create popup */
+
+        $('table').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+        // onchange function for Employee
+        $('body').on('change', '#ddlEmployee', function (e) {
+            var empid = $(this).val();
+            $.ajax({
+                url: '/Employee/GetEmployeeDetails',
+                dataType: 'json',
+                data: { EmpId: empid },
+                cache: true,
+                success: function (data) {
+                    $('#JoiningDate').val(convertToDate(data.JoinDate));
+                }
+            });
+
+        });
+        $('#editForm').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#editForm").valid()) {
+                var url = $('#editForm')[0].action;
+                var formData = new FormData(this);
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                formData.append('fnval', fnval);
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    processData: false,
+                    contentType: false,
+                    url: url,
+                    data: formData,//JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+                            if (fnval == "save") {
+                                window.location.href = '@Url.Action("Index", "LeaveSettlement")';
+                            }
+                            if (fnval == "print") {
+                                Regprint(e); window.location.href = '@Url.Action("Index", "LeaveSettlement")';
+                            }
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+
+        });
+
+
+        // onchange function for Employee
+        $('body').on('change', '#ddlEmployee', function (e) {
+            TotalWorkingDays();
+        });
+
+        $('body').on('change', '#LeaveStartDate', function (e) {
+            TotalWorkingDays();
+        });
+
+        function TotalWorkingDays() {
+            var empid = $('#ddlEmployee').val();
+            var LeaveStart = $("#LeaveStartDate").val();
+            $.ajax({
+                url: '/Employee/GetEmployeeDetails',
+                dataType: 'json',
+                data: { EmpId: empid },
+                cache: true,
+                success: function (data) {
+                    $('#JoiningDate').val(convertToDate(data.JoinDate));
+                    $('#LastDutyResumeDate').val(convertToDate(data.DutyResumeDate));
+
+                    var d = new Date(LeaveStart.split("-").reverse());
+                    var dd = d.getDate();
+                    var mm = d.getMonth() + 1;
+                    var yy = d.getFullYear();
+                    var newdate = yy + "-" + mm + "-" + dd;
+
+                    var start = new Date(convertToDateYMD(data.DutyResumeDate));
+                    var end = new Date(newdate);
+                    var diff = new Date(end - start);
+                    var days = diff / (1000 * 60 * 60 * 24);
+                    days = days || 0;
+                    var actdays = (Math.round(days)) + 1;
+                    $('#TotalWorkingDays').val(actdays);
+                    $('#DaysWorked').val(actdays);
+
+                    var entitled = (30 / 365) * actdays;
+                    entitled = entitled.toFixed(2);
+
+                    $('#LeaveEntitled').val(entitled);
+
+                    if (data.bsalary != null) {
+                        $('#BasicSalary').val(parseFloat(data.bsalary.Rate).toFixed(2));
+                        var leavsalary = entitled * (data.bsalary.Rate / 30);
+                        $('#LeaveSalary').val(leavsalary.toFixed(2));
+                        $('#NetAmount').val(leavsalary.toFixed(2));
+                        calculatetotal();
+                    }
+                }
+            });
+        }
+
+        function Regprint(e) {
+            var dat = convertToDate(e.Data.JoiningDate);
+            var ldate = convertToDate(e.Data.LastworkingDate); 
+            $("#lblEmplCode").text(e.Data.EMPCode);
+            $("#lblEmpName").text(e.Data.EmpName);
+            $("#lblDesignation").text(e.Data.Designation);
+            $("#lblBasic").text(e.Data.bsalary.Rate);
+            $("#lblHousing").text(e.Data.bsalary.Rate);
+            $("#lblJoiningDate").text(dat);
+            $("#lblDutyResumeDate").text(e.Data.LastResumeDate); 
+            $("#lblLastWorkingDate").text(ldate);
+            $("#lblLeave").text();
+            $("#lblNoDaysAbsent").text(e.Data.Absent);
+            $("#lblNoDaysWorked").text(e.Data.NoDaysWorked);
+            $("#lblLeaveEntitled").text(e.Data.LeaveEntitled);
+            $("#lblDeductionDays").text(e.Data.Absent);
+            var totent = parseFloat(e.Data.LeaveEntitled) - parseFloat(e.Data.Absent)
+            $("#lblTotalEntitled").text(totent);
+            $("#lblLeaveSalary").text(e.Data.LeaveSalary);
+            $("#lblAddition").text(e.Data.Addition);
+            $("#lblDeduction").text(e.Data.Deduction);
+            $("#lblAirTicket").text();
+            $("#lblLPO").text();
+            var netsalary = parseFloat(e.Data.LeaveSalary) + parseFloat(e.Data.Addition) - parseFloat(e.Data.Deduction).toFixed(2);
+            var wordtotal = conNumber(e.Data.Netamount);
+            $("#lblnetsalary").text(e.Data.Netamount);
+            $("#lblTotWord").text(wordtotal);
+            //wordtotal =  e.Data.NetAmount + "\n" + wordtotal ;
+            $("#lblRemarks").text(e.Data.Remarks);
+            
+            $.each(e.DedList, function (i, item) {
+                var str = '<tr>';
+                str += '<td>' + item.NameinSlip + '</td>';
+                str += '<td>' + " &nbsp;&nbsp;&nbsp;  " + '</td>';
+                str += '<td>' + item.PayHeadAmt + '</td>';                
+                str += '</tr>';
+                $('#deduction').append(str);
+            }); 
+            $.each(e.AddList, function (i, item) {
+                var str = '<tr>';
+                str += '<td>' + item.NameinSlip + '</td>';
+                str += '<td>' + " &nbsp;&nbsp;&nbsp;  " + '</td>';
+                str += '<td>' + item.PayHeadAmt + '</td>';
+                str += '</tr>';
+                $('#addition').append(str);
+            });
+
+            //$.each(e.pendingsalary, function (i, item) {
+            //    var expdat = convertToDate(item.Date);
+            //    var dat = ((item.data != null) ? item.data : "");
+            //    var str = '<tr>';
+            //    str += '<td>' + item.chequeno + '</td>';
+            //    str += '<td>' + item.Amount + '</td>';
+            //    str += '<td>' + expdat + '</td>';
+            //    str += '</tr>';
+            //    adcount++;
+            //    $('#pending').append(str);
+            //});
+            
+            if (e.ComHeadCheck == 0) {
+                $("#ComHeadCheck").hide();
+            }
+            else {
+                $("#ComHeadCheck").show();
+            }
+
+
+            if ($('#hideheader').prop('checked') == true) {
+                $('#ComHeadCheck').hide();
+                $('#ComfootCheck').hide();
+                //$(".invoice.print").css("margin-top", "100px");
+                $("#comHeader").css("margin-top", "100px");
+            }
+            else {
+                $('#ComHeadCheck').show();
+                $('#ComfootCheck').show();
+            }
+
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printit').html();
+            $('title').html("Leave Settlement Voucher - " + e.LeaveSettlementID);
+            $('body').html(printContent);
+            window.print();
+        }
+    </script>
+}
+

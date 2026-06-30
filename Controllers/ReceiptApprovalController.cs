@@ -2413,7 +2413,7 @@ namespace QuickSoft.Controllers
 
 
         //GET --- View forApproved Users
-        //[QkAuthorize(Roles = "Dev, Approvals")]
+        [QkAuthorize(Roles = "Dev, Approvals")]   // Security S10: restored — approval queue is approver-only (role is actively enforced elsewhere)
         public ActionResult ApprovalList()
 
         {
@@ -2449,7 +2449,7 @@ namespace QuickSoft.Controllers
         }
 
         [HttpPost]
-        //[QkAuthorize(Roles = "Dev, Approvals")]
+        [QkAuthorize(Roles = "Dev, Approvals")]   // Security S10: restored — approval data is approver-only
         public JsonResult GetReceiptApproval(string InvoiceNo, string FromDate, string ToDate, long? type, long? PayFrom, long? PayTo, string user, string appstat)
         {
             var draw = Request.Form.GetValues("draw").FirstOrDefault();
@@ -2680,6 +2680,7 @@ namespace QuickSoft.Controllers
         }
 
         [HttpPost]
+        [QkAuthorize(Roles = "Dev, Approvals")]   // Security S10: approver-only write path (role is actively enforced; matches GetReceiptApproval).
         public ActionResult EditStatus(ApprovalUpdate App, long id)
         {
             bool stat = false;

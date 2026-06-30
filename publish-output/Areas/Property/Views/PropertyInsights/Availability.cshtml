@@ -1,0 +1,42 @@
+@{
+    ViewBag.Title = "Availability Board";
+    ViewBag.Active = "Master";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#0369a1,#0ea5e9 55%,#38bdf8)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-th"></i></div>
+            <div><h1>Availability Board</h1><p>Every unit at a glance — green = vacant (lease it!), red = occupied</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/UnitInsights" class="rfi-btn"><i class="fa fa-th-large"></i> Unit Insights</a>
+            <a href="/Property/TenancyContract/Create" class="rfi-btn"><i class="fa fa-plus"></i> Lease</a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Units</span><span class="rfi-num">@ViewBag.TotUnits</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Occupied</span><span class="rfi-num neg">@ViewBag.Occupied</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Vacant (available)</span><span class="rfi-num pos">@ViewBag.Vacant</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Vacant Rent Value</span><span class="rfi-num">@money(ViewBag.VacantValue)</span><span class="rfi-sub">AED / yr opportunity</span></div>
+    </div>
+    <div class="rfi-card">
+        <div class="rfi-legend" style="margin-bottom:14px"><span><i class="dot" style="background:#10b981"></i> Vacant — available</span><span><i class="dot" style="background:#f87171"></i> Occupied</span></div>
+        <div id="availBoard"></div>
+    </div>
+</div>
+<script>
+(function(){
+  var board=@Html.Raw(ViewBag.Board ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  document.getElementById('availBoard').innerHTML = board.length ? board.map(function(b){
+    var oc=b.units.filter(function(u){return u.occupied;}).length;
+    return '<div class="rfi-avgrp"><div class="rfi-avhead">'+esc(b.property)+' <span class="rfi-mut">'+oc+'/'+b.units.length+' occupied</span></div><div class="rfi-avgrid">'+
+      b.units.map(function(u){
+        return '<div class="rfi-acell '+(u.occupied?'rfi-occ':'rfi-vac')+'" title="'+esc(u.type)+' &middot; AED '+m(u.rent)+'">'+
+          '<div class="rfi-acell-n">'+esc(u.name)+'</div><div class="rfi-acell-t">'+esc(u.type)+'</div><div class="rfi-acell-r">'+m(u.rent)+'</div></div>';
+      }).join('')+'</div></div>';
+  }).join('') : '<div class="rfi-empty">No units</div>';
+})();
+</script>

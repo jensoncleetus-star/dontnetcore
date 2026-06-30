@@ -1190,9 +1190,10 @@ namespace QuickSoft.Controllers
             else
             {
                 var client = new WebClient();
+                // Security S18: URL-encode every value going into the gateway query string (param-injection defense).
                 string url = "https://rslr.connectbind.com:8443/bulksms/bulksms?username=" +
-                    config.username + "&password=" + config.password + "&type=0&dlr=1&destination=971" +
-                    vmodel.mobileno + "&source=" + config.smssenderid + "&message=" + vmodel.Message;
+                    Uri.EscapeDataString(config.username ?? "") + "&password=" + Uri.EscapeDataString(config.password ?? "") + "&type=0&dlr=1&destination=971" +
+                    Uri.EscapeDataString(vmodel.mobileno ?? "") + "&source=" + Uri.EscapeDataString(config.smssenderid ?? "") + "&message=" + Uri.EscapeDataString(vmodel.Message ?? "");
                 var content = client.DownloadString(url);
                 var data = content.Split('|').ToArray();
                 if (data[0] == "1701")
@@ -1223,8 +1224,11 @@ namespace QuickSoft.Controllers
         public async Task<ActionResult> sendwhatsapp(smssend vmodel)
         {
            
-         string serverKey = "AAAASPbOfEM:APA91bHOPztKxzZZZqh53OUKC7Us623hlqjcnk9UUu2qEA_UAgJBx4BShtlaCJHlIlwAxgwW9QHHT10Qe2XcqTLjk2LXmcTErza7fouCg4Jhzfk7RvVcWoZNmuImZ-hbK5-QDBBHR-fn";
-     string senderId = "313378372675";
+         // Security S11: FCM key must come from config/env (Fcm__ServerKey). The literal below is a LAST-RESORT
+         // fallback so the live feature keeps working until rotation — it is COMPROMISED (committed to git history)
+         // and MUST be rotated in the Firebase console, then set via Fcm__ServerKey; after that, delete the fallback.
+         string serverKey = QuickSoft.Models.LegacyWeb.Config?["Fcm:ServerKey"] ?? "AAAASPbOfEM:APA91bHOPztKxzZZZqh53OUKC7Us623hlqjcnk9UUu2qEA_UAgJBx4BShtlaCJHlIlwAxgwW9QHHT10Qe2XcqTLjk2LXmcTErza7fouCg4Jhzfk7RvVcWoZNmuImZ-hbK5-QDBBHR-fn";
+     string senderId = QuickSoft.Models.LegacyWeb.Config?["Fcm:SenderId"] ?? "313378372675";
        string webAddr = "https://fcm.googleapis.com/fcm/send";
             HttpClient client = new HttpClient();
 
@@ -1422,7 +1426,7 @@ namespace QuickSoft.Controllers
             return View();
         }
         [HttpPost]
-        
+        [QkAuthorize(Roles = "Dev,Edit User")]   // Security S9: was unauthenticated — role-clones permissions onto arbitrary users
         public async Task<ActionResult> copypermissionAsync(permissioncopy per)
         {
             if (ModelState.IsValid)
@@ -1747,6 +1751,7 @@ namespace QuickSoft.Controllers
         }
 
         [HttpGet]
+        [QkAuthorize(Roles = "Dev,Edit User")]   // Security S9
         public async Task<ActionResult> removepermission()
         {
             var id = User.Identity.GetUserId();
@@ -1821,6 +1826,7 @@ namespace QuickSoft.Controllers
         [HttpPost]
 
         [ValidateAntiForgeryToken]
+        [QkAuthorize(Roles = "Dev,Edit User")]   // Security S9
         public async Task<ActionResult> removepermission(UserViewModel model, string id)
         {
             var user = User.Identity.GetUserId();
@@ -1890,6 +1896,7 @@ namespace QuickSoft.Controllers
 
 
         [HttpGet]
+        [QkAuthorize(Roles = "Dev,Edit User")]   // Security S9
         public async Task<ActionResult> assignpermission()
         {
             var id = User.Identity.GetUserId();
@@ -1964,6 +1971,7 @@ namespace QuickSoft.Controllers
         [HttpPost]
 
         [ValidateAntiForgeryToken]
+        [QkAuthorize(Roles = "Dev,Edit User")]   // Security S9
         public async Task<ActionResult> assignpermission(UserViewModel model, string id)
         {
             var user = User.Identity.GetUserId();

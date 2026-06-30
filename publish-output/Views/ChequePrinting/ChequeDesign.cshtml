@@ -1,0 +1,457 @@
+﻿
+@{
+    ViewBag.Title = "Create Cheque Design";
+    ViewBag.SubTitle = "Design";
+    ViewBag.Active = "Transactions";
+}
+<script src="~/Content/js/num2words.js"></script>
+<style>
+    #Cheques {
+        transform: rotate(90deg);
+    }
+
+    @@media screen {
+        #CAmount, #CDate, #CPayTo, #CBankName, #CChequeNo {
+            display: none;
+        }
+    }
+</style>
+@using (Html.BeginForm("ChequeDesign", "ChequePrinting", FormMethod.Post, new { id = "chequeprintingform", role = "form" }))
+{
+    <div class="box ">
+        <div class="box-header">
+            <div class="pull-right">
+                @if (@ViewBag.LastEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit Cheque Design"))
+                    {
+                        <a class="btn bg-black no-border" href="/CreditSaleReturn/Edit/@ViewBag.LastEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("Edit Cheque Design"))
+                {
+                    <a class="btn btn-success no-border" href="/CreditSaleReturn">
+                        <i class="fa fa-fw fa-history"></i> Sales Return List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+
+
+        
+        <div id="ChequeContainer" width='100' height='100' class="printit">
+
+            <div id="Cheques" width='100%' height='1000' style="width: 100%; height: 1000px;margin-top:195px;position:absolute; transform: rotate(90deg)">
+
+               
+            </div>
+
+
+            <div class="no-print">
+                <div class="form-group col-md-12">
+                    <label>Payment Voucher</label>
+                    @Html.TextBox("voucherno")
+                    <a href="/ChequePrinting/loadvoucher" class="modal-edit" id="loadvocher" style="background-color: #8862e0; text-decoration: :none; color: white; padding: 8px; border-radius: 17px; ">Load Voucher</a>
+                    <button type="submit" id="saveposition" class="btn btn-info" tabindex="1" style="display:none">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Save Position
+                    </button>
+                    <button type="submit" id="testprint" class="btn btn-info" tabindex="2">
+                        <span class="glyphicon glyphicon-floppy-disk"></span>  Print
+                    </button>
+                    <button type="button" id="cancel" class="btn btn-default" tabindex="3" onclick="@("window.location.href='/ChequePrinting/Index'");">Cancel</button>
+                </div>
+                @*<div class="form-group col-md-1">
+                        <label for="Left">Distance From Left </label>
+                        <div id="Left" class="Cheque">0</div>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="Left">Distance From Top </label>
+                        <div id="Top" class="Cheque">0 </div>
+                    </div>*@
+
+            </div>
+        </div>
+
+    </div>
+}
+@section style{
+}
+
+@section scripts
+{
+
+    @Scripts.Render("~/js/printThis")
+
+    <script src="~/Content/plugins/jquery/jquery.ui.draggable.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var container = document.querySelector("#Cheques");
+        var activeItem = null;
+        var active = false;
+
+        container.addEventListener("touchstart", dragStart, false);
+        container.addEventListener("touchend", dragEnd, false);
+        container.addEventListener("touchmove", drag, false);
+
+        container.addEventListener("mousedown", dragStart, false);
+        container.addEventListener("mouseup", dragEnd, false);
+        container.addEventListener("mousemove", drag, false);
+
+
+        function dragStart(e) {
+
+            if (e.target !== e.currentTarget) {
+                active = true;
+
+                // this is the item we are interacting with
+                activeItem = e.target;
+
+                if (activeItem !== null) {
+                    if (!activeItem.xOffset) {
+                        activeItem.xOffset = 0;
+                    }
+
+                    if (!activeItem.yOffset) {
+                        activeItem.yOffset = 0;
+                    }
+
+                    if (e.type === "touchstart") {
+                        activeItem.initialX = e.touches[0].clientX - activeItem.xOffset;
+                        activeItem.initialY = e.touches[0].clientY - activeItem.yOffset;
+                    } else {
+
+                        activeItem.initialX = e.clientX - activeItem.xOffset;
+                        activeItem.initialY = e.clientY - activeItem.yOffset;
+                    }
+                }
+            }
+        }
+
+        function dragEnd(e) {
+            if (activeItem !== null) {
+                activeItem.initialX = activeItem.currentX;
+                activeItem.initialY = activeItem.currentY;
+
+            }
+            active = false;
+            activeItem = null;
+        }
+
+        function drag(e) {
+            if (active) {
+                e.preventDefault();
+                if (e.type === "touchmove") {
+                    e.preventDefault();
+
+                    activeItem.currentX = e.touches[0].clientX - activeItem.initialX;
+                    activeItem.currentY = e.touches[0].clientY - activeItem.initialY;
+                } else {
+                    activeItem.currentX = e.clientX - activeItem.initialX;
+                    activeItem.currentY = e.clientY - activeItem.initialY;
+                }
+
+                activeItem.xOffset = activeItem.currentX;
+                activeItem.yOffset = activeItem.currentY;
+
+                setTranslate(activeItem.currentX, activeItem.currentY, activeItem);
+
+
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+
+            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+
+
+        }
+
+        $('#testprint').on("click", function () {
+            $(".printit").printThis();
+
+        });
+
+
+
+        $(document).ready(function () {
+
+            addContainer();
+            addDesignPosition();
+        });
+
+        // Function to set height, width,x,y and other proprties based on formate
+
+        function addContainer() {
+            var x = document.getElementById('Cheques');
+            var printContent = document.getElementById('ChequeContainer');
+
+            var id = getQueryString('');
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/ChequePrinting/GetFormatePosition",
+                data: JSON.stringify({ id: id }),
+
+                success: function (data) {
+
+                    var Width = data.ChequeWidth;
+                    x.style.width = Width + "%";
+                    x.style.height = data.ChequeHeight + "px";
+                    //x.style.marginTop = data.TopMargin + "px
+                    x.style.paddingRight = 760 + "px";
+                    x.style.left = -67 + "px";
+                    x.style.top = data.TopMargin + "px";
+
+                    printContent.style.width = data.ChequeWidth + "%";
+                    printContent.style.height = "100px";
+                    var des1 = '<div id="CBankName" class="Cheque rotate" data-left="100" data-top="50">A/c Payee</div>'+
+                        '<div id = "CPayTo" class="Cheque rotate" data - left="100" data - top="100" > Pay To</div >'+
+                '<div id="CDate" class="Cheque rotate" data-left="100" data-top="150">Date</div>'+
+                '<div id="CAmount" class="Cheque rotate" data-left="100" data-top="200">Amount</div>'+
+                    '<div id="CChequeNo" class="Cheque rotate" data-left="100" data-top="250">Amount In Words</div>';
+                    var des2 = '<div id="CBankName" class="Cheque rotate" data-left="100" data-top="50">A/c Payee</div>' +
+                        '<div id = "CPayTo" class="Cheque rotate" data - left="100" data - top="100" > Pay To</div >' +
+                        '<div id="CDate" class="Cheque rotate" data-left="100" data-top="150">Date</div>' +
+                        '<div id="CAmount" class="Cheque rotate" data-left="100" data-top="200">Amount</div>' +
+                        '<div id="CChequeNo" class="Cheque rotate" data-left="100" data-top="250">Amount In Words design2</div>';
+                    if (id == 1) {
+                        $("#Cheques").html(des1);
+
+                    }
+                    else if (id == 2) {
+                        $("#Cheques").html(des2);
+                    }
+                }
+            });
+
+        }
+
+
+
+        function addDesignPosition() //set the position of div
+        {
+            var x = document.getElementById('Cheques');
+            var printContent = document.getElementById('ChequeContainer');
+
+            var id = getQueryString('');
+            $.ajax({
+                async: true,
+                cache: false,
+                dataType: "json",
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "/ChequePrinting/AddDesignPosition",
+                data: JSON.stringify({ id: id }),
+
+                success: function (data) {
+                    var el = document.getElementById('CBankName');
+                    el.style.position = "absolute";
+                    el.style.left = data.BankLeft + 50 + 'px';
+                    el.style.top = data.BankTop - 10 + 'px';
+
+                    el.setAttribute("data-left", data.BankLeft);
+                    el.setAttribute("data-top", data.BankTop);
+                    var el = document.getElementById('CPayTo');
+                    el.style.position = "absolute";
+                    el.style.left = data.PayToLeft - 22 + 'px';
+                    el.style.top = data.PayToTop + 'px';
+                    el.setAttribute("data-left", data.PayToLeft);
+                    el.setAttribute("data-top", data.PayToTop);
+
+                    var el = document.getElementById('CAmount');
+                    el.style.position = "absolute";
+                    el.style.left = data.AmountLeft - 40 + 'px';
+                    el.style.top = data.AmountTop - 6 + 'px';
+                    el.setAttribute("data-left", data.AmountLeft);
+                    el.setAttribute("data-top", data.AmountTop);
+                    var el = document.getElementById('CDate');
+                    el.style.position = "absolute";
+                    el.style.left = data.DateLeft - 22 + 'px';
+                    el.style.top = data.DateTop + 'px';
+                    el.setAttribute("data-left", data.DateLeft);
+                    el.setAttribute("data-top", data.DateTop);
+
+                    var el = document.getElementById('CChequeNo');
+                    el.style.position = "absolute";
+                    el.style.left = data.ChequeNoLeft - 37 + 'px';
+                    el.style.top = data.ChequeNoTop - 12 + 'px';
+                    el.setAttribute("data-left", data.ChequeNoLeft);
+                    el.setAttribute("data-top", data.ChequeNoTop);
+                }
+            });
+
+        }
+        // To set position data-left and data-top of element draged
+
+        $(document).on("mouseup", "#CBankName", function () {
+
+            var coords = [];
+            var elem = $(this);
+            var CBankName = elem.attr('id');
+            coord = elem.position();
+
+            document.getElementById('CBankName').setAttribute('data-left', coord.left);
+            document.getElementById('CBankName').setAttribute('data-top', coord.top);
+            $("[id$=Left]").text(coord.left * 0.2645833333);
+            $("[id$=Top]").text(coord.top * 0.2645833333);
+
+        });
+
+        $(document).on("mouseup", "#CPayTo", function () {
+
+            var coords = [];
+            var elem = $(this);
+            var CPayTo = elem.attr('id');
+            coord = elem.position();
+            document.getElementById('CPayTo').setAttribute('data-left', coord.left);
+            document.getElementById('CPayTo').setAttribute('data-top', coord.top);
+            $("[id$=Left]").text(coord.left * 0.2645833333);
+            $("[id$=Top]").text(coord.top * 0.2645833333);
+
+        });
+
+        $(document).on("mouseup", "#CAmount", function () {
+
+            var coords = [];
+            var elem = $(this);
+            var CAmount = elem.attr('id');
+            coord = elem.position();
+
+            document.getElementById('CAmount').setAttribute('data-left', coord.left);
+            document.getElementById('CAmount').setAttribute('data-top', coord.top);
+            $("[id$=Left]").text(coord.left * 0.2645833333);
+            $("[id$=Top]").text(coord.top * 0.2645833333);
+        });
+        $(document).on("mouseup", "#CDate", function () {
+
+
+            var coords = [];
+            var elem = $(this);
+            var CDate = elem.attr('id');
+            coord = elem.position();
+
+            document.getElementById('CDate').setAttribute('data-left', coord.left);
+            document.getElementById('CDate').setAttribute('data-top', coord.top);
+            $("[id$=Left]").text(coord.left * 0.2645833333);
+            $("[id$=Top]").text(coord.top * 0.2645833333);
+        });
+
+        $(document).on("mouseup", "#CChequeNo", function () {
+
+            var coords = [];
+            var elem = $(this);
+            var CChequeNo = elem.attr('id');
+            coord = elem.position();
+
+            document.getElementById('CChequeNo').setAttribute('data-left', coord.left);
+            document.getElementById('CChequeNo').setAttribute('data-top', coord.top);
+            $("[id$=Left]").text(coord.left * 0.2645833333);
+            $("[id$=Top]").text(coord.top * 0.2645833333);
+        });
+
+
+        //submite function
+
+        $('#chequeprintingform').on('submit', function (e) {
+
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            var parameters = {};
+            var EntryID = getQueryString('');
+
+            var Bank = $('#CBankName').attr('id');
+            var newBankLeft = $('#CBankName').attr('data-left');
+            var newBankTop = $('#CBankName').attr('data-top');
+
+
+            var PayTo = $('#CPayTo').attr('id');
+            var newPayLeft = $('#CPayTo').attr('data-left');
+            var newPayTop = $('#CPayTo').attr('data-top');
+
+
+            var Amount = $('#CAmount').attr('id');
+            var newAmountLeft = $('#CAmount').attr('data-left');
+            var newAmountTop = $('#CAmount').attr('data-top');
+
+
+            var Date = $('#CDate').attr('id');
+            var newDateLeft = $('#CDate').attr('data-left');
+            var newDateTop = $('#CDate').attr('data-top');
+
+
+            var chequeNo = $('#CChequeNo').attr('id');
+            var newNoLeft = $('#CChequeNo').attr('data-left');
+            var newNoTop = $('#CChequeNo').attr('data-top');
+
+            var Entry = [EntryID, Bank, newBankLeft, newBankTop, PayTo, newPayLeft, newPayTop, Amount, newAmountLeft, newAmountTop,
+                Date, newDateLeft, newDateTop, chequeNo, newNoLeft, newNoTop];
+
+            parameters.entry = Entry;
+
+            if (fnval == "saveposition") {
+
+                parameters.action = "Save";
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    url: "/ChequePrinting/CreateChequeDesign",
+                    data: JSON.stringify(parameters),
+                    beforeSend: function () {
+
+                    },
+                    success: function (e) {
+                        if (e.status == true) {
+                            $('.ajax_response', res_success).text(e.message);
+                            $('.AlertDiv').prepend(res_success);
+
+                        } else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+
+                        }
+
+                    }
+                });
+
+            }
+
+        });
+        $('#loadvocher').click(function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            var data = $("#voucherno").val();
+            if (data == "") {
+                alert("Please Enter Payment Voucher No");
+                return;
+            }
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: { "voucherno": data },
+                success: function (data) {
+                    var total = parseFloat(data.payment.GrandTotal).toFixed(2);
+
+                    $("#CAmount").text("**" + total + "**");
+                    $("#CPayTo").text(data.payto);
+                    $("#CChequeNo").text(conNumber(total));
+                    $("#CDate").text(convertToDatecheck(data.payment.PDCDate));
+                    alert("Success");
+                    fadeAlert();
+                }
+            });
+        });
+
+    </script>
+}
+
+
+

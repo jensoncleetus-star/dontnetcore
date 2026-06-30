@@ -1,0 +1,364 @@
+@model QuickSoft.ViewModel.UserViewModel
+@{
+    ViewBag.Title = "Users List";
+    ViewBag.SubTitle = "User";
+    ViewBag.Active = "Users";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Users List</h3>
+        <div class="pull-right">
+            @if ((@ViewBag.NoOfUsers == true) && (User.IsInRole("Dev") || User.IsInRole("Create User")))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Users/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create User
+                </a>
+            }
+        </div>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("Salesprofit", "SalesReport", FormMethod.Post, new { id = "search-form", target = "_new" }))
+            {
+            <div class="row">
+                <div class="form-group col-md-2">
+                    @Html.Label("User Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value="3"},
+                            new SelectListItem() {Text = "Banned", Value="0"},
+                            new SelectListItem() {Text = "Not Banned", Value="1"}
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType", @onchange = "customertype()" })
+                </div>
+                <div class="box-footer col-md-4">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            </div>
+            }
+        </form>
+
+    </div>
+    <div class="box-body">
+        <input type="hidden" value="@ViewBag.BranchCheck" class="Branches" name="Branches" id="Branches">
+        <table class="table table-bordered table-hover" id="MyTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">S/N</td>
+                    <td data-priority="1">Name</td>
+                    <td data-priority="2">Email</td>
+                    <td data-priority="3">Phone Number</td>
+                    <td data-priority="4">Branch</td>
+                    <td data-priority="1">UserName</td>
+                    <td data-priority="1"> Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+    </div>
+</div>
+
+
+        @Html.Partial("../Common/_ModalDelete")
+        <div id="modal-ban" class="modal fade" role="dialog" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content danger">
+                </div>
+            </div>
+        </div>
+        @section scripts{
+            <script type="text/javascript">
+
+                $(document).ready(function () {
+                    loaddatatable();
+                });
+                $('#search-form').on('submit', function (e) {
+
+                    e.preventDefault();
+                    $('#MyTable').DataTable().clear().destroy();
+                    loaddatatable();
+                   
+
+
+
+                });
+                function searchData(data) {
+
+                    data.ddlType = $('#ddlType').val();
+                    
+                }
+
+                function loaddatatable() { 
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            
+            "retrieve": true,
+            "bPaginate": false,
+            responsive: false,
+            "ajax": {
+                "url": '/Users/GetUsers',
+                "type": "POST",
+                "datatype": "json",
+                "data": function (data) {
+                    data = searchData(data);
+                },
+            },
+            "columnDefs": [{
+                "targets": [5],
+                "orderable": false
+            }],
+            "order": [[0, "desc"]],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Names", "name": "Names" },
+                 { "data": "Email", "name": "Email" },
+                 { "data": "PhoneNumber", "name": "PhoneNumber" },
+                 { "data": "Branch", "name": "Branch" },
+                 { "data": "UserName", "name": "UserName" },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         if (data.id != data.currentUser) {
+                             @{
+                                 if (User.IsInRole("Dev") || User.IsInRole("Edit User"))
+                                 {
+                                     actData += "<a href=\"/Users/Edit/'+ data.id +'\" title=\"Edit User\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete User"))
+                                 {
+                                     actData += "<a class=\"modal-delete\" href =\"/Users/Delete/'+ data.id +'\" title=\"Delete User\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                 }
+                               }
+                             rest = '@Html.Raw(actData)';
+                             if (data.status != 0) {
+                                 @{
+                                     if (User.IsInRole("Dev") || User.IsInRole("Edit User"))
+                                     {
+                                         actData = "<a class=\"modal-ban\" href=\"/Users/Ban/'+ data.id +'\" title=\"Ban User\"><i class=\"fa fa-lg fa-ban\" ></i></a> ";
+                                     }
+                                 }
+                                 rest += '@Html.Raw(actData)';
+                             } else {
+
+                                 @{
+                                    if (User.IsInRole("Dev") || User.IsInRole("Edit User"))
+                                    {
+                                        actData = "<a class=\"modal-ban\" href=\"/Users/UnBan/'+ data.id +'\" title=\"unban User\"><i class=\"fa fa-lg fa-check-circle\" ></i></a> ";
+                                    }
+                                }
+                                 rest += '@Html.Raw(actData)';
+                             }
+                         }
+                         return rest;
+                     }
+                 },
+            ],
+            buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'User-List';
+                    },
+                    columnDefs: [
+                        { width: 400, targets: 2 }
+                    ],
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var heSad = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val();           return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                        $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                            .css('min-width', '80px');
+                        //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                        //    .css('padding', '0px');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                //Excel
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'User-List';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                            '' + $('#caddress').val() + '\n';
+                            
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'User-List';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                            '' + $('#caddress').val() + '\n';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        //doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+                        //doc.content[1].table.widths = [
+                        //'5%',
+                        //'7%',
+                        //'12%',
+                        //'10%',
+                        //'10%',
+                        //'10%',
+                        //'12%',
+                        //'12%',
+                        //'12%',
+                        //'10%'
+                        //]
+
+                        //doc['header'] = (function () {
+                        //    return {
+                        //        columns: [
+                        //			{
+                        //			    alignment: 'left',
+                        //			    italics: true,
+                        //			    text: 'dataTables',
+                        //			    fontSize: 18,
+                        //			    margin: [10, 0]
+                        //			},
+                        //			{
+                        //			    alignment: 'right',
+                        //			    fontSize: 14,
+                        //			    text: 'Custom PDF export with dataTables'
+                        //			}
+                        //        ],
+                        //        margin: 20
+                        //    }
+                        //});
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+
+                    }
+                }
+
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            
+
+        });
+}
+        //var bnc = $("#Branches").val();
+        //if (bnc == "active")
+        //{
+        //    var column1 = oTable.column(4);
+        //    column1.visible(true);
+        //}
+        //else
+        //{
+        //    var column1 = oTable.column(4);
+        //    column1.visible(false);
+        //}
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+                $('div').on('click', '.modal-ban', function (e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href');
+                    modalshow(url, '#modal-ban');
+                });
+        /* function for ban popup */
+        $('#MyTable').on('click', '.modal-ban', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-ban');
+        });
+        $('#modal-ban').on('submit', '#banform', function (e) {
+            e.preventDefault();
+            var url = $('#banform')[0].action;
+            var data = $('#banform').serialize();
+            createajax(url, data, '#modal-ban');
+            $('#MyTable').DataTable().clear().destroy();
+            loaddatatable();
+        });
+
+            </script>
+        }

@@ -1,0 +1,183 @@
+﻿@{
+    ViewBag.Title = "Hire Type List";
+    ViewBag.SubTitle = "Hire Type";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string actData1 = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Hire Type</h3>
+        @*<div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create HireType"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/HireType/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Hire Type
+                </a>
+            }
+        </div>*@
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="GroupTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">#</td>
+                    <td data-priority="2">Name</td>
+                    <td data-priority="2">Period</td>
+                    <td data-priority="4">Note</td>
+                    <td data-priority="5">Status</td>
+                    <td data-priority="3">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+@Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        ///*Bind for tax group*/
+        var oTable = $('#GroupTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/HireType/GetData',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "Name", "name": "Name" },
+                 {
+                     "name": "Period", "data": function (data) {
+                         return data.Period + " " + data.PeriodType
+                     }
+                 },
+                 { "data": "Note", "name": "Note" },
+                 {
+                     "name": "Status", "data": function (data) {
+                         var rest1 = "";
+                         if (data.Status == 1) {
+                             @if (User.IsInRole("Dev") || User.IsInRole("Edit HireType"))
+                             {
+                                 actData1 = "<a href=\"/HireType/ChangeStatus/' + data.id + '/active\" class=\"modal-change\" title=\"Click To Active\" ><i class=\"badge bg-red\">Inactive</i></a>";
+                             }
+                             else
+                             {
+                                 actData1 = "<i class=\"badge bg-red\">Inactive</i>";
+                             }
+                         }
+                         else {
+                             @if (User.IsInRole("Dev") || User.IsInRole("Edit HireType"))
+                             {
+                                 actData1 = "<a href=\"/HireType/ChangeStatus/' + data.id + '/inactive\" class=\"modal-change\" title=\"Click To Inactive\" ><i class=\"badge bg-green\" >Active</i></a>";
+                             }
+                             else
+                             {
+                                 actData1 = "<i class=\"badge bg-green\">Active</i>";
+                             }
+                         }
+                         return rest = '@Html.Raw(actData1)';
+                     }
+                 },
+                 {
+                     "name": "id", "data": function (data) {
+                         if (data.Editable == 0) {
+                             var rest = "";
+                             @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit HireType"))
+                                  {
+                                      actData += "<a class=\"modal-edit\" href=\"/HireType/Edit/'+ data.id +'\" title=\"Edit HireType\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                  }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete HireType"))
+                                  {
+                                      actData += "<a class=\"modal-delete\" href=\"/HireType/Delete/'+ data.id +'\" title=\"Delete HireType\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                             return rest = '@Html.Raw(actData)';
+                         } else {
+                             return null;
+                         }
+                     }
+                 },
+
+            ]
+        });
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+            oTable.draw(false);
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            oTable.draw(false);
+        });
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            oTable.draw(false);
+        });
+
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+            oTable.draw(false);
+        });
+
+    </script>
+}

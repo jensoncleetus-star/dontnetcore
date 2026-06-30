@@ -1,0 +1,58 @@
+@{
+    ViewBag.Title = "Contractor Allocation";
+    ViewBag.Active = "Transactions";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#b45309,#f59e0b 55%,#fbbf24)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-wrench"></i></div>
+            <div><h1>Maintenance &amp; Contractor Allocation</h1><p>Who maintains what &middot; workload &amp; cost per contractor</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/Maintenance/Create" class="rfi-btn"><i class="fa fa-plus"></i> New Maintenance</a>
+            <a href="/Property/PropertyInsights/ProfitLoss" class="rfi-btn"><i class="fa fa-line-chart"></i> P&amp;L</a>
+        </div>
+    </div>
+
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Contractors</span><span class="rfi-num">@ViewBag.TotContractors</span><span class="rfi-sub">on file</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Allocated</span><span class="rfi-num pos">@ViewBag.Allocated</span><span class="rfi-sub">have work</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Idle</span><span class="rfi-num">@ViewBag.Unallocated</span><span class="rfi-sub">no maintenance</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Contracts</span><span class="rfi-num">@ViewBag.TotContracts</span><span class="rfi-sub">maintenance</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Cost</span><span class="rfi-num neg">@money(ViewBag.TotExpense)</span><span class="rfi-sub">AED</span></div>
+    </div>
+
+    <div class="rfi-grid2">
+        <div class="rfi-card">
+            <h3><i class="fa fa-bar-chart"></i> Expense by Contractor</h3>
+            <div id="caChart" class="rfi-bars"></div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-users"></i> Contractor Workload</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Contractor</th><th class="c">Contracts</th><th class="c">Properties</th><th class="r">Cost (AED)</th></tr></thead><tbody id="caBody"></tbody></table></div>
+        </div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-list-ul"></i> Allocation Detail</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Contractor</th><th>Property</th><th>Voucher</th><th>Start</th><th>End</th><th class="r">Amount (AED)</th></tr></thead><tbody id="caDetail"></tbody></table></div>
+    </div>
+</div>
+<script>
+(function(){
+  var byC=@Html.Raw(ViewBag.ByContractor ?? "[]"), chart=@Html.Raw(ViewBag.AllocChart ?? "[]"), asn=@Html.Raw(ViewBag.Assignments ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var max=1; chart.forEach(function(c){max=Math.max(max,c.value);});
+  document.getElementById('caChart').innerHTML = chart.length ? chart.map(function(c){var w=Math.round(c.value/max*100);
+    return '<div class="rfi-bar-row"><div class="rfi-bar-top"><span>'+esc(c.label)+'</span><span>'+m(c.value)+'</span></div><div class="rfi-bar-track"><div class="rfi-bar-fill" style="width:'+w+'%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div></div>';
+  }).join('') : '<div class="rfi-empty">No allocations yet</div>';
+  document.getElementById('caBody').innerHTML = byC.length ? byC.map(function(c){
+    return '<tr><td><b>'+esc(c.name)+'</b></td><td class="c">'+c.contracts+'</td><td class="c"><span class="rfi-chip g">'+c.properties+'</span></td><td class="r"><b>'+m(c.expense)+'</b></td></tr>';
+  }).join('') : '<tr><td colspan="4" class="rfi-empty">No contractor has maintenance yet</td></tr>';
+  document.getElementById('caDetail').innerHTML = asn.length ? asn.map(function(a){
+    return '<tr><td>'+esc(a.contractor)+'</td><td>'+esc(a.property)+'</td><td>'+esc(a.voucher)+'</td><td>'+esc(a.start)+'</td><td>'+esc(a.end)+'</td><td class="r">'+m(a.amount)+'</td></tr>';
+  }).join('') : '<tr><td colspan="6" class="rfi-empty">No maintenance contracts</td></tr>';
+})();
+</script>

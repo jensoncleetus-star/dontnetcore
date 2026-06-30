@@ -1,0 +1,37 @@
+﻿<!-- Input file -->
+<input type="file" id="upload" accept="image/*">
+
+<!-- Hidden Iframe -->
+<iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
+<script>
+document.getElementById('upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            // 1. Resize on Canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Define new size
+            canvas.width = 800;
+            canvas.height = (img.height * 800) / img.width;
+
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // 2. Download Automatically
+            const dataUrl = canvas.toDataURL('image/jpeg');
+            const link = document.createElement('a');
+            link.download = 'resized-image.jpg';
+            link.href = dataUrl;
+            link.click();
+        }
+        img.src = event.target.result;
+    }
+    reader.readAsDataURL(file);
+});
+</script>
+

@@ -1,0 +1,68 @@
+@{
+    ViewBag.Title = "Property Comparison";
+    ViewBag.Active = "Reports";
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#1e3a8a,#3b82f6 55%,#60a5fa)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-balance-scale"></i></div>
+            <div><h1>Property Comparison</h1><p>Compare up to 3 properties side by side</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/Performance" class="rfi-btn"><i class="fa fa-trophy"></i> Performance</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+    <div class="rfi-card">
+        <div class="rfi-cmp-picks">
+            <select id="cmp0" class="rfi-pick"></select>
+            <select id="cmp1" class="rfi-pick"></select>
+            <select id="cmp2" class="rfi-pick"></select>
+        </div>
+        <div id="cmpTable" class="rfi-cmp"></div>
+    </div>
+</div>
+<script>
+(function(){
+  var rows=@Html.Raw(ViewBag.Rows ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var byId={}; rows.forEach(function(r){byId[r.id]=r;});
+  var picks=[document.getElementById('cmp0'),document.getElementById('cmp1'),document.getElementById('cmp2')];
+  picks.forEach(function(sel,i){
+    sel.innerHTML='<option value="">— none —</option>'+rows.map(function(r){return '<option value="'+r.id+'">'+esc(r.name)+'</option>';}).join('');
+    if(rows[i]) sel.value=rows[i].id;
+    sel.addEventListener('change',render);
+  });
+  var metrics=[
+    {k:'ptype',label:'Type',fmt:function(v){return esc(v);}},
+    {k:'city',label:'City',fmt:function(v){return esc(v);}},
+    {k:'units',label:'Total Units',n:1},
+    {k:'occupied',label:'Occupied',n:1,hi:1},
+    {k:'occPct',label:'Occupancy %',n:1,hi:1,suf:'%'},
+    {k:'income',label:'Income (AED)',money:1,hi:1},
+    {k:'expense',label:'Expense (AED)',money:1,lo:1},
+    {k:'net',label:'Net P&L (AED)',money:1,hi:1,col:1},
+    {k:'value',label:'Value (AED)',money:1},
+    {k:'yld',label:'Yield %',n:1,hi:1,suf:'%'}
+  ];
+  function render(){
+    var sel=picks.map(function(p){return p.value? byId[p.value]:null;}).filter(Boolean);
+    if(!sel.length){document.getElementById('cmpTable').innerHTML='<div class="rfi-empty">Pick a property above</div>';return;}
+    var html='<table class="rfi-cmp-tbl"><thead><tr><th>Metric</th>'+sel.map(function(p){return '<th>'+esc(p.name)+'</th>';}).join('')+'</tr></thead><tbody>';
+    metrics.forEach(function(mt){
+      var vals=sel.map(function(p){return Number(p[mt.k])||0;});
+      var best=mt.hi?Math.max.apply(null,vals):(mt.lo?Math.min.apply(null,vals):null);
+      html+='<tr><td class="rfi-cmp-lbl">'+mt.label+'</td>'+sel.map(function(p){
+        var raw=p[mt.k], disp = mt.fmt?mt.fmt(raw):(mt.money?m(raw):(raw+(mt.suf||'')));
+        var isBest = best!==null && Number(raw)===best && vals.filter(function(x){return x===best;}).length<sel.length;
+        var cls = mt.col? (Number(raw)>=0?'pos':'neg'):'';
+        return '<td class="'+cls+(isBest?' rfi-best':'')+'">'+disp+(isBest?' <i class="fa fa-star"></i>':'')+'</td>';
+      }).join('')+'</tr>';
+    });
+    html+='</tbody></table>';
+    document.getElementById('cmpTable').innerHTML=html;
+  }
+  render();
+})();
+</script>

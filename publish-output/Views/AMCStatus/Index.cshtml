@@ -1,0 +1,146 @@
+﻿@{
+    ViewBag.Title = "AMC Status";
+    ViewBag.SubTitle = "AMC Status";
+    ViewBag.Active = "Master";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">AMC Status</h3>
+        <p class="pull-right">           
+            <a href="/AMCStatus/Create" class="btn btn-info modal-create">
+                <i class="glyphicon glyphicon-plus"></i> Add New
+            </a>            
+        </p>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr style="background-color: #d2d6de">
+                    <td>SI No</td>
+                    <td>Name</td>
+                    <td>Created By</td>
+                    <td>Departments</td>
+                    <td>Designations</td>
+                    <td>Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+
+    var oTable = $('#UserTable').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": true, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "bStateSave": true,
+        "ajax": {
+            "url": '/AMCStatus/GetAmcStatus',
+            "type": "POST",
+            "datatype": "json"
+
+        },
+        "order": [[1, "desc"]],
+        "columnDefs": [{
+            "targets": [3,4,5],
+            "orderable": false
+        }],
+        "columns": [
+                 {
+                "data": "AmcStatusId", "name": "AmcStatusId",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+             { "data": "StatusName", "name": "StatusName" },
+             { "data": "UserName", "name": "UserName" },
+              {
+                  "name": "Depts", "data": function (data) {
+                      var datas = "";
+                      $.each(data.Depts, function (i, item) {
+                          if (datas != "") {
+                              datas += ", ";
+                          }
+                          datas += item.DeptName;
+                      })
+                      return datas;
+                  }
+              },
+               {
+                   "name": "Desgn", "data": function (data) {
+                       var datas = "";
+                       $.each(data.Desgn, function (i, item) {
+                           if (datas != "") {
+                               datas += ", ";
+                           }
+                           datas += item.DesgnName;
+                       })
+                       return datas;
+                   }
+               },
+             {
+                 "name": "AmcStatusId", "data": function (data) {
+                     var rest = "";
+                     @{                        
+                             actData += "<a class=\"modal-edit btn btn-icons btn-rounded btn-edit\" href=\"/AMCStatus/Edit/'+ data.AmcStatusId +'\" title=\"Edit Amc Status\"><i class=\"fa fa-pencil\" ></i></a> ";
+                             actData += "<a class=\"modal-delete btn btn-icons btn-rounded btn-delete\" href=\"/AMCStatus/Delete/'+ data.AmcStatusId +'\" title=\"Delete Amc Status\"><i class=\"fa fa-trash\" ></i></a> ";
+                        
+                    }
+                     return rest = '@Html.Raw(actData)';
+                 }
+             },
+        ]
+    });
+
+
+        /* function for Create popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+                var url = $('#createform')[0].action;
+                var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+      
+
+        /* function for Edit popup */
+        $('#UserTable').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#UserTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+    </script>
+}

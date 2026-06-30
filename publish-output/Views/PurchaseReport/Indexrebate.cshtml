@@ -1,0 +1,571 @@
+
+@{
+    ViewBag.Title = "Search Purchase Entry";
+    ViewBag.SubTitle = "Purchase Reports";
+    ViewBag.Active = "Reports";
+    string actData = "";
+}
+<style>
+    .datepicker {
+        border-radius: 0px !important;
+        /*height:30px!important;*/
+    }
+
+    .input-sm {
+        height: 30px !important;
+        border-radius: 0px !important;
+    }
+
+    .fa-calendar {
+        margin-left: -5px !important;
+    }
+</style>
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Purchase Entry</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            @using (Html.BeginForm("Index", "PurchaseReport", FormMethod.Post, new { id = "popupForm" }))
+            {
+                <input type="hidden" id="cname" value="@ViewBag.CName" />
+                <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+                <div class="form-group col-md-2">
+                    @Html.Label("Invoice No", null, new { @class = "control-label" })
+                    @Html.TextBox("InvoiceNo", "", new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Payment Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "All", Value=""},
+                        new SelectListItem() {Text = "Credit", Value="0"},
+                        new SelectListItem() {Text = "Cash", Value="1"}
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlType", @onchange = "customertype()" })
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Supplier", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supplier, new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-md-2" id="execreditsale">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExecutive, new { @class = "form-control input-sm select2" })
+                </div>
+
+                if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group col-md-2">
+                        @Html.Label("Material Center", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+                <div class="form-group col-md-2">
+                    @Html.Label("From", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("To", null, new { @class = "control-label" })
+                    <div class="input-group date">
+                        @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                        <div class="input-group-addon">
+                            <i class="fa fa-calendar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Tax Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlTaxType", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "VAT-5%", Value="2"},
+                        new SelectListItem() {Text = "All", Value="0"},
+                        new SelectListItem() {Text = "Zero Rated", Value="1"},
+
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlTaxType" })
+                </div>
+                <div style="display:none">
+                    <div class="form-group col-md-2" id="DDlItemwise">
+                        @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="creditsale">
+                        @Html.Label("Item Category", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItemCategory", (SelectList)ViewBag.Category, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="creditsale">
+                        @Html.Label("Item Brand", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlItemBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+                    </div>
+
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Search", null, new { @class = "control-label" })
+                    @Html.TextBox("Searchtext", "", new { @class = "form-control input-sm" })
+                </div>
+                @*<div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>*@
+                <div class="box-footer col-md-12">
+                    <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="StockReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="invoiceno" value="@ViewBag.InvoiceNo" />
+    <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+    <input type="hidden" id="todate" value="@ViewBag.todate" />
+    <input type="hidden" id="matcenter" value="@ViewBag.EnableMCcheck" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Purchase Report</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="2">Bill NO</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="1">Item</td>
+                        <td data-priority="1">Qty</td>
+                        <td data-priority="2">P.Price</td>
+
+                        <td>Supplier</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th> </th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            $("#StockReport").hide();
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+            CallRepSupplier();
+            CallRepMCUser();
+            CallRepEmployee();
+            GetBranch();
+            ItemSearchable();
+            $("#ddlItemCategory").select2({
+                placeholder: 'Search Item Category',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemCategory/SearchCategory",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "All"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $("#ddlItemBrand").select2({
+                placeholder: 'Search Item Brand',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemBrand/SearchBrand",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+
+
+
+        function searchData(data) {
+
+
+            data.supplier = $('#ddlSupplier').val();
+            data.peno = $('#InvoiceNo').val();
+            data.SalesExecutive = $('#ddlEmployee').val();
+            data.type = $('#ddlEmployee').val();
+            data.fromdate = $('#From').val();
+            data.todate = $('#To').val();
+            data.ddlMC = $('#ddlMC').val();
+            data.item = $('#ddlItem').val();
+            data.category = $('#ddlItemCategory').val();
+            data.brand = $('#ddlItemBrand').val();
+            data.srchtxt = $('#Searchtext').val();
+            data.Taxtype = $('#ddlTaxType').val();
+
+        }
+
+        function showdatatable() {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "stateSave": true,
+                "bDestroy": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 25000,
+                "ordering": false,
+                "ajax": {
+                    "url": '/PurchaseReport/GetAllpurRebate',
+                    //"data": {
+                    //    supplier: getQueryString1('ddlSupplier'), peno: getParameterByName('InvoiceNo'),
+                    //    SalesExecutive: getParameterByName('ddlEmployee'), type: getParameterByName('ddlType'),
+                    //    fromdate: getParameterByName('From'), todate: getParameterByName('To'), ddlMC: getParameterByName('ddlMC'), Taxtype: getParameterByName('ddlTaxType'),
+                    //},
+                    "data": function (data) {
+                        data = searchData(data);
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                     {
+                         "data": "PurchaseEntryId", "name": "PurchaseEntryId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "BillNo", "name": "BillNo" },
+                    {
+                        "name": "invdate", "data": "invdate",
+                        "render": function (data) {
+                            var date = convertToDate(data);
+                            return date.toString();
+                        }
+                        },
+                    //{
+                    //    "name": "PONo",
+                    //     "data": function (data) {
+                    //         if (data.PONo == 0) {
+                    //             return " ";
+                    //         } else {
+                    //             return data.PONo;
+                    //         }
+                    //     }, "sClass": "numberleft"
+                    // },
+                    {
+                        "name": "itemname", "data": "itemname"
+                    },
+                    {
+                        "name": "qty", "data": "qty"
+
+                    },
+                
+                    {
+                        "name": "sprice", "data": "sprice"
+
+                    },
+                    { "data": "Supplier", "name": "Supplier" },
+                    //{ "data": "TaxRegNo", "name": "TaxRegNo" },
+                    //{
+                     //    "name": "SupplierType",
+                     //    "data": function (data) {
+                     //        if (data.SupplierType == 0) {
+                     //            return "Credit";
+                     //        } else {
+                     //            return  "Cash";
+                     //        }
+                     //    }
+                     //},
+                     
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                    {
+                        extend: 'print',//
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Purchase Report';
+                        },
+                        message: function()
+                        {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Purchase Report</h4></th></tr>' +
+                            ' <tr><th><span class="text-left">Invoice No : ' + $('#invoiceno').val() + ' </span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table, th,tr, td ')
+                               // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv', //'excel',
+                    {
+                        extend: 'excel',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Purchase Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Purchase Report \n' +
+                             'Invoice No : ' + $('#invoiceno').val() + '\n' +
+                             'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        orientation: 'landscape',
+                        footer: true,
+                        filename: function () {
+                            return 'Purchase Report';
+                        },
+                        message: function () {
+                            var head = '' + $('#cname').val() + '\n' +
+                             '' + $('#caddress').val() + '\n' +
+                             ' Purchase Report \n' +
+                             'Invoice No : ' + $('#invoiceno').val() + '\n' +
+                             'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+                            //doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+
+                            //  doc.content[1].table.widths = [
+                            //'10%',
+                            //'10%',
+                            //'10%',
+                            //'10%',
+                            //'15%',
+                            //'10%',
+                            //'10%',
+                            //'10%',
+                            //'15%'
+                            //  ]
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+
+
+                    },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+
+                    total = api
+                        .column(3)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                        .column(3, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                        pageTotal.toFixed(2)
+                        //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+
+            });
+            $('#search-form').on('submit', function (e) {
+
+                e.preventDefault();
+                oTable.draw();
+                $('#SReport').show();
+                $('#UserTable').show();
+            });
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+        }
+
+
+        var flag = 0;
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            if (flag == 0) {
+                showdatatable();
+                flag = 0;
+            }
+            else
+                oTable.draw();
+
+            $('#StockReport').show();
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false);
+        }
+        $('#UserTable tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+            }
+            else {
+                oTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                $(this).addClass('dataTables_row');
+            }
+        });
+    </script>
+}
+
+

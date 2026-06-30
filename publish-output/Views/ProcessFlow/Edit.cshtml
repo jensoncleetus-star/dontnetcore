@@ -1,0 +1,171 @@
+@model QuickSoft.ViewModel.ProcessFlowViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit ProcessFlow</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "ProcessFlow", FormMethod.Post, new { id = "editform" }))
+    {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            @Html.HiddenFor(model => model.ProcessFlowId)
+            <div class="col-md-12">
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.TaskStatus, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.TaskStatus, (SelectList)ViewBag.TaskStat, new { id = "ddlPStatus", @class = "form-control taskstat textwidth" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.AssignType, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2 asstype textwidth", @name = "AssignTypeAll[]", @multiple = "multiple" })
+                </div>
+                <div class="form-group  col-md-12">
+                    @Html.LabelFor(model => model.AssignedUsers, htmlAttributes: new { @class = "control-label" })
+                    @Html.ListBoxFor(m => m.AssignedUsers, (MultiSelectList)ViewBag.team, new { @class = "form-control select2 assuser", @name = "AssignedUsers[]", @multiple = "multiple", @style = "width:100%" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.CheckBoxFor(m => m.RemoveUpdateUser, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.RemoveUpdateUser, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.CheckBoxFor(m => m.RemoveUpdateUserTeams, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.RemoveUpdateUserTeams, new { @class = "control-label" })
+                </div>
+
+                <div class="form-group  col-md-12" id="1">
+                    @Html.CheckBoxFor(m => m.MoveToLead, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.MoveToLead, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-6" hidden="hidden" id="abd">
+                    @Html.LabelFor(model => model.LeadStatus, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.LeadStatus, (SelectList)ViewBag.LeadStatuss, "", new { @class = "form-control textwidth", id = "2" })
+                </div>
+
+                <div class="form-group  col-md-12" id="abe">
+                    @Html.CheckBoxFor(m => m.assignexistinguser, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.assignexistinguser, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-12" hidden="hidden" id="abc">
+                    @Html.Label("Assign More Users", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.ListBoxFor(m => m.leadAssignUsers, (MultiSelectList)ViewBag.leadAssignUserss, new { @class = "form-control select2 assuser", @name = "leadAssignUsers[]", @multiple = "multiple", @style = "width:100%" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-info col-sm-offset-4">Update</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+            <script>
+                $(function () {
+                    $("#MoveToLead").change(function () {
+                        if ($(this).is(':checked')) {
+                            $("#abd").show();
+                            $("#abc").show();
+                            $("#abe").show();
+                        }
+                        else {
+                            $("#abd").hide();
+                            $("#abc").hide();
+                            $("#abe").hide();
+                        }
+                    });
+
+                });
+                if ($("#MoveToLead").is(':checked')) {
+                    $("#abd").show();
+                    $("#abc").show();
+                }
+                else {
+                    $("#abd").hide();
+                    $("#abc").hide();
+                }
+                $(".taskstat").select2({
+                    placeholder: 'Search Task Status',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/TaskStatus/SearchTaskStatusName",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $(".asstype").select2({
+                    placeholder: 'Search Assign Type',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Team/SearchTeam",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "in"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $(".assuser").select2({
+                    placeholder: 'Search Employees by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchTeamMember",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                lead: $('#TeamLead').val()
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+               
+                $('body').on('change', '#AssignTypeAll', function (e) {
+                    var assign = $("#AssignTypeAll").val();
+                    AssignTypeChange(assign);
+                });
+                
+            </script>
+    }
+</div>

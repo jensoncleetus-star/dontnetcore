@@ -1,0 +1,89 @@
+@{
+    ViewBag.Title = "Inspection Scheduler";
+    ViewBag.Active = "Transactions";
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#0f766e,#14b8a6 55%,#5eead4)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-tasks"></i></div>
+            <div><h1>Inspection &amp; Maintenance Scheduler</h1><p>Schedule tasks, assign contractors, track status</p></div>
+        </div>
+        <div class="rfi-hero-r"><a href="/Property/PropertyInsights/MaintenanceCalendar" class="rfi-btn"><i class="fa fa-calendar"></i> Calendar</a></div>
+    </div>
+
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Tasks</span><span class="rfi-num">@ViewBag.Total</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Pending</span><span class="rfi-num">@ViewBag.Pending</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">In Progress</span><span class="rfi-num" style="color:#0ea5e9">@ViewBag.InProgress</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Overdue</span><span class="rfi-num neg">@ViewBag.Overdue</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Completed</span><span class="rfi-num pos">@ViewBag.Done</span></div>
+    </div>
+
+    <form id="afForm" style="display:none">@Html.AntiForgeryToken()</form>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-plus-circle"></i> Schedule a Task</h3>
+        <form method="post" action="/Property/PropertyInsights/CreateTask" id="taskForm">
+            @Html.AntiForgeryToken()
+            <div class="re-taskgrid">
+                <div><label>Title</label><input name="title" class="form-control" required placeholder="e.g. Annual fire inspection" /></div>
+                <div><label>Type</label>
+                    <select name="taskType" class="form-control">
+                        <option>Inspection</option><option>Maintenance</option><option>AMC Service</option><option>Cleaning</option><option>Repair</option>
+                    </select>
+                </div>
+                <div><label>Property</label><select name="property" id="tkProp" class="form-control"></select></div>
+                <div><label>Assign Contractor</label><select name="contractor" id="tkContr" class="form-control"></select></div>
+                <div><label>Scheduled Date</label><input type="date" name="scheduledDate" id="tkDate" class="form-control" /></div>
+                <div><label>Priority</label>
+                    <select name="priority" class="form-control"><option>Normal</option><option>High</option><option>Low</option></select>
+                </div>
+                <div style="flex:2"><label>Notes</label><input name="notes" class="form-control" placeholder="Optional" /></div>
+                <div class="re-taskgo"><button type="submit" class="rfi-q-btn"><i class="fa fa-plus"></i> Add Task</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-list-ul"></i> Tasks</h3>
+        <div class="rfi-tbl"><table>
+            <thead><tr><th>Task</th><th>Type</th><th>Property</th><th>Assigned</th><th class="c">Scheduled</th><th class="c">Priority</th><th class="c">Status</th><th class="c">Action</th></tr></thead>
+            <tbody id="tkBody"></tbody>
+        </table></div>
+    </div>
+</div>
+<script>
+(function(){
+  var tasks=@Html.Raw(ViewBag.Tasks ?? "[]"), props=@Html.Raw(ViewBag.Properties ?? "[]"), contrs=@Html.Raw(ViewBag.Contractors ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  // populate selects
+  document.getElementById('tkProp').innerHTML = props.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>';}).join('');
+  document.getElementById('tkContr').innerHTML = '<option value="0">(unassigned)</option>'+contrs.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join('');
+  var d=new Date(); document.getElementById('tkDate').value=d.toISOString().slice(0,10);
+  // priority + status chips
+  function prChip(p){var cl=p=='High'?'rd':(p=='Low'?'':'am');return '<span class="rfi-chip '+cl+'">'+esc(p)+'</span>';}
+  function stChip(s,name,ov){ if(ov) return '<span class="rfi-chip rd">Overdue</span>'; var cl=s==2?'g':(s==1?'am':''); return '<span class="rfi-chip '+cl+'">'+esc(name)+'</span>'; }
+  var tok=(document.querySelector('#afForm input[name=__RequestVerificationToken]')||{}).value||'';
+  function actBtns(t){
+    var b='';
+    if(t.status==0) b+='<button class="re-tkbtn b1" data-id="'+t.id+'" data-st="1"><i class="fa fa-play"></i> Start</button>';
+    if(t.status!=2) b+='<button class="re-tkbtn b2" data-id="'+t.id+'" data-st="2"><i class="fa fa-check"></i> Done</button>';
+    if(t.status==2) b+='<button class="re-tkbtn b0" data-id="'+t.id+'" data-st="0"><i class="fa fa-undo"></i> Reopen</button>';
+    return b;
+  }
+  document.getElementById('tkBody').innerHTML = tasks.length ? tasks.map(function(t){
+    return '<tr'+(t.overdue?' style="background:#fff7f7"':'')+'><td><b>'+esc(t.title)+'</b>'+(t.notes?'<div class="rfi-mut" style="font-size:11px">'+esc(t.notes)+'</div>':'')+'</td>'+
+      '<td>'+esc(t.type)+'</td><td>'+esc(t.property)+'</td><td>'+esc(t.contractor)+'</td>'+
+      '<td class="c">'+esc(t.date)+'</td><td class="c">'+prChip(t.priority)+'</td><td class="c">'+stChip(t.status,t.statusName,t.overdue)+'</td>'+
+      '<td class="c">'+actBtns(t)+'</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="rfi-empty">No tasks yet — schedule one above</td></tr>';
+  // status update -> POST
+  document.getElementById('tkBody').addEventListener('click',function(ev){
+    var b=ev.target.closest('.re-tkbtn'); if(!b) return; b.disabled=true;
+    var f=document.createElement('form'); f.method='post'; f.action='/Property/PropertyInsights/UpdateTaskStatus';
+    function add(n,v){var i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}
+    add('id',b.getAttribute('data-id')); add('status',b.getAttribute('data-st')); add('__RequestVerificationToken',tok);
+    document.body.appendChild(f); f.submit();
+  });
+})();
+</script>

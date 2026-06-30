@@ -1,0 +1,359 @@
+@{
+    ViewBag.Title = "Search Customer";
+    ViewBag.SubTitle = "Customer";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Customer</h3>
+    </div>
+    <div class="box-body">
+        <form id="search-form">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <div class="form-group col-md-4">
+                @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlSalesExec", (SelectList)ViewBag.SalesExec, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Source Of Lead", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlSrcLead", (SelectList)ViewBag.SrcLead, new { @class = "form-control input-sm select2" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Phone No", null, new { @class = "control-label" })
+                @Html.TextBox("PhoneNo", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Mobile No", null, new { @class = "control-label" })
+                @Html.TextBox("MobileNo", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Credit Limit", null, new { @class = "control-label" })
+                @Html.TextBox("CreditLimit", "", new { @class = "form-control input-sm" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("Credit Period", null, new { @class = "control-label" })
+                <div class="input-group input-group-sm">
+                    @Html.TextBox("CreditPeriod", "", new { @class = "form-control input-sm" })
+                    <span class="input-group-btn">
+                        <button type="button" class="btn btn-flat">Days</button>
+                    </span>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("PipeLine Type", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlPPType", new SelectList(new List<SelectListItem>
+                        {
+                            new SelectListItem() {Text = "All", Value=""},
+                            new SelectListItem() {Text = "Direct", Value="Direct"},
+                            new SelectListItem() {Text = "Convert", Value="Convert"}
+                        }, "Value", "Text"), new { @class = "form-control input-sm", @name = "ddlPPType" })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <input type="button" class="btn btn-default" value="Reset" data-dismiss="modal" id="btnreset" />
+            </div>
+        </form>
+    </div>
+</div>
+<div class="box box-default" id="QReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Customer</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered" id="UserTable" style="width:100%">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>SI No</td>
+                        <td>Code</td>
+                        <td>Name</td>
+                        <td>Convert From</td>
+                        <td>TRN</td>
+                        <td>Credit Limit</td>
+                        <td>Credit Period</td>
+                        <td>Address</td>
+                        <td>Location</td>
+                        <td>Phone</td>
+                        <td>Email</td>
+                        <td>Sales Person</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+        $(document).ready(function () {
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#QReport').hide();
+            $("#ddlSalesExec").select2({
+                placeholder: 'Search Sales Executive by Name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $("#ddlSrcLead").select2({
+                placeholder: 'Search Source of Lead',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/SourceOfLead/SearchSrcLead",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+        });
+
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                "ajax": {
+                    "url": '/MyReports/GetCustomer',
+                    "data": function (data) {
+                        data.salesexec = $('#ddlSalesExec').val();
+                        data.srclead = $('#ddlSrcLead').val();
+                        data.phno = $('#PhoneNo').val();
+                        data.mob = $('#MobileNo').val();
+                        data.climit = $('#CreditLimit').val();
+                        data.cperiod = $('#CreditPeriod').val();
+                        data.pptype = $('#ddlPPType').val();
+                        data.fromdate = $('#From').val();
+                        data.todate = $('#To').val();
+
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                     {
+                         "data": "CustomerID", "name": "CustomerID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "CustomerCode", "name": "CustomerCode" },
+                    { "data": "CustomerName", "name": "CustomerName" },
+                    { "data": "ConvertFrom", "name": "ConvertFrom" },
+                    { "data": "TaxRegNo", "name": "TaxRegNo" },
+                    { "data": "CreditLimit", "name": "CreditLimit", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "CreditPeriod", "name": "CreditPeriod" },
+                    { "data": "Details", "name": "Details" },
+                    { "data": "Location", "name": "Location" },
+                    { "data": "Phone", "name": "Phone" },
+                    { "data": "EmailId", "name": "EmailId" },
+                    { "data": "SalesPerson", "name": "SalesPerson" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+              {
+                  extend: 'print',//
+                  title: "",
+                  footer: true,
+                  message: '<table class="tblcompact table table-bordered"><thead>' +
+                      ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Customer</h4></th></tr>' +
+                      ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> From :  ' + $('#From').val() + ' To :' + $('#To').val() + '</span></th></tr></thead><tbody><tr><td>',
+                  customize: function (win) {
+                      // $(win.document.body)
+                      //.css('font-size', '10pt')
+                      //.css('padding', '1px');
+                      $(win.document.body).find('table, th,tr, td ')
+                         // .css('border', 'inherit')
+                          .css('font-size', '10pt')
+                          .css('padding', '5px')
+                          .addClass('compact');
+                      $(win.document.body).append('</td></tr></tbody>')
+
+                  }
+              }, 'copy', 'csv', 'excel',
+              {
+                  extend: 'pdf',//
+                  title: "",
+                  footer: true,
+                  message:
+                      '' + $('#cname').val() + '\n' +
+                      '' + $('#caddress').val() + '\n' +
+                      ' Customer \n' +
+                      'From :  ' + $('#From').val() + ' To :' + $('#To').val() + ''
+                  ,
+                  pageSize: 'A4',
+                  exportOptions: {
+                      columns: [0, 1, 2, 3, 4, 5, 6, 7,8,9,10,11]
+                  },
+                  customize: function (doc) {
+                      doc.pageMargins = [10, 10, 10, 10];
+                      doc.defaultStyle.fontSize = 10;
+                      doc.styles.tableHeader.fontSize = 10;
+                      doc.styles.title.fontSize = 12;
+                      // Remove spaces around page title
+                      doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                      doc.content[1].table.widths = [
+                      '5%',
+                      '8%',
+                      '12%',
+                      '6%',
+                      '8%',
+                      '6%',
+                      '6%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%',
+                      '10%'
+                      ]
+
+                      var objLayout = {};
+                      // Horizontal line thickness
+                      objLayout['hLineWidth'] = function (i) { return .5; };
+                      // Vertikal line thickness
+                      objLayout['vLineWidth'] = function (i) { return .5; };
+                      //// Horizontal line color
+                      //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                      //// Vertical line color
+                      //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                      // Left padding of the cell
+                      objLayout['paddingLeft'] = function (i) { return 4; };
+                      // Right padding of the cell
+                      objLayout['paddingRight'] = function (i) { return 4; };
+                      // Inject the object in the document
+                      doc.content[1].layout = objLayout;
+                  }
+
+
+              },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                            i.replace(/[\$,]/g, '') * 1 :
+                            typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+                }
+
+            });
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                oTable.draw();
+                $('#QReport').show();
+            });
+        });
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+        }
+    </script>
+}

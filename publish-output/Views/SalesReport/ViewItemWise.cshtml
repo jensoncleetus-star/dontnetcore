@@ -1,0 +1,481 @@
+﻿@{
+    ViewBag.Title = "View Item Wise Sale";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default" id="SReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="itemname" value="@ViewBag.item" />
+    <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+    <input type="hidden" id="todate" value="@ViewBag.todate" />
+    <input type="hidden" id="PoNo" value="@ViewBag.PartNoCheck" />
+    <input type="hidden" id="Salety" value="@ViewBag.Salety" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Item Wise Sale</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="display table table-bordered" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Part No</td>
+                        <td>Item</td>
+                        @*<td class="headeralign">Avg. Price</td>*@
+                        <td class="headeralign">Sale Qty.</td>
+                        @*<td class="headeralign">Return Qty.</td>*@
+                        @*<td align="center">Nett Sale Qty.</td>*@
+                        <td class="headeralign">Sale Amt.</td>
+                        <td class="headeralign">Purchase price</td>
+                      
+                        @*<td align="center">Retun Amt.</td>*@
+                        @*<td align="center">Nett Sale Amt.</td>*@
+                        @*<td class="headeralign">Sale Vouchers</td>*@
+                        @*<td class="headeralign">Sale Return Vouchers</td>*@
+                    </tr>
+                </thead>
+                <tbody ></tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total:</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        @*<th></th>*@
+                        @*<th></th>*@
+                        @*<th></th>*@
+                        @*<th></th>*@
+                        @*<th></th>*@
+                        @*<th></th>*@
+                        <th></th>
+                       
+                        @*<th></th>*@
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                // "bStateSave": true,
+                "bLengthChange": false,
+                responsive: true,
+                "paging": true,
+                "pageLength": 5000,
+                "ordering": false,
+                "ajax": {
+                    "url": '/SalesReport/GetItemWise',
+                    "data": {
+                        supplier: getParameterByName('supplier'),
+                        item: getParameterByName('item'), fromdate: getParameterByName('from'), todate: getParameterByName('to'),
+                        ddMC: getParameterByName('ddMC'), Salety: getParameterByName('saletype'), Brand: getParameterByName('brand'), SalesExecutive: getParameterByName('salesExc'), Category: getParameterByName('category'), Salesman: getParameterByName('salesman')
+
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "order": [[0, "desc"]],
+                "columns": [
+                    {
+                        "data": "ItemID", "name": "ItemID",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "PartNumber", "name": "PartNumber" },
+                    {
+                        "name": "Item", "data": function (data) {
+                            var fromdate = '@ViewBag.fromdate';
+                            var todate='@ViewBag.todate';
+                            var saletype ='@ViewBag.Salety';
+                            var ddlmc='@ViewBag.ddlmc';
+                             @{
+                                 var urls = "";
+
+                                 urls = "'<a href=\"/SalesReport/itemDetails?iditem='+  data.ItemID + '&customer=0&from='+fromdate+'&to='+todate+'&saletype='+saletype+'&ddmc='+ddlmc+'\" target=\"_new\">'+ data.Item +'</a>' ";
+                               }
+                            return @Html.Raw(urls);
+
+
+                        }
+                    },
+                   /* { "data": "AvgPrice", "name": "AvgPrice", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },*/
+                   {
+                       "name": "SaleQty", "data": function (data) {
+                           if (data.ItemUnitID != data.SubUnitId && data.ItemUnitID != null && data.SubUnitId != null) {
+                               if ((data.SubSaleQty == 0))
+                                   return data.PriSaleQty + " " + data.PriUnit;
+                               else
+                                   return data.PriSaleQty + " " + data.PriUnit + ", " + data.SubSaleQty + " " + data.SubUnit
+                           }
+                           else
+                               return data.PriSaleQty + " " + data.PriUnit;
+                       }, "sClass": "headeralign"
+                   },
+                     //{
+                     //    "name": "ReturnQty", "data": function (data) {
+                     //        if (data.ItemUnitID != data.SubUnitId && data.ItemUnitID != null && data.SubUnitId != null) {
+                     //            if ((data.SubRetQty == 0))
+                     //                return data.PriRetQty + " " + data.PriUnit;
+                     //            else
+                     //                return data.PriRetQty + " " + data.PriUnit + ", " + data.SubRetQty + " " + data.SubUnit
+                     //        }
+                     //        else
+                     //            return data.PriRetQty + " " + data.PriUnit;
+                     //    }, "sClass": "numberright"
+                     //},
+                    /*{ "data": "NettSaleQty", "name": "NettSaleQty", render: $.fn.dataTable.render.number(",", ".", 2) },*/
+                     //{
+                     //    "name": "NettSaleQty", "data": function (data) {
+                     //        var total;
+                     //        // var netQty = ((data.PriSaleQty - data.PriRetQty) * data.ConFactor) + (data.SubSaleQty - data.SubRetQty);
+                     //        var primary = (data.NetQty / data.ConFactor);
+                     //        if (data.NetQty % data.ConFactor == 0) {
+                     //            total = (data.NetQty / data.ConFactor) + " " + data.PriUnit;
+                     //        }
+                     //        else {
+                     //            var prim = (Math.floor((data.NetQty / data.ConFactor) * 100) / 100).toFixed(0);
+                     //            var sub = (data.NetQty % data.ConFactor).toFixed(0);
+                     //            total = prim + " " + data.PriUnit + ", " + sub + " " + data.SubUnit
+                     //        }
+                     //        return total;
+                     //    }, "sClass": "numberright"
+                     //},
+                    { "data": "SaleAmt", "name": "SaleAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "headeralign" },
+                    { "data": "purchaseamount", "name": "purchaseamount", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "headeralign" },
+
+                   
+                    /* { "data": "RetunAmt", "name": "RetunAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },*/
+                     //{
+                     //    "name": "NettSaleAmt",
+                     //    "data": function (data) {
+                     //        return ((data.SaleAmt - data.RetunAmt).toFixed(2))
+                     //    }, "sClass": "numberright"
+                     //},
+                    /*{ "data": "NoOfVchSale", "name": "NoOfVchSale", "sClass": "numberright" },*/
+                    /*{ "data": "NoOfVchReturn", "name": "NoOfVchReturn", "sClass": "numberright" },*/
+
+
+                    //{ "data": "saleQty", "name": "saleQty", "visible": false, },
+                    //{ "data": "retQty", "name": "retQty", "visible": false, },
+                    //{ "data": "nettQty", "name": "nettQty", "visible": false, },
+                    //{ "data": "PriUnit", "name": "PriUnit", "visible": false, },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                'colvis',
+                {
+                    extend: 'print',//
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'ItemWise-Sale';
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                             '<tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Sales Report (Item Wise)</h4></th></tr>' +
+                             '<tr><th><span class="text-left">Item Name/Code : ' + $('#itemname').val() + '</span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'ItemWise-Sale';
+                    },
+                    message: function () {
+                        var head = '' + $('#cname').val() + '\n' +
+                        '' + $('#caddress').val() + '\n' +
+                        ' Sales Report (Item Wise) \n' +
+                        'Item Name/Code : ' + $('#itemname').val() + '\n' +
+                        'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                },
+                        {
+                            extend: 'pdf',//
+                            title: "",
+                            footer: true,
+                            filename: function () {
+                                return 'ItemWise-Sale';
+                            },
+                            message: function () {
+                                var head = '' + $('#cname').val() + '\n' +
+                                '' + $('#caddress').val() + '\n' +
+                                ' Sales Report (Item Wise) \n' +
+                                'Item Name/Code : ' + $('#itemname').val() + '\n' +
+                                'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '';
+                                return head;
+                            },
+                            pageSize: 'A4',
+                            exportOptions: {
+                                columns: ':visible'
+                            },
+                            customize: function (doc) {
+                                doc.pageMargins = [10, 10, 10, 10];
+                                doc.defaultStyle.fontSize = 10;
+                                doc.styles.tableHeader.fontSize = 10;
+                                doc.styles.title.fontSize = 12;
+                                // Header font and bg color
+                                doc.styles.tableHeader.fillColor = '#d3d3d3';
+                                doc.styles.tableHeader.color = 'black';
+                                // Remove spaces around page title
+                                doc.content[0].text = doc.content[0].text.trim();
+
+                                doc.styles['td:nth-child(2)'] = {
+                                    width: '100%',
+                                    'max-width': '100%'
+                                }
+
+                                //doc.content[1].table.widths = [
+                                //'5%',
+                                //'15%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'8%',
+                                //'10%',
+                                //'10%',
+                                //'10%',
+                                //'10%'
+                                //]
+
+                                var objLayout = {};
+                                // Horizontal line thickness
+                                objLayout['hLineWidth'] = function (i) { return .5; };
+                                // Vertikal line thickness
+                                objLayout['vLineWidth'] = function (i) { return .5; };
+                                //// Horizontal line color
+                                //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                                //// Vertical line color
+                                //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                                // Left padding of the cell
+                                objLayout['paddingLeft'] = function (i) { return 4; };
+                                // Right padding of the cell
+                                objLayout['paddingRight'] = function (i) { return 4; };
+                                // Inject the object in the document
+                                doc.content[1].layout = objLayout;
+                                // Footer font and bg color
+                                doc.styles.tableFooter.fillColor = '#d3d3d3';
+                                doc.styles.tableFooter.color = 'black';
+                            }
+
+
+                        },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                    var api = this.api(), data;
+
+                    // Remove the formatting to get integer data for summation
+                    var intVal = function (i) {
+                        return typeof i === 'string' ?
+                        i.replace(/[\$,]/g, '') * 1 :
+                        typeof i === 'number' ?
+                            i : 0;
+                    };
+
+                    // Total over all pages
+                    total = api
+                    .column(3)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    // Total over this page
+                    pageTotal = api
+                    .column(3, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                    // Update footer
+                    $(api.column(3).footer()).html(
+                    pageTotal.toFixed(2)
+                    //'$' + pageTotal + ' ( $' + total + ' total)'
+                    );
+
+
+                     //Total over all pages
+                    total = api
+                    .column(4)
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                     //Total over this page
+                    pageTotal = api
+                    .column(4, { page: 'current' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+
+                     //Update footer
+                    $(api.column(4).footer()).html(
+                    pageTotal.toFixed(2)
+                   /* '$' + pageTotal + ' ( $' + total + ' total)'*/
+                    );
+
+                    //Total over all pages
+                    total = api
+                        .column(5)
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    //Total over this page
+                    pageTotal = api
+                        .column(5, { page: 'current' })
+                        .data()
+                        .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+
+                    //Update footer
+                    $(api.column(5).footer()).html(
+                        pageTotal.toFixed(2)
+                        /* '$' + pageTotal + ' ( $' + total + ' total)'*/
+                    );
+                 
+                   // // Total over all pages
+                   // total = api
+                   // .column(7)
+                   // .data()
+                   // .reduce(function (a, b) {
+                   //     return intVal(a) + intVal(b);
+                   // }, 0);
+
+                   // // Total over this page
+                   // pageTotal = api
+                   // .column(7, { page: 'current' })
+                   // .data()
+                   // .reduce(function (a, b) {
+                   //     return intVal(a) + intVal(b);
+                   // }, 0);
+
+                   // // Update footer
+                   // $(api.column(7).footer()).html(
+                   // pageTotal.toFixed(2)
+                   // //'$' + pageTotal + ' ( $' + total + ' total)'
+                   // );
+
+
+                    //// Total over all pages
+                    //total = api
+                    //.column(9)
+                    //.data()
+                    //.reduce(function (a, b) {
+                    //    return intVal(a) + intVal(b);
+                    //}, 0);
+
+                    //// Total over this page
+                    //pageTotal = api
+                    //.column(9, { page: 'current' })
+                    //.data()
+                    //.reduce(function (a, b) {
+                    //    return intVal(a) + intVal(b);
+                    //}, 0);
+
+                    //// Update footer
+                    //$(api.column(9).footer()).html(
+                    //pageTotal.toFixed(2)
+                    ////'$' + pageTotal + ' ( $' + total + ' total)'
+                    //);
+
+
+                    var type = $('#itemname').val();
+                    //if (type != 'All') {
+                    //    var saleQty = api.cell(0, 7).data();
+                    //    var retQty = api.cell(0, 8).data();
+                    //    var nettQty = api.cell(0, 9).data();
+
+                    //    $(api.column(7).footer()).html(saleQty);
+                    //    $(api.column(8).footer()).html(retQty);
+                    //    $(api.column(9).footer()).html(nettQty);
+
+                    //}
+
+                    var table = $('#UserTable').DataTable();
+                    if (!table.data().any()) {
+                        $('#UserTable tfoot').hide();
+                    } else {
+                        $('#UserTable tfoot').show();
+                    }
+
+                }
+            });
+            //var type = $('#itemname').val();
+            //if (type != 'All') {
+            //    var column1 = oTable.column(2);
+            //    column1.visible(false);
+            //} else {
+            //    var column1 = oTable.column(2);
+            //    column1.visible(true);
+            //}
+
+            var pono = $('#PoNo').val();
+            if (pono == 'inactive') {
+                var column1 = oTable.column(1);
+                column1.visible(false);
+            } else {
+                var column1 = oTable.column(1);
+                column1.visible(true);
+            }
+
+            $('#UserTable tbody').on('click', 'tr', function () {
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected');
+                }
+                else {
+                    oTable.$('tr.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $(this).addClass('dataTables_row');
+                }
+            });
+            $('#UserTable tbody').on('dblclick', 'tr', function (e) {
+                var data = oTable.row(this).data();
+                var url = "/SalesReport/itemDetails?iditem=" + data.ItemID + "&customer=" + 0 + "&from=@ViewBag.fromdate&to=@ViewBag.todate&saletype=@ViewBag.Salety&ddmc=@ViewBag.ddlmc";
+                $(location).attr('href', url);
+            });
+        });
+
+    </script>
+}

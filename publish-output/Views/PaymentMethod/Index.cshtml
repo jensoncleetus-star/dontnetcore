@@ -1,0 +1,162 @@
+﻿@{
+    ViewBag.Title = "Payment Method";
+    ViewBag.SubTitle = "Payment Method";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Payment Method</h3>
+        <p class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create PaymentMethod"))
+            {
+            <span>
+                <a href="/PaymentMethod/Create" class="btn btn-info modal-create">
+                    <i class="glyphicon glyphicon-plus"></i> Add New
+                </a>
+            </span>
+            }
+        </p>
+    </div>
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="2">S/N</td>
+                    <td data-priority="1">Method Name</td>
+                    <td data-priority="2">Bank Account</td>
+                    <td data-priority="3">Created By</td>
+                    <td data-priority="1">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+
+    var oTable = $('#UserTable').DataTable({
+        "processing": true, // for show progress bar
+        "serverSide": true, // for process server side
+        "filter": true, // this is for disable filter (search box)
+        "orderMulti": false, // for disable multiple column at once
+        "bStateSave": true,
+        "ajax": {
+            "url": '/PaymentMethod/action',
+            "type": "POST",
+            "datatype": "json"
+
+        },
+        "columnDefs": [{
+            "targets": [4],
+            "orderable": false
+        }],
+        "columns": [
+                 {
+                     "data": "id", "name": "id",
+                     "render": function (data, type, row, meta) {
+                         return meta.row + meta.settings._iDisplayStart + 1;
+                     }
+                 },
+             { "data": "MethodName", "name": "MethodName" },
+             { "data": "AccName", "name": "AccName" },
+             { "data": "User", "name": "User" },
+             {
+                 "name": "id", "data": function (data) {
+                     var rest = "";
+                     @{
+                         if (User.IsInRole("Dev") || User.IsInRole("Edit PaymentMethod"))
+                         {
+                             actData += "<span><a class=\"modal-edit\" href=\"/PaymentMethod/Edit/'+ data.id +'\" title=\"Edit Payment Method\"><i class=\"fa fa-lg fa-edit\" ></i></a></span> ";
+                         }
+                         if (User.IsInRole("Dev") || User.IsInRole("Delete PaymentMethod"))
+                         {
+                             actData += "<span><a class=\"modal-delete\" href=\"/PaymentMethod/Delete/'+ data.id +'\" title=\"Delete Payment Method\"><i class=\"fa fa-lg fa-trash\" ></i></a></span> ";
+                         }
+                    }
+                     return rest = '@Html.Raw(actData)';
+                 }
+             },
+        ]
+    });
+
+        $.fn.modal.Constructor.prototype.enforceFocus = function () { };
+        $('#modal-create,#modal-edit').on('shown.bs.modal', function (e) {
+            $(".accid").select2({
+                placeholder: 'Search Account By Code or name',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Accounts/AllBankAccounts",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        $('.accid').select2({
+            dropdownParent: $('#modal-create')
+        });
+    /* function for Create popup */
+
+    $('span').on('click', '.modal-create', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+    $('#modal-create').on('submit', '#createform', function (e) {
+        e.preventDefault();
+        var url = $('#createform')[0].action;
+        var data = $('#createform').serialize();
+        createajax(url, data, '#modal-create');
+    });
+
+
+    /* function for Edit popup */
+
+    $('div').on('click', '.modal-edit', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-edit');
+        //  createajax(url, data, '#modal-edit');
+    });
+    $('#modal-edit').on('submit', '#editform', function (e) {
+        e.preventDefault();
+        var url = $('#editform')[0].action;
+        var data = $('#editform').serialize();
+        createajax(url, data, '#modal-edit');
+    });
+
+    /* function for delete popup */
+    $('#UserTable').on('click', '.modal-delete', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-delete');
+    });
+    $('#modal-delete').on('submit', '#deleteform', function (e) {
+        e.preventDefault();
+        var url = $('#deleteform')[0].action;
+        var data = $('#deleteform').serialize();
+        createajax(url, data, '#modal-delete');
+    });
+
+
+    </script>
+}

@@ -1,0 +1,287 @@
+@model QuickSoft.ViewModel.RemarkCheckViewModel
+@{
+    var status = Model.Status;
+    string check = "";
+    string strImage = "";
+    string partialconfig = "";
+}
+
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Checklist</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("UpdateChecklist", "ProTask", FormMethod.Post, new { id = "editform", role = "form" }))
+    {
+        <script type="text/javascript">
+            $('form#editform').removeData("validator");
+            $('form#editform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#editform'));
+        </script>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                @Html.HiddenFor(model => model.Id)
+                <div class="form-group col-md-6 ">
+                    @Html.Label("Date & Time", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DisplayFor(model => model.Createddate)
+                </div>
+                <div class="form-group col-md-6 ">
+                    @Html.Label("Employee", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DisplayFor(model => model.Employee)
+                </div>
+                <div class="form-group col-md-6 ">
+                    @Html.Label("Remark", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DisplayFor(model => model.Remark)
+                </div>
+                <div class="form-group col-md-6 ">
+                    @Html.Label("Stage", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.DisplayFor(model => model.Status)
+                </div>
+                @foreach (var arr in Model.RImages)
+                {
+                    check = "\"/uploads/taskimages/" + arr.FileName + "\"";
+                    strImage += check + ',';
+                    partialconfig += "{ key:" + arr.TaskUpdationID + " }" + ',';
+                }
+            </div>
+        </div>
+        <div class="margin-bottom" id="checklist1">
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <input type="submit" value="Update" class="btn btn-info col-sm-offset-4" />
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+            <script>
+                $(document).ready(function () {
+                var EntryID = $('#Id').val();
+                $.ajax({
+                    url: '/ProTask/GetRemarkCheckItems',
+                    dataType: 'json',
+                    data: { CheckID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        var lengt = data.length;
+                        var checkdata = "";
+                        $('#checklist1').html('');
+                        $.each(data, function (i, item) {
+                            var addnote = "";
+                            checkdata = "<tr>"
+                            var check = (item.Chck == true) ? "checked" : "";
+                            checkdata +=
+                           "<td><input name='CheckItems[" + (i) + "].Chck' id='checkbox_" + item.Id + "' class='checkbox_" + item.Id + "' " + check + " onchange='notechange(this," + item.Id + ")' type=\"checkbox\" name=\"checkbox\" ></input></td>" +
+                           "<td><label for='" + item.Id + "'>" + item.Name + "</label></td>" +
+                           "<input type='hidden' name='CheckItems[" + (i) + "].Id' data-name='Id' class='checkid_" + item.Id + "' value='" + item.Id + "' id='checkid_" + item.Id + "'/> " +
+                           "</td>"
+                            ;
+                            if (item.Note != null && item.Note != "") {
+                                addnote += "<td><textarea name='CheckItems[" + (i) + "].Note' id='addnote_" + item.Id + "' class='addnote_" + item.Id + " form-control text-left addnote' placeholder='Enter note'>"+item.Note+"</textarea></td> "
+                            }
+
+                            if (item.Chck == true) {
+                                $('#checkbox_' + item.Id).val("true");
+                            } else {
+                                $('#checkbox_' + item.Id).val("false");
+                            }
+
+                            checkdata += addnote + "</tr><br />"
+                            $('#checklist1').append(checkdata);
+                        });
+                    }
+                });
+                });
+
+                function notechange(object, arg) {
+                    var $input = $('#checkbox_' + arg).prop('checked');
+                    var newval = ($('#checkbox_' + arg).prop('checked') == true) ? $('#checkbox_' + arg).val("true") : $('#checkbox_' + arg).val("false");
+                }
+
+                $('#editform').on('submit', function (e) {
+                    e.preventDefault();
+                    if ($("#editform").valid()) {
+                        var formData = new FormData(this);
+                        //var files = $("#fileupload").get(0);
+                        //if (files.length > 0) {
+                        //    for (var i = 0; i < files.length; i++) {
+                        //        formData.append("fileupload", files[i]);
+                        //    }
+                        //}
+                        
+                        $.ajax({
+                            async: true,
+                            cache: false,
+                            dataType: "json",
+                            type: "POST",
+                            processData: false,
+                            contentType: false,
+                            url: "/ProTask/UpdateChecklist",
+                            data: formData,//JSON.stringify(parameters),
+                            beforeSend: function () {
+                                $("button").prop('disabled', true); // disable button
+                            },
+                            success: function (e) {
+                                if (e.status) {
+                                    $('.ajax_response', res_success).text(e.message);
+                                    $('.AlertDiv').prepend(res_success);
+                                    window.location.href = '@Url.Action("MyTask", "ProTask")';
+                                }
+                                else {
+                                    $('.ajax_response', res_danger).text(e.message);
+                                    $('.AlertDiv').prepend(res_danger);
+                                    $("button").prop('disabled', false); // enable button
+
+                                }
+                            }
+                        });
+                    }
+                });
+            </script>
+    }
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@*@model QuickSoft.Models.Checklist
+@{
+string actImg = "";
+}
+<div id="modal-create" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-body">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="box box-info">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">View Checklist</h3>
+                    </div>
+                    @Html.HiddenFor(model => model.Stage)
+                    <div class="box-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover " id="NoteInfo">
+                                <thead>
+                                    <tr class="bg-gray">
+                                        <td>#</td>
+                                        <td>Date & times</td>
+                                        <td>Employee</td>
+                                        <td>Remark</td>
+                                        <td>Task Status</td>
+                                        <td>Checklist</td>
+                                        <td>Attached Files</td>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+   
+    $(document).ready(function () {
+        var check = $('#Stage').val();  //alert(check)
+            var oTable2 = $('#NoteInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "paging": false,
+                "sortable": true,
+                "ordering": true,
+                "searching": true,
+                "ajax": {
+                    "url": '/ProTask/GetAllNotes',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { TaskId: check }
+                },
+                "order": [[0, "desc"]],
+
+                "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                     { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { if (data != null) { return convertDateTime(data); } else { return "" } } },
+                      { "data": "empnae", "name": "empnae" },
+                      { "data": "Remark", "name": "Remark" },
+                      { "data": "Status", "name": "Status" },
+                      //{ "data": "Name", "name": "Name" },
+                      {
+                          "data": "Status", "name": "Status"
+                      },
+                       {
+                           "name": "RImages", "data": function (data) {
+                               var rest = "";
+                               var count = 1;
+                               $.each(data.RImages, function (i, item) {
+
+                                   if (item.FileName != null && item.FileName != "" && item.TaskDocumentId != 0) {
+
+                                       var x = item.FileName.split('.');
+                                       var extn = x[1];
+
+                                       var FileName = x[0].substring(0, x[0].length - 20) + "." + extn;
+                                       if (extn == "docx" || extn == "doc" || extn == "pdf") {
+
+                                           @{
+                                               actImg = "<a href=\"/uploads/protaskdocuments/'+ item.FileName +'\" data-lightbox=\"/uploads/protaskdocuments/'+ item.FileName +'\" data-title=\"'+ FileName +'\"><img ></a><a href=\"/uploads/protaskdocuments/'+ item.FileName +'\" download class=\"btn btn-primary btn-xs\">download</a><br>";
+                                               //actImg = " <img style=\"height:50px;width:50px\"src=\"~/uploads/protaskdocuments/thumb_'+ item.FileName+'\"/>";
+                                           }
+
+                                           rest += '@Html.Raw(actImg)';
+
+
+                                       }
+                                       if (extn == "jpg" || extn == "jpeg" || extn == "png" || extn == "gif") {
+                                           //var rest = "";
+                                           @{
+                                               actImg = "<a href=\"/uploads/protaskdocuments/'+ item.FileName +'\" data-lightbox=\"/uploads/protaskdocuments/'+ item.FileName +'\" data-title=\"'+ FileName +'\"><img style=\"height:50px;width:50px\"src=\"/uploads/protaskdocuments/'+ item.FileName +'\"/></a><a href=\"/uploads/protaskdocuments/'+ item.FileName +'\" download class=\"btn btn-primary btn-xs\">download</a><br>";
+                                           }
+                                           rest += '@Html.Raw(actImg)';
+
+
+                                       }
+                                       count++;
+                                   }
+                               })
+                               return rest;
+
+                           }
+                       },
+                ],
+            });
+        });
+
+    </script>*@
+

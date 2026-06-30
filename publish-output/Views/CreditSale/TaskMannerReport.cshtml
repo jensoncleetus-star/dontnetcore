@@ -1,0 +1,507 @@
+@model QuickSoft.Models.SalesEntry
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Task Manner";
+    ViewBag.Active = "Transactions";
+}
+<style type="text/css">
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+
+    table.dataTable tfoot td {
+        font-weight: bold;
+    }
+</style>
+
+<div class="box box-info">
+    <div class="box-header with-border">
+
+        <h3 class="box-title">Task Manner Report</h3>
+
+
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-md-2">
+            <div id="list1" class="dropdown-check-list" tabindex="100" style="display:none;">
+                <span class="anchor" style="z-index:0;">Select Fields</span>
+                <ul class="items">
+                    <li><input type="checkbox" id="liinvoiceno" checked />Invoice No.</li>
+                    <li><input type="checkbox" id="litaskname" />Task</li>
+                    <li><input type="checkbox" id="licustomer" checked />Customer</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-12">
+            <div class="box-body search-boxx" id="advsearchlistt">
+                <div class="search-bodyy col-md-12">
+                    <form id="search-form">
+                        <div class="row">
+                            <input type="hidden" id="remId" />
+
+
+
+                            <div class="form-group col-md-4 col-xs-12">
+                                @Html.Label("AssignedMembers", null, new { @class = "control-label" })
+                                @Html.DropDownList("AssignedMembers", (SelectList)ViewBag.Customer, "", new { @id = "AssignedUsers", @class = "form-control select2 porder", @name = "AssignedMembers[]", @multiple = "multiple" })
+
+                            </div>
+                            <div class="form-group col-md-4 col-xs-12">
+                                @Html.Label("Task Manner", null, new { @class = "control-label" })
+
+                                @Html.DropDownList("TaskManner", (SelectList)ViewBag.taskmanner, "", new { id = "ddlTaskManner", @class = "form-control select2", @multiple = "multiple" })
+
+                            </div>
+
+                            <div class="form-group col-md-2" id="search">
+                                <input type="submit" class="btn btn-submit" value="Submit" />
+                            </div>
+                            <div class="form-group col-md-2" id="close">
+                                <input type="button" class="btn btn-close" value="Close" />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="box-body">
+        <table class="display table table-bordered table-hover" id="SalesTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td data-priority="1">S/N</td>
+                    <td data-priority="2">Employee Name</td>
+                    <td data-priority="2">Designation</td>
+                    <td data-priority="2">Task Manner</td>
+                    <td data-priority="1">Count </td>
+
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
+    <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $("#ddlTaskManner").select2({
+                placeholder: 'Search by Name ',
+
+                minimumInputLength: 0,
+                ajax: {
+                    //url: "/Employee/SearchEmployee",
+                    url: "/TaskManner/SearchTaskType",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            //page: 0,//params.page || 0,
+                            x: "empty"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        //  params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                //more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+                $("#AssignedUsers").select2({
+                    placeholder: 'Search Employees by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchEmployeeUser",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            });
+
+            var checkList = document.getElementById('list1');
+
+            /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+            checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+
+                if (checkList.classList.contains('visible'))
+                    checkList.classList.remove('visible');
+                else
+                    checkList.classList.add('visible');
+            }
+
+            /******* Function to hide dropdown checklist while clicking outside it ********/
+            $(document).on("click", function (event) {
+
+                var element1 = $("#list1");
+
+                if (element1 !== event.target && !element1.has(event.target).length) {
+                    checkList.classList.remove('visible');
+                }
+            });
+
+            //Button Close
+            $('#srch, .search-box .btn-close').on('click', function (e) {
+                $('#advsearchlist').toggle();
+
+                /*******  To uncheck all the checkboxes in the Select List  ************/
+                var checkboxes = document.querySelectorAll("input[type='checkbox']");
+                checkboxes.forEach(function (Checkbox) {
+                    Checkbox.checked = false;
+                });
+
+                if ($('#srch').hasClass('btn-primary')) {
+                    $('#srch').addClass('btn-danger');
+                    $('#srch').removeClass('btn-primary');
+                }
+                else {
+                    if ($('#srch').hasClass('btn-danger')) {
+                        $('#srch').addClass('btn-primary');
+                        $('#srch').removeClass('btn-danger');
+                        //location.reload();
+                    }
+                /*******  To clear all the data entered  *********/
+                    $('#InvoiceNo').val("");
+                    $('#ddlTaskName').val(0).trigger("change");
+                    $('#ddlCustomer').val(0).trigger("change");
+                    oTable.draw();
+                }
+            });
+
+            /************* Function to display/hide fields while clicking on checkboxes (Select Fields) **************/
+
+            $("ul li input:checkbox").click(function () {
+                    var _show = 0;
+
+                    //Invoice No.
+                    if ($("#liinvoiceno").prop("checked") == true) {
+                        $("#searchinvno").show();
+                        _show = 1;
+                    }
+                    else {
+                        $('#InvoiceNo').val("");
+                        $("#searchinvno").hide();
+                        oTable.draw();
+                    }
+                    //Task Name
+                    if ($("#litaskname").prop("checked") == true) {
+                        $("#searchtaskname").show();
+                        _show = 1;
+                    }
+                    else {
+                        $('#ddlTaskName').val(0).trigger("change");
+                        $("#searchtaskname").hide();
+                        oTable.draw();
+                    }
+
+                    //Customer
+                    if ($("#licustomer").prop("checked") == true) {
+                        $("#searchcustomer").show();
+                        _show = 1;
+                    }
+                    else {
+                        $('#ddlCustomer').val(0).trigger("change");
+                        $("#searchcustomer").hide();
+                        oTable.draw();
+                    }
+
+                    //If anyone checked, show Search division
+                    if (_show == 1) {
+                        $('#advsearchlist').show();
+                    }
+                    else {
+                        $('#advsearchlist').hide();
+                    }
+            });
+
+           var oTable = $('#SalesTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+               "pageLength": 10000,
+               "cache": false,
+
+                responsive: true,
+                "bLengthChange": false,
+                "ajax": {
+                    "url": '/Protask/Gettaskmannercount',
+                    "data": function (data) {
+                        data.emloyees = $('#AssignedUsers').val();
+                        data.manner = $('#ddlTaskManner').val();
+                    },
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "order": [[0, "desc"]],
+                "columnDefs": [{
+                    //"targets": [3, 4],
+                    /*"orderable": false*/
+                }],
+                "columns": [
+                    {
+                        "data": "idd", "name": "idd",
+                        "render": function (data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        }
+                    },
+                    { "data": "empname", "name": "empname" },
+                    { "data": "designation", "name": "designation" },
+                    { "data": "taskmanner", "name": "taskmanner" },
+                    { "data": "mannercount", "name": "mannercount" },
+
+                
+                    //{ "data": "ItemSubTotal", "name": "ItemSubTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    //{ "data": "ItemTaxAmount", "name": "ItemTaxAmount", "sClass": "numberright" },
+                ],
+               buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    'colvis',
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Used Materials';
+                        },
+                        columnDefs: [
+                            { width: 400, targets: 2 }
+                        ],
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        message: function () {
+                            var head = '<table class="tblcompact table table-bordered"><thead>' +
+                                ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Used Materials</h4></th></tr>';
+                            return head;
+                        },
+                        customize: function (win) {
+                            // $(win.document.body)
+                            //.css('font-size', '10pt')
+                            //.css('padding', '1px');
+                            $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                            $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                                .css('min-width', '80px');
+                            //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                            //    .css('padding', '0px');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                   }, 'copy', 'csv', //'excel',
+                    //Excel
+                    {
+                       extend: 'excel',//
+                       title: "",
+                       footer: true,
+                       filename: function () {
+                           return 'Used Materials';
+                       },
+                       message: function () {
+                           var head = 'Used Materials';
+                           return head;
+                       },
+                       pageSize: 'A4',
+                       exportOptions: {
+                           columns: ':visible'
+                       },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Used Materials';
+                        },
+                        message: function () {
+                            var head = 'Used Materials';
+                            return head;
+                        },
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: ':visible'
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Header font and bg color
+                            doc.styles.tableHeader.fillColor = '#d3d3d3';
+                            doc.styles.tableHeader.color = 'black';
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+                            doc.styles['td:nth-child(2)'] = {
+                                width: '100%',
+                                'max-width': '100%'
+                            }
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                            // Footer font and bg color
+                            doc.styles.tableFooter.fillColor = '#d3d3d3';
+                            doc.styles.tableFooter.color = 'black';
+                        }
+                    },
+
+                ],
+               sDom: "lBfr<'datatable-scroll't>ip",
+
+               "footerCallback": function (row, data, start, end, display) {
+                   var api = this.api(), data;
+
+                   // Remove the formatting to get integer data for summation
+                   var intVal = function (i) {
+                       return typeof i === 'string' ?
+                           i.replace(/[\$,]/g, '') * 1 :
+                           typeof i === 'number' ?
+                               i : 0;
+                   };
+
+                   /************* Quantity Footer **************/
+                   // Total over all pages
+                  
+
+
+
+                   var table = $('#SalesTable').DataTable();
+                   if (!table.data().any()) {
+                       $('#SalesTable tfoot').hide();
+                   } else {
+                       $('#SalesTable tfoot').show();
+                   }
+               }
+           });
+
+          $('#search-form').on('submit', function (e) {
+              e.preventDefault();
+              oTable.draw();
+          });
+
+    </script>
+}

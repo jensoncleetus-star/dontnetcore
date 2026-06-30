@@ -606,7 +606,7 @@ namespace QuickSoft.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            var userpermission = true; User.IsInRole("All Receipt Entry");
+            var userpermission = User.IsInRole("All Receipt Entry"); // Security S12: was hardcoded `true` (the IsInRole result was discarded) — IDOR let any user open any receipt by id.
             var UserId = User.Identity.GetUserId();
             Receipt rpt = db.Receipts.Where(x => (x.CreatedBy == UserId || userpermission == true) && x.ReceiptId == id).FirstOrDefault();
 
@@ -806,7 +806,7 @@ var fmapp = db.FieldMappings.Where(a => a.Section == "Receipt" && a.Print == FMP
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            var userpermission = true; User.IsInRole("All Receipt Entry");
+            var userpermission = User.IsInRole("All Receipt Entry"); // Security S12: was hardcoded `true` (the IsInRole result was discarded) — IDOR let any user open any receipt by id.
             var UserId = User.Identity.GetUserId();
             Receipt rpt = db.Receipts.Where(x => (x.CreatedBy == UserId || userpermission == true) && x.ReceiptId == id).FirstOrDefault();
 

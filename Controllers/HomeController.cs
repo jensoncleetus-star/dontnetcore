@@ -108,6 +108,30 @@ namespace QuickSoft.Controllers
             vmodel.totCustomerCount = Convert.ToString(db.Customers.Where(x => x.Type==CRMCustomerType.Customer && (allCustomer == true || x.AccountID.CreatedBy == UserId)).Count());
             vmodel.totSupplierCount = Convert.ToString(db.Suppliers.Where(x=> (allCustomer == true || x.AccountID.CreatedBy == UserId)).Count());
             vmodel.totUsersCount = Convert.ToString(db.Users.Count());
+
+            // Dashboard 12-month sales/purchase trend (area chart). Wrapped so a query issue never breaks the page.
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var sByM = db.SalesEntrys.Where(s => s.Status == 1 && s.SEDate >= trendStart)
+                    .GroupBy(s => new { s.SEDate.Year, s.SEDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.SEGrandTotal) ?? 0 }).ToList();
+                var pByM = db.PurchaseEntrys.Where(p => p.Status == 1 && p.PEDate >= trendStart)
+                    .GroupBy(p => new { p.PEDate.Year, p.PEDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.PEGrandTotal) ?? 0 }).ToList();
+                var tl = new List<string>(); var tsal = new List<decimal>(); var tpur = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    tsal.Add(sByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                    tpur.Add(pByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(tsal);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tpur);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
             vmodel.totSalesExecCount = Convert.ToString(db.Employees.Count());
             vmodel.cashinhand = Balance["amount"] + " " + Balance["type"];
 
@@ -145,6 +169,51 @@ namespace QuickSoft.Controllers
 
             vmodel.totPayment = Convert.ToString(db.Payments.Where(a => (a.Voucher != 0) && (userpermissionPayment == true || a.CreatedBy == UserId)).Count());
             vmodel.totReceipt = Convert.ToString(db.Receipts.Where(a => (a.Voucher != 0) && (userpermissionReceipt == true || a.CreatedBy == UserId)).Count());
+
+            // ---- Per-period KPI data (Today / Week / Month / Year switcher). Real sums + delta vs previous period.
+            //      Wrapped so a query issue never breaks the page. ----
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);        // exclusive end = end of today
+                DateTime dToday = today.Date;
+                DateTime dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;       // Monday = 0
+                DateTime wkStart = dToday.AddDays(-dow);
+                DateTime wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1);
+                DateTime moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1);
+                DateTime yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    db.SalesEntrys.Where(x => x.Status == 1 && x.SEDate >= from && x.SEDate < to).Select(x => (decimal?)x.SEGrandTotal).Sum() ?? 0m,
+                    db.PurchaseEntrys.Where(x => x.Status == 1 && x.PEDate >= from && x.PEDate < to).Select(x => (decimal?)x.PEGrandTotal).Sum() ?? 0m,
+                    db.Receipts.Where(x => x.Voucher != 0 && x.Date >= from && x.Date < to).Select(x => (decimal?)x.GrandTotal).Sum() ?? 0m,
+                    db.Payments.Where(x => x.Voucher != 0 && x.Date >= from && x.Date < to).Select(x => (decimal?)x.GrandTotal).Sum() ?? 0m
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to);
+                    var p = sums(prevFrom, from);
+                    return new
+                    {
+                        label,
+                        sales = c[0], purchase = c[1], receipts = c[2], payments = c[3],
+                        dSales = dlt(c[0], p[0]), dPurchase = dlt(c[1], p[1]), dReceipts = dlt(c[2], p[2]), dPayments = dlt(c[3], p[3])
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
 
             ViewBag.Active = "Dashboard";
             ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();

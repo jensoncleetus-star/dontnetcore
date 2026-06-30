@@ -1,0 +1,211 @@
+﻿@{
+    ViewBag.Title = "View Payment Method Wise";
+    ViewBag.SubTitle = "View Payment Method Wise";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default" id="SReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">View Payment Method Wise</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+            <input type="hidden" id="paymethod" value="@ViewBag.paymethod" />
+            <input type="hidden" id="fromdate" value="@ViewBag.fromdate" />
+            <input type="hidden" id="todate" value="@ViewBag.todate" />
+            <table class="table table-bordered" id="UserTable">
+                <thead>
+                    <tr style="background-color: #d2d6de">
+                        @*<td>SI No</td>*@
+                        <td>Payment Method</td>
+                        <td>Payment Mode</td>
+                        <td class="headeralign">Sale Amt.</td>
+                        <td class="headeralign">Sale Tax Amount.</td>
+                        <td class="headeralign">Nett Sale Amt.</td>
+                        <td class="headeralign">No. of Vch.(Sale)</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+         var oTable = $('#UserTable').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": false, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    // "bStateSave": true,
+                    responsive: true,
+                    "paging": true,
+                    "pageLength": 5000,
+                    "ordering": false,
+                    "ajax": {
+                        "url": '/POSReport/GetPayMethodWise',
+                        "data": { paymethod: getParameterByName('paymethod'), paymode: getParameterByName('paymode'), fromdate: getParameterByName('from'), todate: getParameterByName('to') },
+                        "type": "POST",
+                        "datatype": "json"
+
+                    },
+
+
+                "order": [[0, "desc"]],
+                "columns": [
+                     //{
+                     //    "data": "EmployeeId", "name": "EmployeeId",
+                     //    "render": function (data, type, row, meta) {
+                     //        return meta.row + meta.settings._iDisplayStart + 1;
+                     //    }
+                     //},
+                    { "data": "PayMethod", "name": "PayMethod" },
+                    { "data": "PayMode", "name": "PayMode" },
+
+                    { "data": "SaleAmt", "name": "SaleAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SaletaxAmt", "name": "SaletaxAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "SaletotAmt", "name": "SaletotAmt", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                    { "data": "NoOfVchSale", "name": "NoOfVchSale", "sClass": "numberright" },
+                ],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Payment Method Wise-Sale';
+                    },
+                    message: '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Sales Report (Payment Method Wise)</h4></th></tr>' +
+                        ' <tr><th><span class="text-left">Payment Method : ' + $('#paymethod').val() + '</span><span class="text-right pull-right"> From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>',
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table, th,tr, td ')
+                           // .css('border', 'inherit')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'excel',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Payment Method Wise-Sale';
+                    },
+                    message:
+                        '' + $('#cname').val() + '\n' +
+                        '' + $('#caddress').val() + '\n' +
+                        ' Sales Report (Payment Method Wise) \n' +
+                        'Payment Method : ' + $('#paymethod').val() + '\n' +
+                        'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + ''
+                    ,
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                },
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Payment Method Wise-Sale';
+                    },
+                    message:
+                        '' + $('#cname').val() + '\n' +
+                        '' + $('#caddress').val() + '\n' +
+                        ' Sales Report (Payment Method Wise) \n' +
+                        'Payment Method : ' + $('#paymethod').val() + '\n' +
+                        'From :  ' + $('#fromdate').val() + ' To :' + $('#todate').val() + ''
+                    ,
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                        doc.content[1].table.widths = [
+                            '15%',
+                            '15%',
+                            '18%',
+                            '18%',
+                            '18%',
+                            '15%',
+                        ]
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+                    }
+
+
+                },
+
+                ],
+
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+                });
+
+                var type = $('#paymethod').val();
+                if (type == 'Card') {
+                    var column1 = oTable.column(1);
+                    column1.visible(true);
+                } else {
+                    var column1 = oTable.column(1);
+                    column1.visible(false);
+                }
+
+        });
+</script>
+}
+
+
+
+
+
+

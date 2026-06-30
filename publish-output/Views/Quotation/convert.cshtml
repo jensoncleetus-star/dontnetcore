@@ -1,0 +1,953 @@
+@model QuickSoft.Models.Quotation
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Quotation";
+    ViewBag.Active = "Transactions";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Quotation"))
+    {
+        userRole = true;
+
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+             "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+              "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">List Quotation</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Quotation Entry"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Quotation/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="box-body search-box">
+        <a class="btn btn-primary" id="srch">
+            <i class="glyphicon glyphicon-search"></i> Advanced Search
+        </a>
+
+        <div class="search-body col-md-12" id="advsearch">
+            <form id="search-form">
+                <input type="hidden" id="remId" />
+                <div class="row">
+                    <div class="form-group col-md-2">
+                        @Html.Label("Quotation No", null, new { @class = "control-label" })
+                        @Html.TextBox("BillNo", "", new { @class = "form-control input-sm" })
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        @Html.Label("From Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("FromDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2">
+                        @Html.Label("To Date", null, new { @class = "control-label" })
+                        <div class="input-group date">
+                            @Html.TextBox("ToDate", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                            <div class="input-group-addon">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Customer", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCustomer", (SelectList)ViewBag.Customer, new { @class = "form-control input-sm select2" })
+                    </div>
+                    @if (ViewBag.ProjCheck == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.Label("Project", null, new { @class = "control-label" })
+                            @Html.DropDownList("ddlProject", (SelectList)ViewBag.Prjct, new { @class = "form-control input-sm select2" })
+                        </div>
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Task", null, new { @class = "control-label" })
+                            @Html.DropDownListFor(m => m.ProTask, (SelectList)ViewBag.getProTask, "All", new { id = "ddlProTask", @class = "form-control select2" })
+                        </div>
+                    }
+                    <div class="form-group col-md-2">
+                        @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.SalesExecutive, new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="crecreditsale">
+                        @Html.Label("Created By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlCreatedBy", (SelectList)ViewBag.CreatedBy, "All", new { @class = "form-control input-sm select2" })
+                    </div>
+                    <div class="form-group col-md-2" id="valcreditsale">
+                        @Html.Label("Validity", null, new { @class = "control-label" })
+                        @Html.TextBox("Validity", "", new { @class = "form-control input-sm" })
+                    </div>
+                    <div class="form-group col-md-2">
+                        @Html.Label("Status", null, new { @class = "control-label" })
+                        @Html.DropDownList("Status", (SelectList)ViewBag.ItStatus, new { @class = "form-control" })
+                    </div>
+                    @if (@ViewBag.BusinessType == "Scaffold")
+                    {
+                        <div class="form-group col-sm-2">
+                            @Html.Label("Type", null, new { @class = "control-label" })
+                            @Html.DropDownList("SaleType", (SelectList)ViewBag.Type, new { @class = "form-control select2" })
+                        </div>
+
+                        <div id="HireType">
+                            <div class="form-group col-sm-2">
+                                @Html.Label("HireType", null, new { @class = "control-label" })
+                                @Html.DropDownList("HireType", (SelectList)ViewBag.HiType, "All", new { id = "ddlHType", @class = "form-control select2" })
+                            </div>
+                        </div>
+                    }
+                    @if (ViewBag.MLAQuot == 0)
+                    {
+                        <div class="form-group col-md-2">
+                            @Html.Label("Approval Status", null, new { @class = "control-label" })
+                            @Html.DropDownList("ApprovalStatus", (SelectList)ViewBag.AppStat, "All", new { id = "ApprovalStatus", @class = "form-control" })
+                        </div>
+                    }
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <input type="submit" class="btn btn-submit col-sm-offset-5" value="Submit" />
+                        <input type="button" class="btn btn-close" value="Close" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @using (Html.BeginForm("DeleteAllQuotation", "Quotation", FormMethod.Post, new { id = "delallform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="QuotationTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="2">S/N</td>
+                        <td data-priority="1">Quote No</td>
+                        <td data-priority="2">Date</td>
+                        <td data-priority="4">Customer</td>
+                        <td data-priority="4">Project</td>
+                        <td data-priority="6">Task</td>
+                        <td data-priority="2" class="headeralign">Amount</td>
+                        <td data-priority="3">Validity</td>
+                        <td data-priority="5">Executive</td>
+                        <td data-priority="5">SaleType</td>
+                        <td data-priority="5">Created By</td>
+                        <td data-priority="3">Status</td>
+                        <td data-priority="3">Approval Status</td>
+                        <td data-priority="1">Action</td>
+                        <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+
+    }
+    <div id="modal-container2" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-aqua">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4>Status Updation History</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-hover" id="UserTableInfo">
+                        <thead>
+                            <tr class="bg-aqua">
+                                <td>Status</td>
+                                <td>Updated By</td>
+                                <td>Requested By</td>
+                                <td>Date</td>
+                                <td>Remarks</td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Reminder/Index")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/bootstrap-timepicker")
+}
+
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    <script type="text/javascript">
+        var minDate = $("#Start").val();
+        var maxDate = $("#End").val();
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: new Date(minDate),
+            endDate: new Date(maxDate)
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+        $(".timepicker").timepicker({
+            showInputs: true,
+            defaultTime: false,
+            format: 'dd-mm-yyyy'
+        });
+
+        $(document).ready(function () {
+            $('#advsearch').hide();
+            $('#HireType').hide();
+        });
+        var oTable = $('#QuotationTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            "bLengthChange": false,
+            responsive: true,
+            "ajax": {
+                "url": '/Quotation/GetQuotation',
+                "data": function (data) {
+                    data.BillNo = $('#BillNo').val();
+                    data.FromDate = $('#FromDate').val();
+                    data.ToDate = $('#ToDate').val();
+                    data.customer = $('#ddlCustomer').val();
+                    data.salesperson = $('#ddlEmployee').val();
+                    data.project = $('#ddlProject').val();
+                    data.Stats = $('#Status').val();
+                    data.user = $('#ddlCreatedBy').val();
+                    data.Validity = $('#Validity').val();
+                    data.Saletype = $('#SaleType').val();
+                    data.HireType = $('#ddlHType').val();
+                    data.appstat = $('#ApprovalStatus').val();
+                    data.ProjectName = $('#ddlProject').val();
+                    data.Task = $('#ddlProTask').val();
+                },
+                "type": "POST",
+                "datatype": "json"
+
+            },
+            "order": [[0, "desc"]],
+            "columnDefs": [{
+                "targets": [13,14],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "QuotationId", "name": "QuotationId",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                { "data": "BillNo", "name": "BillNo" },
+                { "data": "QuotDate", "name": "QuotDate", "render": function (data) { return convertToDate(data); } },
+                { "data": "Customer", "name": "Customer" },
+                { "data": "ProjectName", "name": "ProjectName" },
+                { "data": "Task", "name": "Task" },
+                { "data": "QuotGrandTotal", "name": "QuotGrandTotal", render: $.fn.dataTable.render.number(",", ".", 2), "sClass": "numberright" },
+                { "data": "validity", "name": "validity" },
+                { "data": "EmpName", "name": "EmpName" },
+                {
+                    "data": "SaleType", "name": "SaleType", "render": function (data) {
+                        if (data == 2) {
+                            return 'Hire';
+                        }
+                        else {
+                            return 'Sale';
+                        }
+
+                    }
+                },
+                { "data": "user", "name": "user" },
+                {
+                    "name": "validity", "data": function (data) {
+                        if (data.validity == "Expired") {
+                            return '<i class="badge bg-red" style="font-size: small" >Expired</i>';
+                        }
+                        else {
+                            return '<i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                        }
+                    }
+                },
+                 {
+                     "name": "ApprovalStatus", "data": function (data, type, dataToSet) {
+                         var status = "";
+                         var cls = "";
+                         if (data.app.length > 0 || (data.Approval == true && '@ViewBag.MLAQuot' == 'active')) {
+                             if (data.ApprovalStatus == "0") {
+                                 status = '<span class="badge bg-green">Approved</span>';
+                             }
+                             else if (data.ApprovalStatus == "1") {
+                                 status = '<span class="badge bg-red">Rejected</span>';
+                             }
+                             else if (data.ApprovalStatus == "2") {
+                                 status = '<span class="badge bg-orange">Pending</span>';
+                             }
+                             return '<a  class="Updation" onclick="details(' + data.QuotationId + ')"  title="View Status">' + status + ' </a>';
+                         } else { return null; }
+                     }
+                 },
+                {
+                    "name": "QuotationId", "data": function (data) {
+
+                        var rest = "";
+                        @{
+                            if (User.IsInRole("Dev") || User.IsInRole("View Quotation"))
+                            {
+                                actData += "<a class=\"details\" href=\"/Quotation/Details/'+ data.QuotationId +'\" title=\"View Quotation\"><i class=\"fa fa-lg fa-search-plus\"></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("Edit Quotation"))
+                            {
+                                actData += "<a href=\"/Quotation/Edit/'+ data.QuotationId +'\" title=\"Edit Quotation\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("Delete Quotation"))
+                            {
+                                actData += "<a class=\"modal-delete\" href=\"/Quotation/Delete/'+ data.QuotationId +'\" title=\"Delete Quotation\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                            if (User.IsInRole("Dev") || User.IsInRole("Download Quotation"))
+                            {
+                                actData += "<a class=\"modal-link-download\" href=\"/Quotation/Download/'+ data.QuotationId +'\" title=\"Download Quotation\"><i class=\"fa-lg fa fa-download\" ></i></a> ";
+                            }
+                            //
+                            if (User.IsInRole("Dev") || User.IsInRole("Quotation Entry"))
+                            {
+                                actData += "<a href=\"/Quotation/Create/'+ data.QuotationId +'/QuotExtend\" title=\"Duplicate Quotation\"><i class=\"fa-lg fa fa-copy\" ></i></a> ";
+                            }
+                            //if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                            //{
+                            //    actData += "<a href=\"/CreditSale/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Sales\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                            //}
+                            //if (User.IsInRole("Dev") || User.IsInRole("Pro Forma Entry"))
+                            //{
+                            //    actData += "<a href=\"/ProForma/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Pro Forma\"><i class=\"fa-lg fa fa-arrows-h\" ></i></a> ";
+                            //}
+                            //if (User.IsInRole("Dev") || User.IsInRole("Deliverynote Entry"))
+                            //{
+                            //    actData += "<a href=\"/Deliverynote/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Deliverynote\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                            //}
+                            //  if (User.IsInRole("Dev") || User.IsInRole("Create Project"))
+                            // {
+                            //     actData += "<a href=\"/Project/Create/'+ data +'\" title=\"Convert To Project\"><i class=\"fa-lg fa fa-recycle\" ></i></a> ";
+                            // }
+
+                         }
+                        rest += '@Html.Raw(actData)';
+                        if (data.Approval == true && '@ViewBag.MLAQuot' == 'active') {
+                            @{
+                               actData = "";
+                               actData = "<a class=\"modal-edit\"  href=\"/Quotation/EditStatus/'+ data.QuotationId +'\" title=\"Edit Status\"><i class=\"fa fa-lg fa-refresh\" ></i></a> ";
+                           }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        //Convert To Sales
+                        if (data.ApprovalStatus != "1" && data.SaleConvert == "Sale" && data.QuotToSale == true) {
+                            @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                    {
+                                        actData += "<a href=\"/CreditSale/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Sales\" class=\"text-red\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                    }
+                                }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        else {
+                            if (data.ApprovalStatus != "1" && data.QuotToSale == true) {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Sales Entry"))
+                                    {
+                                        actData += "<a href=\"/CreditSale/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Sales\"><i class=\"fa-lg fa fa-exchange\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+
+                        // Convert To Proforma
+                        if (data.ApprovalStatus != "1" && data.PFAConvert == "ProForma" && data.QuotToPForma == true) {
+                            @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Pro Forma Entry"))
+                                    {
+
+                                        actData += "<a href=\"/ProForma/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Pro Forma\" class=\"text-red\"><i class=\"fa-lg fa fa-arrows-h\" ></i></a> ";
+                                    }
+                                }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        else {
+                            if (data.ApprovalStatus != "1" && data.QuotToPForma == true) {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Pro Forma Entry"))
+                                    {
+                                        actData += "<a href=\"/ProForma/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Pro Forma\"><i class=\"fa-lg fa fa-arrows-h\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+
+                        // Convert To Delivery Note
+                        if (data.ApprovalStatus != "1" && data.DVNConvert == "DVNote" && data.QuotToDvNote == true) {
+                            @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Deliverynote Entry"))
+                                    {
+
+                                        actData += "<a href=\"/Deliverynote/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Deliverynote\" class=\"text-red\"><i class=\"fa-lg fa fa-share\" ></i></a> ";
+                                    }
+                                }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        else {
+                            if (data.ApprovalStatus != "1" && data.QuotToDvNote == true) {
+                                @{
+                                    actData = "";
+                                    if (User.IsInRole("Dev") || User.IsInRole("Deliverynote Entry"))
+                                    {
+                                        actData += "<a href=\"/Deliverynote/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To Deliverynote\"><i class=\"fa-lg fa fa-share\" ></i></a> ";
+                                    }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+                        // Convert To Sales order
+                        if (data.ApprovalStatus != "1" && data.SOConvert == "SOrder" && data.QuotToSOrder == true && '@ViewBag.BusinessType' == 'ProjectBasedBusiness') {
+                            @{
+                                actData = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("SalesOrder Entry"))
+                                {
+
+                                    actData += "<a href=\"/SalesOrder/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To SalesOrder\" class=\"text-red\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                }
+                            }
+                            rest += '@Html.Raw(actData)';
+                        }
+                        else {
+                            if (data.ApprovalStatus != "1" && data.QuotToSOrder == true) {
+                                @{
+                                actData = "";
+                                if (User.IsInRole("Dev") || User.IsInRole("SalesOrder Entry"))
+                                {
+                                    actData += "<a href=\"/SalesOrder/Create/'+ data.QuotationId +'/Quote\" title=\"Convert To SalesOrder\"><i class=\"fa-lg fa fa-refresh\" ></i></a> ";
+                                }
+                                }
+                                rest += '@Html.Raw(actData)';
+                            }
+                        }
+
+                        if ("@ViewBag.Remind" == "active") {
+                            @{
+                                       actData = "";
+                                       actData += "<a class=\"UpdationRe\" onclick=\"detailsRemind(' + data.QuotationId + ')\" title=\"View Reminder\"><i class=\"fa-lg fa fa-bell\" ></i></a> ";
+                                       actData += "<a class=\"modal-create\" href=\"/Reminder/AddReminder/'+ data.QuotationId +'/Quot\" title=\"Add Reminder\"><i class=\"fa-lg fa fa-sticky-note\" ></i></a> ";
+                                   }
+                            rest += '@Html.Raw(actData)';
+                        }
+
+                        return rest;
+                    }
+                },
+                 {
+                     "name": "QuotationId", "data": function (data) {
+                         var rest = "";
+                         @{
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete Quotation"))
+                             {
+                                 delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.QuotationId +'></input>";
+                             }
+                         }
+                         return rest = '@Html.Raw(delchk)';
+                     }
+                 },
+            ], buttons: [
+                'colvis',
+                {
+                    extend: 'print',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Quotation';
+                    },
+                    columnDefs: [
+                        { width: 400, targets: 2 }
+                    ],
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    message: function () {
+                        var head = '<table class="tblcompact table table-bordered"><thead>' +
+                        ' <tr><th class="text-center"><h3 style="margin-top: 0px;"><h4>Quotation</h4></th></tr>';
+                        return head;
+                    },
+                    customize: function (win) {
+                        // $(win.document.body)
+                        //.css('font-size', '10pt')
+                        //.css('padding', '1px');
+                        $(win.document.body).find('table.tblcompact tbody td').css('padding', '0px');
+                        $(win.document.body).find('.dataTable,.dataTable th,.dataTable tr,table.tblcompact tbody td .dataTable td')
+                            .css('font-size', '10pt')
+                            .css('padding', '5px')
+                            .addClass('compact');
+                        $(win.document.body).find('.dataTable tr th:nth-child(3)')
+                            .css('min-width', '80px');
+                        //$(win.document.body).find('.tblcompact tbody td:nth- child(2)')
+                        //    .css('padding', '0px');
+                        $(win.document.body).append('</td></tr></tbody>')
+
+                    }
+                }, 'copy', 'csv', //'excel',
+                {
+                    extend: 'pdf',//
+                    title: "",
+                    footer: true,
+                    filename: function () {
+                        return 'Quotation';
+                    },
+                    message: function () {
+                        var head = 'Quotation';
+                        return head;
+                    },
+                    pageSize: 'A4',
+                    exportOptions: {
+                        columns: ':visible'
+                    },
+                    customize: function (doc) {
+                        doc.pageMargins = [10, 10, 10, 10];
+                        doc.defaultStyle.fontSize = 10;
+                        doc.styles.tableHeader.fontSize = 10;
+                        doc.styles.title.fontSize = 12;
+                        // Header font and bg color
+                        doc.styles.tableHeader.fillColor = '#d3d3d3';
+                        doc.styles.tableHeader.color = 'black';
+                        // Remove spaces around page title
+                        doc.content[0].text = doc.content[0].text.trim();
+
+
+                        doc.styles['td:nth-child(2)'] = {
+                            width: '100%',
+                            'max-width': '100%'
+                        }
+
+                        var objLayout = {};
+                        // Horizontal line thickness
+                        objLayout['hLineWidth'] = function (i) { return .5; };
+                        // Vertikal line thickness
+                        objLayout['vLineWidth'] = function (i) { return .5; };
+                        //// Horizontal line color
+                        //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                        //// Vertical line color
+                        //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                        // Left padding of the cell
+                        objLayout['paddingLeft'] = function (i) { return 4; };
+                        // Right padding of the cell
+                        objLayout['paddingRight'] = function (i) { return 4; };
+                        // Inject the object in the document
+                        doc.content[1].layout = objLayout;
+                        // Footer font and bg color
+                        doc.styles.tableFooter.fillColor = '#d3d3d3';
+                        doc.styles.tableFooter.color = 'black';
+
+                    }
+                },
+               @Html.Raw(deleteBTn)
+
+            ],
+            sDom: "lBfr<'datatable-scroll't>ip",
+            "drawCallback": function (settings) {
+                //var table = $('#QuotationTable').DataTable();
+                //if (!table.data().any()) {
+                //    $("#sub").hide();
+                //} else {
+                //    $("#sub").show();
+                //}
+            }
+        });
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(14);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(14);
+            column1.visible(false);
+        }
+        if ('@ViewBag.ProjCheck' == "active") {
+            var column1 = oTable.column(4);
+            column1.visible(true);
+            var column1 = oTable.column(5);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(4);
+            column1.visible(false);
+            var column1 = oTable.column(5);
+            column1.visible(false);
+        }
+
+        var bsns = '@ViewBag.BusinessType';
+        if (bsns == "Scaffold") {
+            var column1 = oTable.column(9);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(9);
+            column1.visible(false);
+        }
+
+        var statcol = '@ViewBag.MLAQuot';
+        if (statcol == "active") {
+            var column1 = oTable.column(12);
+            column1.visible(true);
+        } else {
+            var column1 = oTable.column(12);
+            column1.visible(false);
+        }
+
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for view detail popup */
+        $('#QuotationTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            detailsRemind($("#remId").val());
+        });
+
+        /* function for delete popup */
+        $('div').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            detailsRemind($("#remId").val());
+        });
+
+        /* chang status */
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+        });
+
+        $('#srch, .search-box .btn-close').on('click', function (e) {
+            $('#advsearch').toggle();
+            if ($('#srch').hasClass('btn-primary')) {
+
+                $('#srch').addClass('btn-danger');
+                $('#srch').removeClass('btn-primary');
+            }
+            else if ($('#srch').hasClass('btn-danger')) {
+                $('#srch').addClass('btn-primary');
+                $('#srch').removeClass('btn-danger');
+
+                $('#BillNo').val("");
+                $('#FromDate').val("");
+                $('#ToDate').val("");
+                $('#ddlCustomer').val(0);
+                $('#ddlEmployee').val(0);
+                $('#ddlProject').val(null);
+                $('#Status').val("");
+                $('#ddlCreatedBy').val("");
+                $('#Validity').val("");
+                $('#SaleType').val(null);
+                $('#HireType').val(null);
+                oTable.draw();
+            }
+
+            $('#FromDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#ToDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            //$('#ToDate').datepicker('setDate', today);
+            //$('#FromDate').datepicker('setDate', priordate);
+
+            CallRepCustomer();
+            CallRepEmployee();
+            $("#ddlProject").select2({
+                placeholder: 'Search Project Code Or Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Project/SearchProject",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+
+            });
+
+        });
+
+        $('#search-form').on('submit', function (e) {
+            e.preventDefault();
+            oTable.draw();
+        });
+        $('body').on('change', '#SaleType', function (e) {
+            var Type = $('#SaleType').val();
+            if (Type == 2) {
+                $('#HireType').show();
+            }
+            else {
+                $('#HireType').hide();
+            }
+
+        });
+
+        $('.table').on('click', 'a.Updation', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-container2');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('.table').on('click', '.modal-close-btn', function () {
+            $('#modal-container2').modal('hide');
+            $('#modal-container2').removeData('bs.modal');
+        });
+        $('#modal-container2').on('hidden.bs.modal', function () {
+            $(this).removeData('bs.modal');
+        });
+
+        $('div').on('click', 'a.UpdationRe', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-containerRe');
+            $(this).attr('data-toggle', 'modal');
+        });
+        $('#modal-create').on('shown.bs.modal', function (e) {
+            var date = new Date();
+            date.setDate(date.getDate());
+            $('.datepicker').datepicker({
+                startDate: date,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            jQuery.validator.methods["date"] = function (value, element) { return true; }
+            $(".timepicker").timepicker({
+                showInputs: true,
+                defaultTime: false,
+                format: 'dd-mm-yyyy'
+            });
+            $("#ddlAssignedTo").select2({
+                placeholder: 'Search User',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployeeUser",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+        function detailsRemind(d) {
+            if (d != "") {
+                $("#remId").val(d);
+                var oTable1 = $('#RemindInfo').DataTable({
+                    "processing": true, // for show progress bar
+                    "serverSide": true, // for process server side
+                    "filter": true, // this is for disable filter (search box)
+                    "orderMulti": false, // for disable multiple column at once
+                    "bStateSave": true,
+                    "paging": false,
+                    "sortable": true,
+                    "ordering": true,
+                    "searching": true,
+                    "ajax": {
+                        "url": '/Reminder/GetAllReminder',
+                        "type": "POST",
+                        "datatype": "json",
+                        "data": { Id: d, type: "Quot" }
+                    },
+                    "order": [[0, "desc"]],
+
+                    "columns": [
+                         {
+                             "data": "ReminderId", "name": "ReminderId",
+                             "render": function (data, type, row, meta) {
+                                 return meta.row + meta.settings._iDisplayStart + 1;
+                             }
+                         },
+                      { "data": "Note", "name": "Note" },
+                       { "data": "RDate", "name": "RDate", "render": function (data) { if (data != null && data != "") { return convertDateTime(data); } else { return "" } } },
+                          //{
+                      //    "name": "AssignedTo", "data": function (data) {
+                      //        var datas = "";
+                      //        $.each(data.AssignedTo, function (i, item) {
+                      //            if (datas != "") {
+                      //                datas += ", ";
+                      //            }
+                      //            datas += item.FirstName + " " + item.LastName;
+                      //        });
+                      //        return datas;
+                      //    }
+                      //},
+                      //{ "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedBy", "name": "CreatedBy" },
+                      { "data": "RStatus", "name": "RStatus" },
+                      {
+                          "name": "ReminderId", "data": function (data) {
+                              var rest = "";
+                              @{
+                                actData = "";
+                                actData += "<a class=\"modal-edit\"  href=\"/Reminder/Edit/'+ data.ReminderId +'\" title=\"Edit Reminder\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                actData += "<a class=\"modal-delete\" href=\"/Reminder/Delete/'+ data.ReminderId +'\" title=\"Delete Reminder\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                            }
+                              rest += '@Html.Raw(actData)';
+                              return rest;
+                          }
+                      }
+                    ],
+                });
+                oTable1.destroy();
+            }
+        }
+
+        function details(d) {
+            var MCId = d;
+            var oTable = $('#UserTableInfo').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "ajax": {
+                    "url": '/Quotation/GetAllStatusUpdation',
+                    "type": "POST",
+                    "datatype": "json",
+                    "data": { MCId: MCId }
+                },
+                "columns": [
+                        {
+                            "name": "ApprovalStatus", "data": function (data) {
+                                var datas = "";
+                                if (data.ApprovalStatus == "Approved") {
+                                    datas += '<span class="badge bg-green">Approved</span>';
+                                }
+                                if (data.ApprovalStatus == "Rejected") {
+                                    datas += '<span class="badge bg-red">Rejected</span>';
+                                }
+                                return datas;
+                            }
+                        },
+                      { "data": "User", "name": "User" },
+                      { "data": "RequestBy", "name": "RequestBy" },
+                      { "data": "CreatedDate", "name": "CreatedDate", "render": function (data) { return convertDateTime(data); } },
+                      { "data": "Remarks", "name": "Remarks" },
+                ],
+                searching: false
+            });
+            oTable.destroy();
+        }
+    </script>
+}

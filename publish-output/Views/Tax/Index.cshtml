@@ -1,0 +1,417 @@
+﻿@model QuickSoft.Models.Tax
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Tax List";
+    ViewBag.Active = "Tax Reports";
+    string actData = "";
+    string actDatas = "";
+}
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Tax</h3>
+            <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Tax"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/Tax/Create">
+                    <i class="glyphicon glyphicon-plus"></i>Create
+                </a>
+            }
+            </div>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="TaxTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">#</td>
+                        <td data-priority="1">Tax Name</td>
+                        <td data-priority="2">Tax Type</td>
+                        <td data-priority="2">Percentage</td>
+                        <td data-priority="6"> Status</td>
+                        <td data-priority="1"> Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="box-header with-border">
+            <h3 class="box-title">Tax Group</h3>
+            <div class="pull-right">
+                @if (User.IsInRole("Dev") || User.IsInRole("Create Tax"))
+                {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/Tax/GroupCreate">
+                    <i class="glyphicon glyphicon-plus"></i>Create
+                </a>
+                }
+            </div>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="TaxGroupTable">
+                <thead>
+                    <tr>
+                        <td data-priority="1">#</td>
+                        <td data-priority="1">Tax Name</td>
+                        <td data-priority="2">Sub Taxes </td>
+                        <td data-priority="2">Percentage</td>
+                        <td data-priority="6"> Status</td>
+                        <td data-priority="1"> Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+
+@section scripts{
+@Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+       
+        var oTable = $('#TaxTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: false,
+            "ajax": {
+                "url": '/Tax/TaxGetData',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [5],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "TaxName", "name": "TaxName" },
+                 { "data": "TaxType", "name": "TaxType" },
+                 { "data": "Percentage", "name": "Percentage" },
+                 {
+                     "name": "Status", "data": function (data) {
+                         if (data.Status == 1) {
+                             return '<a href="/Tax/TaxStatus/' + data.id + '/active " class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                         }
+                         else {
+                             return '<a href="/Tax/TaxStatus/' + data.id + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                         }
+                     }
+                 },
+                 {
+                     "data": "id", "name": "id", "render": function (data) {
+                         var rest = "";
+                         
+                             @{
+                                 if (User.IsInRole("Dev") || User.IsInRole("Edit Tax"))
+                                 {
+                                     actData += "<a class=\"modal-edit\" href=\"/Tax/Edit/'+ data +'\" title=\"Edit Tax\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete Tax"))
+                                 {
+                                     actData += "<a class=\"modal-delete\" href =\"/Tax/Delete/'+ data +'\" title=\"Delete Tax\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                 }
+                             }
+                             rest = '@Html.Raw(actData)';
+                         
+                         return rest;
+                     }
+                 },
+            ]
+        });
+
+
+
+        ///*Bind for tax group*/
+        var Table = $('#TaxGroupTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,            
+            responsive: false,
+            "ajax": {
+                "url": '/Tax/TaxGroupGetData',
+                "type": "POST",
+                "datatype": "json"
+            },
+            "columnDefs": [{
+                "targets": [5],
+                "orderable": false
+            }],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "TaxName", "name": "TaxName" },
+                 { "name": "subtaxes", "data": function (data) {
+                     var id = '';
+                     $.each(data.subtaxes, function (i, item) {
+                         if (i != 0) {
+                             id = id + ", " + item.TaxName;
+                         }
+                         else {
+                             id = id + " " + item.TaxName;
+                         }
+                     });
+                     return id;
+                    }
+                 },
+                 { "data": "taxtot", "name": "taxtot" },
+                 {
+                     "name": "Status", "data": function (data) {
+                         if (data.Status == 1) {
+                             return '<a href="/Tax/TaxStatus/' + data.id + '/active " class="modal-change" title="Click To Active" ><i class="badge bg-red" style="font-size: small" >Inactive</i></a>';
+                         }
+                         else {
+                             return '<a href="/Tax/TaxStatus/' + data.id + '/inactive" class="modal-change" title="Click To Inactive" ><i class="badge bg-green" style="font-size: small" >Active</i></a>';
+                         }
+                     }
+                 },
+                  {
+                      "data": "id", "name": "id", "render": function (data) {
+                          var rest = "";
+                         
+                              @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit Tax"))
+                                  {
+                                      actDatas += "<a class=\"modal-edit\" href=\"/Tax/GroupEdit/'+ data +'\" title=\"Edit Tax Group\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                  }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete Tax"))
+                                  {
+                                      actDatas += "<a class=\"modal-delete\" href =\"/Tax/GroupDelete/'+ data +'\" title=\"Delete Tax Group\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                          rest = '@Html.Raw(actDatas)';
+                         
+                          return rest;
+                      }
+                  },
+            ]
+        });
+
+
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+            //Table.draw(true);
+            Table.ajax.reload();
+        });        
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+            //Table.draw(false);            
+            //Table.ajax.reload();
+            location.reload();
+        });       
+
+        /* function for delete popup */
+        $('.table').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+            //Table.draw(true);
+            Table.ajax.reload();
+            //location.reload();
+        });
+
+
+        $('.table').on('click', '.modal-change', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-change');
+        });
+        $('#modal-change').on('submit', '#changeform', function (e) {
+            e.preventDefault();
+            var url = $('#changeform')[0].action;
+            var data = $('#changeform').serialize();
+            createajax(url, data, '#modal-change');
+            Table.draw(false);
+            Table.ajax.reload();
+        });
+
+
+        $('#modal-create').on('shown.bs.modal', function (e) {
+
+            $("#TaxSubGroup").select2({
+                placeholder: 'Search Tax',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Tax/SearchTax",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            
+            $.fn.modal.Constructor.prototype.enforceFocus = function () { };
+            $('#modal-create').on('shown.bs.modal', function (e) {
+
+            });
+
+
+            var per = parseFloat($('#Percentage').val()) || 0;
+            $("#Percentage").empty();
+
+            $("#TaxSubGroup").change(function () {
+                var data = $(this).val();
+                var parameters = {};
+                parameters.array = data;
+
+                //$.ajax({
+                //    type: "POST",
+                //    url: '/Tax/GetPercentage/' ,
+                //    data: JSON.stringify(parameters),
+                //    contentType: "application/json; charset=utf-8",
+                //    dataType: "JSON",
+                //    async: false,
+                //    success: function (data) {
+                //        per += data.d;
+                //        alert(data);
+                //    },
+                //});
+
+
+                var request = $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    url: '/Tax/GetPercentage/',
+                    data: JSON.stringify(parameters),
+                    success: function (data) {
+                        $("[id$=Percentage]").val(data);
+                    },
+                });
+                //$.ajax({
+                //    type: "POST",
+                //    url: '/Tax/GetPercentage/',
+                //    data: JSON.stringify($(this).serialize()),
+                //    contentType: "application/json; charset=utf-8",
+                //    dataType: "JSON",
+                //    async: false,
+                //    success: function (data) {
+                //        per += data.d;
+                //        alert(data);
+                //    },
+                //});
+
+
+            });
+
+        });
+
+        
+        $('#modal-edit').on('shown.bs.modal', function (e) {
+
+            $("#TaxSubGroup").select2({
+                placeholder: 'Search Tax',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Tax/SearchTax",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $.fn.modal.Constructor.prototype.enforceFocus = function () { };
+            $('#modal-edit').on('shown.bs.modal', function (e) {
+
+            });
+
+
+            var per = parseFloat($('#Percentage').val()) || 0;
+            $("#Percentage").empty();
+
+            $("#TaxSubGroup").change(function () {
+                var data = $(this).val();
+                var parameters = {};
+                parameters.array = data;
+
+                var request = $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    url: '/Tax/GetPercentage/',
+                    data: JSON.stringify(parameters),
+                    success: function (data) {
+                        $("[id$=Percentage]").val(data);
+                    },
+                });
+
+            });
+
+        });
+    </script>
+}

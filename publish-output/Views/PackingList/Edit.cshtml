@@ -1,0 +1,400 @@
+@model QuickSoft.ViewModel.PackinglistViewModel
+@{
+    ViewBag.Title = "Edit";
+    ViewBag.SubTitle = "Packing List";
+    ViewBag.Active = "Transactions";
+    var TimeOut = @ViewBag.TMOut;
+}
+
+@using (Html.BeginForm("Edit", "PackingList", FormMethod.Post, new { id = "edit", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Packing List <label id="AlertEditable" class="text-red"></label></h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit PackingList"))
+                    {
+                        <a class="btn bg-black no-border" href="/PackingList/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit PackingList"))
+                    {
+                        <a class="btn bg-black no-border" href="/PackingList/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("PackingList Create"))
+                    {
+                        <a class="btn bg-black no-border" href="/PackingList/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("PackingList List"))
+                {
+                    <a class="btn btn-success no-border" href="/Packinglist">
+                        <i class="fa fa-fw fa-history"></i> List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+        <div class="box-body">
+            <input type="hidden" id="VoucherType" value="PackingList" />
+            <div class="row">
+                <input type="hidden" id="SelApprovedBy" />
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Packing List No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.BillNo, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    @Html.HiddenFor(model => model.Invoice)
+                </div>
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("LPO No", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.LPO, new { htmlAttributes = new { @class = "form-control" } })
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date", null, new { @class = "control-label" }) *
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.PLDate, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Sales Executive", null, new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Sales Executive"))
+                {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Employee, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/SalesExecutive/AddSalesExecutive" class="modal-edit btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Employee, (SelectList)ViewBag.Cashier, "", new { id = "ddlEmployee", @class = "form-control select2" })
+                    }
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Customer Name", null, new { @class = "control-label" }) *
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create Customer"))
+                {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required" })
+                            <span class="input-group-btn">
+                                <button type="button" href="/Customer/AddCustomer" class="modal-create btn btn-success btn-flat"><i class="fa fa-1x fa-plus-circle"></i></button>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.Customer, (SelectList)ViewBag.Custer, "", new { id = "ddlCustomer", @class = "form-control select2", @required = "required" })
+                    }
+
+                    <div class="clearfix"></div>
+                </div>
+
+                <div class="form-group col-sm-2">
+                    @Html.LabelFor(model => model.HSCode, new { @class = "control-label" })
+                    @Html.TextBoxFor(m => m.HSCode, new { @class = "form-control" })
+                </div>
+                @if (@ViewBag.MLAPList == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Approved By", null, new { @class = "control-label" })
+                        @Html.DropDownList("ddlApprovedBy", (MultiSelectList)ViewBag.ApproveBy, new { @class = "form-control select2", @name = "ddlApprovedBy[]", @multiple = "multiple" })
+
+                    </div>
+                }
+            </div>
+            <div class="row">
+                @if (Model.FieldMap.Count > 0)
+                {
+                    for (int i = 0; i < Model.FieldMap.Count; i++)
+                    {
+                        var fmap = "";
+                        if (Model.FieldMap[i].Field == "Ref1")
+                        {
+                            fmap = Model.Ref1;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref2")
+                        {
+                            fmap = Model.Ref2;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref3")
+                        {
+                            fmap = Model.Ref3;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref4")
+                        {
+                            fmap = Model.Ref4;
+                        }
+                        if (Model.FieldMap[i].Field == "Ref5")
+                        {
+                            fmap = Model.Ref5;
+                        }
+
+                        <div class="form-group col-sm-2">
+                            <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName</label>
+                            <input class="form-control input-sm" id="@Model.FieldMap[i].Field" name="@Model.FieldMap[i].Field" type="text" value="@fmap">
+                        </div>
+                    }
+                }
+            </div>
+            <div>
+                <div class="col-sm-12">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="normalinvoice">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">S/N</th>
+                                    <th class="text-center item-lists" style='max-width:400px;'>Item <i class="text-danger">*</i></th>
+                                    <th class="text-center">Unit</th>
+                                    <th class="text-center">Qty <i class="text-danger">*</i></th>
+                                    <th class="text-center">Packet</th>
+                                    <th class="text-center">Min Qty</th>
+                                    <th class="text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="addinvoiceItem"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3">
+                                        Total Quantity
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="ItemQty"></label>
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="PktQty"></label>
+                                    </td>
+                                    <td class="text-right">
+                                        <label id="MinQty"></label>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                                @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 7 })
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                @Html.Label("Terms and Conditions", null, new { @class = "control-label" })
+                                @Html.TextAreaFor(m => m.TermsCondition, new { @class = "form-control input-sm textarea", @rows = 8 })
+                                <input type="hidden" value="" class="ItemCount" name="ItemCount" id="ItemCount">
+                            </div>
+                            <div class="form-group no-padding text-right">
+                                <div class="checkbox-inline">
+                                    <input class="checkbox" data-val="true" id="hideheader" name="hideheader" type="checkbox" value="true">
+                                    <label class="control-label" for="hideheader">Hide Header In Print</label>
+                                </div>
+                            </div>
+                            <div class="form-group pull-right">
+                                <button type="submit" id="save" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                                </button>
+                                <button type="submit" id="print" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-print"></span> Update And Print
+                                </button>
+                                <button type="button" class="btn btn-warning" onclick="@("window.location.href='/PackinList/Index'");">Cancel</button>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModalCustomer")
+@Html.Action("invoice", "InvoiceLayout", new { type = "Packing List" })
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/packinglist")
+    @Scripts.Render("~/js/num2words")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            addrow('addinvoiceItem', 'plist', "", "0.00", "0.00", "0");
+            CallCustomer();
+            CallMCUser();
+            CallEmployee();
+            searchItem();
+            salesExecPopUp();
+            CallApprovedBy();
+            $("#SelApprovedBy").val($("#ddlApprovedBy").val());
+
+            sentry = getQueryString('');
+            if (sentry != null) {
+                itemUpdate(null, null, "edit")
+            }
+
+            chkEditEditable("@ViewBag.ChkApp");
+        });
+
+
+
+        /* function for Create popup */
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        $('body').on('change', '#ddlApprovedBy', function (e) {
+            $("#SelApprovedBy").val($(this).val());
+        });
+
+
+        $('#edit').on('submit', function (e) {
+            e.preventDefault();
+            if ($("#edit").valid()) {
+                var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                var parameters = {};
+
+                var Invoice = $('#Invoice').val();
+                var BillNo = $('#BillNo').val();
+
+
+                var CustomerID = $('#ddlCustomer').val();
+                var Employee = $('#ddlEmployee').val();
+                var PLDate = $('#PLDate').val();
+
+                //pending
+                var Items = $('#ItemCount').val();
+
+                // var tAndc = CKEDITOR.instances.TermsCondition.getData();
+                var tAndc = $('#TermsCondition').val();
+                var custMail = $('#custEmailId').val();
+
+                var LPONo = $('#LPO').val();
+                var Remarks = $('#Remarks').val();
+                var Branch = $('#ddlBranch').val();
+                var HSCode = $('#HSCode').val();
+                var ApprovedBy = $('#SelApprovedBy').val();
+
+                var Ref1 = "";
+                var Ref2 = "";
+                var Ref3 = "";
+                var Ref4 = "";
+                var Ref5 = "";
+                if ('@Model.FieldMap.Count' > 0) {
+                    Ref1 = $('#Ref1').val();
+                    Ref2 = $('#Ref2').val();
+                    Ref3 = $('#Ref3').val();
+                    Ref4 = $('#Ref4').val();
+                    Ref5 = $('#Ref5').val();
+                }
+                var HTMLtbl = {
+                    getData: function (table) {
+                        var data = [];
+                        table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
+                            var cols = [];
+                            $(this).find('input,textarea,select').each(function (colIndex, c) {
+                                cols.push($(this).val());
+                            });
+                            data.push(cols);
+                        });
+                        return data;
+                    }
+                }
+
+                var plEntry = [CustomerID, Employee, PLDate, Items, tAndc, custMail, LPONo, Remarks, Branch,
+                Invoice, BillNo, HSCode, ApprovedBy,
+                Ref1, Ref2, Ref3, Ref4, Ref5]
+
+                var data = HTMLtbl.getData($('#normalinvoice'));
+
+                parameters.array = data;
+                parameters.pldata = plEntry;
+
+                parameters.action = fnval;
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    url: "/PackingList/EditPL",
+                    data: JSON.stringify(parameters),
+                    beforeSend: function () {
+                        $("button").prop('disabled', true); // disable button
+                    },
+                    success: function (e) {
+                        if (e.status == true) {
+                            if (fnval == "print") {
+                                PrintInvoice(e, "nobillsundry", '@ViewBag.ItemDataCheck', "PackingList");
+                            }
+                            else {
+                                $('.ajax_response', res_success).text(e.message);
+                                $('.AlertDiv').prepend(res_success);
+                            }
+                            setTimeout(function () { location.reload(); }, '@TimeOut');
+                        } else {
+                            $('.ajax_response', res_danger).text(e.message);
+                            $('.AlertDiv').prepend(res_danger);
+                            $("button").prop('disabled', false); // enable button
+                        }
+                    }
+                });
+            }
+        });
+        CustomerPopup();
+    </script>
+}

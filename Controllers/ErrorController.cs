@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace QuickSoft.Controllers
 {
+    [AllowAnonymous]   // Security S8: error pages must render for unauthenticated users (else the fallback policy loops them to login).
     public class ErrorController : Controller
     {
         // GET: Error

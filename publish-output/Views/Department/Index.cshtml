@@ -1,0 +1,135 @@
+﻿@{
+    ViewBag.Title = "View Department";
+    ViewBag.SubTitle = "Department";
+    ViewBag.Active = "Settings";
+    string actData = "";
+}
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">View Department</h3>
+            <p class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Department"))
+            {
+                <a href="/Department/Create" class="btn btn-info modal-create"><i class="glyphicon glyphicon-plus"></i> Create</a>
+            }
+              </p>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <td data-priority="1">Department Name</td>
+                        <td data-priority="2">Calendar Template</td>
+                        <td data-priority="1">Action</td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+<div id="modal-container" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content danger">
+        </div>
+    </div>
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalDelete")
+@section Scripts {
+@Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+            var oTable = $('#MyTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+                responsive: true,
+                "ajax": {
+                    "url": '/Department/GetDepartment',
+                    "type": "POST",
+                    "datatype": "json"
+
+                },
+                "columnDefs": [{
+                    "targets": [2],
+                    "orderable": false
+                }],
+                "columns": [
+                    { "data": "DepartmentName", "name": "DepartmentName" },
+                    { "data": "TemplateName", "name": "TemplateName" },
+                    //{
+                    //    "data": "DepartmentID", "name": "DepartmentID", "render": function (data) {
+                    //        return '<a class="modal-edit" href="/Department/Edit/' + data + '" title="Click To Edit Department"><i class="fa fa-edit" style="font-size: large" ></i></a> ' +
+                    //            '<a class="modal-delete" href="/Department/Delete/' + data + '" title="Click To Delete DesignDepartmentation"><i class="fa fa-trash" style="font-size: large"></i></a> ';
+                    //    }
+                    //}
+                {
+                      "name": "DepartmentID", "data": function (data) {
+                          var rest = "";
+                              @{
+                                  if (User.IsInRole("Dev") || User.IsInRole("Edit Department"))
+                                  {
+                                      actData += "<a class=\"modal-edit\" href=\"/Department/Edit/'+ data.DepartmentID +'\" title=\"Edit Department\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                  }
+                                  if (User.IsInRole("Dev") || User.IsInRole("Delete Department"))
+                                  {
+                                      actData += "<a class=\"modal-delete\" href=\"/Department/Delete/'+ data.DepartmentID +'\" title=\"Delete Department\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                  }
+                              }
+                          return rest = '@Html.Raw(actData)';
+                      }
+            },
+                ]
+            })
+
+
+         
+            /* function for Create popup */
+
+            $('div').on('click', '.modal-create', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            });
+            $('#modal-create').on('submit', '#createform', function (e) {
+                e.preventDefault();
+                var url = $('#createform')[0].action;
+                var data = $('#createform').serialize();
+                createajax(url, data, '#modal-create');
+            });
+
+
+            /* function for Edit popup */
+
+            $('div').on('click', '.modal-edit', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-edit');
+            });
+            $('#modal-edit').on('submit', '#editform', function (e) {
+                e.preventDefault();
+                var url = $('#editform')[0].action;
+                var data = $('#editform').serialize();
+                createajax(url, data, '#modal-edit');
+            });
+
+            /* function for delete popup */
+            $('#MyTable').on('click', '.modal-delete', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-delete');
+            });
+            $('#modal-delete').on('submit', '#deleteform', function (e) {
+                e.preventDefault();
+                var url = $('#deleteform')[0].action;
+                var data = $('#deleteform').serialize();
+                createajax(url, data, '#modal-delete');
+            });
+
+          
+    </script>
+}
+

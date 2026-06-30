@@ -1,0 +1,607 @@
+@model QuickSoft.ViewModel.AssetPurchaseViewModel
+@{
+    ViewBag.Title = "Asset Purchase";
+    ViewBag.SubTitle = "Asset Purchase";
+    ViewBag.Active = "Utility";
+    var TimeOut = @ViewBag.TMOut;
+    var page = Model.AssetEntryId;
+    string partialconfig = "";
+    string posfun = "";
+    string check = "";
+    string strImage = "";
+
+}
+<style type="text/css">
+    .ale {
+        background-color: red;
+        color: white;
+        font-size: medium;
+        font-weight: 800;
+    }
+</style>
+
+
+@using (Html.BeginForm("Edit", "Assetpurchase", FormMethod.Post, new { @class = "assetform", role = "form", enctype = "multipart/form-data" }))
+{
+<div class="box box-info ">
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+    <div class="box-header with-border">
+        <h3 class="box-title">Asset Purchase</h3>
+        <div class="pull-right">
+            <a class="btn bg-black no-border" href="/Assetpurchase/Index">
+                <i class="fa fa-step-backward"></i> list
+            </a>
+        </div>
+    </div>
+    <div class="box-header" id="newredalert">
+        <ul id="alertlist" style="list-style-type:none;"></ul>
+    </div>
+    <div class="box-body">
+        <div class="form-group  col-md-1">
+            @Html.Label("InvoiceNo", null, new { @class = "control-label" })
+            @Html.EditorFor(model => model.InvoiceNo, new { htmlAttributes = new { @class = "form-control", @required = "required", @readonly = "readonly" } })
+            @Html.HiddenFor(model => model.AssetEntryId, new { htmlAttributes = new { @class = "AssetEntryId", @Id = "AssetEntryId" } })
+        </div>
+        <div class="form-group  col-md-2">
+            @Html.LabelFor(model => model.AssetEntryDate, htmlAttributes: new { @class = "control-label" })
+            <div class="input-group date">
+                <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                @Html.TextBoxFor(model => model.AssetEntryDate, "{0:dd-MM-yyyy}", new { @id = "Date ", @class = "Date form-control datepicker input-sm", })
+            </div>
+        </div>
+        <div class="form-group  col-md-2">
+            @Html.Label("Purchase Invoice No", null, new { @class = "control-label" })
+            @Html.EditorFor(model => model.PurchaseEntry, new { htmlAttributes = new { @class = "form-control PurchaseNo" } })
+
+        </div>
+
+
+        <div class="form-group  col-md-3">
+            @Html.Label("Vendor Name", null, new { @class = "control-label" })*
+            @Html.DropDownListFor(model => model.VendorName, (SelectList)ViewBag.Suppl, new { @id = "ddlVendor", @class = "form-control input-sm select2 Vendor" })
+        </div>
+
+
+
+    </div>
+    <br />
+    <div class="row">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="normalinvoice">
+                <thead>
+                    <tr>
+                        <th class="text-center">S/N</th>
+                        <th class="text-center item-lists">Item Name<i class="text-danger">*</i></th>
+                        <th class="text-center">Barcode</th>
+                        <th class="text-center">Unit<i class="text-danger">*</i></th>
+                        <th class="text-center">Qty <i class="text-danger">*</i></th>
+                        <th class="text-center">Unit Price <i class="text-danger">*</i></th>
+                        <th class="text-center">Total Price</th>
+                        <th class="text-center">Depreciation %</th>
+                        <th class="text-center">Asset Accounts<i class="text-danger">*</i></th>
+                        <th class="text-center">Depreciation Accounts<i class="text-danger">*</i></th>
+                        <th class="text-center">Action</th>
+
+                    </tr>
+                </thead>
+                <tbody id="addinvoiceItem"></tbody>
+                <tfoot>
+                    <tr class="">
+                        <td class="text-right">
+                            <label></label>
+                        </td>
+                        <td class="text-right">
+                            <label></label>
+                        </td>
+                        <td class="text-right">
+                            <label></label>
+                        </td>
+                        <td class="text-right">
+                            <label></label>
+                        </td>
+                        <td class="text-right">
+                            <label></label>
+                        </td>
+
+                        <td class="text-right">
+                            <label>Total</label>
+                        </td>
+
+                        <td class="text-right">
+                            <label id="SubTotal"></label>
+                        </td>
+
+
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <div class="row ">
+        <div class="form-group  col-md-2 pull-right">
+            @Html.Label("Total Asset Value ", null, new { @id = "Value", @class = "control-label" })
+            @Html.TextBoxFor(model => model.TotalAssetValue, new { @id = "TotalAssetValue", @class = "form-control TotalAssetValue", @required = "required" })
+        </div>
+        <div class="form-group  col-md-2 pull-right">
+            @Html.Label("VAT ", null, new { @class = "control-label" })
+            @Html.TextBoxFor(model => model.Vat, new { @id = "Vat", @class = "form-control Vat", @required = "required" })
+        </div>
+
+
+    </div>
+
+    <div class="row ">
+        <div class="col-md-12">
+            <div class="form-group col-md-12 point">
+                @Html.Label("Documents", null, new { @class = "control-label" })
+                <div class="file-loading">
+                    <input id="input-24" name="input24[]" type="file" multiple>
+                </div>
+            </div>
+            @foreach (var arr in @ViewBag.image)
+            {
+                check = "\"/uploads/Assetpurchase/" + arr.FileName + "\"";
+                strImage += check + ',';
+
+                partialconfig += "{ key:" + arr.DocumentID + " }" + ',';
+
+            }
+        </div>
+        <div class=" col-md-12 text-center" style="margin:auto;">
+
+            <button type="submit" id="save" class="btn btn-success">
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+            </button>
+            <button type="button" class="btn btn-warning">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+}
+@{var Modelv = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Modelv)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+@Html.Partial("../Common/_ModelProject")
+@Html.Partial("../Common/_ModalCreate")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/print")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+}
+@section Scripts{
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-piexif")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/JsBarcode")
+    @if (ViewBag.POS == 0 && ViewBag.BusinessType == "DeliveryManagement")
+    {
+        posfun = "PrintPOSInvoice(e, \"POSInvoice1\");";
+        @Html.Action("POSInvoice", "InvoiceLayout", new { type = "PurchaseReturn" })
+    }
+    else
+    {
+        posfun = "PrintInvoice(e, \"sales\",\"inactive\",\"PurchaseReturn\");";
+        @*@Html.Partial("_Invoice")*@
+        @Html.Action("invoice", "InvoiceLayout", new { type = "PurchaseReturn" })
+    }
+    <script src="~/Content/js/assetpurchase.js"></script>
+    @*<script src="~/Content/js/assetitemtable.js"></script>*@
+    <script type="text/javascript">
+
+
+        var getQueryString = function (field, url) {
+            var href = url ? url : window.location.href;
+            var id = href.substring(href.lastIndexOf('/') + 1);
+            return id ? id : null;
+        }
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true,
+            startDate: '01-01-2011',
+            endDate: '+30d'
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+
+        //Function to configure date format as the native date type from chrome and safari browsers is clashed with jQuery ui date picker.
+        function checkSupportForInputTypeDate() {
+            jQuery.validator.methods.date = function (value, element) {
+                var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+                var isSafari = /Safari/.test(navigator.userAgent) && /Apple Computer/.test(navigator.vendor);
+                if (isSafari || isChrome) {
+                    var d = new Date();
+                    return this.optional(element) || !/Invalid|NaN/.test(new Date(d.toLocaleDateString(value)));
+                } else {
+                    return this.optional(element) || !/Invalid|NaN/.test(new Date(value));
+                }
+            };
+        }
+        var EntryID = getQueryString('');
+        if (EntryID != null) {
+            $.ajax({
+                url: '/Assetpurchase/GetSTItems',
+                dataType: 'json',
+                data: { EntryID: EntryID },
+                cache: true,
+                success: function (data) {
+                    $('#addinvoiceItem').html('');
+
+                    $.each(data, function (i, item) {
+                        count = i + 1;
+
+                        addrow(count, 'addinvoiceItem', 'foredit', item.AssetName, item.Barcode, item.UnitId, item.Quantity, item.Price, item.TotalPrice, item.DepreciationPercentage, item.AssetAccountId, item.DepreciationAccountId, item.AccName, item.DccName, item.Uni);
+
+                    });
+
+
+                    addrow("", 'addinvoiceItem', '', '', '', '0.00', '0.00', '0.00', '0.00', '0.00');
+                }
+            });
+
+
+
+        }
+
+
+    </script>
+
+    <script type="text/javascript">
+       // setTimeout(function () {
+       //     GetItemdetails()
+       // }, 100);
+       //var Count = 0;
+
+
+     jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+     //add a blank row when page is loaded
+     /*addrow(1, '', 'addinvoiceItem','', '', '', '', '', '', '', '');*/
+
+     //To retrieve data, while changing AssetAccounts
+        $('body').on('change', '#frm', function (e) {
+
+         Count = 0;
+
+         var AssetAccntID = $('#ddlAssetAccounts').val();
+
+         if (AssetAccntID != null) {
+
+
+         }
+        });
+
+       $('.assetform').on('submit', function (e) {
+            e.preventDefault();
+            var numItems = $('.item_name').length
+            if (numItems > 1) {
+                jQuery('.item_name').each(function () {
+                    var currentElement = $(this);
+                    var value = currentElement.val();
+                    if (value == "") {
+                        deleteRow(this);
+                    }
+                });
+           }
+           //new red alert
+           $('#newredalert').removeClass('ale');
+           $("#alertlist").html("");
+           function customalert() {
+               $('#newredalert').addClass('ale');
+               $("html, body").animate({ scrollTop: 0 }, "fast");
+           }
+
+           //form validation
+           var reqlength = $('.Vendor').length;
+           console.log(reqlength);
+           var value = $('.Vendor').filter(function () {
+               return this.value != 0;
+
+           });
+
+           if (value.length >= 0 && (value.length !== reqlength)) {
+               //Custom alert window
+               customalert();
+               //alert message append
+               $("#alertlist").append('<li>Vendor Name Required</li>');
+
+
+               addrow(1, '', 'addinvoiceItem', '', '', '', '', '', '', '', '');
+           } else {
+               continuetoitem();
+           }
+           function continuetoitem() {
+               var reqlength = $('.item_name').length;
+               console.log(reqlength);
+               var value = $('.item_name').filter(function () {
+                   return this.value != "";
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+
+                   //Custom alert window
+                   customalert();
+                   //alert message append
+                   $("#alertlist").append('<li>Item Name Required</li>');
+
+               } else {
+                   continuetounit();
+               }
+           }
+           function continuetounit() {
+               var reqlength = $('.unit_name_').length;
+               console.log(reqlength);
+               var value = $('.unit_name_').filter(function () {
+                   return this.value != 0;
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+                   customalert();
+                   $("#alertlist").append('<li>Select Unit</li>');
+
+               } else {
+
+                   continuetoqty();
+               }
+           }
+           function continuetoqty() {
+               var reqlength = $(':input[name="product_quantity[]"]').length;
+               console.log(reqlength);
+               var value = $(':input[name="product_quantity[]"]').filter(function () {
+                   return this.value != 0;
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+                   customalert();
+                   $("#alertlist").append('<li>Enter Qty</li>');
+               } else {
+                   continuetoprice();
+               }
+           }
+           function continuetoprice() {
+               var reqlength = $(':input[name="product_rate[]"]').length;
+               console.log(reqlength);
+               var value = $(':input[name="product_rate[]"]').filter(function () {
+                   return this.value != 0;
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+                   customalert();
+                   $("#alertlist").append('<li>Enter Price</li>');
+               } else {
+                   continuetodeppreciation();
+               }
+           }
+           function continuetodeppreciation() {
+               var reqlength = $(':input[name="Deppercentage"]').length;
+               console.log(reqlength);
+               var value = $(':input[name="Deppercentage"]').filter(function () {
+                   return this.value != 0;
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+                   customalert();
+                   $("#alertlist").append('<li>Enter Deppreciation Percentage</li>');
+
+               } else {
+                   continuetoaccount();
+               }
+           }
+
+           function continuetoaccount() {
+               var reqlength = $('.account_name').length;
+               console.log(reqlength);
+               var value = $('.account_name').filter(function () {
+                   return this.value != 0;
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+                   customalert();
+                   $("#alertlist").append('<li>Select Asset Accounts</li>');
+               } else {
+                   continuetodepp();
+               }
+           }
+
+           function continuetodepp() {
+               var reqlength = $('.account_depreciation').length;
+               console.log(reqlength);
+               var value = $('.account_depreciation').filter(function () {
+                   return this.value != 0;
+               });
+
+               if (value.length >= 0 && (value.length !== reqlength)) {
+                   customalert();
+                   $("#alertlist").append('<li>Select Deppreciation Account</li>');
+
+               } else {
+                   var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+                   SaveFunction(fnval);
+               }
+           }
+
+            //validation end
+
+
+
+
+
+        });
+
+    $('div').on('click', '.modal-create', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        modalshow(url, '#modal-create');
+    });
+
+
+
+
+        function SaveFunction(fnval) {
+
+            var Id = $('#AssetEntryId').val();
+            var Purchase = $('.PurchaseNo').val();
+            var Invoice = $('#InvoiceNo').val();
+            var Name = $('.Vendor').val();
+            var Date = $('.Date').val();
+            var Vat = $('.Vat').val();
+            var Total = $('.TotalAssetValue').val();
+
+
+            var HTMLtbl = {
+                getData: function (table) {
+
+                    var data = [];
+                    table.find('tr').not(':first').not('#item_').each(function (rowIndex, r) {
+                        var cols = [];
+                        $(this).find('input,textarea,select').each(function (colIndex, c) {
+                            cols.push($(this).val());
+                        });
+                        data.push(cols);
+                    });
+                    return data;
+
+                }
+            }
+
+            var salesEntry = [Id, Purchase, Invoice, Name, Date, Vat, Total]
+
+
+            var data = HTMLtbl.getData($('#normalinvoice'));
+            var parameters = {};
+            parameters.array = data;
+            parameters.mtdata = salesEntry;
+            submitForm(fnval, parameters);
+        }
+
+     function submitForm(fnval, parameters) {
+
+         $.ajax({
+             async: true,
+             cache: false,
+             dataType: "json",
+             type: "POST",
+             contentType: "application/json; charset=utf-8",
+             url: "/Assetpurchase/Edit",
+             data: JSON.stringify(parameters),
+             beforeSend: function () {
+                 $("button").prop('disabled', true); // disable button
+             },
+             success: function (e) {
+
+                 if (e.status == true) {
+                     var fileUpload = $("#input-24").get(0);
+                        var files = fileUpload.files;
+
+                        // Create FormData object
+                        var filedata = new FormData();
+
+                        // Looping over all files and add it to FormData object
+                        for (var i = 0; i < files.length; i++) {
+                            filedata.append(files[i].name, files[i]);
+                        }
+
+                        //Appending the PurchaseOrder Id
+                        filedata.append("id", e.PurchaseOrderId);
+
+                        //For Uploading files
+                        $.ajax({
+                            url: '/AssetPurchase/UploadFiles',
+                            type: "POST",
+                            contentType: false, // Not to set any content header
+                            processData: false, // Not to process data
+                            data: filedata,
+                            success: function (data) {
+                                if (fnval == "print") {
+                                    PrintInvoice(e, "purorder", "inactive", "PurchaseOrder");
+                                }
+                                else {
+                                    $("button").prop('disabled', false);
+                                }
+
+                                $('.ajax_response', res_success).text(e.message);
+                                $('.AlertDiv').prepend(res_success);
+
+                                setTimeout(function () { window.location.href = '/Assetpurchase/Edit/@(page)'; }, '@TimeOut');
+                            }
+                        });
+
+
+                 }
+                 else {
+                     $('.ajax_response', res_danger).text(e.message);
+                     $('.AlertDiv').prepend(res_danger);
+                     $("button").prop('disabled', false); //enable button
+                 }
+             }
+
+         });
+
+     }
+
+
+
+    </script>
+    <script type="text/javascript">
+
+
+    $(".point").prop('title', 'Ctrl + select on Browse');
+
+
+ $("#input-24").fileinput({
+            initialPreview: [@Html.Raw(strImage)],
+            maxFilePreviewSize: 10240,
+            showUploadedThumbs: true,
+            overwriteInitial: false,
+            showUpload: false,
+            enableResumableUpload: true,
+            autoReplace: true,
+            required: false,
+            initialPreviewAsData: true,
+            initialPreviewFileType: 'pdf',
+            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png","csv", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
+              'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
+            fileActionSettings: {
+                showRemove: true,
+                showUpload: false,
+                showZoom: true,
+            },
+            initialPreviewConfig: [
+               @partialconfig
+            ],
+
+            deleteUrl: "/Assetpurchase/ImageDelete",
+        }).on('filesorted', function (e, params) {
+            console.log('File sorted params', params);
+        }).on('fileuploaded', function (e, params) {
+            console.log('File uploaded params', params);
+        }).on('filebeforedelete', function () {
+            var aborted = !window.confirm('Are you sure you want to delete this file?');
+            if (aborted) {
+                //window.alert('File deletion was aborted!');
+            };
+            return aborted;
+        }).on('filedeleted', function () {
+            setTimeout(function () {
+                //window.alert('File deletion was successful!');
+            }, 900);
+        });
+       /* addrow('addinvoiceItem', '', "", "0.00", "0.00", "0");*/
+
+    </script>
+
+
+}
+
+

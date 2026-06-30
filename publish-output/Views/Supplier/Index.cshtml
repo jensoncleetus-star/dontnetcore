@@ -1,0 +1,861 @@
+@model QuickSoft.Models.Supplier
+@{
+    ViewBag.Title = "List";
+    ViewBag.SubTitle = "Supplier";
+    ViewBag.Active = "Master";
+    string actData = "";
+    string delchk = "";
+    bool userRole = false;
+    string deleteBTn = "";
+    if (User.IsInRole("Dev") || User.IsInRole("Delete Supplier"))
+    {
+        userRole = true;
+        deleteBTn = "{text: 'Delete', className: 'btn-danger', action: function(e, dt, node, config) {" +
+               "if ($('.checkbox:checked').length > 0) {if (confirm('Are you sure you want to delete this?')) {$('#delallform').submit(); e.preventDefault();} " +
+                "} else {alert('Please Select Rows..!!');e.preventDefault();}}},";
+    }
+}
+<style>
+    /*.btn-primary {
+        color: #fff;
+        background-color: #2196f3;
+        border-color: #2196f3;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        padding: 5px;
+    }*/
+
+    .btn-warning {
+        color: #fff;
+        background-color: #f44336;
+        border-color: #f44336;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        padding: 5px;
+    }
+
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+        .dropdown-check-list .anchor {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            padding: 5px 50px 5px 10px;
+            border: 1px solid #ccc;
+            width: 150px;
+            background: #fff;
+            text-align: center;
+        }
+
+            .dropdown-check-list .anchor:after {
+                position: absolute;
+                content: "";
+                border-left: 2px solid black;
+                border-top: 2px solid black;
+                padding: 5px;
+                right: 10px;
+                top: 20%;
+                -moz-transform: rotate(-135deg);
+                -ms-transform: rotate(-135deg);
+                -o-transform: rotate(-135deg);
+                -webkit-transform: rotate(-135deg);
+                transform: rotate(-135deg);
+            }
+
+            .dropdown-check-list .anchor:active:after {
+                right: 8px;
+                top: 21%;
+            }
+
+        .dropdown-check-list ul.items {
+            padding: 0px;
+            display: none;
+            margin: 0;
+            border: 1px solid #ccc;
+            border-top: none;
+            position: absolute;
+            z-index: 9999;
+        }
+
+            .dropdown-check-list ul.items li {
+                list-style: none;
+                background: #fff;
+                padding: 5px;
+            }
+
+    .add-btn-item {
+        border-radius: 23px;
+        padding: 6px 20px;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+
+<script>document.addEventListener('DOMContentLoaded', function () { document.body.classList.add('bosx-supplier-list'); document.body.classList.add('bosx-customer-list'); });</script>
+@* BOS: supplier hub header + live metric cards (additive; no grid/data/function change) *@
+<div class="bosx-cust-hero">
+    <div class="bosx-hero-left">
+        <div class="bosx-hero-title">Suppliers</div>
+        <div class="bosx-hero-sub">Your complete supplier directory</div>
+    </div>
+    <div class="bosx-hero-actions">
+        @if (User.IsInRole("Dev") || User.IsInRole("Create Supplier"))
+        {
+            <a class="bosx-hero-btn" href="/Supplier/Create"><i class="fa fa-plus"></i> New supplier</a>
+        }
+    </div>
+</div>
+<div class="bosx-metrics">
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-indigo"><i class="fa fa-truck"></i></span><div class="bosx-metric-val" id="bosxSupTotal">&mdash;</div><div class="bosx-metric-lbl">Total suppliers</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-green"><i class="fa fa-plus-circle"></i></span><div class="bosx-metric-val" id="bosxSupMonth">&mdash;</div><div class="bosx-metric-lbl">Added this month</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-amber"><i class="fa fa-calendar-o"></i></span><div class="bosx-metric-val" id="bosxSupYear">&mdash;</div><div class="bosx-metric-lbl">Added this year</div></div>
+    <div class="bosx-metric"><span class="bosx-metric-ic bosx-mi-blue"><i class="fa fa-credit-card"></i></span><div class="bosx-metric-val" id="bosxSupCredit">&mdash;</div><div class="bosx-metric-lbl">On credit terms</div></div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/Supplier/SupplierStats').then(function (r) { return r.json(); }).then(function (d) {
+            function set(id, n) { var e = document.getElementById(id); if (e) { e.textContent = (n == null ? 0 : n).toLocaleString(); } }
+            set('bosxSupTotal', d.total != null ? d.total : d.Total);
+            set('bosxSupMonth', d.thisMonth != null ? d.thisMonth : d.ThisMonth);
+            set('bosxSupYear', d.thisYear != null ? d.thisYear : d.ThisYear);
+            set('bosxSupCredit', d.onCredit != null ? d.onCredit : d.OnCredit);
+        }).catch(function () { });
+    });
+</script>
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Suppliers</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create Supplier"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/Supplier/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create
+                </a>
+            }
+        </div>
+
+        @* BOS: clean filter bar (search + Open/Close + Filters), matching the Customer list. Legacy filter below is hidden, revealed by Filters. *@
+        <div class="bosx-filterbar" id="bosxSupFilterbar">
+            <div class="bosx-search">
+                <i class="fa fa-search"></i>
+                <input type="text" id="bosxSupSearch" placeholder="Search name, code or TRN…" autocomplete="off" />
+            </div>
+            <div class="bosx-fb-slot" id="bosxSupOpnSlot"></div>
+            <button type="button" class="bosx-fb-filters" id="bosxSupFiltersBtn"><i class="fa fa-sliders"></i><span>Filters</span></button>
+        </div>
+        <div class="row" id="bosxSupLegacyFilter" style="display:none;">
+            <div class="col-md-2">
+                <div id="list1" class="dropdown-check-list" tabindex="100">
+                    <span class="anchor" style="z-index:0;">Select Fields</span>
+                    <ul class="items">
+                        <li><input type="checkbox" id="lisupplier" />Supplier</li>
+                        <li><input type="checkbox" id="licstmralias" />Customer Alias</li>
+                        <li><input type="checkbox" id="litaxregno" />Tax RegNo</li>
+                        <li><input type="checkbox" id="litaxtype" />Tax Type</li>
+                        <li><input type="checkbox" id="limobileno" />Mobile No</li>
+                        <li><input type="checkbox" id="liphoneno" />Phone No</li>
+                        <li><input type="checkbox" id="licreditlimit" />Credit Limit</li>
+                        <li><input type="checkbox" id="licreditperiod" />Credit Period</li>
+                        <li><input type="checkbox" id="liemail" />E-Mail</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="box-body search-box" id="advsearchlist">
+                    <div class="search-body col-md-12" style="background:none;">
+                        <form id="search-form">
+                            <div class="row">
+                                <div class="form-group col-md-2" id="searchOpnCls" style="">
+                                    @Html.Label("Open / Close", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlOpnCls", new SelectList(new List<SelectListItem>
+                                        {
+
+                                        new SelectListItem() {Text = "Open", Value="1"},
+                                        new SelectListItem() {Text = "All", Value=""},
+                                        new SelectListItem() {Text = "Closed", Value="0"}
+                                        }, "Value", "Text"), new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchsupplier" style="display:none;">
+                                    @Html.Label("Supplier", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlSupplier", (SelectList)ViewBag.Supp, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchalias" style="display:none;">
+                                    @Html.Label("Customer Alias", null, new { @class = "control-label" })
+                                    @Html.TextBox("Alias", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchtaxregno" style="display:none;">
+                                    @Html.Label("Tax RegNo", null, new { @class = "control-label" })
+                                    @Html.TextBox("TaxReg", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchtaxtype" style="display:none;">
+                                    @Html.Label("Tax Type", null, new { @class = "control-label" })
+                                    @Html.DropDownList("TaxType", (SelectList)ViewBag.TxType, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchmobile" style="display:none;">
+                                    @Html.Label("Mobile No", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlMobile", (SelectList)ViewBag.Mobile, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchphone" style="display:none;">
+                                    @Html.Label("Phone No", null, new { @class = "control-label" })
+                                    @Html.DropDownList("ddlPhone", (SelectList)ViewBag.Phone, new { @class = "form-control input-sm select2" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchcrdtlmt" style="display:none;">
+                                    @Html.Label("Credit Limit", null, new { @class = "control-label" })
+                                    @Html.TextBox("CLimit", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2 " id="searchcrdtprd" style="display:none;">
+                                    @Html.Label("Credit Period", null, new { @class = "control-label" })
+                                    <div class="input-group input-group-sm " style="display:none;">
+                                        @Html.TextBox("CPeriod", "", new { @class = "form-control input-sm" })
+                                        <span class="input-group-btn">
+                                            <button type="button" class="btn btn-flat">Days</button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-2 " id="searchemail" style="display:none;">
+                                    @Html.Label("E-Mail", null, new { @class = "control-label" })
+                                    @Html.TextBox("MailId", "", new { @class = "form-control input-sm" })
+                                </div>
+                                <div class="form-group col-md-2" id="search">
+                                    <input type="submit" class="btn btn-submit" value="Submit" />
+                                </div>
+                                <div class="form-group col-md-2" id="close">
+                                    <input type="button" class="btn btn-close" value="Close" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class=" col-md-2" id="searchpagelength">
+
+        <span class="sh-spaan-text-style">Show &nbsp;</span>@Html.DropDownList("ddlPagesize", new SelectList(new List<SelectListItem>
+{
+new SelectListItem() {Text = "50 Rows", Value="50"},
+new SelectListItem() {Text = "All Rows", Value="10000000"},
+
+}, "Value", "Text"), new { @class = "sh-input-drop select2" })
+
+    </div>
+    @using (Html.BeginForm("DeleteAllSupplier", "Supplier", FormMethod.Post, new { id = "payform", role = "form" }))
+    {
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="MyTable">
+                <thead>
+                    <tr style="background-color: #acd6e9">
+                        <th scope="col" width="4%" data-priority="1">S/N</th>
+                        <th scope="col" width="5%" data-priority="1">Supplier code</th>
+                        <th scope="col" width="30%" data-priority="1">Supplier Name</th>
+                        <th scope="col" width="7%" data-priority="3">trn</th>
+                        <th scope="col" width="18%" data-priority="3">address</th>
+                        <th scope="col" width="7%" data-priority="3">phone</th>
+                        <th scope="col" width="30%" data-priority="2">Contacts</th>
+                        <th scope="col" width="10%" data-priority="2">Email</th>
+                        <th scope="col" width="7%" data-priority="3">credit limit</th>
+                        <th scope="col" width="5%" data-priority="3">credit period</th>
+                        <th scope="col" width="5%" data-priority="2">Opening balance</th>
+                        <th scope="col" width="5%" data-priority="2">Current Balance</th>
+                        <th scope="col" width="5%" data-priority="2">UpTime</th>
+                        <th scope="col" width="7%" style="min-width:80px" data-priority="1">Action</th>
+                        <td scope="col" width="2%"> <input type="checkbox" id="select_all" />  </td>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        @*if (User.IsInRole("Dev") || User.IsInRole("Delete Supplier"))
+            {
+                <div class="box-footer text-right col-md-12" id="sub">
+                    <button type="submit" id="save" data-confirm="Are u sure want to delete?" class="btn btn-danger">Delete</button>
+                </div>
+            }*@
+    }
+</div>
+
+@{var Model = "modal-lg";}
+@Html.Partial("../Common/_ModalCreate", @Model)
+@Html.Partial("../Common/_ModalDelete")
+@section scripts{
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+         //   $('#advsearchlist').hide();
+        });
+
+        var oTable = $('#MyTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+            "bStateSave": true,
+            "pageLength": 50,
+            responsive: true,
+            "ajax": {
+                "url": '/Supplier/GetSupplier',
+                "data": function (data) {
+                    data.Supplier = $('#ddlSupplier').val();
+                    data.TaxReg = $('#TaxReg').val();
+                    data.Mobile = $('#ddlMobile').val();
+                    data.Phone = $('#ddlPhone').val();
+                    data.CLimit = $('#CLimit').val();
+                    data.CPeriod = $('#CPeriod').val();
+                    data.TxType = $('#TaxType').val();
+                    data.MailId = $('#MailId').val();
+                    data.Alias = $('#Alias').val();
+                    data.opcls = $("#ddlOpnCls").val();
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+           
+            "order": [[0, "desc"]],
+            "columns": [
+                     {
+                         "data": "id", "name": "id",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                 { "data": "SupplierCode", "name": "SupplierCode" },
+                 {
+                     "name": "SupplierName", "data": function (data) {
+                            @{
+                                var datas = "";
+                                //datas = "'<a href=\"/Supplier/Details/'+ data.id +'\">'+ data.SupplierName +'</a>' ";
+                                if (User.IsInRole("Dev") || User.IsInRole("View Supplier"))
+                                {
+                                    datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.SupplierName||'').substring(0,2).toUpperCase() +'</span><div class=\"bosx-cust-tx\"><a href=\"/Supplier/Details/'+ data.id +'\">'+ data.SupplierName +'</a><div class=\"bosx-cust-code\">#'+ (data.SupplierCode||'') +'</div></div></div>' ";
+                                }
+                                else
+                                {
+                                    datas = "'<div class=\"bosx-cust\"><span class=\"bosx-av\">'+ (data.SupplierName||'').substring(0,2).toUpperCase() +'</span><div class=\"bosx-cust-tx\"><span class=\"bosx-c-name\">'+ data.SupplierName +'</span><div class=\"bosx-cust-code\">#'+ (data.SupplierCode||'') +'</div></div></div>' ";
+                                }
+                            }
+                         return @Html.Raw(datas);
+
+                     }},
+                 { "data": "TaxRegNo", "name": "TaxRegNo" },
+                 { "data": "Address", "name": "Address" },
+                 { "data": "Phone", "name": "Phone" },
+                 {
+                     "name": "Mobile", "data": function (data) {
+                         var datas = "";
+                         $.each(data.mobmodel, function (i, item) {
+                             if (item.Num != null) {
+                                 var numorg = "971" + item.Num.replace("+971", "").replace("971", "").replace(" ", "");
+                                 var numShow = item.Num.replace("+971+971", "+971").replace("+5", "+9715");
+                                 datas += '<div class="bosx-contact"><div class="bosx-c-head">';
+                                 datas += '<a class="bosx-c-wa" href="https://wa.me/' + numorg + '" target="_blank" title="WhatsApp"><i class="fa fa-whatsapp" aria-hidden="true"></i></a>';
+                                 if (item.Name != null && item.Name != "") { datas += '<span class="bosx-c-name">' + item.Name + '</span>'; }
+                                 datas += '</div><div class="bosx-c-meta">';
+                                 datas += '<a class="bosx-c-tel" href="tel:' + numShow + '"><i class="fa fa-phone"></i>' + numShow + '</a>';
+                                 if (item.emails != null && item.emails != "" && item.emails != "null") { datas += '<a class="bosx-c-mail" href="mailto:' + item.emails + '" title="' + item.emails + '"><i class="fa fa-envelope-o"></i>' + item.emails + '</a>'; }
+                                 datas += '</div></div>';
+                             }
+                         });
+                         return datas;
+                     }
+                 },
+                 { "data": "Email", "name": "Email" },
+                 { "data": "CreditLimit", "name": "CreditLimit" },
+                 {
+                     "data": "CreditPeriod", "name": "CreditPeriod", "render": function (data) {
+                         return data + " Days";
+                     }
+                 },
+                  { "data": "OpnBalance", "name": "OpnBalance" },
+                  { "data": "currentbalance", "name": "currentbalance" },
+                        //{
+                        //    "data": function (data) {
+                        //        var CurBalance;
+                        //        CurBalance = (data.Debit > data.Credit) ? ((data.Debit - data.Credit).toFixed(2) + " Dr") : ((data.Credit - data.Debit).toFixed(2) + " Cr.");
+                        //        return CurBalance;
+                        //    }
+                        //},
+                {
+                    "name": "logtime", "data": function (data) {
+                        var result = "";
+                        if (data.logtime != null) {
+                            result = LastUpdatedIn(data.logtime);
+                        }
+                        return (result);
+                    }
+                },
+                 {
+                     "data": "id", "name": "id", "render": function (data) {
+                         var rest = "";
+
+                         @{
+                             if (User.IsInRole("Dev") || User.IsInRole("View Supplier"))
+                             { }
+                             if (User.IsInRole("Dev") || User.IsInRole("Edit Supplier"))
+                             {
+                                 actData += "<a class=\"btn btn-icons btn-rounded btn-edit\" href=\"/Supplier/Edit/'+ data+'\" title=\"Edit Supplier\"><i class=\"fa fa-pencil\" ></i></a> ";
+
+                                 actData += "<a class=\"modal-create\" href=\"/Supplier/setopenclose/'+ data +'\" title=\"set openclose\"><div style=\"block\">op/close</div></a> ";
+
+                             }
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete Supplier"))
+                             {
+                                 actData += "<a class=\"btn btn-icons btn-rounded btn-warning modal-delete\" href=\"/Supplier/Delete/'+ data +'\" title=\"Delete Supplier\"><i class=\"fa fa-trash\" ></i></a> ";
+                             }
+                                 @*if (User.IsInRole("Dev") || User.IsInRole("View Supplier"))
+                                 {
+                                     actData += "<a class=\"details\" href =\"/Supplier/ViewDetails/'+ data +'\" title=\"View Supplier Details\"><i class=\"fa fa-lg fa-search-plus\" ></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Edit Supplier"))
+                                 {
+                                     actData += "<a href=\"/Supplier/Edit/'+ data +'\" title=\"Edit Supplier\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                                 }
+                                 if (User.IsInRole("Dev") || User.IsInRole("Delete Supplier"))
+                                 {
+                                     actData += "<a class=\"modal-delete\" href =\"/Supplier/Delete/'+ data +'\" title=\"Delete Supplier\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                                 }*@
+                             }
+                         rest = '@Html.Raw(actData)';
+
+                         return rest;
+                     }
+                 },
+                 {
+                     "name": "id", "data": function (data) {
+                         var rest = "";
+                         @{
+                             if (User.IsInRole("Dev") || User.IsInRole("Delete Supplier"))
+                             {
+                                 delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.id +'></input>";
+                             }
+                         }
+                         return rest = '@Html.Raw(delchk)';
+                     }
+                 },
+            ],
+            dom: 'Bfrtip',
+            buttons: ['colvis', {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Suppliers </h4></th></tr>' +
+                    ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                customize: function (win) {
+                    // $(win.document.body)
+                    //.css('font-size', '10pt')
+                    //.css('padding', '1px');
+                    $(win.document.body).find('table, th,tr, td ')
+                       // .css('border', 'inherit')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+                }
+            }, 'copy', 'csv', 'excel',
+
+
+            {
+                extend: 'pdf',//
+                title: "Suppliers",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+                @Html.Raw(deleteBTn)
+            ],
+
+            "drawCallback": function (settings) {
+                var table = $('#MyTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }
+        });
+
+        var chkcol = '@userRole';
+        if (chkcol == "True") {
+            var column1 = oTable.column(13);
+            column1.visible(true);
+        }
+        else {
+            var column1 = oTable.column(13);
+            column1.visible(false);
+        }
+        var column2 = oTable.column(4);
+        column2.visible(false);
+        column2 = oTable.column(5);
+        column2.visible(false);
+        column2 = oTable.column(7);
+        column2.visible(false);
+        // BOS: clean grid — hide S/N, code, TRN, credit limit/period, opening balance, last-updated (match Customer hub)
+        oTable.column(0).visible(false); oTable.column(1).visible(false); oTable.column(3).visible(false);
+        oTable.column(8).visible(false); oTable.column(9).visible(false); oTable.column(10).visible(false);
+        oTable.column(12).visible(false);
+        // BOS: clean filter bar — relocate Open/Close, wire search + Filters toggle (grid has filter:true so .search() works)
+        (function () {
+            var $opn = $('#searchOpnCls');
+            if ($opn.length) { $opn.appendTo('#bosxSupOpnSlot').removeAttr('hidden').css('display', 'block'); }
+            $('#bosxSupOpnSlot .control-label').hide();
+            var _t;
+            $('#bosxSupSearch').on('input', function () { var v = this.value; clearTimeout(_t); _t = setTimeout(function () { try { oTable.search(v).draw(); } catch (e) { } }, 350); });
+            $('#ddlOpnCls').on('change', function () { try { oTable.draw(); } catch (e) { } });
+            $('#bosxSupFiltersBtn').on('click', function () { $('#bosxSupLegacyFilter').slideToggle(150); $(this).toggleClass('active'); });
+        })();
+        function reload_table() {
+            oTable.clear().draw();
+            oTable.ajax.reload(null, false); //reload datatable ajax
+            isTicked();
+        }
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        });
+
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //uncheck "select all", if one of the listed checkbox item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        isTicked();
+
+        /* function for view detail popup */
+        $('#MyTable').on('click', 'a.details', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+        })
+
+        /* function for Create popup */
+
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+            //datepickerInit();
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+        /* function for Edit popup */
+
+        $('div').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+        /* function for delete popup */
+        $('#MyTable').on('click', '.modal-delete', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-delete');
+        });
+
+        $('#modal-delete').on('submit', '#deleteform', function (e) {
+            e.preventDefault();
+            var url = $('#deleteform')[0].action;
+            var data = $('#deleteform').serialize();
+            createajax(url, data, '#modal-delete');
+        });
+
+      //Button Close
+      $('#srch, .search-box .btn-close').on('click', function (e) {
+          $('#advsearchlist').toggle();
+
+          /*******  To uncheck all the checkboxes in the Select List  ************/
+          var checkboxes = document.querySelectorAll("input[type='checkbox']");
+          checkboxes.forEach(function (Checkbox) {
+              Checkbox.checked = false;
+          });
+
+          if ($('#srch').hasClass('btn-primary')) {
+              $('#srch').addClass('btn-danger');
+              $('#srch').removeClass('btn-primary');
+          }
+
+          else {
+              if ($('#srch').hasClass('btn-danger')) {
+                  $('#srch').addClass('btn-primary');
+                  $('#srch').removeClass('btn-danger');
+              }
+
+              /*******  To clear all the data entered  *********/
+              $('#ddlSupplier').val(0).trigger('change');
+              $('#Alias').val("");
+              $('#TaxReg').val("");
+              $('#TaxType').val(null).trigger('change');
+              $('#ddlMobile').val(0).trigger('change');
+              $('#ddlPhone').val(0).trigger('change');
+              $('#CLimit').val("");
+              $('#CPeriod').val("");
+              $('#MailId').val("");
+              oTable.draw();
+          }
+      });
+
+    $('#search-form').on('submit', function (e) {
+        e.preventDefault();
+        oTable.draw();
+    });
+        $('#ddlPagesize').on('change', function (e) {
+
+            let pagedroplength = $('#ddlPagesize').val();
+            oTable.page.len(pagedroplength).draw();
+        });
+    CallRepSupplier();
+
+    $("#ddlMobile").select2({
+        placeholder: 'Search Customer by Mobile',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/Supplier/SearchMobile",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term || "",
+                    x: "All",
+                    page: params.page || 0,
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 0;
+
+                return {
+                    results: data,
+                    pagination: {
+                        //more: (params.page * 10) < 50
+                        more: true
+                    }
+                };
+            },
+            cache: true
+        },
+    });
+
+    $("#ddlPhone").select2({
+        placeholder: 'Search Customer by Name or Code',
+        minimumInputLength: 0,
+        ajax: {
+            url: "/Supplier/SearchPhone",
+            dataType: 'json',
+            delay: 50,
+            data: function (params) {
+                return {
+                    q: params.term || "",
+                    x: "All",
+                    page: params.page || 0,
+                };
+            },
+            processResults: function (data, params) {
+                params.page = params.page || 0;
+
+                return {
+                    results: data,
+                    pagination: {
+                        //more: (params.page * 10) < 50
+                        more: true
+                    }
+                };
+            },
+            cache: true
+        },
+    });
+
+      var checkList = document.getElementById('list1');
+
+      /******* Function to list and hide dropdown checklist while clicking on 'Select Fields' *******/
+      checkList.getElementsByClassName('anchor')[0].onclick = function (evt) {
+          if (checkList.classList.contains('visible'))
+              checkList.classList.remove('visible');
+          else
+              checkList.classList.add('visible');
+      }
+
+      /******* Function to show and hide fields while clicking on checkboxes in 'Select Fields' *******/
+      $("ul li input:checkbox").click(function () {
+
+          var _show = 0;
+
+          //Supplier
+          if ($("#lisupplier").prop("checked") == true) {
+              $("#searchsupplier").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlSupplier').val(0).trigger("change");
+              $("#searchsupplier").hide();
+              oTable.draw();
+          }
+
+          //Customer Alias
+          if ($("#licstmralias").prop("checked") == true) {
+              $("#searchalias").show();
+              _show = 1;
+          }
+          else {
+              $('#Alias').val("");
+              $("#searchalias").hide();
+              oTable.draw();
+          }
+
+          //Tax Reg No.
+          if ($("#litaxregno").prop("checked") == true) {
+              $("#searchtaxregno").show();
+              _show = 1;
+          }
+          else {
+              $('#TaxReg').val("");
+              $("#searchtaxregno").hide();
+              oTable.draw();
+          }
+
+          //TaxType
+          if ($("#litaxtype").prop("checked") == true) {
+              $("#searchtaxtype").show();
+              _show = 1;
+          }
+          else {
+              $("#TaxType").val("");
+              $("#searchtaxtype").hide();
+              oTable.draw();
+          }
+
+          //Mobile No.
+          if ($("#limobileno").prop("checked") == true) {
+              $("#searchmobile").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlMobile').val(0).trigger("change");
+              $("#searchmobile").hide();
+              oTable.draw();
+          }
+
+          //Phone No.
+          if ($("#liphoneno").prop("checked") == true) {
+              $("#searchphone").show();
+              _show = 1;
+          }
+          else {
+              $('#ddlPhone').val(0).trigger("change");
+              $("#searchphone").hide();
+              oTable.draw();
+          }
+
+          //Credit Limit
+          if ($("#licreditlimit").prop("checked") == true) {
+              $("#searchcrdtlmt").show();
+              _show = 1;
+          }
+          else {
+              $("#CLimit").val("");
+              $("#searchcrdtlmt").hide();
+              oTable.draw();
+          }
+
+          //Credit Period
+          if ($("#licreditperiod").prop("checked") == true) {
+              $("#searchcrdtprd").show();
+              _show = 1;
+          }
+          else {
+              $("#CPeriod").val("");
+              $("#searchcrdtprd").hide();
+              oTable.draw();
+          }
+
+          //E-Mail
+          if ($("#liemail").prop("checked") == true) {
+              $("#searchemail").show();
+              _show = 1;
+          }
+          else {
+              $("#MailId").val("");
+              $("#searchemail").hide();
+              oTable.draw();
+          }
+
+         
+      });
+
+      /******* Function to hide dropdown checklist while clicking outside it ********/
+      $(document).on("click", function (event) {
+
+          var element1 = $("#list1");
+
+          if (element1 !== event.target && !element1.has(event.target).length) {
+              checkList.classList.remove('visible');
+          }
+      });
+
+    </script>
+}

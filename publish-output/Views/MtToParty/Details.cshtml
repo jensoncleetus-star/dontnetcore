@@ -1,0 +1,129 @@
+@using System.Reflection;
+@using System.ComponentModel.DataAnnotations;
+@model QuickSoft.ViewModel.MtToPartyViewModel
+@{
+    Layout = null;
+}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>View Materials Issued Details</h4>
+</div>
+<div class="modal-body">
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Materials Issued Entry</h3>
+        </div>
+        <div class="box-body">
+            <div class="row">
+                @Html.HiddenFor(Model => Model.MtToType)
+                @Html.HiddenFor(Model => Model.VoucherNo)
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Invoice No :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(Model => Model.VoucherNo)
+                </div>               
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Date :", null, new { @class = "control-label" })
+                    @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.Date))                   
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Party Code :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(Model => Model.PartyCode)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Party Name :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(m => m.PartyName)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.Label("Type :", null, new { @class = "control-label" })
+                    @Html.DisplayFor(Model => Model.MtToType.GetType().GetMember(Model.MtToType.ToString()).First().GetCustomAttribute<DisplayAttribute>().Name)
+                </div>
+                
+                <div class="clearfix"></div>
+            </div>
+            <div>
+                <div class="table-responsive">
+                    <div class="box box-info">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">Items</h3>
+                        </div>
+                        <div class="box-body">
+                            <table class="table table-bordered table-hover">
+                                <tr class="bg-gray">
+                                    <th>Item</th>                                   
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>                                   
+                                </tr>
+                                @foreach (var salesum in Model.MtItem)
+                                {
+                                    var itemnote = "";
+                                    if (@salesum.ItemNote != "")
+                                    {
+                                        itemnote = "<br /><small>" + @salesum.ItemNote + "</small>";
+                                    }
+                                    <tr>
+                                        <td>@salesum.ItemCode - @salesum.ItemName  @salesum.UnitName @Html.Raw(itemnote.Replace(Environment.NewLine, "<br/>"))</td>
+                                        <td>@salesum.Quantity</td>
+                                        <td>@salesum.Price</td>                                        
+                                        <td>@salesum.Amount</td>                                        
+                                    </tr>
+                                }
+                                
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    @if (Model.SEbs.Any())
+                    {
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <div class="box box-info">
+                                    <div class="box-header with-border">
+                                        <h3 class="box-title">Bill Sundry</h3>
+                                    </div>
+                                    <div class="box-body">
+                                        <table class="table table-bordered table-hover">
+                                            <tr class="bg-gray">
+                                                <th>Bill Sundry</th>
+                                                <th>Value</th>
+                                                <th>Type</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                            @foreach (var bs in Model.SEbs)
+                                            {
+                                                <tr>
+                                                    <td>@bs.Type : @bs.BillSundry</td>
+                                                    <td>@bs.BsValue</td>
+                                                    <td>@bs.AmtType</td>
+                                                    <td>@bs.BsAmount</td>
+                                                </tr>
+                                            }
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                   
+                    <div class="col-md-6">                       
+                        <div class="form-group col-md-6 no-padding">
+                            @Html.Label("Grand Total :", null, new { @class = "control-label" })
+                            @Html.DisplayFor(m => m.TotalAmount)
+                        </div>                        
+                    </div>
+                    <div class="col-md-6">
+                        @if (!string.IsNullOrEmpty(Model.Description) && !string.IsNullOrWhiteSpace(Model.Description))
+                        {
+                            <div class="form-group">
+                                <strong>Remarks </strong><br />
+                                @Html.Raw(Model.Description)
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

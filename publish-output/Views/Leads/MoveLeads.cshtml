@@ -1,0 +1,241 @@
+@{
+    ViewBag.Title = "Change Lead Assign";
+    ViewBag.SubTitle = "Change Lead Assign";
+    ViewBag.Active = "Reports";
+    var TimeOut = @ViewBag.TMOut;
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Change Lead Assign</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("MoveLeadsupdate", "Leads", FormMethod.Post, new { id = "createForms", role = "form", enctype = "multipart/form-data" }))
+        {
+
+
+        <div class="form-group col-md-4">
+            @Html.Label("Employee From*", null, new { @class = "control-label" })
+            @Html.DropDownList("ddlEmployee", (SelectList)ViewBag.Empl, new { @class = "form-control select2", tabindex = 6, @required = "required" })
+        </div>
+        <div class="form-group col-md-4">
+            @Html.Label("Employee  To*", null, new { @class = "control-label" })
+            @Html.DropDownList("ddlEmployee2", (SelectList)ViewBag.Empl2, new { @class = "form-control select2", tabindex = 6, @required = "required" })
+        </div>
+
+        <div class="box-footer col-md-12">
+            <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+            <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+        </div>
+        }
+    </div>
+</div>
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+    $('body').on('change', '#select_all', function () {
+        $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+    });
+
+    //".checkbox" change
+    $('body').on('change', '.checkbox', function () {
+        //uncheck "select all", if one of the listed checkbox item is unchecked
+        if (false == $(this).prop("checked")) { //if this item is unchecked
+            $("#select_all").prop('checked', false); //change "select all" checked status to false
+        }
+        isTicked();
+    });
+    isTicked();
+        $(document).ready(function () {
+            //for set default date
+            $('#HireTypeDiv').hide();
+            //$("#SaleType").val(1);
+            $('#SaleType option:contains(POS)').remove();
+
+            $("#SaleType").prop('selectedIndex', 0);
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+
+            $('#QReport').hide();
+            CallRepCustomer();
+            GetBranch();
+            CallEmployee();
+            $("#ddlEmployee2").select2({
+                placeholder: 'Search by Name ',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Employee/SearchEmployee",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                            x: "empty"
+
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+        });
+    function setItem() {
+        var values = new Array();
+        var movetoEmp = $('#ddlEmployee2').val();
+        $("input[name='dltcheck']:checked").each(function () {
+            data = $(this).val();
+            values.push(data);
+        });
+
+        $.ajax({
+            async: true,
+            cache: false,
+            dataType: "json",
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
+            url: "/Customer/ChangeSalesperson",
+            data: JSON.stringify({ value: values, NewSalesman: movetoEmp }),
+            success: function (e) {
+                if (e.status == true) {
+                    $('.ajax_response', res_success).text(e.message);
+                    $('.AlertDiv').prepend(res_success);
+
+                    setTimeout(function () { window.location.href = '/Customer/MoveSalesPerson'; }, '@TimeOut');
+                } else {
+                    $('.ajax_response', res_danger).text(e.message);
+                    $('.AlertDiv').prepend(res_danger);
+
+                }
+            }
+        });
+
+
+    }
+
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            var customer = $('#ddlCustomer').val();
+            if (customer != 0) {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project Code Or Name ',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProjectByCustomer",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                customer: customer,
+                                page: params.page
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                    templateResult: projectFormatResult,
+                    templateSelection: projectFormatSelection,
+                });
+            } else {
+                $("#ddlProject").select2({
+                    placeholder: 'Search Project by Name or Code',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Project/SearchProject",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                x: ""
+
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+            }
+
+        });
+
+        function HType() {
+            var Type = $('#SaleType').val();
+            if (Type == 2) {
+                $('#HireTypeDiv').show();
+            }
+            else {
+                $('#HireTypeDiv').hide();
+            }
+        }
+        function DateSet() {
+            var ndate = $('#FromDate').val();
+
+            $('#ToDate').datepicker({
+                startDate: ndate,
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+        }
+
+        $('body').on('change', '#ddlCustomer', function (e) {
+            $('#ddlProject').val(null).trigger('change');
+            CallProject();
+        });
+        $('body').on('change', '#ddlProject', function (e) {
+            $('#ddlProTask').val(null).trigger('change');
+            CallTask();
+        });
+    </script>
+}
+

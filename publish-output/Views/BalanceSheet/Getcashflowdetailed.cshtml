@@ -1,0 +1,383 @@
+﻿
+
+@using QuickSoft.Models
+@using QuickSoft.ViewModel
+@model QuickSoft.ViewModel.BalanceSheetViewModel
+@{
+    ViewBag.Title = "Search Trial Balance";
+    ViewBag.SubTitle = "Trial Balance Report";
+    ViewBag.Active = "Accounts";
+    string prevgroupame = "nothings";
+    decimal? DTAmount = 0;
+    decimal? CTAmount = 0;
+    decimal? BalTot = 0;
+    decimal? DTAmount1 = 0;
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Report</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="fromdate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))" />
+        <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))" />
+        <table class="table table-bordered table-hover" id="UserTable" style="width:100%">
+            <thead>
+                @if (ViewBag.Typ == "Purchase" || ViewBag.Typ == "Purchase Return" || ViewBag.Typ == "Sale" || ViewBag.Typ == "Sales Return")
+                {
+                    <tr class="bg-gray">
+                        <td>
+                            Parent : @ViewBag.Parent
+                        </td>
+                        <td colspan="3">
+                            @*From : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))*@
+                            Date: @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+                        <td>S/N</td>
+                        <td>Date</td>
+                        <td>Vch/Bill No</td>
+                        <td>Account</td>
+                        <td class="text-center">
+                            DEBIT ( AED )
+                        </td>
+                        <td class="text-center">
+                            CREDIT ( AED )
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    <tr class="bg-gray">
+                        <td>
+                            Parent : @ViewBag.Parent
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td >
+                            From Date : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))
+                            To Date: @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))
+                        </td>
+                    </tr>
+                    <tr class="bg-gray">
+
+                        <td>Particulars</td>
+                        <td class="text-center">
+                            DEBIT ( AED )
+                        </td>
+                        <td class="text-center">
+                            CREDIT ( AED )
+                        </td>
+                        <td class="text-center">
+                            BALANCE
+                        </td>
+                    </tr>
+                }
+            </thead>
+            <tbody>
+                @if (ViewBag.Typ == "Purchase" || ViewBag.Typ == "Purchase Return" || ViewBag.Typ == "Sale" || ViewBag.Typ == "Sales Return")
+                {
+
+                }
+                else
+                {
+                    if (Model.TrialBalanceDisplay != null)
+                    {
+                        if (Model.TrialBalanceDisplay.Any())
+                        {
+                            int TotCount = 0;
+                            foreach (var item in Model.TrialBalanceDisplay)
+                            {
+
+                                decimal? Balance = 0;
+                                decimal? AmountCr = 0;
+                                decimal? AmountDr = 0;
+                                decimal? Debit = 0;
+                                decimal? Credit = 0;
+                                decimal? dplDr = 0;
+                                decimal? dplCr = 0;
+
+
+                                Debit = item.Debit;
+                                AmountDr = (Debit);
+                                AmountDr = AmountDr != null ? AmountDr : 0;
+                                dplDr = (Debit);
+                                dplDr = dplDr != null ? dplDr : 0;
+
+                                Credit = item.Credit;
+                                AmountCr = (Credit);
+                                AmountCr = AmountCr != null ? AmountCr : 0;
+                                dplCr = (Credit);
+                                dplCr = dplCr != null ? dplCr : 0;
+
+
+
+
+                                @*  <td>&nbsp;&nbsp;<a href="/MyReports/GetLedger?AccId=@item.AccountsGroupID&fromdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&AccGroup=null&pdc=null" target="_blank">@item.Particular</a></td>*@
+
+                                if (item.AccountsGroupID == 0)
+                                {
+                                    <tr>
+                                        <td> @Html.Raw(item.Particular)</td>
+
+                                        <td> </td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                }
+                                else if (item.groupname != prevgroupame)
+                                {
+                                    prevgroupame = item.groupname;
+                                    <tr>
+                                        <td style="color:forestgreen"> @Html.Raw(item.groupname)</td>
+
+                                        <td> </td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        @{
+                                                                                <td style="color:blueviolet">&nbsp;&nbsp;&nbsp;@item.Particular</td>
+
+                                            <td class="text-center">@Debit.Value.ToString("0.00")</td>
+                                            <td class="text-center">@Credit.Value.ToString("0.00")</td>
+                                            Balance = (dplDr - dplCr) * -1;
+                                            <td class="text-center">@Balance.Value.ToString("0.00")</td>
+                                            DTAmount += AmountDr;
+                                            CTAmount += AmountCr;
+                                            BalTot = CTAmount - DTAmount;
+                                        }
+                                    </tr>
+                                }
+                                else
+                                {
+                                    <tr>
+                                        @{
+                                                                                <td style="color:blueviolet">&nbsp;&nbsp;&nbsp;@item.Particular</td>
+
+                                            <td class="text-center">@Debit.Value.ToString("0.00")</td>
+                                            <td class="text-center">@Credit.Value.ToString("0.00")</td>
+                                            Balance = (dplDr - dplCr) * -1;
+                                            <td class="text-center">@Balance.Value.ToString("0.00")</td>
+                                            DTAmount += AmountDr;
+                                            CTAmount += AmountCr;
+                                            BalTot = CTAmount - DTAmount;
+                                        }
+                                    </tr>
+                                }
+
+
+
+                                @*<td class="text-right">@Credit.Value.ToString("0.00")</td>*@
+
+
+                                @*@if (item.Parent == 7)
+                        {
+                            DTAmount += AmountDr;
+                            CTAmount += AmountCr;
+                        }*@
+
+                                TotCount++;
+                            }
+                        }
+                    }
+                }
+
+
+                @if (ViewBag.Typ == "Purchase" || ViewBag.Typ == "Purchase Return" || ViewBag.Typ == "Sale" || ViewBag.Typ == "Sales Return")
+                {
+
+                }
+                else
+                {
+
+                }
+
+                @if (Model.BalanceSheet != null && 1 == 2)
+                {
+                    if (Model.BalanceSheet.Any())
+                    {
+                        int TotCount = 0;
+                        int cnt = 1;
+
+                        foreach (var item in Model.BalanceSheet)
+                        {
+
+
+
+                            var dif = item.Debit - item.Credit;
+
+                            if (dif != 0)
+                            {
+                                <tr>
+                                    <td><a href="/BalanceSheet/GetGroupTrialBalancebalancesheet?AccGroup=@item.AccountsGroupID&type2=liability&frmdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&parent=@item.Particulars&pdc=false" target="_blank">@item.Particulars</a></td>
+
+                                    <td class="text-center">@Html.DisplayFor(m => item.Debit)</td>
+                                    <td class="text-center">@Html.DisplayFor(m => item.Credit)</td>
+                                    <td class="text-center">@dif</td>
+
+                                </tr>
+                                BalTot = BalTot + dif;
+                                cnt++;
+                                TotCount++;
+                            }
+                        }
+
+
+                    }
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Grand Total</td>
+
+                    <td class="text-center"></td>
+                    <td class="text-center"></td>
+                    <td class="text-center">@BalTot.Value</td>
+
+                </tr>
+
+            </tfoot>
+        </table>
+    </div>
+
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $(window).scroll(function (e) {
+            var scroll = $(window).scrollTop();
+            if (scroll >= 0) {
+                $('.treeview-menu').addClass("navbar-hide");
+                var i = scroll;
+                $(".navbar-hide").css('margin-top', -i);
+
+            } else {
+                $(".navbar-hide").css('margin-top', 0);
+                $('.treeview-menu').removeClass("navbar-hide");
+            }
+
+        });
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                //"order": [[0, "asc"]],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                    {
+                        extend: 'print',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Cash Flow';
+                        },
+                        message: '<table class="tblcompact table table-bordered"><thead>' +
+                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Cash Flow</h4></th></tr>' +
+                            ' <tr><th class="text-center"><span> From :  ' + $('#fromdate').val() + '</span><span> To :  ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>',
+                        customize: function (win) {
+
+                            $(win.document.body).find('table, th,tr, td ')
+                                // .css('border', 'inherit')
+                                .css('font-size', '10pt')
+                                .css('padding', '5px')
+                                .addClass('compact');
+                            $(win.document.body).append('</td></tr></tbody>')
+
+                        }
+                    }, 'copy', 'csv',
+                    {
+                        extend: 'excel',
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Cash Flow';
+                        },
+                        message:
+                         
+                            ' Cash Flow \n' +
+                            'From :  ' + $('#fromdate').val() +
+                            ' To :  ' + $('#todate').val() + ''
+                        ,
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                    },
+                    {
+                        extend: 'pdf',//
+                        title: "",
+                        footer: true,
+                        filename: function () {
+                            return 'Cash Flow ';
+                        },
+                        message:
+                            '' + $('#cname').val() + '\n' +
+                            '' + $('#caddress').val() + '\n' +
+                            ' Cash Flow \n' +
+                            'From :  ' + $('#fromdate').val() +
+                            ' To :  ' + $('#todate').val() + ''
+                        ,
+                        pageSize: 'A4',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3]
+                        },
+                        customize: function (doc) {
+                            doc.pageMargins = [10, 10, 10, 10];
+                            doc.defaultStyle.fontSize = 10;
+                            doc.styles.tableHeader.fontSize = 10;
+                            doc.styles.title.fontSize = 12;
+                            // Remove spaces around page title
+                            doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                            doc.content[1].table.widths = [
+                                '20%',
+                                '15%',
+                                '15%',
+                                '20%',
+                                '15%',
+                                '15%',
+
+
+
+
+
+                            ]
+
+                            var objLayout = {};
+                            // Horizontal line thickness
+                            objLayout['hLineWidth'] = function (i) { return .5; };
+                            // Vertikal line thickness
+                            objLayout['vLineWidth'] = function (i) { return .5; };
+                            //// Horizontal line color
+                            //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                            //// Vertical line color
+                            //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                            // Left padding of the cell
+                            objLayout['paddingLeft'] = function (i) { return 4; };
+                            // Right padding of the cell
+                            objLayout['paddingRight'] = function (i) { return 4; };
+                            // Inject the object in the document
+                            doc.content[1].layout = objLayout;
+                        }
+                    },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip"
+            });
+        });
+    </script>
+}
+
+
+

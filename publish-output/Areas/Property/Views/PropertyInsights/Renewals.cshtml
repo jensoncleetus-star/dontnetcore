@@ -1,0 +1,43 @@
+@{
+    ViewBag.Title = "Renewals & Expiry";
+    ViewBag.Active = "Reports";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#b91c1c,#ef4444 55%,#f59e0b)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-bell"></i></div>
+            <div><h1>Renewals &amp; Expiry Centre</h1><p>Contracts &amp; documents coming due — act before they lapse</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/TenancyContract/Create" class="rfi-btn"><i class="fa fa-plus"></i> New Contract</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Critical (≤30 days)</span><span class="rfi-num neg">@ViewBag.Critical</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Soon (31–60 days)</span><span class="rfi-num" style="color:#d97706">@ViewBag.Soon</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Later (61–90 days)</span><span class="rfi-num">@ViewBag.Later</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Upcoming</span><span class="rfi-num">@ViewBag.Total</span></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-hourglass-half"></i> Action Queue <span class="rfi-mut">(soonest first)</span></h3>
+        <div id="rnList" class="rfi-queue"></div>
+    </div>
+</div>
+<script>
+(function(){
+  var items=@Html.Raw(ViewBag.Items ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var tname=['CRITICAL','SOON','UPCOMING'];
+  document.getElementById('rnList').innerHTML = items.length ? items.map(function(it){
+    return '<div class="rfi-q rfi-t'+it.tier+'">'+
+      '<div class="rfi-q-ic"><i class="fa '+(it.type=='Document'?'fa-id-card':'fa-file-text-o')+'"></i></div>'+
+      '<div class="rfi-q-main"><div class="rfi-q-title">'+esc(it.title)+' <span class="rfi-q-type">'+esc(it.type)+'</span></div><div class="rfi-q-sub">'+esc(it.sub)+'</div></div>'+
+      '<div class="rfi-q-meta"><div class="rfi-q-days">'+it.days+' days</div><div class="rfi-q-date">'+esc(it.date)+'</div></div>'+
+      (it.amount>0?'<div class="rfi-q-amt">AED '+m(it.amount)+'</div>':'<div class="rfi-q-amt"></div>')+
+      '<a class="rfi-q-btn" href="'+it.link+'">Renew</a></div>';
+  }).join('') : '<div class="rfi-empty">Nothing due in the next 90 days 🎉</div>';
+})();
+</script>

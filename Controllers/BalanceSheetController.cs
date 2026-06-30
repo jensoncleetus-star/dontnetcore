@@ -1543,7 +1543,7 @@ namespace QuickSoft.Controllers
                 }
             }
             decimal avgp = 0;
-            if (avgpurchaseprice.Count() != 0)
+            if (avgpurchaseprice.Count() != 0 && totalstock != 0)   // Calc fix: guard divisor (was checking row count, not totalstock) — prevents DivideByZeroException when rows net to zero qty.
             {
                 avgp = avpricetotal / totalstock;
             }

@@ -2298,7 +2298,7 @@ namespace QuickSoft.Controllers
         }
 
         [HttpPost]
-        //[QkAuthorize(Roles = "Dev, Approvals")]
+        [QkAuthorize(Roles = "Dev, Approvals")]   // Security S10: restored — approval data is approver-only
         public JsonResult GetPaymentApproval(string InvoiceNo, string SaleInvoiceNo, string FromDate, string ToDate, long? type, long? PayFrom, long? PayTo, string user)
 
         {
@@ -2513,6 +2513,7 @@ namespace QuickSoft.Controllers
         }
 
         [HttpPost]
+        [QkAuthorize(Roles = "Dev, Approvals")]   // Security S10: approver-only write path (role is actively enforced; matches GetPaymentApproval).
         public ActionResult EditStatus(ApprovalUpdate App, long id)
         {
             bool stat = false;

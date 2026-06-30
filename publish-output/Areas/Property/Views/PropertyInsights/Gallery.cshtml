@@ -1,0 +1,53 @@
+@{
+    ViewBag.Title = "Property Gallery";
+    ViewBag.Active = "Master";
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#7e22ce,#a21caf 55%,#ec4899)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-camera"></i></div>
+            <div><h1>Property Gallery</h1><p>Photos &amp; documents — upload and view per property</p></div>
+        </div>
+        <div class="rfi-hero-r"><select id="galPick" class="rfi-pick"></select></div>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-cloud-upload"></i> Upload to <span style="color:#a21caf">@ViewBag.PName</span> <span class="rfi-mut">(@ViewBag.Count file(s))</span></h3>
+        <form method="post" action="/Property/PropertyInsights/UploadPhotos" enctype="multipart/form-data" id="upForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="PropertyID" value="@ViewBag.SelectedId" />
+            <label class="rfi-drop" id="dropZone">
+                <i class="fa fa-cloud-upload"></i>
+                <span id="dropText">Drag photos / PDFs here, or click to choose</span>
+                <input type="file" name="files" id="fileInput" multiple accept="image/*,application/pdf" hidden />
+            </label>
+            <div class="rfi-up-actions"><button type="submit" class="rfi-q-btn"><i class="fa fa-upload"></i> Upload</button></div>
+        </form>
+    </div>
+
+    <div class="rfi-card">
+        <h3><i class="fa fa-image"></i> Gallery</h3>
+        <div id="galGrid" class="rfi-gallery"></div>
+    </div>
+</div>
+<script>
+(function(){
+  var props=@Html.Raw(ViewBag.Properties ?? "[]"), sel=@(ViewBag.SelectedId ?? 0), imgs=@Html.Raw(ViewBag.Images ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var pk=document.getElementById('galPick');
+  pk.innerHTML=props.map(function(p){return '<option value="'+p.id+'"'+(p.id==sel?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+  pk.addEventListener('change',function(){window.location.href='/Property/PropertyInsights/Gallery?id='+this.value;});
+  // dropzone
+  var fi=document.getElementById('fileInput'), dz=document.getElementById('dropZone'), dt=document.getElementById('dropText');
+  fi.addEventListener('change',function(){ dt.textContent = fi.files.length? fi.files.length+' file(s) selected — click Upload' : 'Drag photos / PDFs here, or click to choose'; });
+  ['dragover','dragenter'].forEach(function(e){dz.addEventListener(e,function(ev){ev.preventDefault();dz.classList.add('rfi-drop-on');});});
+  ['dragleave','drop'].forEach(function(e){dz.addEventListener(e,function(ev){ev.preventDefault();dz.classList.remove('rfi-drop-on');});});
+  dz.addEventListener('drop',function(ev){ fi.files=ev.dataTransfer.files; dt.textContent=fi.files.length+' file(s) ready — click Upload'; });
+  // gallery
+  document.getElementById('galGrid').innerHTML = imgs.length ? imgs.map(function(i){
+    var url='/Property/PropertyInsights/Photo?id='+i.id, del='/Property/PropertyInsights/DeletePhoto?id='+i.id;
+    if(i.img) return '<div class="rfi-gcell"><img src="'+url+'" loading="lazy"><a class="rfi-gdel" href="'+del+'" title="Remove"><i class="fa fa-times"></i></a></div>';
+    return '<div class="rfi-gcell rfi-gdoc"><a href="'+url+'" target="_blank"><i class="fa fa-file-pdf-o"></i><span>Document</span></a><a class="rfi-gdel" href="'+del+'" title="Remove"><i class="fa fa-times"></i></a></div>';
+  }).join('') : '<div class="rfi-empty">No photos yet — upload the first one above</div>';
+})();
+</script>

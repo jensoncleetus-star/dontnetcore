@@ -879,7 +879,7 @@ namespace QuickSoft.Controllers
             var FujSRTaxable = vmodel.SReturn.Where(a => a.State == "Fujairah").Select(a => (a.Subtotal - a.Discount)).AsEnumerable().DefaultIfEmpty(0).Sum();
             var FujSRTaxAmt = vmodel.SReturn.Where(a => a.State == "Fujairah").Select(a => a.Tax).AsEnumerable().DefaultIfEmpty(0).Sum();
             var FujReturn = FujSETaxable - FujSRTaxable;
-            var FujTax = FujSETaxAmt - FujSRTaxable;
+            var FujTax = FujSETaxAmt - FujSRTaxAmt; // Calc fix: was FujSRTaxable (taxable base) — every other emirate subtracts the return VAT amount (...SRTaxAmt). Fujairah net-VAT was wrong.
 
             //Ras al-Khaimah
             var RasSETaxable = vmodel.Sales.Where(a => a.State == "Ras al-Khaimah").Select(a => (a.Subtotal - a.Discount)).AsEnumerable().DefaultIfEmpty(0).Sum();
@@ -935,7 +935,7 @@ namespace QuickSoft.Controllers
             var FujPRTaxable = vmodel.PReturn.Where(a => a.State == "Fujairah").Select(a => (a.Subtotal - a.Discount)).AsEnumerable().DefaultIfEmpty(0).Sum();
             var FujPRTaxAmt = vmodel.PReturn.Where(a => a.State == "Fujairah").Select(a => a.Tax).AsEnumerable().DefaultIfEmpty(0).Sum();
             var FujPReturn = FujPETaxable - FujPRTaxable;
-            var FujPTax = FujPETaxAmt - FujPRTaxable;
+            var FujPTax = FujPETaxAmt - FujPRTaxAmt; // Calc fix: was FujPRTaxable (taxable base) — should subtract the purchase-return VAT amount (...PRTaxAmt), like every other emirate.
 
             //Ras al-Khaimah
             var RasPETaxable = vmodel.Purchase.Where(a => a.State == "Ras al-Khaimah").Select(a => (a.Subtotal - a.Discount)).AsEnumerable().DefaultIfEmpty(0).Sum();

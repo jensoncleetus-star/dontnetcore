@@ -1,0 +1,548 @@
+﻿@{
+    ViewBag.Title = "Utility";
+    ViewBag.SubTitle = "Tag Printing";
+    ViewBag.Active = "Utility";
+    string delchk = "";
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Tag Printing</h3>
+    </div>
+    <div class="box-body">
+        <form class="form-horizontal">
+            <input type="hidden" id="bcvalue" />
+            <input type="hidden" id="itmname" />
+            <input type="hidden" id="itmprice" />
+            <input type="hidden" id="supplierref" />
+            <input type="hidden" id="tgl1" />
+            <input type="hidden" id="tgl2" />
+            <input type="hidden" id="tgl3" />
+            <input type="hidden" id="tgl4" />
+            <input type="hidden" id="tgl5" />
+            <input type="hidden" id="cname" value="@ViewBag.CName" />
+            <div class="form-group">
+                <label class="control-label col-md-4">Filters</label>
+                <div class="col-sm-4">
+                    <select class="form-control input-sm" id="ddlFilters" name="ddlFilters">
+                        <option value="0">Individual</option>
+                        <option value="1">Range</option>
+                        <option value="2">List</option>
+                    </select>
+                </div>
+            </div>
+            <div id="single">
+                <div class="form-group">
+                    <label class="control-label col-md-4">Items</label>
+                    <div class="col-sm-4">
+                        @Html.DropDownList("ddlItems", (SelectList)ViewBag.SelItems, new { @class = "form-control input-sm" })
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-md-4">Print Quantity</label>
+                    <div class="col-sm-4">
+                        <input type="number" value="1" class="form-control input-sm" id="labelRowsQty1" />
+                        <table class="table" id="barcodetable" style="width:0px !important;"></table>
+                    </div>
+                </div>
+            </div>
+            <div id="range">
+                <div class="form-group">
+                    <label class="control-label col-md-4">Item Prefix</label>
+                    <div class="col-sm-4">
+                        @Html.DropDownList("ddlPrefix", (SelectList)ViewBag.Prefix, new { id = "ddlPrefix", @class = "form-control select2" })
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label">FROM:</label>
+                    <div class="col-sm-4 text-center">
+                        @Html.DropDownList("ddlItemFr", (SelectList)ViewBag.JewItems, new { @class = "form-control input-sm", @required = "required" })
+                    </div>
+                    <label class="col-sm-2 control-label">TO:</label>
+                    <div class="col-sm-4 text-center">
+                        @Html.DropDownList("ddlItemTo", (SelectList)ViewBag.JewItems, new { @class = "form-control input-sm", @required = "required" })
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-md-4">Print Quantity</label>
+                    <div class="col-sm-4">
+                        <input type="number" value="1" class="form-control input-sm" id="labelRowsQty2" />
+                    </div>
+                </div>
+            </div>
+        </form>
+
+            @using (Html.BeginForm("GetItemContains", "Item", FormMethod.Post, new { id = "delallform", role = "form" }))
+            {
+                <div id="allitem">
+                    <div class="form-group">
+                        <label class="control-label col-md-4">Print Quantity</label>
+                        <div class="col-sm-4">
+                            <input type="number" value="1" class="form-control input-sm" id="labelRowsQty3" />
+                        </div>
+                    </div>
+                    <table class="table table-bordered table-hover" id="UserTable">
+                        <thead>
+                            <tr>
+                                <td>S/N</td>
+                                <td>Code</td>
+                                <td>Name</td>
+                                <td>Barcode</td>
+                                <td data-priority="1"><input type="checkbox" id="select_all" /></td>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="box-footer col-md-12">
+                    <input type="button" class="btn btn-info col-sm-offset-5" value="Print Barcode" id="Submit" />
+                    <button type="button" class="btn btn-default" onclick="@("window.location.href='" + @Url.Action("Index", "Home") + "'");">Cancel</button>
+                </div>
+            }
+
+            <div id="cont" class="hidden">
+                <svg class="barcode"></svg>
+            </div>
+    </div>
+</div>
+@Html.Partial("_PrintJewBarcode")
+@section Scripts {
+    @Scripts.Render("~/js/JsBarcode")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": true, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bStateSave": true,
+                "pageLength": 50,
+                responsive: true,
+                "ajax": {
+                    "url": '/Item/GetItem',
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columnDefs": [{
+                    "targets": [4],
+                    "orderable": false
+                }],
+                "columns": [
+                     {
+                         "data": "ItemID", "name": "ItemID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "ItemCode", "name": "ItemCode" },
+                    { "data": "ItemName", "name": "ItemName" },
+                    { "data": "Barcode", "name": "Barcode" },
+                    {
+                        "name": "ItemID", "data": function (data) {
+                            var rest = "";
+                            @{
+                            delchk = "<input class=\"checkbox\" type=\"checkbox\" name=\"bill[]\" value='+ data.ItemID +'></input>";
+                        }
+                            return rest = '@Html.Raw(delchk)';
+                        }
+                    },
+                ],
+            });
+        });
+
+        $('body').on('click', '#Submit', function (e) {
+            var filter = $('#ddlFilters').val();
+            var flag = true;
+            if (filter == 1) {
+                var itemF = $('#ddlItemFr').val();
+                var itemT = $('#ddlItemTo').val();
+                var prefix = $('#ddlPrefix').val();
+                if (itemF == "" || itemT == "") {
+                    alert("Please Select Item Range");
+                    flag = false;
+                }
+            }
+            else if (filter == 2) {
+            }
+            else {
+                var item = $('#ddlItems').val();
+                if (item != "") {
+                    BindSingleTag();
+                }
+                else {
+                    alert("Please Select An Item");
+                    flag = false;
+                }
+            }
+            if (flag) {
+                PrintJewBarCode();
+                window.location.href = '@Url.Action("CreateJewellery", "Barcode")';
+            }
+        });
+        $("#ddlPrefix").select2({
+            placeholder: 'Select Prefix',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/PrefixMaster/SearchPrefix",
+                dataType: 'json',
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#ddlItems").select2({
+            placeholder: 'Search Item by Name or Code',
+            minimumInputLength: 0,
+            ajax: {
+                url: "/Item/Search",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            },
+        });
+        $("#range").hide();
+        $("#allitem").hide();
+        $('body').on('change', '#ddlFilters', function (e) {
+            var filter = $(this).val();
+            if (filter == 1) {
+                $("#single").hide();
+                $("#range").show();
+                $("#allitem").hide();
+                var prefix = $("#ddlPrefix").val();
+                fillItem(prefix);
+            } else if (filter == 2) {
+                $("#single").hide();
+                $("#range").hide();
+                $("#allitem").show();
+            } else {
+                $("#single").show();
+                $("#range").hide();
+                $("#allitem").hide();
+            }
+        });
+
+        // for indivitual
+        $('body').on('change', '#ddlItems', function (e) {
+            var itemId = $(this).val();
+            $.ajax({
+                url: '/Item/GetItem',
+                type: "GET",
+                dataType: "JSON",
+                data: { itemID: itemId },
+                success: function (data) {
+                    $("#barcodetable tr").remove();
+                    if (data.Barcode != null) {
+                        //add unit
+                        var newOption = $('<option></option>');
+                        if ((data.PriUnit != data.SubUnit) && data.SubUnitId != null) {
+                            newOption.val(data.ItemUnitID).html(data.PriUnit);
+                            var newOption1 = $('<option></option>');
+                            newOption1.val(data.SubUnitId).html(data.SubUnit);
+                            if (data.ItemUnit) {
+                                if (data.ItemUnit == data.ItemUnitID)
+                                    newOption.attr("selected", "selected");
+                                if (data.ItemUnit == c.SubUnitId)
+                                    newOption1.attr("selected", "selected");
+                            }
+                            $('#Unit').html('');
+                            $('#Unit').append(newOption);
+                            $('#Unit').append(newOption1);
+
+                        } else {
+                            $('#Unit').html('');
+                            newOption.val(data.ItemUnitID).html(data.PriUnit);
+                            $('#Unit').append(newOption);
+                            $("#UnitName").val(data.PriUnit);
+                        }
+
+                        //set price and cfactor
+                        $("#Cfactor").val(data.ConFactor);
+                        $("#bcvalue").val(data.Barcode);
+                        $("#itmname").val(data.ItemName);
+                        $("#itmprice").val(data.SellingPrice);
+                        $("#supplierref").val(data.SupplierRef);
+
+                        $("#tgl1").val(data.TagLine1);
+                        $("#tgl2").val(data.TagLine2);
+                        $("#tgl3").val(data.TagLine3);
+                        $("#tgl4").val(data.TagLine4);
+                        $("#tgl5").val(data.TagLine5);
+
+                        var bid = $('.barcode');
+                        printJewSticker(bid, data.Barcode);
+                        $('#barcodetable').append(BindTag(data));
+                        $("#brdiv").show();
+                    } else {
+                        alert("Barcode Not Found");
+                        $('#ddlItem').select2('close');
+                        $("#ddlItem").val(null).trigger("change");
+                        $('#Unit').empty();
+                        $("#brdiv").hide();
+                    }
+                }
+            });
+        });
+        // For range
+        $('body').on('change', '#ddlPrefix', function (e) {
+            var prefix = $(this).val();
+            fillItem(prefix)
+        });
+        function fillItem(prefix) {
+            $('#ddlItemFr').val(null).trigger('change');
+            $("#ddlItemFr").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/SearchItemByPrefix",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            px: prefix
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+            $('#ddlItemTo').val(null).trigger('change');
+            $("#ddlItemTo").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/SearchItemByPrefix",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            px: prefix
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        }
+        $('body').on('change', '#ddlItemTo', function (e) {
+            var itemF = $('#ddlItemFr').val();
+            var itemT = $('#ddlItemTo').val();
+            var prefix = $('#ddlPrefix').val();
+            var printqty = $('#labelRowsQty2').val();
+            BindRangeTag(itemF, itemT, prefix, printqty);
+        });
+        $('body').on('change', '#labelRowsQty2', function (e) {
+            var itemF = $('#ddlItemFr').val();
+            var itemT = $('#ddlItemTo').val();
+            var prefix = $('#ddlPrefix').val();
+            var printqty = $('#labelRowsQty2').val();
+            BindRangeTag(itemF, itemT, prefix, printqty);
+        });
+
+        function BindRangeTag(ItemF, ItemT, Prefix, pqty) {
+            if (ItemF != "" && ItemT != "") {
+                $("#chkbartable").html('');
+                $.ajax({
+                    url: '/Item/GetItemBetween',
+                    dataType: 'json',
+                    data: { ItemF: ItemF, ItemT: ItemT, Prefix: Prefix },
+                    cache: true,
+                    success: function (data) {
+                        $.each(data, function (i, item) {
+                            var prqty = pqty;
+                            var data = BindTag(item,'svg');
+                            var table = "";
+                            while (prqty >= 1) {
+                                table = data;
+                                prqty--;
+                                $("#chkbartable").append(table);
+                            }
+                            var bid = $('.barcode' + item.ItemID + '');
+                            printJewSticker(bid, item.Barcode);
+                        });
+                    }
+                });
+            }
+        }
+
+        function BindTag(item,img) {
+            var TG1 = item.TagLine1 || "";
+            var TG2 = item.TagLine2 || "";
+            var TG3 = item.TagLine3 || "";
+            var TG4 = item.TagLine4 || "";
+            var TG5 = item.TagLine5 || "";
+            if ($("#Unit").prop('selectedIndex') == 0) {
+                itemPrice = item.SellingPrice;
+            } else {
+                itemPrice = (item.SellingPrice / item.ConFactor);
+            }
+            var image = "";
+            if (img == 'svg') {
+                image = '<svg class="barcode' + item.ItemID + '"></svg>';
+            }
+            else {
+                image = $('#cont').html();
+            }
+            var codeLine = '<div>' + image + '</div><p style="margin-top: -7px;padding-bottom: 0px;font-size: 0.9em;"><b>AED ' + itemPrice + '</b></p>';
+            codeLine += item.SupplierRef != "" ? '<p>' + item.SupplierRef + '</p>' : '';
+            codeLine += TG1 != "" ? '<p>' + TG1 + '</p>' : '';
+            codeLine += TG2 != "" ? '<p>' + TG2 + '</p>' : '';
+            codeLine += TG3 != "" ? '<p>' + TG3 + '</p>' : '';
+            codeLine += TG4 != "" ? '<p>' + TG4 + '</p>' : '';
+            codeLine += TG5 != "" ? '<p>' + TG5 + '</p>' : '';
+            var table = "";
+            table = "<tr><td style='padding-top: 0px;'> " + codeLine + "</td></tr>";
+            return table;
+        }
+        
+        function BindSingleTag() {
+            var rows = parseInt($('#labelRowsQty1').val());
+            rows = (rows > 0) ? rows : 1;
+            var item={}
+            item.TagLine1 = $('#tgl1').val();
+            item.TagLine2 = $('#tgl2').val();
+            item.TagLine3 = $('#tgl3').val();
+            item.TagLine4 = $('#tgl4').val();
+            item.TagLine5 = $('#tgl5').val();
+            item.SupplierRef = $('#supplierref').val();
+            item.SellingPrice = $('#itmprice').val();
+            item.ConFactor = $('#Cfactor').val() || 1;
+            var data = BindTag(item);
+            var i = 0;
+            var table = "";
+            while (i < rows) {
+                var items = 1;
+                table += data;
+                //table += "<tr><td style='padding-top: 0px;'> " + str + "</td></tr>";
+                i++;
+            }
+            $('#chkbartable').append(table);
+        }
+
+
+        //select all checkboxes
+        $('body').on('change', '#select_all', function () {
+            $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+
+            var printqty = $('#labelRowsQty3').val();
+            var itemTable = $("#UserTable").dataTable();
+            var cols = [];
+            $("input:checkbox", itemTable.fnGetNodes()).each(function () {
+                var tuisre = $(this).is(":checked");
+                if (tuisre) {
+                    cols.push($(this).val());
+                }
+            });
+            BindListTag(cols, printqty);
+        });
+        //".checkbox" change
+        $('body').on('change', '.checkbox', function () {
+            //unchecked "select all", if one of the listed check box item is unchecked
+            if (false == $(this).prop("checked")) { //if this item is unchecked
+                $("#select_all").prop('checked', false); //change "select all" checked status to false
+            }
+            isTicked();
+        });
+        function isTicked() {
+            //check "select all" if all checkbox items are checked
+            if ($('.checkbox:checked').length == $('.checkbox').length && ($('.checkbox:checked').length > 0)) {
+                $("#select_all").prop('checked', true);
+            }
+            else {
+                $("#select_all").prop('checked', false);
+            }
+            $("#chkbartable").html('');
+            var printqty = $('#labelRowsQty3').val();
+            var itemTable = $("#UserTable").dataTable();
+            var cols = [];
+            $(".checkbox:checked", itemTable.fnGetNodes()).each(function () {
+                var tuisre = $(this).is(":checked");
+                if (tuisre) {
+                    cols.push($(this).val());
+                }
+            });
+            BindListTag(cols, printqty);
+        }
+
+        function BindListTag(cols, pqty) {
+            if (cols != "") {
+                var parameters = {};
+                parameters.array = cols
+                $.ajax({
+                    async: true,
+                    cache: false,
+                    dataType: "json",
+                    type: "POST",
+                    contentType: "application/json; charset=utf-8",
+                    url: '/Item/GetItemContains',
+                    data: JSON.stringify(parameters),
+                    success: function (data) {
+                        $.each(data, function (i, item) {
+                            var prqty = pqty;
+                            var data = BindTag(item, 'svg');
+                            var table = "";
+                            while (prqty >= 1) {
+                                table = data;
+                                prqty--;
+                                $("#chkbartable").append(table);
+                            }
+                            var bid = $('.barcode' + item.ItemID + '');
+                            printJewSticker(bid, item.Barcode);
+
+                        });
+                    }
+                });
+            }
+        }
+
+
+        function PrintJewBarCode() {
+            var originalpage = document.body.innerHTML;
+            var printContent = $('#printJewBarcode').html();
+            $('body').html(printContent);
+            $('title').html("Jewellery Barcode Print");
+            window.print();
+        }
+    </script>
+}

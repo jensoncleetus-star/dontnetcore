@@ -1,0 +1,302 @@
+﻿@model QuickSoft.Models.AdditionalMc
+@{
+    ViewBag.Title       =   "List";
+    ViewBag.SubTitle    =   "Additional Material Centre List";
+    ViewBag.Active      =   "Reports";
+    string actData      =   "";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Additional Material Centre List</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Create MC"))
+            {
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border modal-create" href="/AdditionalMC/Create">
+                    <i class="glyphicon glyphicon-plus"></i> Create Material Centre
+                </a>
+                <i class="ace-icon fa fa-hand-o-right icon-animated-hand-pointer blue"></i>
+                <a class="btn btn-info no-border" href="/approvemc/Index">
+                    <i class="glyphicon glyphicon-plus"></i> Material Centre Approvals
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="box-body">
+        <table class="table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr>
+                    <td data-priority="1">#</td>
+                    <td data-priority="2">Material Centre</td>
+                    <td data-priority="2">Employees</td>
+                    <td data-priority="7">Action</td>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@Html.Partial("../Common/_ModalCreate")
+@Html.Partial("../Common/_ModalEdit")
+@Html.Partial("../Common/_ModalChange")
+@Html.Partial("../Common/_ModalDelete")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/jqueryval")
+
+<script type="text/javascript">
+
+      $(document).ready(function () {
+          $('#advsearch').hide();
+      });
+    
+         var oTable = $('#UserTable').DataTable({
+            "processing": true, // for show progress bar
+            "serverSide": true, // for process server side
+            "filter": true, // this is for disable filter (search box)
+            "orderMulti": false, // for disable multiple column at once
+             "bStateSave": true,
+             "pageLength": 50,
+             "ordering": false,
+             responsive: true,             
+            "ajax": {
+                "url": '/AdditionalMC/GetAddMc',
+                "data": function (data) {
+                },
+                "type": "POST",
+                "datatype": "json"
+            },
+
+            "columns": [
+                {
+                    "data": "McId", "name": "McId",
+                    "render": function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                { "data": "McName", "name": "McName" },
+                {
+                    "name": "Employees", "data": function (data) {
+                        var datas = "";
+
+                        $.each(data.Employees, function (i, item) {
+                            if (datas != "") {
+                                datas += ", ";
+                            }
+                            datas += item.FirstName + " " + item.LastName;
+                        })
+                        return datas;
+                    }
+                },
+                {
+                    "name": "McId", "data": function (data) {
+                        var rest = "";
+                        @{
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                            actData += "<a class=\"modal-edit\" href=\"/AdditionalMC/Edit/'+ data.McId +'\" title=\"Edit Record\"><i class=\"fa fa-lg fa-edit\" ></i></a> ";
+                            actData += "<a class=\"modal-delete\" href=\"/AdditionalMC/Delete/'+ data.McId +'\" title=\"Delete Record\"><i class=\"fa fa-lg fa-trash\" ></i></a> ";
+                        }
+                        return rest = '@Html.Raw(actData)';
+                    }
+                }
+            ],
+
+            @*dom: 'Bfrtip',
+            buttons: ['colvis',
+             {
+                 extend: 'print',//
+                 title: "",
+                 footer: true,
+                 exportOptions: {
+                     columns: ':visible'
+                 },
+                 message: '<table class="tblcompact table table-bordered"><thead>' +
+                     ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + '<h4>Location </h4></th></tr>' +
+                     ' <tr><th><span class="text-left"></span><span class="text-right pull-right"> </span></th></tr></thead><tbody><tr><td>',
+                 customize: function (win) {
+                     // $(win.document.body)
+                     //.css('font-size', '10pt')
+                     //.css('padding', '1px');
+                     $(win.document.body).find('table, th,tr, td ')
+                        // .css('border', 'inherit')
+                         .css('font-size', '10pt')
+                         .css('padding', '5px')
+                         .addClass('compact');
+                     $(win.document.body).append('</td></tr></tbody>')
+
+                 }
+             }, 'copy', 'csv', 'excel',
+            {
+                extend: 'pdf',//
+                title: "Locations",
+                footer: true,
+                orientation: 'landscape',
+
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: ':visible'
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+
+                    doc.styles['td:nth-child(2)'] = {
+                        width: '100%',
+                        'max-width': '100%'
+                    }
+
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    //// Horizontal line color
+                    //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                    //// Vertical line color
+                    //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                }
+            },
+                @Html.Raw(deleteBTn)
+            ],
+            "drawCallback": function (settings) {
+                var table = $('#UserTable').DataTable();
+                if (!table.data().any()) {
+                    $("#sub").hide();
+                } else {
+                    $("#sub").show();
+                }
+            }*@
+         });             
+
+         /* function for Create popup */
+
+          $('div').on('click', '.modal-create', function (e) {
+              e.preventDefault();
+              var url = $(this).attr('href');
+              modalshow(url, '#modal-create');
+          });
+
+          $('#modal-create').on('submit', '#createform', function (e) {
+              e.preventDefault();
+              var url = $('#createform')[0].action;
+              var data = $('#createform').serialize();
+              createajax(url, data, '#modal-create');
+              oTable.draw();
+          });
+
+          /* function for Edit popup */
+
+          $('div').on('click', '.modal-edit', function (e) {
+              e.preventDefault();
+              var url = $(this).attr('href');
+              modalshow(url, '#modal-edit');
+          });
+          $('#modal-edit').on('submit', '#editform', function (e) {
+              e.preventDefault();
+              var url = $('#editform')[0].action;
+              var data = $('#editform').serialize();
+              createajax(url, data, '#modal-edit');
+              oTable.draw();
+          });
+
+          /* function for Delete popup */
+
+          $('.table').on('click', '.modal-delete', function (e) {
+              e.preventDefault();
+              var url = $(this).attr('href');
+              modalshow(url, '#modal-delete');
+          });
+          $('#modal-delete').on('submit', '#deleteform', function (e) {
+              e.preventDefault();
+              var url = $('#deleteform')[0].action;
+              var data = $('#deleteform').serialize();
+              createajax(url, data, '#modal-delete');
+              oTable.draw();
+          });
+    
+      $.fn.modal.Constructor.prototype.enforceFocus = function () { };
+
+      $('#modal-create').on('shown.bs.modal', function (e) {
+
+          $("#ddlEmployee").select2({
+              placeholder: 'Search Employees by Name',
+              minimumInputLength: 0,
+              ajax: {
+                  url: "/AdditionalMC/SearchEmployee",
+                  dataType: 'json',
+                  type: "POST",
+                  delay: 50,
+                  data: function (params) {
+                      return {
+                          q: params.term,
+                          page: params.page,
+                      };
+                  },
+                  processResults: function (data, params) {
+                      params.page = params.page || 1;
+
+                      return {
+                          results: data
+                      };
+                  },
+                  cache: true
+              },
+          });
+
+          $("#ddlMcs").select2({
+              placeholder: 'Search Material Centre by Name or Code',
+              minimumInputLength: 0,
+              ajax: {
+                  url: "/MC/SearchMC",
+                  dataType: 'json',
+                  delay: 50,
+                  data: function (params) {
+                      return {
+                          q: params.term,
+                          page: params.page,
+                          x: ""
+                      };
+                  },
+                  processResults: function (data, params) {
+                      params.page = params.page || 1;
+                      return {
+                          results: data
+                      };
+                  },
+                  cache: true
+              },
+          });
+
+      });   
+
+</script>
+}
+

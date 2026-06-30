@@ -1,0 +1,402 @@
+@model QuickSoft.ViewModel.PipeLineViewModel
+@{
+    ViewBag.Title = "Create";
+    ViewBag.SubTitle = "PipeLine";
+    ViewBag.Active = "Master";
+    var custname = Model.CustomerName;
+}
+<div class="box box-info">
+   @using (Html.BeginForm("Create", "PipeLine", FormMethod.Post, new { id = "createForm", role = "form", enctype = "multipart/form-data" }))
+   {
+    <div class="box-header with-border">
+        <h3 class="box-title">PipeLine</h3>
+        <div class="pull-right">
+            @if (@ViewBag.LastEntry != 0)
+            {
+                if (User.IsInRole("Dev") || User.IsInRole("Edit PipeLine"))
+                {
+                    <a class="btn bg-black no-border" href="/PipeLine/Edit/@ViewBag.LastEntry">
+                        <i class="fa fa-step-backward"></i>
+                    </a>
+                }
+            }
+            @if (User.IsInRole("Dev") || User.IsInRole("PipeLine List"))
+                {
+                <a class="btn btn-success no-border" href="/PipeLine">
+                    <i class="fa fa-fw fa-history"></i> List
+                </a>
+            }
+        </div>
+    </div>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        @Html.HiddenFor(model => model.ConvertFrom)
+        @Html.HiddenFor(model => model.CustomerID)
+        <div class="box-body">
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.CustomerCode, htmlAttributes: new { @class = "control-label" })*
+                @Html.EditorFor(model => model.CustomerCode, new { htmlAttributes = new { @class = "form-control", @required = "required", tabindex = 1 } })
+            </div>
+            <div class="form-group  col-md-4">
+                @Html.LabelFor(model => model.CustomerName, htmlAttributes: new { @class = "control-label" })*
+                @Html.DropDownListFor(model => model.CustomerName, (SelectList)ViewBag.CustName, new { @class = "form-control input-sm select2", @required = "required", tabindex = 2 })
+           </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.TaxRegNo, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.TaxRegNo, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Tax RegNo", tabindex = 3 } })
+            </div>
+            
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Location, htmlAttributes: new { @class = "control-label" })
+                @Html.EditorFor(model => model.Location, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Location", tabindex = 6 } })
+            </div>
+           
+           
+            @if (@ViewBag.EnableCRM == 0)
+            {
+                <div class="form-group col-md-4">
+                    @Html.LabelFor(model => model.SourceOfLead, htmlAttributes: new { @class = "control-label" })
+                    @if (User.IsInRole("Dev") || User.IsInRole("Create SourceOfLead"))
+                    {
+                        <div class="input-group input-group-sm">
+                            @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 8 })
+                            <span class="input-group-btn">
+                                <a href="/SourceOfLead/Create" class="modal-create btn btn-default" title="Add SourceOfLead"><i class="glyphicon glyphicon-plus"></i></a>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        @Html.DropDownListFor(m => m.SourceOfLead, (SelectList)ViewBag.SrcOfLead, new { id = "ddlSrcLead", @class = "form-control select2", tabindex = 8 })
+                    }
+                </div>
+            }
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.LeadStat, htmlAttributes: new { @class = "control-label" })
+                @if (User.IsInRole("Dev") || User.IsInRole("Create LeadStatus"))
+                {
+                <div class="input-group input-group-sm">
+                    @Html.DropDownListFor(m => m.LeadStat, (SelectList)ViewBag.LeadStat, new { id = "ddlLeadStat", @class = "form-control select2", @required = "required", tabindex = 6 })
+                    <span class="input-group-btn">
+                        <a href="/LeadStatus/Create" class="modal-add btn btn-success btn-flat" title="Add Lead Status"><i class="fa fa-1x fa-plus-circle"></i></a>
+                    </span>
+                </div>
+                }
+                else
+                {
+                    @Html.DropDownListFor(m => m.LeadStat, (SelectList)ViewBag.LeadStat, new { id = "ddlLeadStat", @class = "form-control select2", @required = "required" , tabindex = 6 })
+                }
+            </div>
+
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.LeadLevel, htmlAttributes: new { @class = "control-label " })
+                @Html.DropDownList("LeadLevel", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Small", Value="Small"},
+                        new SelectListItem() {Text = "Medium", Value="Medium"},
+                        new SelectListItem() {Text = "High", Value="High"},
+
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "LeadLevel", @required = "required", tabindex = 7 })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(m => m.AssignedTo, new { @class = "control-label col-sm-4" })
+                @Html.ListBoxFor(m => m.AssignedTo, (SelectList)ViewBag.AssignedTo, new { @class = "form-control", tabindex = 8 })
+            </div> 
+               
+            </div>
+        <div class="box-header with-border">
+            <h5 class="box-title">Contact Details</h5>
+        </div>
+        <div class="box-body">
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Address, htmlAttributes: new { @class = "control-label " })
+                @Html.TextAreaFor(model => model.Address, new { @class = "form-control", @placeholder = "Enter Address", tabindex = 10 })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.City, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.City, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter City", tabindex = 11 } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.State, htmlAttributes: new { @class = "control-label " })
+                @Html.DropDownList("State", new SelectList(new List<SelectListItem>
+                    {
+                        new SelectListItem() {Text = "Abu Dhabi", Value="Abu Dhabi"},
+                        new SelectListItem() {Text = "Ajman", Value="Ajman"},
+                        new SelectListItem() {Text = "Dubai", Value="Dubai"},
+                        new SelectListItem() {Text = "Fujairah", Value="Fujairah"},
+                        new SelectListItem() {Text = "Ras al-Khaimah", Value="Ras al-Khaimah"},
+                        new SelectListItem() {Text = "Sharjah", Value="Sharjah"},
+                        new SelectListItem() {Text = "Umm al-Quwain", Value="Umm al-Quwain"}
+
+                    }, "Value", "Text"), new { @class = "form-control input-sm", @name = "State", @required = "required", tabindex = 12 })
+
+                @*@Html.EditorFor(model => model.State, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter State", tabindex = 12 } })*@
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Country, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.Country, new { htmlAttributes = new { @class = "form-control", @Value = "UAE", @readonly = "readonly", @placeholder = "Enter Country", tabindex = 13 } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Zip, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.Zip, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Zip", tabindex = 14 } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Phone, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.Phone, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Phone", @autocomplete = "off", tabindex = 15 } })
+            </div>
+            @*<div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Mobile, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.Mobile, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Mobile", tabindex = 16 } })
+            </div>*@
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Fax, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.Fax, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Fax", tabindex = 17 } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.EmailId, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.EmailId, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Email", @autocomplete = "off", tabindex = 18 } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.Reference, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.Reference, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter Reference", tabindex = 19 } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.ContactPerson, htmlAttributes: new { @class = "control-label " })
+                @Html.EditorFor(model => model.ContactPerson, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter ContactPerson", tabindex = 20 } })
+            </div>
+            <div class="form-group col-md-12">
+                @Html.LabelFor(model => model.Remark, htmlAttributes: new { @class = "control-label" })
+                @Html.TextAreaFor(model => model.Remark, new { @class = "form-control", @placeholder = "Enter Remark", tabindex = 9 })
+            </div>
+            <div class="form-group col-md-4">
+                <div id="mobiles"></div>
+            </div>
+            <div class="form-group col-md-12">
+                @Html.Label("Documents", null, new { @class = "control-label" })
+                <div class="file-loading">
+                    <input id="input-24" name="input24[]" type="file" multiple>
+                </div>
+            </div>
+        </div>
+    
+        <div class="box-footer clearfix text-center">
+            <button type="submit" id="save" class="btn btn-info" tabindex="28">
+                <span class="glyphicon glyphicon-floppy-disk"></span> Save
+            </button>
+            <button type="button" class="btn btn-default" tabindex="29" onclick="@("window.location.href='" + @Url.Action("Index", "PipeLine") + "'");">Cancel</button>
+        </div>
+    }
+    </div>
+<div id="modal-add" class="modal fade" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+   @{var Modelv = "modal-lg";}
+  @{var Modelmd = "modal-md";}
+@Html.Partial("../Common/_ModalCreate", @Modelmd)
+@Html.Partial("../Common/_ModalEdit", @Modelv)
+@Html.Partial("../Common/_ModeItemCreate")
+
+
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+    @Styles.Render("~/css/wysihtml5")
+    @Styles.Render("~/css/bootstrap-timepicker")
+    @Styles.Render("~/css/bootstrap-fileinput")
+    @Styles.Render("~/css/bootstrap-fileinput-rtl")
+
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/additem")
+    @Scripts.Render("~/js/wysihtml5")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/bootstrap-timepicker")
+    @Scripts.Render("~/js/bootstrap-fileinput")
+    @Scripts.Render("~/js/bootstrap-sortable")
+    @Scripts.Render("~/js/bootstrap-purify")
+    @Scripts.Render("~/js/Mobile")
+        <script type="text/javascript">
+            $(document).ready(function () {
+
+                $("#AssignedTo").select2({
+                    placeholder: 'Search Employees by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchTeamMember",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                //lead: $('#TeamLead').val()
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                var EntryID = '@ViewContext.RouteData.Values["id"]';
+                //  addmobile('mobilebody', 'contact', "");
+                if (EntryID != null && EntryID!="") {
+                    $.ajax({
+                        url: '/Customer/GetMobile',
+                        dataType: 'json',
+                        data: { CnId: EntryID },
+                        cache: true,
+                        success: function (data) {
+                            //$('#addchecklist').html('');
+                            leng = data.length;
+                            $.each(data, function (i, item) {
+                                AddMobile(item.Mob, item.Name);
+                            });
+                        }
+                    });
+                } else {
+                    AddMobile();
+                }
+
+                SrcOfLead();
+                CallLeadStatus();
+                SearchCustExists();
+                if ('@custname'!="")
+                {
+                    var newOption = new Option('@custname', '@custname', true, true);
+                    $('#CustomerName').append(newOption).trigger('change');
+                }
+            });
+            /*Add LeadStatus here*/
+            $('div').on('click', '.modal-add', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-add');
+            });
+            $('#modal-add').on('submit', '#typeform', function (e) {
+                var url = $('#modal-add #typeform')[0].action;
+                var text = $("#StatusType").val();
+                $('#ddlLeadStat option:selected').attr("selected", null);
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: $('#modal-add #typeform').serialize(),
+                    success: function (data) {
+                        if (data.status) {
+                            $('#modal-add').modal('hide');
+                            var newOption = $('<option></option>');
+                            newOption.val(data.Id);//.attr("selected", "selected");
+                            newOption.html(text);
+                            $('#ddlLeadStat').append(newOption);
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                        }
+                        fadeAlert();
+                    }
+                })
+
+                e.preventDefault();
+            });
+
+            $('body').on('click', '.modal-close-btn', function () {
+                $('#modal-add').modal('hide');
+                $('#modal-add').removeData('bs.modal');
+            });
+            $('#modal-add').on('hidden.bs.modal', function () {
+                $(this).removeData('bs.modal');
+            });
+            $('span').on('click', '.modal-create', function (e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                modalshow(url, '#modal-create');
+            });
+            $('#modal-create').on('submit', '#createform', function (e) {
+                e.preventDefault();
+                var url = $('#createform')[0].action;
+                var data = $('#createform').serialize();
+                createajax(url, data, '#modal-create');
+            });
+            $('#modal-create').on('submit', '#createform', function (e) {
+                var text = $("#SrcName").val();
+                $('#ddlSrcLead option:selected').attr("selected", null);
+                $.ajax({
+                    type: "POST",
+                    url: url,
+                    data: $('#modal-create #createform').serialize(),
+                    success: function (data) {
+                        if (data.status) {
+                            $('#modal-create').modal('hide');
+
+                            var newOption = $('<option></option>');
+                            newOption.val(data.Id);//.attr("selected", "selected");
+                            newOption.html(text);
+                            $('#ddlSrcLead').append(newOption);
+                        }
+                        else {
+                            $('.ajax_response', res_danger).text(data.message);
+                            $('.AlertDiv').prepend(res_danger);
+                        }
+                        fadeAlert();
+                    }
+                });
+
+                e.preventDefault();
+
+            });
+
+            $(document).on('change', '#Phone', function (event) {
+                var phno = $("#Phone").val();
+                $.ajax({
+                    url: '/Customer/GetPhoneExists',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { PhNo: phno },
+                    success: function (result) {
+                        if (result == 1) {
+                            alert("Phone Number Already Exists.");
+                        }
+                    }
+                });
+            });
+            $(document).on('change', '#EmailId', function (event) {
+                var email = $("#EmailId").val();
+                $.ajax({
+                    url: '/Customer/GetEmailExists',
+                    type: "GET",
+                    dataType: "JSON",
+                    data: { Email: email },
+                    success: function (result) {
+                        if (result == 1) {
+                            alert("EmailId Already Exists.");
+                        }
+                    }
+                });
+            });
+            $("#input-24").fileinput({
+                overwriteInitial: false,
+                showUpload: false,
+                initialPreviewAsData: true,
+                initialPreviewFileType: 'image',
+                // allowedFileExtensions: ["jpg", "png"],
+                allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "jfif", "png", "jpeg", "doc", "docx", "pdf", "dwg"],
+                fileActionSettings: {
+                    showUpload: false,
+                },
+                //maxImageWidth: 1000,
+                //maxImageHeight: 1000,
+            }).on('filesorted', function (e, params) {
+                console.log('File sorted params', params);
+            }).on('fileuploaded', function (e, params) {
+                console.log('File uploaded params', params);
+            });
+        </script>
+    }

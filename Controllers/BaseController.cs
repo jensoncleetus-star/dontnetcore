@@ -460,6 +460,11 @@ namespace QuickSoft.Controllers
 
         public void OnAuthorization(AuthorizationFilterContext filterContext)
         {
+            // Security S8: honor [AllowAnonymous] so a class-level [QkAuthorize] (and the global fallback policy)
+            // never blocks an action that explicitly opted out (login, error pages, OTP downloads, installation).
+            if (filterContext.HttpContext.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() != null)
+                return;
+
             var user = filterContext.HttpContext.User;
             if (user?.Identity == null || !user.Identity.IsAuthenticated)
             {

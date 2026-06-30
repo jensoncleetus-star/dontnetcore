@@ -1,0 +1,382 @@
+@model QuickSoft.ViewModel.SVViewModel
+@{
+    ViewBag.Title = "Edit Stock Verification";
+    ViewBag.SubTitle = "Stock Verification";
+    ViewBag.Active = "Transactions";
+
+}
+@using (Html.BeginForm("Edit", "StockVerification", FormMethod.Post, new { id = "stkform", role = "form" }))
+{
+    <div class="box box-info">
+        <div class="box-header with-border">
+            <h3 class="box-title">Edit Stock Verification</h3>
+            <div class="pull-right">
+                @if (@ViewBag.preEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create StockVerification"))
+                    {
+                        <a class="btn bg-black no-border" href="/StockVerification/Edit/@ViewBag.preEntry">
+                            <i class="fa fa-step-backward"></i>
+                        </a>
+                    }
+                }
+                @if (@ViewBag.nxtEntry != 0)
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Edit StockVerification"))
+                    {
+                        <a class="btn bg-black no-border" href="/StockVerification/Edit/@ViewBag.nxtEntry">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                else
+                {
+                    if (User.IsInRole("Dev") || User.IsInRole("Create StockVerification"))
+                    {
+                        <a class="btn bg-black no-border" href="/StockVerification/Create">
+                            <i class="fa fa-step-forward"></i>
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Dev") || User.IsInRole("StockVerification List"))
+                {
+                    <a class="btn btn-success no-border" href="/StockVerification">
+                        <i class="fa fa-fw fa-history"></i> StockVerification List
+                    </a>
+                }
+            </div>
+        </div>
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="box-body">
+            <div class="row">
+                <div class="col-sm-2 form-group ">
+                    @Html.Label("Invoice No", null, new { @class = "control-label" }) *
+                    @Html.EditorFor(model => model.Voucher, new { htmlAttributes = new { @class = "form-control", @required = "required" } })
+                    @Html.HiddenFor(model => model.VoNo)
+                    @Html.HiddenFor(model => model.StockVerificationId)
+                </div>
+                <div class="col-sm-2 form-group">
+                    @Html.LabelFor(model => model.Date, htmlAttributes: new { @class = "control-label" })*
+                    <div class="input-group date">
+                        <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+                        @Html.TextBoxFor(m => m.Date, "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @required = "required" })
+                    </div>
+                </div>
+                @if (@ViewBag.BranchCheck == 0)
+                {
+                    <div class="form-group col-sm-2">
+                        @Html.Label("Branch", null, new { @class = "control-label" })
+                        @Html.DropDownListFor(m => m.Branch, (SelectList)ViewBag.SetBranch, new { id = "ddlBranch", @class = "form-control select2" })
+                    </div>
+                }
+
+                <div class="form-group col-sm-2">
+                    <label class="control-label">Read BarCode</label>
+                    <input type="text" class="form-control barcode" />
+                </div>
+                <div class="form-group col-md-2">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                </div>
+                <div class="form-group col-sm-2">
+                    @Html.Label("Item Name/Code", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlItem", (SelectList)ViewBag.Item, new { @class = "form-control input-sm select2" })
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group col-sm-6"></div>
+                <div class="form-group col-sm-6">
+                    <table class="table table-responsive">
+                        <tr>
+                        
+                            <td></td>
+                            <td><label id="totPCS" class="Bold"></label></td>
+                            <td>Scanned PCs :</td>
+                            <td><label id="scnPCS" class="Bold"></label></td>
+                            <td></td>
+                            <td><label id="remPCS" class="Bold" style="display:none;"></label></td>
+                        
+                        </tr>
+                    </table>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+
+            <div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="normalinvoice">
+                        <thead>
+                            <tr class="chkhead">
+                                <th class="text-center" rowspan="2">S.N.</th>
+                                <th class="text-center" rowspan="2">Code</th>
+                                <th class="text-center item-lists" rowspan="2">Item <i class="text-danger">*</i></th>
+                                <th class="text-center" rowspan="2">Unit</th>
+                                <th class="text-center" colspan="1">Computer Stock</th>
+                                <th class="text-center" colspan="1">Physical Stock</th>
+                                <th class="text-center" colspan="1">Stock Difference</th>
+                            </tr>
+                            <tr class="chkhead">
+                                <th class="text-center" style='display:none'>Pcs</th>
+                                <th class="text-center">Quantity</th>
+                                <th class="text-center" style='display:none'>Pcs</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-center" style='display:none'>Pcs</th>
+                                <th class="text-center">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="addinvoiceItem"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4">
+                                    Total
+                                </td>
+                                <td class="text-right" style='display:none'>
+                                    <label id="CSPcsT"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="CSQtyT"></label>
+                                </td>
+                                <td class="text-right" style='display:none'>
+                                    <label id="PSPcsT"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="PSQtyT"></label>
+                                </td>
+                                <td class="text-right" style='display:none'>
+                                    <label id="SDPcsT"></label>
+                                </td>
+                                <td class="text-right">
+                                    <label id="SDQtyT"></label>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Remarks, new { @class = "control-label" })
+                            @Html.TextAreaFor(model => model.Remarks, new { @class = "form-control", @placeholder = "Remarks", @rows = 2 })
+                        </div>
+                        <div class="form-group">
+                            @Html.TextAreaFor(model => model.Note, new { @class = "form-control", @placeholder = "Terms And Conditions", @rows = 4 })
+                        </div>
+                    </div>
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <div class="form-group pull-right">
+                            <button type="submit" id="update" class="btn btn-success">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Update
+                            </button>
+                            <button type="submit" id="print" class="btn btn-success">
+                                <span class="glyphicon glyphicon-print"></span> Update And Print
+                            </button>
+                            @*@if (@ViewBag.CheckMail == 0)
+                            {
+                                <button type="submit" id="sendmail" class="btn btn-success">
+                                    <span class="glyphicon glyphicon-envelope"></span> Update And Mail
+                                </button>
+                            }*@
+                            <button type="button" class="btn btn-warning" onclick="@("window.location.href='/StockVerification/Index'");">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@Html.Partial("_Invoice")
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    @Scripts.Render("~/js/num2words")
+    @Scripts.Render("~/js/JsBarcode")
+    @Scripts.Render("~/js/scaner")
+    @Scripts.Render("~/js/stockveryfy")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        });
+        jQuery.validator.methods["date"] = function (value, element) { return true; }
+
+        $(document).ready(function () {
+            GetBranch();
+            CallMCUser();
+            fillAmounts();
+            $('#ddlItem').val(null).trigger('change');
+
+            $("#ddlItem").select2({
+                placeholder: 'Search Item by Name or Code',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/Item/Search",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term || "",
+                            page: params.page || 0,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 0;
+
+                        return {
+                            results: data,
+                            pagination: {
+                                //more: (params.page * 10) < 50
+                                more: true
+                            }
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+
+            var EntryID = getQueryString('');
+            if (EntryID != null) {
+                $.ajax({
+                    url: '/StockVerification/GetSVItems',
+                    dataType: 'json',
+                    data: { EntryID: EntryID },
+                    cache: true,
+                    success: function (data) {
+                        $('#addinvoiceItem').html('');
+                        $.each(data, function (i, item) {
+                            addrow('addinvoiceItem', 'edit', item.PriUnit, item.Tax, '', item.PSqty, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, item.total, item.ItemUnitID, item);
+                        });
+                        addrow('addinvoiceItem', '', "", "0.00", "0.00", "0", '', '', '');
+                    }
+                });
+               
+            }
+        });
+
+        $('body').on('change', '#ddlItem', function (e) {
+            var itemId = $(this).val();
+            itemUpdate(itemId);
+        });
+
+        /* function for Create popup */
+        $('span').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-create');
+
+        });
+        $('#modal-create').on('submit', '#createform', function (e) {
+            e.preventDefault();
+            var url = $('#createform')[0].action;
+            var data = $('#createform').serialize();
+            createajax(url, data, '#modal-create');
+        });
+
+
+        $('span').on('click', '.modal-edit', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href');
+            modalshow(url, '#modal-edit');
+        });
+        $('#modal-edit').on('submit', '#editform', function (e) {
+            e.preventDefault();
+            var url = $('#editform')[0].action;
+            var data = $('#editform').serialize();
+            createajax(url, data, '#modal-edit');
+        });
+
+
+        $('#modal-create-lg').on('shown.bs.modal', function (e) {
+            //Item Category
+            ItemCategory();
+            ItemBrand();
+            Itemtype();
+            $('#KeepStock').click(function () {
+                clickstock();
+            });
+        });
+        //binditem
+        $(".barcode").scannerDetection({
+            timeBeforeScanTest: 200, // wait for the next character for upto 200ms
+            avgTimeByChar: 40, // it's not a barcode if a character takes longer than 100ms
+            preventDefault: true,
+            endChar: [13],
+            onComplete: function (barcode, qty) {
+                validScan = true;
+                readBarcode(barcode);
+            },
+            onError: function (string, qty) {
+                readBarcode(string);
+            }
+        });
+
+        function readBarcode(q) {
+            $.ajax({
+                url: "/Item/GetByBarcode",
+                dataType: 'json',
+                type: "POST",
+                delay: 50,
+                data: { q: q },
+                success: function (e) {
+                    if (e.length == 1) {
+                        var itemId = e[0]['id'];
+                        //alert(itemId);
+                        if (itemId != null) {
+                            if ($(".item_" + itemId).length > 0) {
+                                var qty = parseFloat($(".item_" + itemId + " .quty").val());
+                                $(".item_" + itemId + " .quty").val(qty + 1);
+                                var divid = $(".item_" + itemId).attr('id');
+                                var arg = divid.substr(divid.indexOf("_") + 1);
+                                quantity_change(arg);
+                                $(".barcode").val("");
+                                $(".barcode").focus();
+                            } else {
+                                $.ajax({
+                                    url: '/Item/GetItem',
+                                    dataType: 'json',
+                                    data: { itemID: itemId },
+                                    cache: true,
+                                    success: function (data) {
+
+                                        $(".item_").remove();
+                                        $.each(data, function (i, item) {
+                                            addrow('addinvoiceItem', '', item.PriUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, item.total, item.ItemUnitID);
+                                        });
+                                        addrow('addinvoiceItem', '', "", "0.00", "0.00", "0");
+                                        $(".barcode").val("");
+                                        $(".barcode").focus();
+                                    }
+                                });
+                            }
+                        }
+                    }
+                },
+                complete: function () {
+                    me.data('requestRunning', false);
+                },
+                cache: true
+            });
+        }
+
+
+        // form submit
+        $('#stkform').on('submit', function (e) {
+            e.preventDefault();
+            var fnval = $('input[type="submit"], button[type="submit"]', this).filter(':focus').attr('id');
+            if ($("#stkform").valid()) {
+                StkSubmit(fnval);
+            }
+            else {
+                $('.alert').prepend('<button type="button" class="close" data-hide="alert">×</button>');
+            }
+        });
+
+    </script>
+}

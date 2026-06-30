@@ -317,9 +317,10 @@ namespace QuickSoft.Models
                                   a.password
                               }).FirstOrDefault();
                     var client = new WebClient();
+                    // Security S18: URL-encode every value going into the gateway query string (param-injection defense).
                     string url = "https://rslr.connectbind.com:8443/bulksms/bulksms?username=" +
-                        config.username + "&password=" + config.password + "&type=0&dlr=1&destination=971" +
-                        mobileno + "&source=" + config.smssenderid + "&message=" + message;
+                        Uri.EscapeDataString(config.username ?? "") + "&password=" + Uri.EscapeDataString(config.password ?? "") + "&type=0&dlr=1&destination=971" +
+                        Uri.EscapeDataString(mobileno ?? "") + "&source=" + Uri.EscapeDataString(config.smssenderid ?? "") + "&message=" + Uri.EscapeDataString(message ?? "");
                     var content = client.DownloadString(url);
                     var data = content.Split('|').ToArray();
                     if (data[0] == "1701")

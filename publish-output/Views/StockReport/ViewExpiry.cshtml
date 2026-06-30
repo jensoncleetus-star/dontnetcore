@@ -1,0 +1,247 @@
+﻿@{
+    ViewBag.Title = "View Stock With Expiry";
+    ViewBag.SubTitle = "Stock Report";
+    ViewBag.Active = "Reports";
+}
+<div class="box box-default" id="StockReport">
+    <input type="hidden" id="cname" value="@ViewBag.CName" />
+    <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+    <input type="hidden" id="itemname" value="@ViewBag.ItemName" />
+    <input type="hidden" id="mcname" value="@ViewBag.MCSName" />
+    <div class="box-header with-border">
+        <h3 class="box-title">View Stock With Expiry</h3>
+    </div>
+    <div class="box-body">
+        <div class="box-body">
+            <table class="table table-bordered table-hover" id="UserTable">
+                <thead>
+                    <tr class="bg-gray">
+                        <th>S/N</th>
+                        <th>Item</th>
+                        <th>Batch No</th>
+                        <th>MFG</th>
+                        <th>EXP</th>
+                        <th>Stock In </th>
+                        <th>Stock Out</th>
+                        <th>Balance Stock</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+    $(document).ready(function () {
+            oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": true, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                //"deferLoading": 0, // disable default ajax loading
+                "bLengthChange": false,
+                "paging": true,
+                "pageLength": 5000,
+                responsive: true,
+                "ordering": false,
+                "ajax": {
+                    "url": '/StockReport/GetExpiry',
+                    "data": { iditem: getQueryString1('iditem')},
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                     {
+                         "data": "ItemID", "name": "ItemID",
+                         "render": function (data, type, row, meta) {
+                             return meta.row + meta.settings._iDisplayStart + 1;
+                         }
+                     },
+                    { "data": "ItemName", "name": "ItemName" },
+                    { "data": "BatchNo", "name": "BatchNo" },
+                    {
+                        "data": "MFGd", "name": "MFGd", "render": function (data) {
+                            if (data != null) {
+                                var date = convertToDate(data);
+                                return date.toString();
+                            }
+                            else
+                                return "";
+                        }
+                    },
+                    {
+                        "data": "EXPd", "name": "EXPd", "render": function (data) {
+                            if (data != null) {
+                                var date = convertToDate(data);
+                                return date.toString();
+                            }
+                            else
+                                return "";
+                        }
+                    },
+                    {
+                        "data": "StockIn", "data": function (data) {
+                            var total;
+                            if (data.StockIn % data.cfactor == 0) {
+                                total = (data.StockIn / data.cfactor) + " " + data.PriName;
+                            }
+                            else if (data.cfactor == 1) {
+                                total = data.StockIn + " " + data.PriName;
+                            }
+                            else {
+                                var p = parseInt(((data.StockIn / data.cfactor) * 100) / 100);
+                                var sub = (data.StockIn % data.cfactor).toFixed(0);
+                                total = p + " " + data.PriName + ", " + sub + " " + data.SubName;
+                            }
+                            return '<label>' + total + '</label>';
+                        }
+                    },
+                    {
+                        "data": "StockOut", "data": function (data) {
+                            var total;
+                            if (data.StockOut % data.cfactor == 0) {
+                                total = (data.StockOut / data.cfactor) + " " + data.PriName;
+                            }
+                            else if (data.cfactor == 1) {
+                                total = data.StockOut + " " + data.PriName;
+                            }
+                            else {
+                                var p = parseInt(((data.StockOut / data.cfactor) * 100) / 100);
+                                var sub = (data.StockOut % data.cfactor).toFixed(0);
+                                total = p + " " + data.PriName + ", " + sub + " " + data.SubName;
+                            }
+                            return '<label>' + total + '</label>';
+                        }
+                    },
+                    {
+                        "data": "Balance", "data": function (data) {
+                            var total;
+                            if (data.Balance % data.cfactor == 0) {
+                                total = (data.Balance / data.cfactor) + " " + data.PriName;
+                            }
+                            else if (data.cfactor == 1) {
+                                total = data.Balance + " " + data.PriName;
+                            }
+                            else {
+                                var p = parseInt(((data.Balance / data.cfactor) * 100) / 100);
+                                var sub = (data.Balance % data.cfactor).toFixed(0);
+                                total = p + " " + data.PriName + ", " + sub + " " + data.SubName;
+                            }
+                            return '<label>' + total + '</label>';
+                        }
+                    },
+                ],
+                buttons: [
+            {
+                extend: 'print',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return 'Stock With Expiry';
+                },
+                exportOptions: {
+                    columns: ':visible'
+                },
+                message: function()
+                {
+                    var head = '<table class="tblcompact table table-bordered"><thead>' +
+                    ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Stock With Expiry</h4></th></tr>' +
+                    ' </thead><tbody><tr><td>';
+                    return head;
+                },
+                customize: function (win) {
+                    $(win.document.body).find('table, th,tr, td ')
+                        .css('font-size', '10pt')
+                        .css('padding', '5px')
+                        .addClass('compact');
+                    $(win.document.body).append('</td></tr></tbody>')
+
+                }
+            }, 'copy', 'csv', //'excel',
+            {
+                extend: 'excel',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return 'Stock With Expiry';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' Stock With Expiry \n' +
+                     'Item Name : ' + $('#itemname').val() + '\n' +
+                       $('#mcname').val();
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5,6,7]
+                },
+            },
+            {
+                extend: 'pdf',//
+                title: "",
+                footer: true,
+                filename: function () {
+                    return 'Stock With Expiry';
+                },
+                message: function () {
+                    var head = '' + $('#cname').val() + '\n' +
+                     '' + $('#caddress').val() + '\n' +
+                     ' Stock With Expiry \n' +
+                     'Item Name : ' + $('#itemname').val();
+                    return head;
+                },
+                pageSize: 'A4',
+                exportOptions: {
+                    columns: [0, 1, 2, 3, 4, 5,6,7]
+                },
+                customize: function (doc) {
+                    doc.pageMargins = [10, 10, 10, 10];
+                    doc.defaultStyle.fontSize = 10;
+                    doc.styles.tableHeader.fontSize = 10;
+                    doc.styles.title.fontSize = 12;
+                    // Header font and bg color
+                    doc.styles.tableHeader.fillColor = '#d3d3d3';
+                    doc.styles.tableHeader.color = 'black';
+                    // Remove spaces around page title
+                    doc.content[0].text = doc.content[0].text.trim();
+                    doc.content[1].table.widths = [
+                    '15%',
+                    '15%',
+                    '15%',
+                    '15%',
+                    '15%',
+                    '15%'
+                    ]
+                    var objLayout = {};
+                    // Horizontal line thickness
+                    objLayout['hLineWidth'] = function (i) { return .5; };
+                    // Vertikal line thickness
+                    objLayout['vLineWidth'] = function (i) { return .5; };
+                    // Left padding of the cell
+                    objLayout['paddingLeft'] = function (i) { return 4; };
+                    // Right padding of the cell
+                    objLayout['paddingRight'] = function (i) { return 4; };
+                    // Inject the object in the document
+                    doc.content[1].layout = objLayout;
+                    // Footer font and bg color
+                    doc.styles.tableFooter.fillColor = '#d3d3d3';
+                    doc.styles.tableFooter.color = 'black';
+                }
+            },
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip",
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "footerCallback": function (row, data, start, end, display) {
+                }
+
+            });
+
+    });
+    </script>
+}

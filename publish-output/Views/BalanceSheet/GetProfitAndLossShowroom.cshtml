@@ -1,0 +1,355 @@
+﻿@using QuickSoft.Models
+@using QuickSoft.ViewModel
+@model QuickSoft.ViewModel.BalanceSheetViewModel
+@{
+    ViewBag.Title = "Search Profit And Loss";
+    ViewBag.SubTitle = "Profit And Loss Report";
+    ViewBag.Active = "Accounts";
+
+    decimal? GLAmount = 0;
+    decimal? GAAmount = 0;
+}
+<div class="box box-default" id="LReport">
+    <div class="box-header with-border">
+        <h3 class="box-title">Profit And Loss Report Showroom Wise</h3>
+    </div>
+    <div class="box-body">
+        <input type="hidden" id="cname" value="@ViewBag.CName" />
+        <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
+        <input type="hidden" id="showroom" value="@Model.showroom" />
+        <input type="hidden" id="fromdate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))" />
+        <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))" />
+        <table class="table table-bordered table-hover" id="UserTable">
+            <thead>
+                <tr class="bg-gray">
+                    <td class="text-center" colspan="6">
+                        Show Room : @Model.showroom
+                    </td>
+                </tr>
+                <tr class="bg-gray">
+                    <td class="text-center" colspan="6">
+                        From : @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from)) To: @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))
+                    </td>
+                </tr>
+                <tr class="bg-gray">
+                    <td class="text-center">
+                        DEBIT ( AED )
+                    </td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-center">
+                        CREDIT ( AED )
+                    </td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ProfitAndLossDisplay != null)
+                {
+                    if (Model.ProfitAndLossDisplay.Any())
+                    {
+                        int TotRow = 0;
+                        int TotCount = 0;
+                        //if (Model.DebitCount < Model.CreditCount)
+                        //{
+                        //    TotRow = (int)Model.DebitCount;
+                        //}
+                        //else
+                        //{
+                        //    TotRow = (int)Model.CreditCount;
+                        //}
+                        Int64? accIdD = null;
+                        Int64? accIdC = null;
+                        foreach (var item in Model.ProfitAndLossDisplay)
+                        {
+                            decimal? AmountL = 0;
+                            decimal? AmountA = 0;
+
+                            decimal? DebitL = 0;
+                            decimal? DebitA = 0;
+
+
+                            DebitL = item.DebitL;
+                            AmountL = (DebitL);
+                            AmountL = AmountL != null ? AmountL : 0;
+
+
+                            DebitA = item.DebitA;
+                            AmountA = (DebitA);
+                            AmountA = AmountA != null ? AmountA : 0;
+
+
+                            GLAmount += AmountL;
+                            GAAmount += AmountA;
+
+
+                            <tr>
+                                @if (item.ParentL == 0)
+                                {
+
+                                    if (AmountL.Value.ToString("0.00") != "0.00")
+                                    {
+
+                                        if (item.Orders == 0)
+                                        {
+                                            if (@item.ParticularL == "Expenses (Direct/Mfg.)" || @item.ParticularL == "Gross Loss b/d" || @item.ParticularL == "Gross Profit" || @item.ParticularL == "Total" || @item.ParticularL == "Net Profit")
+                                            {
+                                                <td class="text-red notin">@item.ParticularL</td>
+
+
+                                            }
+                                            else
+                                            {
+                                                <td class="text-red notin"><aa href="/BalanceSheet/GetGroupTrialBalance?AccGroup=@item.AccountIdDr&type2=asset&frmdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&parent=@item.ParticularL" target="_blank">@item.ParticularL</aa></td>
+                                            }
+                                            //                                <td class="text-red notin">@item.ParticularL</td>
+                                            <td></td>
+
+                                            <td class="text-right">@AmountL.Value.ToString("0.00")</td>
+                                        }
+                                        else
+                                        {
+                                            <td class="text-red notin">&nbsp;&nbsp;@item.ParticularL</td>
+                                            <td class="text-left">@AmountL.Value.ToString("0.00")</td>
+                                            <td></td>
+                                        }
+
+                                    }
+                                    else
+                                    {
+                                        <td class="text-red notin">@item.ParticularL</td>
+                                        <td></td>
+                                        if (item.ParticularL != "")
+                                        {
+                                            <td class="text-right">0.00</td>
+                                        }
+                                        else
+                                        {
+                                            <td></td>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+
+                                    if (item.ParticularL == "Purchase" || item.ParticularL == "Purchase Return")
+                                    {
+                                        <td> &nbsp;&nbsp;<aa href="/BalanceSheet/GetGroupTrialBalance?AccGroup=@item.AccountIdDr&type2=@item.ParticularL&frmdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&parent=@item.ParticularL" target="_blank">@item.ParticularL</aa></td>
+
+                                    }
+                                    else
+                                    {
+                                        <td>&nbsp;&nbsp;<aa href="/MyReports/GetLedger?AccId=@item.AccountIdDr&fromdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&AccGroup=null&pdc=null" target="_blank">@item.ParticularL</aa></td>
+
+                                    }
+                                    @*<td>&nbsp;&nbsp;@item.ParticularL</td>*@
+                                    if (AmountL.Value.ToString("0.00") != "0.00")
+                                    {
+                                        <td class="text-left">@AmountL.Value.ToString("0.00")</td>
+                                        <td></td>
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                        <td></td>
+                                    }
+                                }
+
+
+                                @if (item.ParentA == 0)
+                                {
+                                    if (AmountA.Value.ToString("0.00") != "0.00")
+                                    {
+
+                                        if (item.Orders == 0)
+                                        {
+                                            if (@item.ParticularA == "Gross Profit b/d" || @item.ParticularA == "Gross Loss b/d" || @item.ParticularA == "Gross Loss" || @item.ParticularA == "Total" || @item.ParticularA == "Net Loss")
+                                            {
+                                                <td class="text-red notin">@item.ParticularA</td>
+
+
+                                            }
+                                            else
+                                            {
+                                                <td class="text-red notin"><aa href="/BalanceSheet/GetGroupTrialBalance?AccGroup=@item.AccountIdCr&type2=asset&frmdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&parent=@item.ParticularA" target="_blank">@item.ParticularA</aa></td>
+                                            }
+                                            <td></td>
+                                            <td class="text-right">@AmountA.Value.ToString("0.00")</td>
+                                        }
+                                        else
+                                        {
+
+                                            <td class="text-red notin">&nbsp;&nbsp;@item.ParticularA</td>
+                                            <td class="text-left">@AmountA.Value.ToString("0.00")</td>
+                                            <td></td>
+                                        }
+
+                                    }
+                                    else
+                                    {
+                                        <td class="text-red notin"><aa href="/BalanceSheet/GetGroupTrialBalance?AccGroup=@item.AccountIdCr&type2=asset&frmdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&parent=@item.ParticularA" target="_blank">@item.ParticularA</aa></td>
+
+                                        // <td class="text-red notin">@item.ParticularA</td>
+                                        <td></td>
+                                        if (item.ParticularA != "")
+                                        {
+                                            <td class="text-right">0.00</td>
+                                        }
+                                        else
+                                        {
+                                            <td></td>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (item.ParticularA == "Sale" || item.ParticularA == "Sales Return")
+                                    {
+                                        <td> &nbsp;&nbsp;<aa href="/BalanceSheet/GetGroupTrialBalance?AccGroup=@item.AccountIdCr&type2=@item.ParticularA&frmdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&parent=@item.ParticularA" target="_blank">@item.ParticularA</aa></td>
+
+                                    }
+                                    else
+                                    {
+                                        <td>&nbsp;&nbsp;<aa href="/MyReports/GetLedger?AccId=@item.AccountIdCr&fromdate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.from))&todate=@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.to))&AccGroup=null&pdc=null" target="_blank">@item.ParticularA</aa></td>
+
+                                    }
+                                    @*<td>&nbsp;&nbsp;@item.ParticularA</td>*@
+                                    if (AmountA.Value.ToString("0.00") != "0.00")
+                                    {
+                                        <td class="text-left">@AmountA.Value.ToString("0.00")</td>
+                                        <td></td>
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                        <td></td>
+                                    }
+                                }
+                            </tr>
+                            TotCount++;
+                        }
+                    }
+                }
+            </tbody>
+            <tfoot>
+                @*<tr>
+                    <td><b>Total</b></td>
+                    <td class="text-right"><b>@GLAmount.Value.ToString("N2")</b></td>
+                    <td></td>
+                    <td class="text-right"><b>@GAAmount.Value.ToString("N2")</b></td>
+                </tr>*@
+            </tfoot>
+        </table>
+    </div>
+
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        jQuery(function ($) {
+            var oTable = $('#UserTable').DataTable({
+                "processing": true, // for show progress bar
+                "serverSide": false, // for process server side
+                "filter": false, // this is for disable filter (search box)
+                "orderMulti": false, // for disable multiple column at once
+                "bLengthChange": false,
+                "paging": false,
+                "deferLoading": 0,
+                "ordering": false,
+                //"order": [[0, "asc"]],
+                buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
+                 {
+                     extend: 'print',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Profit And Loss';
+                     },
+                     message: '<table class="tblcompact table table-bordered"><thead>' +
+                         ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Profit And Loss</h4></th></tr>' +
+                         ' <tr><th class="text-center"><span> From : ' + $('#fromdate').val() + ' To : ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>',
+                     customize: function (win) {
+
+                         $(win.document.body).find('table, th,tr, td ')
+                            // .css('border', 'inherit')
+                             .css('font-size', '10pt')
+                             .css('padding', '5px')
+                             .addClass('compact');
+                         $(win.document.body).append('</td></tr></tbody>')
+
+                     }
+                    }, 'copy', 'csv',
+                    {
+                        extend: 'excel',
+                  
+                        message: '' + $("#showroom").val() + '\n' +
+                           
+                            ' Profit And Loss \n' +
+                            'From :  ' + $('#fromdate').val() + ' To :  ' + $('#todate').val() + ''
+
+                    },
+                 {
+                     extend: 'pdf',//
+                     title: "",
+                     footer: true,
+                     filename: function () {
+                         return 'Profit And Loss';
+                     },
+                     message:
+                         '' + $("#showroom").val()+'\n'+
+                         '' + $('#cname').val() + '\n' +
+                         '' + $('#caddress').val() + '\n' +
+                         ' Profit And Loss \n' +
+                         'From :  ' + $('#fromdate').val() + ' To :  ' + $('#todate').val() + ''
+                     ,
+                     pageSize: 'A4',
+                     exportOptions: {
+                         columns: [0,1,2,3,4,5]
+                     },
+                     customize: function (doc) {
+                         doc.pageMargins = [10, 10, 10, 10];
+                         doc.defaultStyle.fontSize = 10;
+                         doc.styles.tableHeader.fontSize = 10;
+                         doc.styles.title.fontSize = 12;
+                         // Remove spaces around page title
+                         doc.content[0].text = doc.content[0].text.trim();
+
+
+
+                         doc.content[1].table.widths = [
+                         '30%',
+                         '10%',
+                         '10%',
+                         '30%',
+                         '10%',
+                         '10%',
+                         ]
+
+                         var objLayout = {};
+                         // Horizontal line thickness
+                         objLayout['hLineWidth'] = function (i) { return .5; };
+                         // Vertikal line thickness
+                         objLayout['vLineWidth'] = function (i) { return .5; };
+                         //// Horizontal line color
+                         //objLayout['hLineColor'] = function (i) { return '#aaa'; };
+                         //// Vertical line color
+                         //objLayout['vLineColor'] = function (i) { return '#aaa'; };
+                         // Left padding of the cell
+                         objLayout['paddingLeft'] = function (i) { return 4; };
+                         // Right padding of the cell
+                         objLayout['paddingRight'] = function (i) { return 4; };
+                         // Inject the object in the document
+                         doc.content[1].layout = objLayout;
+                     }
+
+
+                 },
+
+                ],
+                sDom: "lBfr<'datatable-scroll't>ip"
+            });
+        });
+    </script>
+}

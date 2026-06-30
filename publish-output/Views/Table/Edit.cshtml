@@ -1,0 +1,109 @@
+﻿@model QuickSoft.ViewModel.TableViewModel
+@{
+    ViewBag.Title = "Edit Table";
+    ViewBag.SubTitle = "Table";
+    ViewBag.Active = "Settings";
+}
+<div class="box box-info">
+    <div class="box-header with-border">
+        <h3 class="box-title">Edit Table</h3>
+        <div class="pull-right">
+            @if (User.IsInRole("Dev") || User.IsInRole("Table List"))
+            {
+            <a class="btn btn-success no-border" href="/Table">
+                <i class="fa fa-fw fa-history"></i> Table List
+            </a>
+            }
+        </div>
+    </div>
+    @using (Html.BeginForm("Edit", "Table", FormMethod.Post, new { id = "tbleform", role = "form" }))
+            {
+        <div class="box-body">
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary("", new { @class = "alert alert-danger AlertDiv" })
+            <div class="form-group col-sm-4">
+                @Html.LabelFor(m => m.TableName, htmlAttributes: new { @class = "control-label" }) *
+                @Html.EditorFor(m => m.TableName, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus", @required = "required" } })
+            </div>
+            <div class="form-group col-md-4">
+                @Html.LabelFor(model => model.AreaId, htmlAttributes: new { @class = "control-label " })
+                @*@if (User.IsInRole("Dev") || User.IsInRole("Create Area"))
+                    {*@
+                <div class="input-group input-group-sm">
+                    @Html.DropDownListFor(model => model.AreaId, new SelectList(Model.Areas, "AreaId", "AreaName"), "Select Area", new { @class = "form-control" })
+                    <span class="input-group-btn">
+                        <a href="/Area/Create" class="btn btn-default modal-create" title="Add Area"><i class="glyphicon glyphicon-plus"></i></a>
+                    </span>
+                </div>
+                @*}else{
+                     @Html.DropDownListFor(model => model.AreaId, new SelectList(Model.Areas, "AreaId", "AreaName"), "Select Area", new { @class = "form-control" })
+
+                    }*@
+            </div>
+            <div class="form-group col-sm-4">
+                @Html.LabelFor(m => m.MaxSeats, htmlAttributes: new { @class = "control-label" }) *
+                @Html.EditorFor(m => m.MaxSeats, new { htmlAttributes = new { @type = "number", @class = "form-control input-sm", @required = "required" } })
+            </div>
+            <div class="form-group col-sm-4">
+                @Html.LabelFor(m => m.TableStatus, htmlAttributes: new { @class = "control-label" }) *
+                @*@Html.EnumDropDownListFor(model => model.TableStatus, new { @class = "form-control" })*@
+                <select class="form-control valid" data-val="true" data-val-required="The Table Status field is required." id="TableStatus" name="TableStatus">
+                    <option value="1">Out of Use</option>
+                    <option selected="selected" value="2">Available</option>
+                </select>
+            </div>
+            <div class="form-group col-sm-4">
+                @Html.LabelFor(m => m.Description, htmlAttributes: new { @class = "control-label" })
+                @Html.TextAreaFor(model => model.Description, new { @class = "form-control" })
+            </div>
+        </div>
+        <div class="box-footer clearfix">
+            <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" tabindex="12" />
+            <input type="button" class="btn btn-default" tabindex="13" value="Reset" data-dismiss="modal" id="btnreset" />
+        </div>
+    }
+</div>
+@Html.Partial("../Common/_ModalCreate")
+@section scripts{
+    @Scripts.Render("~/js/jqueryval")
+    <script type="text/javascript">
+        /* function for Create popup */
+        $('div').on('click', '.modal-create', function (e) {
+            e.preventDefault();
+            $(this).attr('data-target', '#modal-create');
+            $(this).attr('data-toggle', 'modal');
+        });
+
+        $('#modal-create').on('submit', '#createform', function (e) {
+            var url = $('#createform')[0].action;
+            var text = $("#AreaName").val();
+            $('#AreaId option:selected').attr("selected", null);
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: $('#createform').serialize(),
+                success: function (data) {
+                    if (data.status) {
+                        $('#modal-create').modal('hide');
+
+                        var newOption = $('<option></option>');
+                        newOption.val(data.Id).attr("selected", "selected");
+                        newOption.html(text);
+                        $('.form-control[name="AreaId"]').append(newOption)
+                    }
+                    else {
+                        $('.ajax_response', res_danger).text(data.message);
+                        $('.AlertDiv').prepend(res_danger);
+                    }
+                    fadeAlert();
+                }
+            })
+
+            e.preventDefault();
+        });
+    </script>
+
+}
+
+
+

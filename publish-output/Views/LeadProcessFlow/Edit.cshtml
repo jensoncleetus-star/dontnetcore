@@ -1,0 +1,280 @@
+@model QuickSoft.ViewModel.LeadProcessFlowsViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Edit Lead Process Flow</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Edit", "LeadProcessFlow", FormMethod.Post, new { id = "editform" }))
+    {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            @Html.HiddenFor(model => model.LeadProcessFlowId)
+            <div class="col-md-12">
+                <div class="form-group  col-md-6">
+
+                    @Html.LabelFor(model => model.LeadStatus, htmlAttributes: new { @class = "control-label" })
+                    @*@Html.DropDownListFor(model => model.LeadStatus, (SelectList)ViewBag.LeadStatus, "", new { @class = "form-control  textwidth ddlPStatus" })*@
+                    @Html.DropDownListFor(m => m.LeadStatus, (SelectList)ViewBag.LeadStatus, new { id = "ddlPStatus", @name = "LeadStatus", @class = "form-control leadstat select2 " })
+
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.AssignType, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.AssignTypeAll, (MultiSelectList)ViewBag.AssignTypes, new { @class = "form-control select2 asstype textwidth", @name = "AssignTypeAll[]", @multiple = "multiple" })
+                </div>
+                <div class="form-group  col-md-12">
+                    @Html.LabelFor(model => model.AssignedUsers, htmlAttributes: new { @class = "control-label" })
+                    @Html.ListBoxFor(m => m.AssignedUsers, (MultiSelectList)ViewBag.team, new { @class = "form-control select2 assuser", @name = "AssignedUsers[]", @multiple = "multiple", @style = "width:100%" })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.CheckBoxFor(m => m.RemoveUpdateUser, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.RemoveUpdateUser, new { @class = "control-label" })
+                </div>
+
+                <div class="form-group  col-md-6">
+                    @Html.CheckBoxFor(m => m.RemoveUpdateUserTeams, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.RemoveUpdateUserTeams, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-12" id="1">
+                    @Html.CheckBoxFor(m => m.ApprovalRequierd, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.ApprovalRequierd, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-12" hidden="hidden" id="abc">
+                    @Html.Label("Approve Users", null, htmlAttributes: new { @class = "control-label" })
+                    @Html.ListBoxFor(m => m.AssignUsers, (MultiSelectList)ViewBag.AssignUserss, new { @class = "form-control select2 assuser", @name = "AssignUsers[]", @multiple = "multiple", @style = "width:100%" })
+                </div>
+                <div class="form-group  col-md-12" id="1">
+                    @Html.CheckBoxFor(m => m.MoveToFieldService, new { @class = "checkbox" })
+                    @Html.LabelFor(m => m.MoveToFieldService, new { @class = "control-label" })
+                </div>
+                <div class="form-group  col-md-6" hidden="hidden" id="abd">
+                    @Html.LabelFor(model => model.TaskStatus, htmlAttributes: new { @class = "control-label" })
+                    @Html.DropDownListFor(m => m.TaskStatus, (SelectList)ViewBag.TaskStatuss, "", new { @class = "form-control textwidth", id = "2" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    <button type="submit" class="btn btn-info col-sm-offset-4">Update</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            $(function () {
+                if ($("#ApprovalRequierd").is(':checked')) {
+                    $("#abc").show();
+                }
+                else {
+                    $("#abc").hide();
+                }
+                if ($("#MoveToFieldService").is(':checked')) {
+                    $("#abd").show();
+                }
+                else {
+                    $("#abd").hide();
+                }
+                $("#MoveToFieldService").change(function () {
+                    if ($(this).is(':checked')) {
+                        $("#abd").show();
+                    }
+                    else {
+                        $("#abd").hide();
+                    }
+                });
+                $("#ApprovalRequierd").change(function () {
+                    if ($(this).is(':checked')) {
+                        $("#abc").show();
+                    }
+                    else {
+                        $("#abc").hide();
+                    }
+                });
+
+            });
+            $(".leadstat").select2({
+                placeholder: 'Search Task Status',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/LeadStatus/SearchLeadStatus",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            $('.leadstat').val(@Model.LeadStatus);
+            $('.leadstat').trigger('change.select2');
+            @*$('.taskstat').val(@Model.TaskStatus);
+            $('.taskstat').trigger('change.select2');*@
+
+            $("document").ready(function () {
+                 $('#ddlPStatus').val('@Model.LeadStatus');
+                 var status = $("#ddlPStatus").val();
+                 if (status == 500) {
+                     $('#divcheckbox').show();
+
+                 }
+                 else {
+                     $('#divcheckbox').hide();
+                     $('#divassignuser').hide();
+                     $('#divtaskstatus').hide();
+                 }
+             });
+            $("document").ready(function () {
+               // debugger;
+               // $('#assignuser').val(@(Model.AssignUsers.Length)>0);
+                if (@(Model.AssignUsers.Length)>0) {
+                    $('#chkApproval').prop("checked", true);
+                    //$('#divassignuser').show();
+                   // $('#divtaskstatus').show();
+                    $('#ddltaskstatus').val('@Model.TaskStatus');
+
+                }
+                else {
+                    $('#chkApproval').prop("checked", false);
+                   // $('#divassignuser').hide();
+                  //  $('#divtaskstatus').hide();
+                }
+ 
+            });
+            //$("document").ready(function () {
+            //    if ($("a").show()) {
+            //        $('#ab').show();
+            //        $('#abc').show();
+            //    } else {
+            //        $('#ab').hide();
+            //        $('#abc').hide();
+            //    }
+            //});//call me
+
+            $(function () {
+                $("#ddlPStatus").change(function () {
+                    var status = $("#ddlPStatus").val();
+                    if (status == 500) {
+                        //$('#ab').show();
+                        //$('#abc').show();
+                        $('#divcheckbox').show();
+
+                    }
+                    else {
+                        //$('#ab').hide();
+                        //$('#abc').hide();
+                        $('#divcheckbox').hide();
+                        $('#divassignuser').hide();
+                        $('#divtaskstatus').hide();
+                    }
+                });
+                $("#chkApproval").change(function () {
+                    if ($(this).is(':checked')) {
+                        $('#divassignuser').show();
+                        $('#divtaskstatus').show();
+                    } else {
+                        $('#divassignuser').hide();
+                        $('#divtaskstatus').hide();
+                    }
+                });
+            });
+                $(".taskstat").select2({
+                    placeholder: 'Search Task Status',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/TaskStatus/SearchTaskStatusName",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                $(".asstype").select2({
+                    placeholder: 'Search Assign Type',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Team/SearchTeam",
+                        dataType: 'json',
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term || "",
+                                page: params.page || 0,
+                                x: "in"
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+                $(".assuser").select2({
+                    placeholder: 'Search Employees by Name',
+                    minimumInputLength: 0,
+                    ajax: {
+                        url: "/Employee/SearchTeamMember",
+                        dataType: 'json',
+                        type: "POST",
+                        delay: 50,
+                        data: function (params) {
+                            return {
+                                q: params.term,
+                                page: params.page,
+                                lead: $('#TeamLead').val()
+                            };
+                        },
+                        processResults: function (data, params) {
+                            params.page = params.page || 1;
+
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true
+                    },
+                });
+
+                $('body').on('change', '#AssignTypeAll', function (e) {
+                    var assign = $("#AssignTypeAll").val();
+                    AssignTypeChange(assign);
+                });
+
+        </script>
+    }
+</div>

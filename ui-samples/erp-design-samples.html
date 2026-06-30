@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BOS ERP — design direction samples</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<style>
+  :root{ --r:16px; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif; min-height:100vh; color:#0f172a; overflow-x:hidden; }
+  a{ text-decoration:none; color:inherit; cursor:pointer; }
+
+  /* ---------- shared layout ---------- */
+  .bg{ position:fixed; inset:0; z-index:-1; }
+  .app{ min-height:100vh; display:flex; flex-direction:column; }
+  .topbar{ display:flex; align-items:center; gap:18px; padding:10px 18px; }
+  .brand{ font-weight:800; letter-spacing:.5px; font-size:18px; display:flex; align-items:center; gap:8px; }
+  .brand .dot{ width:30px; height:30px; border-radius:9px; display:grid; place-items:center; font-size:13px; }
+  .nav{ display:flex; gap:4px; flex:1; flex-wrap:wrap; }
+  .nav a{ padding:8px 14px; border-radius:11px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:7px; transition:.18s; white-space:nowrap; }
+  .nav a i{ font-size:13px; opacity:.8; }
+  .tools{ display:flex; gap:8px; align-items:center; }
+  .tbtn{ width:36px; height:36px; border-radius:11px; display:grid; place-items:center; font-size:14px; transition:.18s; }
+  .avatar{ width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:13px; }
+
+  .content{ flex:1; padding:18px 22px 40px; }
+  .phead{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .phead h1{ font-size:23px; font-weight:800; letter-spacing:-.02em; }
+  .phead .sub{ font-size:13px; opacity:.6; margin-top:2px; }
+  .cta{ padding:9px 16px; border-radius:11px; font-size:13.5px; font-weight:700; display:inline-flex; gap:8px; align-items:center; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px; }
+  .kpi{ padding:16px 18px; border-radius:var(--r); }
+  .kpi .ico{ width:42px; height:42px; border-radius:12px; display:grid; place-items:center; font-size:17px; margin-bottom:12px; }
+  .kpi .lbl{ font-size:12px; font-weight:600; opacity:.65; text-transform:uppercase; letter-spacing:.04em; }
+  .kpi .val{ font-size:26px; font-weight:800; letter-spacing:-.02em; margin-top:3px; }
+  .kpi .delta{ font-size:12px; font-weight:700; margin-top:6px; }
+
+  .grid2{ display:grid; grid-template-columns:1.6fr 1fr; gap:14px; margin-bottom:16px; }
+  .panel{ border-radius:var(--r); padding:18px 20px; }
+  .panel h3{ font-size:15px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
+  .bars{ display:flex; align-items:flex-end; gap:12px; height:170px; padding-top:8px; }
+  .bars .bar{ flex:1; border-radius:8px 8px 4px 4px; min-height:14px; }
+  .legend{ display:flex; gap:16px; font-size:12px; opacity:.7; margin-top:12px; }
+  .legend span{ display:flex; align-items:center; gap:6px; }
+  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  .mini{ display:flex; flex-direction:column; gap:12px; }
+  .mini .row{ display:flex; align-items:center; gap:12px; }
+  .mini .mi{ width:38px; height:38px; border-radius:11px; display:grid; place-items:center; font-size:15px; }
+  .mini .mt{ font-size:13px; font-weight:600; }
+  .mini .ms{ font-size:11.5px; opacity:.6; }
+  .mini .mv{ margin-left:auto; font-weight:800; font-size:14px; }
+
+  table{ width:100%; border-collapse:collapse; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; opacity:.55; padding:9px 12px; font-weight:700; }
+  td{ padding:11px 12px; font-size:13px; }
+  .pill{ padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700; }
+
+  /* ---------- switcher ---------- */
+  .switch{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); display:flex; gap:6px; padding:7px; border-radius:16px;
+    background:rgba(15,23,42,.86); backdrop-filter:blur(12px); box-shadow:0 12px 40px rgba(0,0,0,.4); z-index:50; }
+  .switch button{ border:0; cursor:pointer; padding:9px 15px; border-radius:11px; font-size:12.5px; font-weight:700; color:#cbd5e1; background:transparent; transition:.18s; font-family:inherit; }
+  .switch button.on{ color:#fff; background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 4px 14px rgba(99,102,241,.5); }
+  .hint{ position:fixed; right:16px; top:14px; font-size:11.5px; color:#fff; background:rgba(15,23,42,.7); padding:6px 12px; border-radius:10px; z-index:50; backdrop-filter:blur(8px); }
+
+  /* ===================================================================
+     THEME 1 — GLASSMORPHISM (frosted glass over a soft color wash)
+     =================================================================== */
+  .glass .bg{ background:
+      radial-gradient(40% 50% at 12% 18%, #c7d2fe 0%, transparent 60%),
+      radial-gradient(45% 55% at 88% 12%, #fbcfe8 0%, transparent 60%),
+      radial-gradient(55% 60% at 75% 90%, #a7f3d0 0%, transparent 60%),
+      radial-gradient(50% 55% at 18% 88%, #bae6fd 0%, transparent 60%), #eef2ff; }
+  .glass{ color:#1e293b; }
+  .glass .topbar{ margin:14px 16px 0; border-radius:var(--r); background:rgba(255,255,255,.55); backdrop-filter:blur(20px) saturate(160%); border:1px solid rgba(255,255,255,.7); box-shadow:0 8px 30px rgba(31,41,55,.08); }
+  .glass .brand .dot{ background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
+  .glass .nav a{ color:#475569; }
+  .glass .nav a.active{ background:rgba(255,255,255,.85); color:#4f46e5; box-shadow:0 4px 14px rgba(79,70,229,.18); }
+  .glass .nav a:hover{ background:rgba(255,255,255,.5); }
+  .glass .tbtn{ background:rgba(255,255,255,.6); color:#475569; }
+  .glass .avatar{ background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
+  .glass .cta{ background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; box-shadow:0 8px 22px rgba(99,102,241,.4); }
+  .glass .kpi,.glass .panel{ background:rgba(255,255,255,.55); backdrop-filter:blur(20px) saturate(160%); border:1px solid rgba(255,255,255,.7); box-shadow:0 8px 30px rgba(31,41,55,.07); }
+  .glass .kpi .ico{ background:rgba(99,102,241,.14); color:#4f46e5; }
+  .glass .kpi .delta{ color:#059669; }
+  .glass .bars .bar{ background:linear-gradient(180deg,#818cf8,#6366f1); }
+  .glass .mini .mi{ background:rgba(99,102,241,.12); color:#4f46e5; }
+  .glass th{ color:#475569; } .glass td{ border-top:1px solid rgba(15,23,42,.06); }
+  .glass .pill.ok{ background:rgba(16,185,129,.16); color:#047857; } .glass .pill.wait{ background:rgba(245,158,11,.18); color:#b45309; }
+
+  /* ===================================================================
+     THEME 2 — LIQUID GLASS / AURORA  (Vision-Pro style, vivid depth)
+     =================================================================== */
+  .aurora .bg{ background:linear-gradient(125deg,#1e1b4b,#312e81 35%,#0c4a6e 70%,#164e63);  }
+  .aurora .bg::after{ content:""; position:absolute; inset:0; background:
+      radial-gradient(40% 40% at 15% 20%, rgba(139,92,246,.55) 0%, transparent 60%),
+      radial-gradient(45% 45% at 85% 15%, rgba(236,72,153,.45) 0%, transparent 60%),
+      radial-gradient(50% 50% at 80% 85%, rgba(34,211,238,.45) 0%, transparent 60%),
+      radial-gradient(45% 45% at 20% 90%, rgba(99,102,241,.5) 0%, transparent 60%); filter:blur(10px); }
+  .aurora{ color:#e7eaf6; }
+  .aurora .topbar{ margin:14px 16px 0; border-radius:18px; background:rgba(255,255,255,.08); backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25); }
+  .aurora .brand{ color:#fff; } .aurora .brand .dot{ background:linear-gradient(135deg,#a78bfa,#22d3ee); color:#1e1b4b; }
+  .aurora .nav a{ color:#c7cdf0; }
+  .aurora .nav a.active{ background:rgba(255,255,255,.16); color:#fff; box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 4px 16px rgba(167,139,250,.35); }
+  .aurora .nav a:hover{ background:rgba(255,255,255,.1); color:#fff; }
+  .aurora .tbtn{ background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.18); }
+  .aurora .avatar{ background:linear-gradient(135deg,#a78bfa,#22d3ee); color:#1e1b4b; }
+  .aurora .phead h1{ color:#fff; }
+  .aurora .cta{ background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.25); backdrop-filter:blur(10px); box-shadow:inset 0 1px 0 rgba(255,255,255,.3); }
+  .aurora .kpi,.aurora .panel{ background:rgba(255,255,255,.09); backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 40px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.22); }
+  .aurora .kpi .ico{ background:rgba(167,139,250,.3); color:#e9d5ff; }
+  .aurora .kpi .val{ color:#fff; } .aurora .kpi .delta{ color:#5eead4; }
+  .aurora .bars .bar{ background:linear-gradient(180deg,#c4b5fd,#22d3ee); box-shadow:0 0 18px rgba(34,211,238,.4); }
+  .aurora .mini .mi{ background:rgba(255,255,255,.14); color:#e9d5ff; }
+  .aurora th{ color:#a5b4d6; } .aurora td{ border-top:1px solid rgba(255,255,255,.1); }
+  .aurora .mv,.aurora .mt{ color:#fff; }
+  .aurora .pill.ok{ background:rgba(45,212,191,.22); color:#99f6e4; } .aurora .pill.wait{ background:rgba(251,191,36,.22); color:#fde68a; }
+
+  /* ===================================================================
+     THEME 3 — DARK FUTURISTIC NEON (command-center, glow accents)
+     =================================================================== */
+  .neon .bg{ background:#05070f; }
+  .neon .bg::after{ content:""; position:absolute; inset:0; opacity:.5; background:
+      linear-gradient(rgba(99,102,241,.06) 1px,transparent 1px) 0 0/34px 34px,
+      linear-gradient(90deg,rgba(99,102,241,.06) 1px,transparent 1px) 0 0/34px 34px,
+      radial-gradient(60% 50% at 50% 0%, rgba(99,102,241,.18) 0%, transparent 70%); }
+  .neon{ color:#c7d2e8; }
+  .neon .topbar{ margin:0; padding:12px 20px; background:linear-gradient(90deg,#070b16,#0c1326); border-bottom:1px solid rgba(99,102,241,.25); box-shadow:0 0 30px rgba(99,102,241,.12); position:relative; }
+  .neon .topbar::after{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; background:linear-gradient(90deg,transparent,#6366f1,#22d3ee,#a855f7,transparent); box-shadow:0 0 14px rgba(99,102,241,.8); }
+  .neon .brand{ color:#fff; } .neon .brand .dot{ background:linear-gradient(135deg,#6366f1,#22d3ee); color:#05070f; box-shadow:0 0 18px rgba(34,211,238,.6); }
+  .neon .nav a{ color:#94a3c4; }
+  .neon .nav a.active{ background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; box-shadow:0 0 22px rgba(99,102,241,.7), inset 0 1px 0 rgba(255,255,255,.3); }
+  .neon .nav a:hover{ color:#fff; background:rgba(99,102,241,.16); box-shadow:0 0 14px rgba(99,102,241,.3); }
+  .neon .tbtn{ background:rgba(255,255,255,.06); color:#c7d2e8; border:1px solid rgba(255,255,255,.1); }
+  .neon .avatar{ background:linear-gradient(135deg,#6366f1,#22d3ee); color:#05070f; box-shadow:0 0 16px rgba(34,211,238,.5); }
+  .neon .content{ padding-top:22px; } .neon .phead h1{ color:#fff; text-shadow:0 0 18px rgba(99,102,241,.4); }
+  .neon .cta{ background:linear-gradient(135deg,#6366f1,#a855f7); color:#fff; box-shadow:0 0 22px rgba(99,102,241,.6); }
+  .neon .kpi,.neon .panel{ background:linear-gradient(160deg,#0b1020,#0a0e1c); border:1px solid rgba(99,102,241,.18); box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03); }
+  .neon .kpi .ico{ background:rgba(34,211,238,.12); color:#67e8f9; box-shadow:0 0 16px rgba(34,211,238,.25) inset; }
+  .neon .kpi .val{ color:#fff; } .neon .kpi .delta{ color:#34d399; }
+  .neon .bars .bar{ background:linear-gradient(180deg,#818cf8,#22d3ee); box-shadow:0 0 20px rgba(34,211,238,.55); }
+  .neon .mini .mi{ background:rgba(99,102,241,.14); color:#a5b4fc; }
+  .neon th{ color:#64759c; } .neon td{ border-top:1px solid rgba(99,102,241,.12); } .neon .mv,.neon .mt{ color:#e7eefc; }
+  .neon .pill.ok{ background:rgba(52,211,153,.16); color:#6ee7b7; box-shadow:0 0 12px rgba(52,211,153,.25); }
+  .neon .pill.wait{ background:rgba(251,191,36,.16); color:#fcd34d; }
+
+  /* ===================================================================
+     THEME 4 — CLEAN MODERN SAAS  (Linear / Stripe — light, crisp, flat)
+     =================================================================== */
+  .saas .bg{ background:#f7f8fb; }
+  .saas{ color:#1e293b; }
+  .saas .topbar{ margin:0; padding:12px 22px; background:#fff; border-bottom:1px solid #eceff4; }
+  .saas .brand .dot{ background:#4f46e5; color:#fff; }
+  .saas .nav a{ color:#64748b; }
+  .saas .nav a.active{ background:#eef2ff; color:#4f46e5; }
+  .saas .nav a:hover{ background:#f1f5f9; }
+  .saas .tbtn{ background:#f1f5f9; color:#475569; }
+  .saas .avatar{ background:#4f46e5; color:#fff; }
+  .saas .content{ padding-top:22px; }
+  .saas .cta{ background:#4f46e5; color:#fff; }
+  .saas .kpi,.saas .panel{ background:#fff; border:1px solid #eceff4; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+  .saas .kpi .ico{ background:#eef2ff; color:#4f46e5; }
+  .saas .kpi .delta{ color:#059669; }
+  .saas .bars .bar{ background:#6366f1; }
+  .saas .mini .mi{ background:#eef2ff; color:#4f46e5; }
+  .saas th{ color:#64748b; } .saas td{ border-top:1px solid #f1f5f9; }
+  .saas .pill.ok{ background:#dcfce7; color:#15803d; } .saas .pill.wait{ background:#fef3c7; color:#b45309; }
+
+  /* ---------- responsive (works on all screens) ---------- */
+  @media (max-width:760px){
+    .nav{ display:none; }
+    .kpis{ grid-template-columns:repeat(2,1fr); }
+    .grid2{ grid-template-columns:1fr; }
+    .content{ padding:14px; }
+    .hide-sm{ display:none; }
+    .switch{ flex-wrap:wrap; max-width:94vw; justify-content:center; }
+  }
+</style>
+</head>
+<body class="glass" id="app">
+  <div class="bg"></div>
+  <div class="hint">Resize the window to preview phone / tablet · use the bar below to switch styles</div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="dot">B</span> BOS</div>
+      <nav class="nav">
+        <a class="active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+        <a><i class="fa-solid fa-cart-shopping"></i> Sales</a>
+        <a><i class="fa-solid fa-truck"></i> Purchase</a>
+        <a><i class="fa-solid fa-boxes-stacked"></i> Inventory</a>
+        <a><i class="fa-solid fa-building-columns"></i> Accounts</a>
+        <a><i class="fa-solid fa-users"></i> HR</a>
+      </nav>
+      <div class="tools">
+        <span class="tbtn"><i class="fa-solid fa-magnifying-glass"></i></span>
+        <span class="tbtn hide-sm"><i class="fa-solid fa-bell"></i></span>
+        <span class="tbtn hide-sm"><i class="fa-solid fa-gear"></i></span>
+        <span class="avatar">JC</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="phead">
+        <div><h1>Dashboard</h1><div class="sub">30 May – 30 Jun 2026 · Emirtech Technology</div></div>
+        <span class="cta"><i class="fa-solid fa-plus"></i> New invoice</span>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="ico"><i class="fa-solid fa-sack-dollar"></i></div><div class="lbl">Month sales</div><div class="val">1.35M</div><div class="delta">▲ 12.4% vs last</div></div>
+        <div class="kpi"><div class="ico"><i class="fa-solid fa-receipt"></i></div><div class="lbl">Year sales</div><div class="val">3.36M</div><div class="delta">▲ 8.1%</div></div>
+        <div class="kpi"><div class="ico"><i class="fa-solid fa-users"></i></div><div class="lbl">Customers</div><div class="val">15,473</div><div class="delta">▲ 449 new</div></div>
+        <div class="kpi"><div class="ico"><i class="fa-solid fa-rotate-left"></i></div><div class="lbl">Returns</div><div class="val">1,039</div><div class="delta">▼ 3.2%</div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3>Sales summary <span style="font-size:12px;opacity:.6;font-weight:600">Last 6 months</span></h3>
+          <div class="bars">
+            <div class="bar" style="height:42%"></div><div class="bar" style="height:36%"></div>
+            <div class="bar" style="height:30%"></div><div class="bar" style="height:40%"></div>
+            <div class="bar" style="height:55%"></div><div class="bar" style="height:96%"></div>
+          </div>
+          <div class="legend"><span><i style="background:#6366f1"></i> Sales entry</span><span><i style="background:#22d3ee"></i> Sales return</span></div>
+        </div>
+        <div class="panel">
+          <h3>Quick stats</h3>
+          <div class="mini">
+            <div class="row"><span class="mi"><i class="fa-solid fa-file-invoice"></i></span><div><div class="mt">Pending invoices</div><div class="ms">awaiting approval</div></div><span class="mv">28</span></div>
+            <div class="row"><span class="mi"><i class="fa-solid fa-money-bill-wave"></i></span><div><div class="mt">PDC issued</div><div class="ms">this month</div></div><span class="mv">3,625</span></div>
+            <div class="row"><span class="mi"><i class="fa-solid fa-warehouse"></i></span><div><div class="mt">Low stock items</div><div class="ms">reorder soon</div></div><span class="mv">14</span></div>
+            <div class="row"><span class="mi"><i class="fa-solid fa-handshake"></i></span><div><div class="mt">Active suppliers</div><div class="ms">trading</div></div><span class="mv">684</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Recent transactions <span style="font-size:12px;opacity:.6;font-weight:600">PDC regularize</span></h3>
+        <table>
+          <thead><tr><th>Date</th><th>Voucher</th><th class="hide-sm">Account</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>25-06-2026</td><td>2026/761</td><td class="hide-sm">Adnoc Distribution</td><td>3,625.00</td><td><span class="pill ok">Cleared</span></td></tr>
+            <tr><td>22-06-2026</td><td>2026/743</td><td class="hide-sm">Emarat Misr</td><td>741.75</td><td><span class="pill wait">Pending</span></td></tr>
+            <tr><td>19-06-2026</td><td>2026/745</td><td class="hide-sm">Al Futtaim Trading</td><td>2,170.00</td><td><span class="pill ok">Cleared</span></td></tr>
+            <tr><td>17-06-2026</td><td>2026/738</td><td class="hide-sm">Gulf Steel Works</td><td>5,890.50</td><td><span class="pill wait">Pending</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <div class="switch">
+    <button class="on" data-t="glass">Glassmorphism</button>
+    <button data-t="aurora">Liquid glass</button>
+    <button data-t="neon">Dark neon</button>
+    <button data-t="saas">Clean SaaS</button>
+  </div>
+
+<script>
+  const app=document.getElementById('app');
+  document.querySelectorAll('.switch button').forEach(b=>b.onclick=()=>{
+    app.className=b.dataset.t;
+    document.querySelectorAll('.switch button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+</script>
+</body>
+</html>

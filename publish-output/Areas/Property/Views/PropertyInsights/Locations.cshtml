@@ -1,0 +1,54 @@
+@{
+    ViewBag.Title = "Portfolio by Location";
+    ViewBag.Active = "Master";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#0e7490,#06b6d4 55%,#22d3ee)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-map-marker"></i></div>
+            <div><h1>Portfolio by Location</h1><p>Geographic distribution &middot; properties, units &amp; occupancy by area</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/Performance" class="rfi-btn"><i class="fa fa-trophy"></i> Performance</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Properties</span><span class="rfi-num">@ViewBag.TotProps</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Units</span><span class="rfi-num">@ViewBag.TotUnits</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Cities / Areas</span><span class="rfi-num">@ViewBag.Cities</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Emirates</span><span class="rfi-num">@ViewBag.States</span></div>
+    </div>
+    <div class="rfi-grid2">
+        <div class="rfi-card">
+            <h3><i class="fa fa-building"></i> By City / Area</h3>
+            <div id="locCity" class="rfi-bars"></div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-flag"></i> By Emirate</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Emirate</th><th class="c">Props</th><th class="c">Units</th><th class="c">Occ%</th><th class="r">Rent (AED)</th></tr></thead><tbody id="locState"></tbody></table></div>
+        </div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-list-ul"></i> Location Detail</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>City / Area</th><th class="c">Properties</th><th class="c">Units</th><th class="c">Occupied</th><th class="c">Vacant</th><th class="c">Occ%</th><th class="r">Rent</th><th class="r">Maint. Cost</th></tr></thead><tbody id="locDetail"></tbody></table></div>
+    </div>
+</div>
+<script>
+(function(){
+  var city=@Html.Raw(ViewBag.ByCity ?? "[]"), state=@Html.Raw(ViewBag.ByState ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  var max=1; city.forEach(function(c){max=Math.max(max,c.properties);});
+  document.getElementById('locCity').innerHTML = city.length ? city.map(function(c){var w=Math.round(c.properties/max*100);
+    return '<div class="rfi-bar-row"><div class="rfi-bar-top"><span>'+esc(c.location)+'</span><span>'+c.properties+' prop &middot; '+c.units+' units</span></div><div class="rfi-bar-track"><div class="rfi-bar-fill" style="width:'+w+'%;background:linear-gradient(90deg,#0e7490,#22d3ee)"></div></div></div>';
+  }).join('') : '<div class="rfi-empty">No locations</div>';
+  document.getElementById('locState').innerHTML = state.length ? state.map(function(s){
+    return '<tr><td><b>'+esc(s.location)+'</b></td><td class="c">'+s.properties+'</td><td class="c">'+s.units+'</td><td class="c">'+s.pct+'%</td><td class="r">'+m(s.rent)+'</td></tr>';
+  }).join('') : '<tr><td colspan="5" class="rfi-empty">No data</td></tr>';
+  document.getElementById('locDetail').innerHTML = city.length ? city.map(function(c){
+    return '<tr><td><b>'+esc(c.location)+'</b></td><td class="c">'+c.properties+'</td><td class="c">'+c.units+'</td><td class="c">'+c.occupied+'</td><td class="c">'+c.vacant+'</td><td class="c"><span class="rfi-chip g">'+c.pct+'%</span></td><td class="r">'+m(c.rent)+'</td><td class="r neg">'+m(c.expense)+'</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="rfi-empty">No locations</td></tr>';
+})();
+</script>

@@ -1,0 +1,45 @@
+@{
+    ViewBag.Title = "Landlord Payout";
+    ViewBag.Active = "Reports";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#be123c,#e11d48 55%,#fb7185)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-money"></i></div>
+            <div><h1>Landlord Payout</h1><p>Rent collected &minus; commission &minus; maintenance = owner payout</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/RentCollection" class="rfi-btn"><i class="fa fa-usd"></i> Collection</a>
+            <a href="/Property/PropertyHome/Dashboard" class="rfi-btn"><i class="fa fa-th-large"></i> Dashboard</a>
+        </div>
+    </div>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Landlords</span><span class="rfi-num">@ViewBag.Landlords</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Rent Collected</span><span class="rfi-num pos">@money(ViewBag.TotCollected)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Commission (@ViewBag.CommPct%)</span><span class="rfi-num">@money(ViewBag.TotCommission)</span><span class="rfi-sub">AED — our fee</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Maintenance</span><span class="rfi-num neg">@money(ViewBag.TotExpense)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Net Payout</span><span class="rfi-num pos">@money(ViewBag.TotPayout)</span><span class="rfi-sub">AED to owners</span></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-table"></i> Payout Statement by Landlord</h3>
+        <div class="rfi-tbl">
+            <table>
+                <thead><tr><th>Landlord</th><th class="c">Props</th><th class="r">Collected</th><th class="r">Commission</th><th class="r">Maintenance</th><th class="r">Net Payout</th></tr></thead>
+                <tbody id="lpBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+  var rows=@Html.Raw(ViewBag.Rows ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  document.getElementById('lpBody').innerHTML = rows.length ? rows.map(function(r){
+    return '<tr><td><b>'+esc(r.name)+'</b></td><td class="c">'+r.properties+'</td>'+
+      '<td class="r pos">'+m(r.collected)+'</td><td class="r">'+m(r.commission)+'</td><td class="r neg">'+m(r.expense)+'</td>'+
+      '<td class="r '+(r.payout>=0?'pos':'neg')+'"><b>'+m(r.payout)+'</b></td></tr>';
+  }).join('') : '<tr><td colspan="6" class="rfi-empty">No landlords with properties</td></tr>';
+})();
+</script>

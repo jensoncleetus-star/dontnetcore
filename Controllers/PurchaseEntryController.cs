@@ -6619,8 +6619,11 @@ namespace QuickSoft.Controllers
 
 
                 Int64 cashAccId = db.Accountss.Where(a => a.Group == 9).Select(a => a.AccountsID).SingleOrDefault();
-                //if payment
-                com.addAccountTrasaction(Convert.ToDecimal(PEPVM.PEPayAmount), 0, cashAccId, "Purchase Payment", id, DC.Debit);
+                // Calc fix (N2): debit the SUPPLIER account (reduces AP), credit cash. Was debiting cashAccId on BOTH legs —
+                // net-zero on cash and the supplier balance was never reduced. Mirrors the create path (suppAccID, DC.Debit @ 2594/2745).
+                long peSuppId = Convert.ToInt64(PEP.SupplierId);
+                Int64 suppAccId = db.Suppliers.Where(a => a.SupplierID == peSuppId).Select(a => a.Accounts).FirstOrDefault();
+                com.addAccountTrasaction(Convert.ToDecimal(PEPVM.PEPayAmount), 0, suppAccId, "Purchase Payment", id, DC.Debit);
                 com.addAccountTrasaction(0, Convert.ToDecimal(PEPVM.PEPayAmount), cashAccId, "Purchase Payment", id, DC.Credit);
 
 

@@ -676,7 +676,7 @@ namespace QuickSoft.Areas.Hr.Controllers
 
             if (!fdate.HasValue || !tdate.HasValue) { return Json(0); }
             TimeSpan ts = tdate.Value.Date - fdate.Value.Date;
-            int days = ts.Days;
+            int days = ts.Days + 1; // Calc fix (N1): inclusive calendar-day count — matches SalaryStructureController:446. Was ts.Days, so a 30-day month divided salary by 29 (per-day ~3.4% off, inconsistent with the salary structure) and From==To crashed (Rate/0).
 
 
             List<long> listemp = new List<long>();

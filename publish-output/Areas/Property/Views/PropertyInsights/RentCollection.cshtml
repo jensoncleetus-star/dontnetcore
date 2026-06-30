@@ -1,0 +1,73 @@
+@{
+    ViewBag.Title = "Rent Collection";
+    ViewBag.Active = "Transactions";
+    Func<object, string> money = v => { decimal d = 0; decimal.TryParse(Convert.ToString(v), out d); return d.ToString("#,##0"); };
+}
+<div class="rfi-page">
+    <div class="rfi-hero" style="background:linear-gradient(120deg,#047857,#10b981 55%,#6ee7b7)">
+        <div class="rfi-hero-l">
+            <div class="rfi-hero-ic"><i class="fa fa-usd"></i></div>
+            <div><h1>Rent Collection</h1><p>Receipt-based — billed vs collected vs outstanding</p></div>
+        </div>
+        <div class="rfi-hero-r">
+            <a href="/Property/PropertyInsights/LandlordPayout" class="rfi-btn"><i class="fa fa-money"></i> Payouts</a>
+            <a href="/Property/Rental/Create" class="rfi-btn"><i class="fa fa-plus"></i> New Invoice</a>
+        </div>
+    </div>
+    <form id="afForm" style="display:none">@Html.AntiForgeryToken()</form>
+    <div class="rfi-kpis">
+        <div class="rfi-kpi"><span class="rfi-lbl">Total Billed</span><span class="rfi-num">@money(ViewBag.Billed)</span><span class="rfi-sub">AED</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Collected</span><span class="rfi-num pos">@money(ViewBag.Collected)</span><span class="rfi-sub">@ViewBag.ReceiptCount receipts</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Outstanding</span><span class="rfi-num neg">@money(ViewBag.Outstanding)</span><span class="rfi-sub">AED due</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Collection Rate</span><span class="rfi-num">@ViewBag.CollectedPct%</span></div>
+        <div class="rfi-kpi"><span class="rfi-lbl">Pending Invoices</span><span class="rfi-num neg">@ViewBag.PendingCount</span></div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-percent"></i> Collection Progress</h3>
+        <div class="rfi-collbar"><div class="rfi-collfill" style="width:@(ViewBag.CollectedPct)%"></div></div>
+        <div class="rfi-legend" style="margin-top:10px"><span><i class="dot" style="background:#10b981"></i> Collected @ViewBag.CollectedPct%</span><span><i class="dot" style="background:#fecaca"></i> Outstanding @(100-(int)ViewBag.CollectedPct)%</span></div>
+    </div>
+    <div class="rfi-grid2">
+        <div class="rfi-card">
+            <h3><i class="fa fa-users"></i> By Tenant</h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Tenant</th><th class="r">Billed</th><th class="r">Collected</th><th class="r">Due</th><th class="c">%</th></tr></thead><tbody id="rcTenant"></tbody></table></div>
+        </div>
+        <div class="rfi-card">
+            <h3><i class="fa fa-clock-o"></i> Pending Invoices <span class="rfi-mut">— click Collect to record a receipt</span></h3>
+            <div class="rfi-tbl"><table><thead><tr><th>Tenant</th><th>Property</th><th>Date</th><th class="r">Amount</th><th class="c">Action</th></tr></thead><tbody id="rcPending"></tbody></table></div>
+        </div>
+    </div>
+    <div class="rfi-card">
+        <h3><i class="fa fa-receipt"></i> Recent Receipts</h3>
+        <div class="rfi-tbl"><table><thead><tr><th>Receipt #</th><th>Tenant</th><th>Mode</th><th>Date</th><th class="r">Amount</th></tr></thead><tbody id="rcRecent"></tbody></table></div>
+    </div>
+    <p class="rfi-note"><i class="fa fa-info-circle"></i> Collection is driven by actual rent receipts. Click <b>Collect</b> on a pending invoice to record a receipt; it moves to Collected instantly.</p>
+</div>
+<script>
+(function(){
+  var byT=@Html.Raw(ViewBag.ByTenant ?? "[]"), pend=@Html.Raw(ViewBag.Pending ?? "[]"), rec=@Html.Raw(ViewBag.Recent ?? "[]");
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function m(n){return (Number(n)||0).toLocaleString();}
+  document.getElementById('rcTenant').innerHTML = byT.length ? byT.map(function(t){
+    return '<tr><td><b>'+esc(t.tenant)+'</b></td><td class="r">'+m(t.billed)+'</td><td class="r pos">'+m(t.collected)+'</td><td class="r neg">'+m(t.outstanding)+'</td><td class="c"><span class="rfi-chip '+(t.pct>=70?'g':'rd')+'">'+t.pct+'%</span></td></tr>';
+  }).join('') : '<tr><td colspan="5" class="rfi-empty">No invoices</td></tr>';
+  document.getElementById('rcPending').innerHTML = pend.length ? pend.map(function(p){
+    return '<tr><td>'+esc(p.tenant)+'</td><td>'+esc(p.property)+'</td><td>'+esc(p.date)+'</td><td class="r neg">'+m(p.amount)+'</td>'+
+           '<td class="c"><button class="rfi-collect" data-id="'+p.rentalId+'"><i class="fa fa-check"></i> Collect</button></td></tr>';
+  }).join('') : '<tr><td colspan="5" class="rfi-empty">Nothing pending 🎉</td></tr>';
+  document.getElementById('rcRecent').innerHTML = rec.length ? rec.map(function(r){
+    return '<tr><td><b>'+esc(r.receiptNo)+'</b></td><td>'+esc(r.tenant)+'</td><td><span class="rfi-chip">'+esc(r.mode)+'</span></td><td>'+esc(r.date)+'</td><td class="r pos">'+m(r.amount)+'</td></tr>';
+  }).join('') : '<tr><td colspan="5" class="rfi-empty">No receipts yet</td></tr>';
+
+  // inline collect -> POST RecordReceipt
+  var tok=(document.querySelector('#afForm input[name=__RequestVerificationToken]')||{}).value||'';
+  document.getElementById('rcPending').addEventListener('click',function(ev){
+    var b=ev.target.closest('.rfi-collect'); if(!b) return;
+    b.disabled=true; b.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    var f=document.createElement('form'); f.method='post'; f.action='/Property/PropertyInsights/RecordReceipt';
+    function add(n,v){var i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;f.appendChild(i);}
+    add('rentalId',b.getAttribute('data-id')); add('mode','Cash'); add('__RequestVerificationToken',tok);
+    document.body.appendChild(f); f.submit();
+  });
+})();
+</script>

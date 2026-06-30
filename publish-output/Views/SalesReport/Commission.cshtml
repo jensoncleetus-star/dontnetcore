@@ -1,0 +1,124 @@
+@{
+    ViewBag.Title = "Search Commission Based on Item Brand";
+    ViewBag.SubTitle = "Sales Report";
+    ViewBag.Active = "Reports";
+
+}
+<div class="box box-default">
+    <div class="box-header with-border">
+        <h3 class="box-title">Search Commission Report</h3>
+    </div>
+    <div class="box-body">
+        @using (Html.BeginForm("Commission", "SalesReport", FormMethod.Post, new { id = "popupForm" }))
+        {
+            <div class="form-group col-md-4" id="creditsale">
+                @Html.Label("Item Brand", null, new { @class = "control-label" })
+                @Html.DropDownList("ddlItemBrand", (SelectList)ViewBag.Brand, new { @class = "form-control input-sm select2" })
+            </div>
+            if (@ViewBag.BusinessType == "Scaffold")
+            {
+                <div class="form-group col-sm-4">
+                    @Html.Label("Type", null, new { @class = "control-label" })
+                    @Html.DropDownList("SaleType", (SelectList)ViewBag.Type, new { @class = "form-control input-sm" })
+                </div>
+            }
+            if (@ViewBag.EnableMCcheck == 0)
+            {
+                <div class="form-group col-md-4">
+                    @Html.Label("Material Center", null, new { @class = "control-label" })
+                    @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                </div>
+            }
+            <div class="form-group col-md-4">
+                @Html.Label("From", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("From", "", "{0:dd-MM-yyyy}", new { @class = "form-control input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-md-4">
+                @Html.Label("To", null, new { @class = "control-label" })
+                <div class="input-group date">
+                    @Html.TextBox("To", "", "{0:dd-MM-yyyy}", new { @class = "form-control datepicker input-sm", @autocomplete = "off" })
+                    <div class="input-group-addon">
+                        <i class="fa fa-calendar"></i>
+                    </div>
+                </div>
+            </div>
+           
+            <div class="box-footer col-md-12">
+                <input type="submit" class="btn btn-info col-sm-offset-5" value="Submit" />
+                <button type="button" class="btn btn-default" onclick="@("window.location.href='/Home/Index'");">Cancel</button>
+            </div>
+        }
+    </div>
+</div>
+@section style{
+    @Styles.Render("~/css/bootstrap-datepicker")
+}
+@section Scripts {
+    @Scripts.Render("~/js/bootstrap-datepicker")
+    <script type="text/javascript">
+        $('.date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            allowInputToggle: true
+        })
+
+        $(document).ready(function () {
+            //for set default date
+            $('#To').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+            $('#From').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                allowInputToggle: true
+            });
+
+            var date = new Date();
+            var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            var priordate = new Date(new Date().setDate(today.getDate() - 30));
+            $('#To').datepicker('setDate', today);
+            $('#From').datepicker('setDate', priordate);
+            //---
+            $("#ddlItemBrand").select2({
+                placeholder: 'Search Item Brand',
+                minimumInputLength: 0,
+                ajax: {
+                    url: "/ItemBrand/SearchBrand",
+                    dataType: 'json',
+                    type: "POST",
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "all"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+
+            CallRepMCUser();
+
+        });
+
+
+
+    </script>
+}
+
+

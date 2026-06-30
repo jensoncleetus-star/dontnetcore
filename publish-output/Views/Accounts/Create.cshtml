@@ -1,0 +1,106 @@
+@model QuickSoft.ViewModel.AccountsViewModel
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h4>Create Accounts</h4>
+</div>
+<div class="modal-body">
+    @using (Html.BeginForm("Create", "Accounts", FormMethod.Post, new { id = "createform" }))
+            {
+        <script type="text/javascript">
+            $('form#createform').removeData("validator");
+            $('form#createform').removeData("unobtrusiveValidation");
+            $.validator.unobtrusive.parse($('form#createform'));
+        </script>
+        @Html.AntiForgeryToken()
+        @Html.ValidationSummary("", new { @class = "alert alert-danger" })
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.Name, htmlAttributes: new { @class = "control-label" })*
+                    @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus", @required = "true" } })
+                </div>
+                <div class="form-group  col-md-6">
+                    @Html.LabelFor(model => model.Alias, htmlAttributes: new { @class = "control-label" })
+                    @Html.EditorFor(model => model.Alias, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus" } })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Opening Balance", null, htmlAttributes: new { @class = "control-label " })
+                    <div class="input-group">
+                        @Html.EditorFor(model => model.OpnBalance, new { htmlAttributes = new { @Value = "0.00", @class = "form-control" } })
+                        <div class="input-group-addon no-padding dcwidth">
+                            @Html.EnumDropDownListFor(model => model.DC, new { @class = "form-control" })
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Groups", null, new { @class = "control-label" }) *
+                    @Html.DropDownListFor(model => model.Group, (SelectList)ViewBag.AccGroup, "", new {@id="ddlmygroup", @class = "form-control select2", @required = "true" })
+                </div>
+                <div class="form-group col-md-6">
+                    @Html.Label("Status", null, new { @class = "control-label" }) *
+                    @Html.EnumDropDownListFor(model => model.Status, new { @class = "form-control" })
+                </div>
+                <div class="form-group  col-md-6 ">
+                    @Html.Label("TRN NO:", null, new { @class = "control-label" })
+                    @Html.EditorFor(model => model.TRN, new { htmlAttributes = new { @class = "form-control input-sm", autofocus = "autofocus" } })
+                </div>
+                <div class="form-group col-md-12">
+                    @Html.Label("Note", null, new { @class = "control-label" }) *
+                    @Html.TextAreaFor(model => model.Note, new { @class = "form-control input-sm", autofocus = "autofocus" })
+                </div>
+                @if (@ViewBag.EnableMCcheck == 0)
+                {
+                    <div class="form-group  col-md-12">
+                        @Html.Label("Project", null, new { @class = "control-label temp2" })
+                        @Html.DropDownList("ddlMC", (SelectList)ViewBag.MC, new { @class = "form-control input-sm" })
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box-footer">
+                    @*<input type="submit" value="Submit" class="btn btn-info col-sm-offset-4" />*@
+                    <button type="submit" id="save" class="btn btn-success col-sm-offset-4" tabindex="26">
+                        <span class="glyphicon glyphicon-floppy-disk"></span> Save
+                    </button>
+                    <input type="button" class="btn btn-default" value="Cancel" data-dismiss="modal" />
+                </div>
+            </div>
+        </div>
+        <script>
+            $("#ddlMC").select2({});
+            $("#ddlmygroup").select2({
+                placeholder: 'Search Account Group Name ',
+                minimumInputLength: 0,
+                // Attach the dropdown to whichever modal actually holds this partial. It is loaded into
+                // #modal-create on the Accounts page but into #modal-owner from the property/maintenance
+                // "add owner" buttons; hardcoding #modal-create rendered the results inside a hidden modal,
+                // so the group list appeared empty ("not listing").
+                dropdownParent: ($("#ddlmygroup").closest(".modal").length ? $("#ddlmygroup").closest(".modal") : $("#modal-create")),
+                ajax: {
+                    url: "/Accounts/SearchAccInAcc",
+                    dataType: 'json',
+                    delay: 50,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                            x: "empty"
+                        };
+                    },
+                    processResults: function (data, params) {
+                        params.page = params.page || 1;
+
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+            });
+        
+          //  CallMC();
+        </script>
+    }
+</div>
