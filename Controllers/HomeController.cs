@@ -311,12 +311,11 @@ namespace QuickSoft.Controllers
 
             DateTime today = DateTime.Now;
 
-            Int32? day = Convert.ToInt32(db.EnableSettings.Where(a => a.EnableType == "PDCNotification").Select(a => a.TypeValue).FirstOrDefault());
-            day = day != null ? day : 0;
-            if (day != null)
-            {
-                newdate = today.Add(TimeSpan.FromDays((Int32)day));
-            }
+            // TypeValue can be null, empty, or non-numeric. Convert.ToInt32 throws FormatException on
+            // "" / non-numeric (e.g. emirtechlatest stores an empty string) — parse safely, default 0.
+            var pdcDays = db.EnableSettings.Where(a => a.EnableType == "PDCNotification").Select(a => a.TypeValue).FirstOrDefault();
+            int day = int.TryParse(pdcDays, out var parsedDay) ? parsedDay : 0;
+            newdate = today.Add(TimeSpan.FromDays(day));
 
 
             var v = (from a in db.PDCs

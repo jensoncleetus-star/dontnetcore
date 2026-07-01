@@ -2070,10 +2070,18 @@ namespace QuickSoft.Areas.Property.Controllers
                             join ct in db.Contacts on l.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
                             select new { l.LandlordName, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
             long tnId = c.Tenant ?? 0;
-            var tenant = (from t in db.Tenants
+            // The lessee picker was switched from Tenants to Customers, so Tenant now holds a CustomerID.
+            // Resolve the customer first (current behaviour); fall back to the legacy Tenants table for
+            // any older contracts that still reference a real TenantID. Both projections use the same
+            // anonymous shape so the fallback is interchangeable.
+            var customer = (from cu in db.Customers
+                            where cu.CustomerID == tnId
+                            join ct in db.Contacts on cu.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
+                            select new { Name = cu.CustomerName, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
+            var tenant = customer ?? (from t in db.Tenants
                           where t.TenantID == tnId
                           join ct in db.Contacts on t.Contact equals ct.ContactID into cc from ct in cc.DefaultIfEmpty()
-                          select new { t.TenantName, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
+                          select new { Name = t.TenantName, ct.Mobile, ct.Phone, ct.EmailId, ct.Address }).FirstOrDefault();
             var unitName = db.PropertyUnits.Where(u => u.Id == c.Unit).Select(u => u.Name).FirstOrDefault();
             var durName = db.Durations.Where(d => d.Id == (c.Duration ?? 0)).Select(d => d.Name).FirstOrDefault();
 
@@ -2104,7 +2112,7 @@ namespace QuickSoft.Areas.Property.Controllers
             ViewBag.LandlordName = landlord != null ? (landlord.LandlordName ?? "-") : "-";
             ViewBag.LandlordContact = landlord == null ? "" : (((landlord.Mobile ?? landlord.Phone) ?? "") + (string.IsNullOrEmpty(landlord.EmailId) ? "" : "  ·  " + landlord.EmailId));
             ViewBag.LandlordAddr = landlord != null ? (landlord.Address ?? "") : "";
-            ViewBag.TenantName = tenant != null ? (tenant.TenantName ?? "-") : "-";
+            ViewBag.TenantName = tenant != null ? (tenant.Name ?? "-") : "-";
             ViewBag.TenantContact = tenant == null ? "" : (((tenant.Mobile ?? tenant.Phone) ?? "") + (string.IsNullOrEmpty(tenant.EmailId) ? "" : "  ·  " + tenant.EmailId));
             ViewBag.TenantAddr = tenant != null ? (tenant.Address ?? "") : "";
             ViewBag.StartDate = c.StartDate.ToString("dd MMM yyyy");
