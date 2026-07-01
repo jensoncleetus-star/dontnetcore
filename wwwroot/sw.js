@@ -12,7 +12,7 @@
  */
 'use strict';
 
-const CACHE_VERSION = 'qs-pwa-v3'; // v3: list redesign — purges old cached css/js so clients fetch fresh
+const CACHE_VERSION = 'qs-pwa-v4'; // v4: manifest shortcuts added — bump purges old caches so installed clients refresh
 const STATIC_CACHE = 'qs-static-' + CACHE_VERSION;
 const OFFLINE_URL = '/offline.html';
 

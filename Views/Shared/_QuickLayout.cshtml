@@ -6,6 +6,15 @@
     string actImg = "";
     string chk = "";
     string nameclass = "";
+
+    // Consume one-time alerts HERE, before any response output, so cookie-based TempData clears correctly.
+    // (Previously _Alerts read them deep in the body, after the TempData cookie was already saved, so the
+    //  success message replayed on every page and even survived logout.)
+    var __alertList = TempData.ContainsKey(QuickSoft.Helpers.Alert.TempDataKey)
+        ? (Newtonsoft.Json.JsonConvert.DeserializeObject<System.Collections.Generic.List<QuickSoft.Helpers.Alert>>((string)TempData[QuickSoft.Helpers.Alert.TempDataKey]) ?? new System.Collections.Generic.List<QuickSoft.Helpers.Alert>())
+        : new System.Collections.Generic.List<QuickSoft.Helpers.Alert>();
+    TempData.Remove(QuickSoft.Helpers.Alert.TempDataKey);
+    ViewData["__AlertList"] = __alertList;
 }
 <!DOCTYPE html>
 <html>
@@ -34,19 +43,17 @@
     <link href="~/Content/css/modern-theme.css?v=20260615b" rel="stylesheet" />
     @* Form beautification (2026): CSS-only refinement of inputs/labels/buttons/tables — gated on body.bosx-beauty.
        Additive, no markup/field change. Loaded after modern-theme so it wins the cascade. *@
-    <link href="~/Content/css/forms-beautify.css?v=20260615ac" rel="stylesheet" />
+    <link href="~/Content/css/forms-beautify.css?v=20260630clean" rel="stylesheet" />
     @* Real Estate module beautification (2026): scoped to body.bosx-re (Property area only) — modern list cards,
        grid, filters, and create forms. Pure CSS overlay, no markup/field change. *@
     <link href="~/Content/css/realestate-beautify.css?v=20260616p" rel="stylesheet" />
     @* Phase-4 UI experiments (compact-density / menu-modern / content-premium / theme-saas / theme-aurora) were
        REVERTED 2026-06-30 at owner's request — back to the original theme look. The CSS files remain under
        /Content/css/ unused; re-add the <link>s here to re-enable any of them. *@
-    @* San Francisco look: Inter (Google Fonts) is the SF-like fallback for non-Apple devices. *@
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    @* San Francisco look: Inter (vendored locally, no CDN) is the SF-like fallback for non-Apple devices. *@
+    <link href="~/Content/fonts/inter/inter.css" rel="stylesheet" />
     @* Compact, de-cluttered top menu bar (left-aligned) + SF/Inter font. *@
-    <link href="~/Content/css/menu-compact.css?v=20260630g" rel="stylesheet" />
+    <link href="~/Content/css/menu-compact.css?v=20260630i" rel="stylesheet" />
 
     @* PWA (2026): installable app — manifest + theme color + iOS home-screen support.
        The service worker (sw.js) caches static assets only and NEVER caches pages or data. *@
@@ -148,7 +155,7 @@
     </section>
     @Html.Partial("_license")
     @*</div>*@
-    // @Scripts.Render("~/js/datatable")
+    @Scripts.Render("~/js/datatable")
     @Scripts.Render("~/js/select2")
 
     @RenderSection("scripts", required: false)
@@ -166,6 +173,58 @@
         }, function () {
             $(this).find('.dropdown-menu').stop(true, true).delay(200).fadeOut(500);
         });
+
+        /* Safety net: a stuck modal / leftover backdrop must never freeze the page.
+           ESC or clicking the dimmed area always force-closes; orphaned backdrops are cleaned. */
+        function bxForceCloseModals() {
+            try { $('.modal').modal('hide'); } catch (e) { }
+            $('.modal').removeClass('in').css('display', 'none');
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css({ 'overflow': '', 'padding-right': '' });
+        }
+        $(document).on('keydown', function (e) { if (e.keyCode === 27) bxForceCloseModals(); });
+        $(document).on('click', '.modal-backdrop', bxForceCloseModals);
+        $(document).on('hidden.bs.modal', function () {
+            if (!$('.modal.in').length) {
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open').css({ 'overflow': '', 'padding-right': '' });
+            }
+        });
+
+        /* Robust top-menu dropdowns: open each group's submenu on hover AND click/tap, positioned as a
+           fixed dropdown. Works regardless of AdminLTE's sidebar-collapse state (which isn't set on most pages),
+           so the menu no longer depends on that fragile mechanism. */
+        (function () {
+            var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+            var t;
+            function bxShowSub($li) {
+                clearTimeout(t);
+                var $sub = $li.children('.treeview-menu');
+                $('.sidebar-menu > li.treeview > .treeview-menu').not($sub).removeClass('bx-open').hide();
+                if (!$sub.length) return;
+                var r = $li[0].getBoundingClientRect();
+                $sub.addClass('bx-open').css({ display: 'block', position: 'fixed', top: Math.round(r.bottom) + 'px', left: Math.round(r.left) + 'px', 'min-width': '210px', 'z-index': 1300, 'max-height': '82vh', 'overflow-y': 'auto' });
+            }
+            function bxHideAll() { clearTimeout(t); $('.sidebar-menu > li.treeview > .treeview-menu').removeClass('bx-open').hide(); }
+            /* click/tap a top item: stop the "#" jump; on touch toggle (no hover double-fire) */
+            $(document).on('click', '.sidebar-menu > li.treeview > a', function (e) {
+                e.preventDefault();
+                var $li = $(this).parent(), $sub = $li.children('.treeview-menu');
+                if (isTouch) {
+                    e.stopPropagation();
+                    if ($sub.hasClass('bx-open')) { $sub.removeClass('bx-open').hide(); } else { bxShowSub($li); }
+                } else if (!$sub.hasClass('bx-open')) { bxShowSub($li); }
+            });
+            /* clicking/tapping outside the menu closes it; sub-item links inside stay clickable */
+            $(document).on('click', function (e) { if (!$(e.target).closest('.sidebar-menu').length) bxHideAll(); });
+            /* desktop hover only — skipped on touch so a tap can't open-then-close */
+            if (!isTouch) {
+                $(document).on('mouseenter', '.sidebar-menu > li.treeview', function () { bxShowSub($(this)); });
+                $(document).on('mouseleave', '.sidebar-menu > li.treeview', function () { t = setTimeout(bxHideAll, 300); });
+                $(document).on('mouseenter', '.sidebar-menu .treeview-menu', function () { clearTimeout(t); });
+                $(document).on('mouseleave', '.sidebar-menu .treeview-menu', function () { t = setTimeout(bxHideAll, 300); });
+            }
+        })();
     </script>
     <script type="text/javascript">
 
@@ -669,6 +728,66 @@
 
 
 
+    </script>
+    <script>
+        /* BOS list-page cleanup (global, additive). Only touches DataTables list pages.
+           1) collapses the advanced filter behind a "Filters" button
+           2) folds the dense per-row action icons (keep first 5) into a "More" menu
+           Anchors are MOVED (not recreated) so their delegated/inline click handlers stay wired. */
+        (function () {
+            if (!window.jQuery) return;
+            var $ = window.jQuery;
+            $(function () {
+                if (!$('.dataTables_wrapper, table.dataTable').length) return;
+
+                /* 1) collapse advanced filter */
+                try {
+                    if (!$('#bosxFilterbar').length) {                 // Customer page has its own bar
+                        var $panel = $('#advsearchlist');
+                        if (!$panel.length && $('#search-form').length) $panel = $('#search-form').closest('.box-body.search-box, .search-box');
+                        if ($panel.length === 1 && $panel.find('input,select,textarea').length >= 2 && !$panel.data('bosxColl')) {
+                            $panel.data('bosxColl', 1).hide();
+                            var $b = $('<button type="button" class="bosx-filters-toggle"><i class="fa fa-sliders"></i> Filters</button>');
+                            $panel.before($b);
+                            $b.on('click', function () { $panel.slideToggle(140); $b.toggleClass('active'); });
+                        }
+                    }
+                } catch (e) { }
+
+                /* 2) fold dense action icons into a More menu */
+                function tidy() {
+                    $('table.dataTable > tbody > tr').each(function () {
+                        var $act = null, max = 0;
+                        $(this).children('td').each(function () {
+                            var n = $(this).children('a').filter(function () { return $(this).find('i').length; }).length;
+                            if (n > max) { max = n; $act = $(this); }
+                        });
+                        if (!$act || max < 7 || $act.data('bosxTidy')) return;
+                        $act.data('bosxTidy', 1);
+                        var $links = $act.children('a');
+                        if ($links.length <= 6) return;
+                        var $rest = $links.slice(5);
+                        var $wrap = $('<span class="bosx-more"></span>');
+                        var $btn = $('<a href="javascript:void(0)" class="bosx-more-btn" title="More actions"><i class="fa fa-ellipsis-v"></i></a>');
+                        var $menu = $('<div class="bosx-more-menu"></div>');
+                        $rest.each(function () {
+                            var t = this.getAttribute('title') || '';
+                            if (t && !$(this).children('.bosx-more-lbl').length) $(this).append('<span class="bosx-more-lbl">' + $('<div>').text(t).html() + '</span>');
+                            $menu.append(this);       // move — keeps handlers
+                        });
+                        $wrap.append($btn).append($menu);
+                        $act.append($wrap);
+                        $btn.on('click', function (e) { e.stopPropagation(); $('.bosx-more-menu.open').not($menu).removeClass('open'); $menu.toggleClass('open'); });
+                    });
+                }
+                $(document).on('click', function () { $('.bosx-more-menu.open').removeClass('open'); });
+                $('table.dataTable').each(function () {
+                    var tb = this.querySelector('tbody'); if (!tb) return;
+                    tidy();
+                    try { new MutationObserver(function () { tidy(); }).observe(tb, { childList: true }); } catch (e) { }
+                });
+            });
+        })();
     </script>
     @Html.Partial("_Calculator")
 

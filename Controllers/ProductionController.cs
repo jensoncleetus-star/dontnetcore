@@ -257,7 +257,7 @@ namespace QuickSoft.Controllers
             //search
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                v = v.Where(p => p.VoucherNo.ToString().ToLower().Equals(search.ToLower()));
+                v = v.Where(p => p.VoucherNo.ToString().ToLower().Contains(search.ToLower()));
             }
             //SORT
             if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))

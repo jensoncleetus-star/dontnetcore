@@ -355,34 +355,12 @@
                 </div>
             </div>
             <div class="form-group col-md-12">
-                <h4 class="box-title">SMTP Mail Settings</h4>
+                <h4 class="box-title">Email (SMTP)</h4>
                 <hr />
-            </div>
-            <div class="form-group col-md-4">
-                @Html.LabelFor(model => model.Company.SMTPEmail, htmlAttributes: new { @class = "control-label" })
-                @Html.EditorFor(model => model.Company.SMTPEmail, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter SMTPEmail" } })
-            </div>
-            <div class="form-group col-md-4">
-                @Html.LabelFor(model => model.Company.SMTPHost, htmlAttributes: new { @class = "control-label" })
-                @Html.EditorFor(model => model.Company.SMTPHost, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter SMTPHost" } })
-            </div>
-            <div class="form-group col-md-4">
-                @Html.LabelFor(model => model.Company.SMTPUsername, htmlAttributes: new { @class = "control-label" })
-                @Html.EditorFor(model => model.Company.SMTPUsername, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter SMTPUsername" } })
-            </div>
-            <div class="form-group col-md-4">
-                @Html.LabelFor(model => model.Company.SMTPPassword, htmlAttributes: new { @class = "control-label" })
-                @Html.EditorFor(model => model.Company.SMTPPassword, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter SMTPPassword" } })
-            </div>
-            <div class="form-group col-md-4">
-                @Html.LabelFor(model => model.Company.SMTPPort, htmlAttributes: new { @class = "control-label" })
-                @Html.EditorFor(model => model.Company.SMTPPort, new { htmlAttributes = new { @class = "form-control", @placeholder = "Enter SMTPPort" } })
-            </div>
-            <div class="form-group col-md-4">
-                <div class="checkbox-inline chkpadding">
-                    @Html.CheckBoxFor(m => m.Company.EnableSsl, new { @class = "checkbox" })
-                    @Html.LabelFor(m => m.Company.EnableSsl, new { @class = "control-label" })
-                </div>
+                <p style="color:#64748b;font-size:13px;margin-top:-4px;">
+                    Email settings now have their own page for easier management — Gmail, Office 365, and more with one-click presets.
+                    <a href="/EmailSetup" class="btn btn-default btn-sm" style="margin-left:8px;"><i class="glyphicon glyphicon-envelope"></i> Open Email Setup</a>
+                </p>
             </div>
             <div class="form-group col-md-12">
                 <h4 class="box-title">SMS Settings/whatsapp settengs</h4>
@@ -642,5 +620,80 @@
                 cache: true
             },
         });
+    </script>
+
+    <style>
+        .qk-drop { border:2px dashed #c7d2fe; border-radius:12px; background:#f8fafc; padding:14px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; margin-top:4px; }
+        .qk-drop:hover, .qk-drop.qk-drag { border-color:#6366f1; background:#eef2ff; }
+        .qk-drop.qk-drag { box-shadow:0 0 0 3px rgba(99,102,241,.15); }
+        .qk-drop img { max-height:130px; max-width:100%; object-fit:contain; border-radius:8px; margin:0 auto 8px; display:none; background:#fff; box-shadow:0 1px 4px rgba(15,23,42,.12); }
+        .qk-drop img.qk-has { display:block; }
+        .qk-drop .qk-hint { color:#64748b; font-size:12.5px; line-height:1.5; }
+        .qk-drop .qk-hint b { color:#4f46e5; }
+        .qk-drop .qk-ic { font-size:26px; color:#a5b4fc; display:block; margin-bottom:4px; }
+        .qk-drop input[type=file] { display:none !important; }
+        /* ---- form polish ---- */
+        .box-title { font-size:14px !important; font-weight:700 !important; color:#4f46e5 !important; letter-spacing:.3px; text-transform:uppercase; }
+        .box-title + hr { border-top:2px solid #eef2ff; margin-top:8px; margin-bottom:14px; }
+        .content .control-label, .form-group > label { font-size:12px; font-weight:600; color:#475569; margin-bottom:4px; }
+        .content .form-control { border:1.5px solid #e2e8f0; border-radius:9px; box-shadow:none; transition:border-color .15s, box-shadow .15s; }
+        .content .form-control:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.12); }
+        .content .form-group { margin-bottom:16px; }
+        textarea.form-control { min-height:84px; }
+        .content .btn-primary, .content button[type=submit] { background:linear-gradient(135deg,#6366f1,#4f46e5); border:0; border-radius:10px; padding:9px 22px; font-weight:700; box-shadow:0 6px 16px rgba(99,102,241,.3); }
+        .content .btn-primary:hover, .content button[type=submit]:hover { filter:brightness(1.06); }
+        .text-blue, h6.text-blue { color:#64748b !important; font-size:11px; }
+    </style>
+    <script>
+    (function () {
+        // Turn the company logo / header / footer file inputs into drag-&-drop zones with live preview.
+        // The hidden <input type=file> elements are kept IN PLACE and IN ORDER so the server still reads
+        // Request.Form.Files[0]=logo, [1]=header, [2]=footer.
+        function makeDrop(inputId, imgId, label, hint) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+            var img = imgId ? document.getElementById(imgId) : null;
+            var zone = document.createElement('div'); zone.className = 'qk-drop';
+            input.parentNode.insertBefore(zone, input);
+            if (img) zone.appendChild(img);
+            var h = document.createElement('div'); h.className = 'qk-hint';
+            h.innerHTML = '<span class="qk-ic">&#128247;</span><b>' + label + '</b><br>' + hint;
+            zone.appendChild(h); zone.appendChild(input);
+            // show any existing saved image (src that actually ends in a filename)
+            if (img) { var s = img.getAttribute('src') || ''; if (s && !/\/$/.test(s)) img.classList.add('qk-has'); else img.style.display = 'none'; }
+            function preview(f) {
+                if (!f || !img) return; var r = new FileReader();
+                r.onload = function (e) { img.src = e.target.result; img.classList.add('qk-has'); h.innerHTML = '<b>' + label + '</b> &middot; ' + f.name + '<br>Click or drop to replace'; };
+                r.readAsDataURL(f);
+            }
+            zone.addEventListener('click', function (e) { if (e.target !== input) input.click(); });
+            input.addEventListener('change', function () { if (this.files && this.files[0]) preview(this.files[0]); });
+            ['dragenter', 'dragover'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); zone.classList.add('qk-drag'); }); });
+            ['dragleave', 'dragend', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); zone.classList.remove('qk-drag'); }); });
+            zone.addEventListener('drop', function (e) {
+                var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return;
+                if (!/^image\//.test(f.type)) { alert('Please drop an image file.'); return; }
+                try { var dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; } catch (_) { }
+                preview(f);
+            });
+        }
+        makeDrop('Company_CPLogo', 'ImageButton11', 'Company Logo', 'Drag &amp; drop your logo here, or click to browse');
+        makeDrop('Header', 'ImageButton1', 'Header Image', 'Drag &amp; drop, or click (2480 &times; 525 px)');
+        makeDrop('Footer', 'ImageButton2', 'Footer Image', 'Drag &amp; drop, or click (2480 &times; 300 px)');
+
+        // SMTP test: sends a test email using the SAVED settings.
+        var btnTest = document.getElementById('btnTestSmtp');
+        if (btnTest) btnTest.addEventListener('click', function () {
+            var to = window.prompt('Send a test email to which address?', (document.getElementById('Company_SMTPUsername') || {}).value || '');
+            if (to === null) return;
+            var msg = document.getElementById('smtpTestMsg');
+            btnTest.disabled = true; msg.style.color = '#64748b'; msg.textContent = 'Sending test email…';
+            jQuery.post('@Url.Action("TestSmtp","Company")', { toEmail: to }, function (r) {
+                btnTest.disabled = false;
+                msg.style.color = (r && r.success) ? '#059669' : '#dc2626';
+                msg.textContent = (r && r.message) ? r.message : (r && r.success ? 'Sent.' : 'Failed.');
+            }).fail(function () { btnTest.disabled = false; msg.style.color = '#dc2626'; msg.textContent = 'Request failed.'; });
+        });
+    })();
     </script>
 }

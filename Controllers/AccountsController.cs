@@ -34,6 +34,89 @@ namespace QuickSoft.Controllers
             db = new ApplicationDbContext();
             com = new Common();
         }
+
+        // ---- Accounts dashboard (styled like the main dashboard) ----
+        public ActionResult Dashboard()
+        {
+            var today = DateTime.Now;
+            var lastdate = today.AddMonths(-1);
+            ViewBag.today = today.ToString("dd-MM-yyyy");
+            ViewBag.lastdate = lastdate.ToString("dd-MM-yyyy");
+
+            HomeViewModel vmodel = new HomeViewModel();
+            vmodel.totCustomerCount = Convert.ToString(db.Accountss.Count());
+            vmodel.totReceipt = Convert.ToString(db.Receipts.Where(a => a.Voucher != 0).Count());
+
+            // 12-month trend: Receipts vs Payments
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var rByM = db.Receipts.Where(r => r.Voucher != 0 && r.Date >= trendStart)
+                    .GroupBy(r => new { r.Date.Year, r.Date.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.GrandTotal) ?? 0 }).ToList();
+                var payByM = db.Payments.Where(p => p.Voucher != 0 && p.Date >= trendStart)
+                    .GroupBy(p => new { p.Date.Year, p.Date.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.GrandTotal) ?? 0 }).ToList();
+                var tl = new List<string>(); var tr = new List<decimal>(); var tpay = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    tr.Add(rByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                    tpay.Add(payByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(tr);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tpay);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
+
+            // Per-period KPIs: Receipts, Payments, Net cashflow, Transactions (+ delta vs previous period)
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);
+                DateTime dToday = today.Date, dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;
+                DateTime wkStart = dToday.AddDays(-dow), wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1), moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1), yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    db.Receipts.Where(x => x.Voucher != 0 && x.Date >= from && x.Date < to).Select(x => (decimal?)x.GrandTotal).Sum() ?? 0m,
+                    db.Payments.Where(x => x.Voucher != 0 && x.Date >= from && x.Date < to).Select(x => (decimal?)x.GrandTotal).Sum() ?? 0m,
+                    (decimal)db.Receipts.Count(x => x.Voucher != 0 && x.Date >= from && x.Date < to),
+                    (decimal)db.Payments.Count(x => x.Voucher != 0 && x.Date >= from && x.Date < to)
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to); var p = sums(prevFrom, from);
+                    decimal net = c[0] - c[1], pnet = p[0] - p[1], tx = c[2] + c[3], ptx = p[2] + p[3];
+                    return new
+                    {
+                        label,
+                        receipts = c[0], payments = c[1], net = net, transactions = tx,
+                        dReceipts = dlt(c[0], p[0]), dPayments = dlt(c[1], p[1]), dNet = dlt(net, pnet), dTransactions = dlt(tx, ptx)
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
+
+            ViewBag.Active = "Dashboard";
+            ViewBag.Title = "Accounts";
+            ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
+            return View(vmodel);
+        }
+
         public ActionResult assetreport()
         {
             var OpAll = QkSelect.List(

@@ -159,7 +159,7 @@ namespace QuickSoft.Controllers
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
                 // Apply search   
-                UserView = UserView.Where(p => p.ProCode.ToString().ToLower().Equals(search.ToLower()) ||
+                UserView = UserView.Where(p => p.ProCode.ToString().ToLower().Contains(search.ToLower()) ||
                                 p.Customer.ToString().ToLower().Contains(search.ToLower()) ||
                                 p.ProStatus.ToString().ToLower().Contains(search.ToLower()) ||
                                 p.ProjectName.ToString().ToLower().Contains(search.ToLower())

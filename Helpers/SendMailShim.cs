@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Mail;
 
 namespace QuickSoft.Models
@@ -28,6 +29,49 @@ namespace QuickSoft.Models
         }
 
         public void sendMailwithoutattachment(string ToMail, string CcMail, string InvoiceNo, MailMessage message) => sendMail(ToMail, CcMail, message);
+
+        // Sends an already-built PDF (bytes) as an attachment, using the company SMTP settings
+        // (falling back to the default host). Used by the InvoiceTemplate "Email PDF" feature — the PDF
+        // is generated in the browser so the pixel-positioned template layout is preserved.
+        // Returns null on success, or an error message.
+        public string SendReadyPdf(string toMail, string ccMail, string subject, string htmlBody, string fileName, byte[] pdfBytes)
+        {
+            try
+            {
+                string host = "smtp.quicknet.me", user = "info@quicknet.me", pass = null; int port = 25; bool ssl = true;
+                try
+                {
+                    using var db = new ApplicationDbContext();
+                    var comp = db.companys.FirstOrDefault();
+                    if (comp != null && !string.IsNullOrWhiteSpace(comp.SMTPHost) && comp.SMTPPort != null && !string.IsNullOrWhiteSpace(comp.SMTPUsername))
+                    {
+                        host = comp.SMTPHost; port = (int)comp.SMTPPort.Value;
+                        user = comp.SMTPUsername; pass = comp.SMTPPassword; ssl = comp.EnableSsl;
+                    }
+                }
+                catch { /* company SMTP unreadable — fall back to defaults */ }
+
+                var sep = new[] { ' ', ',', ';' };
+                using var message = new MailMessage();
+                message.From = new MailAddress(user);
+                foreach (var w in (toMail ?? "").Split(sep, StringSplitOptions.RemoveEmptyEntries)) message.To.Add(w.Trim());
+                if (!string.IsNullOrWhiteSpace(ccMail))
+                    foreach (var w in ccMail.Split(sep, StringSplitOptions.RemoveEmptyEntries)) message.CC.Add(w.Trim());
+                if (message.To.Count == 0) return "No valid recipient email address.";
+
+                message.Subject = string.IsNullOrWhiteSpace(subject) ? "Document" : subject;
+                message.Body = htmlBody ?? "";
+                message.IsBodyHtml = true;
+                message.Attachments.Add(new Attachment(new System.IO.MemoryStream(pdfBytes ?? System.Array.Empty<byte>()),
+                    string.IsNullOrWhiteSpace(fileName) ? "document.pdf" : fileName, "application/pdf"));
+
+                using var smtp = new SmtpClient(host, port) { EnableSsl = ssl };
+                if (!string.IsNullOrEmpty(pass)) { smtp.UseDefaultCredentials = false; smtp.Credentials = new System.Net.NetworkCredential(user, pass); }
+                smtp.Send(message);
+                return null;
+            }
+            catch (Exception ex) { return ex.Message; }
+        }
 
         // PDF: the legacy generatePdf(id) returns XHTML in a StringBuilder; iTextSharp's XMLWorker turned
         // that XHTML into a PDF. The .NET 10 successor is iText 7 pdfHTML (HtmlConverter.ConvertToPdf).

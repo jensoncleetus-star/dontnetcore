@@ -283,6 +283,8 @@ namespace QuickSoft.Controllers
         {
             if (ModelState.IsValid)
             {
+              try
+              {
                 Company company = db.companys.Find(1L);
                 company.CPName = cmp.Company.CPName;
 
@@ -295,12 +297,8 @@ namespace QuickSoft.Controllers
                 company.DbBackUpPath = cmp.DbBackUpPath;
                 company.CPWebsite = cmp.Company.CPWebsite;
                 company.CPAddress = cmp.Company.CPAddress;
-                company.SMTPEmail = cmp.Company.SMTPEmail;
-                company.SMTPHost = cmp.Company.SMTPHost;
-                company.SMTPUsername = cmp.Company.SMTPUsername;
-                company.SMTPPassword = cmp.Company.SMTPPassword;
-                company.SMTPPort = cmp.Company.SMTPPort;
-                company.EnableSsl = cmp.Company.EnableSsl;
+                // Email (SMTP) settings are managed on the dedicated Email Setup page now — do NOT touch them
+                // here, otherwise saving the Company form would wipe them (the inputs no longer exist on this page).
                 company.smssenderid = cmp.Company.smssenderid;
                 company.username = cmp.Company.username;
                 company.password = cmp.Company.password;
@@ -324,10 +322,11 @@ namespace QuickSoft.Controllers
 
                 if (cmp.RemoveLogo == false)
                 {
-                    if (cmp.Company.CPLogo != null)
+                    // Read the uploaded file BY NAME (not by index): the browser only sends files that were
+                    // actually chosen, so positional Files[0/1/2] breaks when e.g. only the header is uploaded.
+                    var file = Request.Form.Files["Company.CPLogo"];
+                    if (file != null && file.Length > 0)
                     {
-                        // files upload
-                        IFormFile file = Request.Form.Files[0];
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/company/");
                         file.SaveAs(Path.Combine(uploadUrl, fileName));
@@ -343,9 +342,11 @@ namespace QuickSoft.Controllers
                     }
                     company.CPLogo = null;
                 }
-                if (cmp.Payrolldate != null)
+                // Payrolldate is a STRING that is "" (not null) when blank — guard against DateTime.Parse("").
+                if (!string.IsNullOrWhiteSpace(cmp.Payrolldate)
+                    && DateTime.TryParse(cmp.Payrolldate, new CultureInfo("en-GB"), System.Globalization.DateTimeStyles.None, out var payDt))
                 {
-                    company.Payrolldate = DateTime.Parse(cmp.Payrolldate.ToString(), new CultureInfo("en-GB"));
+                    company.Payrolldate = payDt;
                 }
                 else
                 {
@@ -354,27 +355,24 @@ namespace QuickSoft.Controllers
                 db.Entry(company).State = EntityState.Modified;
                 db.SaveChanges();
 
-                CompanyHeader CompanyHead = db.CompanyHeaders.Find(1);
+                CompanyHeader CompanyHead = db.CompanyHeaders.Find(1L);
                 if (cmp.RemoveHeaderFooter == false)
                 {
-                    if (cmp.Header != null)
+                    var hfile = Request.Form.Files["Header"];
+                    if (hfile != null && hfile.Length > 0)
                     {
-                        IFormFile file = Request.Form.Files[1];
-                        var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
+                        var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(hfile.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/companyheader/header");
-                        file.SaveAs(Path.Combine(uploadUrl, fileName));
+                        hfile.SaveAs(Path.Combine(uploadUrl, fileName));
                         CompanyHead.Header = fileName;
                     }
-                    if (cmp.Footer != null)
+                    var ffile = Request.Form.Files["Footer"];
+                    if (ffile != null && ffile.Length > 0)
                     {
-                        IFormFile file = Request.Form.Files[2];
-                        var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
+                        var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(ffile.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/companyheader/footer");
-                        file.SaveAs(Path.Combine(uploadUrl, fileName));
+                        ffile.SaveAs(Path.Combine(uploadUrl, fileName));
                         CompanyHead.Footer = fileName;
-
-                        //    string storePath = LegacyWeb.MapPath("~/uploads/companyheader/footer");
-                        //    //Save file to server folder  
                     }
                     db.Entry(CompanyHead).State = EntityState.Modified;
                     db.SaveChanges();
@@ -476,6 +474,12 @@ namespace QuickSoft.Controllers
                 com.addlog(LogTypes.Updated, userid, "Company", "companys", findip(), company.CompanyID, "Company Updated Successfully");
                 Success("Successfully Updated Company Details.", true);
                 return RedirectToAction("Edit", "Company");
+              }
+              catch (Exception ex)
+              {
+                // Never show a raw 500 — surface a friendly message and keep the user's entries.
+                Danger("Could not save: " + (ex.InnerException?.Message ?? ex.Message), true);
+              }
             }
             else
             {
@@ -523,6 +527,42 @@ namespace QuickSoft.Controllers
             }
 
         }
+
+        // POST: /Company/TestSmtp — sends a test email using the SAVED company SMTP settings, so the user
+        // can confirm mail works. Save SMTP settings first, then test.
+        [HttpPost]
+        public JsonResult TestSmtp(string toEmail)
+        {
+            try
+            {
+                var comp = db.companys.FirstOrDefault();
+                if (comp == null) return Json(new { success = false, message = "Company settings not found." });
+                if (string.IsNullOrWhiteSpace(comp.SMTPHost) || comp.SMTPPort == null || string.IsNullOrWhiteSpace(comp.SMTPUsername))
+                    return Json(new { success = false, message = "SMTP Host, Port and Username must be set and SAVED first." });
+                var to = string.IsNullOrWhiteSpace(toEmail) ? comp.SMTPUsername : toEmail.Trim();
+                using (var msg = new System.Net.Mail.MailMessage())
+                {
+                    msg.From = new System.Net.Mail.MailAddress(comp.SMTPUsername);
+                    msg.To.Add(to);
+                    msg.Subject = "SMTP test - " + (comp.CPName ?? "Company");
+                    msg.Body = "<p>This is a test email. If you received it, your SMTP settings are working.</p>";
+                    msg.IsBodyHtml = true;
+                    using (var smtp = new System.Net.Mail.SmtpClient(comp.SMTPHost, Convert.ToInt32(comp.SMTPPort)))
+                    {
+                        smtp.EnableSsl = comp.EnableSsl;
+                        smtp.UseDefaultCredentials = false;
+                        smtp.Credentials = new System.Net.NetworkCredential(comp.SMTPUsername, comp.SMTPPassword);
+                        smtp.Send(msg);
+                    }
+                }
+                return Json(new { success = true, message = "Test email sent to " + to + ". Please check the inbox (and spam)." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Failed: " + (ex.InnerException?.Message ?? ex.Message) });
+            }
+        }
+
         [HttpGet]
         public JsonResult CheckPayrollDate(string Date)
         {

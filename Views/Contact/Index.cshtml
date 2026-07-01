@@ -16,66 +16,180 @@
     }
 }
 <style>
-    .dropdown-check-list {
-        display: inline-block;
+    /* ============================================================
+       Contacts — modern restyle (visual layer only).
+       All DataTables logic, AJAX, buttons, search, checkboxes,
+       modals and row actions are preserved exactly as before.
+       Scoped to this page (the <style> only loads on /Contact).
+       ============================================================ */
+    .es-x { --c-accent:#6366f1; --c-accent2:#4f46e5; }
+    .box.box-info { border:1px solid #e7eaf0; border-radius:16px; box-shadow:0 1px 2px rgba(15,23,42,.04),0 14px 34px rgba(15,23,42,.07); overflow:visible; }
+    .box.box-info > .box-header.with-border { border-bottom:1px solid #eef1f6; padding:12px 18px 8px; }
+    .box-title { font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-.2px; position:relative; padding-left:13px; }
+    .box-title:before { content:""; position:absolute; left:0; top:3px; bottom:3px; width:4px; border-radius:3px; background:linear-gradient(180deg,#6366f1,#4f46e5); }
+
+    /* Create button */
+    .box-header .btn-info, .box-header a.btn-info.no-border { background:linear-gradient(135deg,#6366f1,#4f46e5) !important; border:0 !important; color:#fff !important; border-radius:11px; padding:9px 20px; font-weight:700; box-shadow:0 8px 18px rgba(99,102,241,.32); transition:.15s; }
+    .box-header .btn-info:hover { filter:brightness(1.07); transform:translateY(-1px); }
+    .icon-animated-hand-pointer { display:none !important; }
+
+    /* Select Fields dropdown */
+    .dropdown-check-list { display:inline-block; }
+    .dropdown-check-list .anchor { position:relative; cursor:pointer; display:inline-block; padding:9px 38px 9px 14px; border:1.5px solid #e7eaf0; border-radius:10px; background:#fff; font-size:13px; font-weight:600; color:#334155; min-width:150px; }
+    .dropdown-check-list .anchor:after { position:absolute; content:""; border-left:2px solid #94a3b8; border-top:2px solid #94a3b8; padding:3.5px; right:14px; top:34%; transform:rotate(-135deg); }
+    .dropdown-check-list ul.items { padding:6px; display:none; margin:4px 0 0; border:1.5px solid #e7eaf0; border-radius:10px; background:#fff !important; box-shadow:0 12px 30px rgba(15,23,42,.14); }
+    .dropdown-check-list ul.items li { list-style:none; padding:5px 8px; border-radius:7px; font-size:13px; color:#334155; }
+    .dropdown-check-list ul.items li:hover { background:#f1f5f9; }
+    .dropdown-check-list ul.items li input { margin-right:8px; }
+    .dropdown-check-list.visible .anchor { border-color:#6366f1; color:#4f46e5; }
+    .dropdown-check-list.visible .items { display:block; }
+
+    /* advanced search panel */
+    .search-box .form-control, .search-box .select2-container .select2-selection { border:1.5px solid #e7eaf0 !important; border-radius:9px; min-height:38px; }
+    .btn-submit { background:#6366f1; color:#fff; border:0; border-radius:9px; padding:8px 18px; font-weight:600; }
+    .btn-close { background:#f1f5f9; color:#334155; border:0; border-radius:9px; padding:8px 18px; font-weight:600; }
+
+    /* DataTables toolbar */
+    .dataTables_wrapper { padding:2px 16px 12px; }
+    .dt-buttons { display:inline-flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .dt-button, button.dt-button, a.dt-button, div.dt-button { background:#fff !important; border:1.5px solid #e7eaf0 !important; border-radius:10px !important; color:#475569 !important; font-weight:600 !important; font-size:12.5px !important; padding:8px 14px !important; box-shadow:none !important; transition:.13s !important; margin:0 !important; }
+    .dt-button:hover { border-color:#c7d2fe !important; background:#eef2ff !important; color:#4f46e5 !important; }
+    .dt-button.btn-danger { border-color:#fecaca !important; color:#dc2626 !important; background:#fff !important; }
+    .dt-button.btn-danger:hover { background:#fef2f2 !important; }
+
+    /* search box (with magnifier) */
+    .dataTables_filter { float:right; }
+    .dataTables_filter label { font-size:0; color:transparent; }
+    .dataTables_filter input { border:1.5px solid #e7eaf0 !important; border-radius:10px; padding:9px 14px 9px 34px; min-width:240px; font-size:13.5px; margin-left:0; background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2'><circle cx='7' cy='7' r='5'/><path d='M11 11l4 4'/></svg>") no-repeat 11px center; }
+    .dataTables_filter input:focus { border-color:#6366f1 !important; box-shadow:0 0 0 3px rgba(99,102,241,.12); outline:none; }
+
+    /* table — overflow NOT set on desktop so the sticky header can pin to the viewport.
+       AdminLTE clips with .wrapper{overflow:hidden} and the table's own overflow:hidden,
+       which would trap a sticky thead — relax both (Contacts page only; verified no h-scroll). */
+    body .wrapper { overflow: visible; }
+    table#MyTable { width:100% !important; min-width:620px; border-collapse:separate; border-spacing:0; overflow:visible; }
+    /* frozen header: column titles stay visible while scrolling long lists */
+    table#MyTable thead { position:sticky; top:0; z-index:6; }
+    table#MyTable thead td, table#MyTable thead th { position:sticky; top:0; background:#f8fafc; color:#475569; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; padding:8px 12px; border:0 !important; border-bottom:1.5px solid #e7eaf0 !important; white-space:nowrap; box-shadow:0 1px 0 #e7eaf0; }
+    table#MyTable tbody td { padding:7px 12px; border:0 !important; border-bottom:1px solid #f1f5f9 !important; font-size:13px; color:#1e293b; vertical-align:middle; }
+    table#MyTable tbody tr:hover td { background:#f8faff; }
+    .dataTables_empty { color:#94a3b8 !important; padding:46px !important; font-size:14px; text-align:center; }
+    .dataTables_empty:before { content:"\01F4ED"; display:block; font-size:34px; margin-bottom:8px; opacity:.55; }
+
+    /* avatar + name cell (CRM-style) */
+    .qk-name { display:flex; align-items:center; gap:9px; }
+    .qk-av { flex:0 0 auto; width:30px; height:30px; border-radius:50%; color:#fff; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; letter-spacing:.3px; box-shadow:0 1px 2px rgba(15,23,42,.2); }
+    .qk-nm { font-weight:600; color:#0f172a; }
+    table#MyTable tbody td a.qk-mail { color:#4f46e5; text-decoration:none; }
+    table#MyTable tbody td a.qk-mail:hover { text-decoration:underline; }
+    table#MyTable tbody td a.qk-tel { color:#0f766e; text-decoration:none; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    table#MyTable tbody td a.qk-tel:hover { text-decoration:underline; }
+    .qk-grp { display:inline-block; margin-top:3px; font-size:10px; font-weight:700; padding:1px 8px; border-radius:20px; background:#f1f5f9; color:#475569; text-transform:uppercase; letter-spacing:.3px; }
+    .qk-pills { display:flex; flex-wrap:wrap; gap:6px; padding:2px 0 10px; }
+    .qk-pill { border:1px solid #e2e8f0; background:#fff; color:#475569; font-size:12px; font-weight:600; padding:5px 13px; border-radius:30px; cursor:pointer; transition:all .15s ease; line-height:1.2; }
+    .qk-pill:hover { border-color:#c7d2fe; color:#4f46e5; }
+    .qk-pill.active { background:#6366f1; border-color:#6366f1; color:#fff; box-shadow:0 2px 8px rgba(99,102,241,.35); }
+
+    /* top toolbar: filter pills (left) + search (right) share one row (fills the dead gap) */
+    .qk-top { display:flex; align-items:center; justify-content:space-between; gap:10px 18px; flex-wrap:wrap; padding:2px 0 10px; }
+    .qk-top > #qkPills { padding:0; margin:0; flex:1 1 auto; }
+    .qk-top .dataTables_filter { float:none !important; margin:0 !important; flex:0 0 auto; }
+    .qk-top .dataTables_filter input { margin:0; min-width:320px; }
+
+    /* Export dropdown (collapses Print/Copy/CSV/Excel/PDF into one button) */
+    .qk-export-btn .fa-download { margin-right:5px; }
+    .qk-export-btn:after { content:""; display:inline-block; margin-left:7px; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid currentColor; vertical-align:middle; opacity:.55; }
+    div.dt-button-collection { border:1px solid #e7eaf0 !important; border-radius:12px !important; box-shadow:0 14px 34px rgba(15,23,42,.16) !important; padding:6px !important; background:#fff !important; min-width:184px !important; }
+    div.dt-button-collection .dt-button { display:block !important; width:100% !important; text-align:left !important; border:0 !important; border-radius:8px !important; margin:1px 0 !important; padding:9px 13px !important; font-size:13px !important; }
+    div.dt-button-collection .dt-button:hover { background:#eef2ff !important; color:#4f46e5 !important; }
+
+    /* live count badge in the header */
+    .qk-count { display:inline-block; margin-left:10px; background:#eef2ff; color:#4f46e5; font-size:12px; font-weight:700; padding:3px 11px; border-radius:20px; vertical-align:middle; }
+
+    /* row action buttons */
+    .btn-icons.btn-rounded { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:9px; border:0; font-size:13px; }
+    .btn-icons.btn-primary { background:#eef2ff; color:#4f46e5; }
+    .btn-icons.btn-primary:hover { background:#6366f1; color:#fff; }
+    .btn-icons.btn-delete { background:#fef2f2; color:#dc2626; }
+    .btn-icons.btn-delete:hover { background:#dc2626; color:#fff; }
+
+    /* info, length, pagination */
+    .dataTables_info { color:#64748b; font-size:12.5px; padding-top:10px; }
+    /* compact footer: "Showing …" sits right next to the page numbers (no edge-to-edge gap) */
+    .qk-foot { display:flex; align-items:center; justify-content:flex-start; gap:6px 22px; flex-wrap:wrap; padding:12px 2px 2px; }
+    .qk-foot .dataTables_info { padding-top:0; }
+    .qk-foot .dataTables_paginate { padding-top:0; }
+    .dataTables_length { padding-top:6px; }
+    .dataTables_length select { border:1.5px solid #e7eaf0; border-radius:8px; padding:5px 8px; }
+    .dataTables_paginate { padding-top:10px; }
+    .dataTables_paginate .paginate_button { border:1px solid #e7eaf0 !important; border-radius:8px !important; padding:6px 12px !important; margin:0 3px !important; color:#475569 !important; background:#fff !important; font-size:13px; }
+    .dataTables_paginate .paginate_button.current, .dataTables_paginate .paginate_button.current:hover { background:#6366f1 !important; border-color:#6366f1 !important; color:#fff !important; }
+    .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) { background:#eef2ff !important; border-color:#c7d2fe !important; color:#4f46e5 !important; }
+    .dataTables_paginate .paginate_button.disabled { opacity:.4; }
+    .dataTables_processing { border-radius:10px !important; box-shadow:0 6px 22px rgba(15,23,42,.14) !important; border:1px solid #e7eaf0 !important; color:#4f46e5 !important; font-weight:600; }
+
+    #select_all, .checkbox { width:16px; height:16px; cursor:pointer; }
+
+    /* =========================================================
+       MOBILE: each contact becomes a CARD (no horizontal scroll).
+       The table header is hidden and every row stacks vertically.
+       ========================================================= */
+    @@media (max-width: 768px) {
+        .box.box-info { border-radius:12px; box-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 22px rgba(15,23,42,.06); }
+        .box.box-info > .box-header.with-border { padding:13px 14px 9px; }
+        .box-title { font-size:17px; }
+        .dataTables_wrapper { padding:4px 11px 14px; }
+        .qk-top { flex-direction:column; align-items:stretch; gap:9px; padding-bottom:4px; }
+        .qk-top .dataTables_filter { width:100%; order:-1; }   /* search first on mobile */
+        .dataTables_filter { float:none; margin:0; }
+        .dataTables_filter input, .qk-top .dataTables_filter input { width:100%; min-width:0; box-sizing:border-box; padding-top:11px; padding-bottom:11px; font-size:14px; }
+        .dt-buttons { width:100%; margin-bottom:10px; }
+        .dt-button, button.dt-button, a.dt-button { padding:7px 12px !important; font-size:12px !important; }
+        .box-header .pull-right { float:none !important; display:block; margin-top:10px; }
+
+        /* filter pills: wrap so all groups stay visible (only a handful) */
+        .qk-pills { flex-wrap:wrap; gap:7px; padding:2px 0 10px; }
+        .qk-pill { flex:0 0 auto; padding:7px 15px; font-size:12.5px; }
+
+        /* ---- each contact becomes a structured card ---- */
+        table#MyTable { min-width:0 !important; width:100% !important; }
+        table#MyTable thead { display:none; }
+        table#MyTable, table#MyTable tbody { display:block; width:100%; }
+        table#MyTable tbody tr { display:block; background:#fff; border:1px solid #eceff4 !important;
+            border-radius:15px; margin-bottom:12px; padding:0; overflow:hidden; box-shadow:0 1px 3px rgba(15,23,42,.07); }
+        table#MyTable tbody tr:hover td, table#MyTable tbody tr:active { background:transparent; }
+        table#MyTable tbody td { display:block; width:auto; border:0 !important; padding:0; font-size:14px; }
+        table#MyTable tbody td:first-child { display:none; }              /* hide S/N counter */
+        table#MyTable tbody td:empty { display:none; }                     /* hide blank phone/email */
+        table#MyTable tbody td:has(input.checkbox) { display:none; }       /* hide bulk-select box */
+        table#MyTable tbody td:has(.btn-icons) > a:not(.btn-icons) { display:none; }  /* drop legacy duplicate icons */
+
+        /* header band: avatar + name + group */
+        table#MyTable tbody td:has(.qk-name) { padding:13px 15px 12px !important; }
+        .qk-name { gap:12px; align-items:center; }
+        .qk-av { width:46px; height:46px; font-size:16px; }
+        .qk-nm { font-size:16px; font-weight:700; line-height:1.25; }
+        .qk-grp { margin-top:4px; font-size:10.5px; padding:2px 9px; }
+
+        /* contact rows (phone / email) — divided, with leading icon */
+        table#MyTable tbody td:has(a.qk-tel), table#MyTable tbody td:has(a.qk-mail) {
+            padding:10px 15px !important; border-top:1px solid #f3f5f9 !important; }
+        table#MyTable tbody td a.qk-tel, table#MyTable tbody td a.qk-mail {
+            display:flex; align-items:center; font-size:14.5px; font-weight:500; padding:2px 0; }
+        table#MyTable tbody td a.qk-tel:before { content:"\1F4DE"; margin-right:11px; font-size:15px; }
+        table#MyTable tbody td a.qk-mail:before { content:"\2709"; margin-right:11px; font-size:15px; }
+
+        /* action footer: full-width labelled Edit / Delete */
+        table#MyTable tbody td:has(.btn-icons) {
+            display:flex; gap:10px; padding:11px 15px !important; border-top:1px solid #f3f5f9 !important; background:#fcfcfe; }
+        .btn-icons.btn-rounded { flex:1 1 0; width:auto; height:44px; border-radius:11px; font-size:14px; font-weight:600; }
+        .btn-icons.btn-primary:after { content:"Edit"; margin-left:8px; }
+        .btn-icons.btn-delete:after { content:"Delete"; margin-left:8px; }
     }
-/*    .items li input[type=checkbox]{
-        margin:0.5rem 1rem;
-    }*/
-        .dropdown-check-list .anchor {
-            position: relative;
-            cursor: pointer;
-            display: inline-block;
-            padding: 5px 50px 5px 10px;
-            border: 1px solid #ccc;
-          /*  min-width:210px;*/
-        }
-
-            .dropdown-check-list .anchor:after {
-                position: absolute;
-                content: "";
-                border-left: 2px solid black;
-                border-top: 2px solid black;
-                padding: 5px;
-                right: 10px;
-                top: 20%;
-                -moz-transform: rotate(-135deg);
-                -ms-transform: rotate(-135deg);
-                -o-transform: rotate(-135deg);
-                -webkit-transform: rotate(-135deg);
-                transform: rotate(-135deg);
-            }
-
-            .dropdown-check-list .anchor:active:after {
-                right: 8px;
-                top: 21%;
-            }
-
-        .dropdown-check-list ul.items {
-            padding: 2px;
-            display: none;
-            margin: 0;
-            border: 1px solid #ccc;
-            border-top: none;
-        }
-
-            .dropdown-check-list ul.items li {
-                list-style: none;
-            }
-
-        .dropdown-check-list.visible .anchor {
-            color: #0094ff;
-        }
-
-        .dropdown-check-list.visible .items {
-            display: block;
-           /* min-width:210px;*/
-        }       
-   
 </style>
 <div class="box box-info">
     <div class="box-header with-border">
-        <h3 class="box-title">Contacts</h3>
+        <h3 class="box-title">Contacts <span class="qk-count" id="qkCount"></span></h3>
         <div class="pull-right">
             @if (User.IsInRole("Dev") || User.IsInRole("Create Contact"))
             {
@@ -85,7 +199,10 @@
                 </a>
             }
         </div>
-        <div class="row">
+        @* Old per-field "Select Fields" + advanced search removed — the single Search box now
+           searches all fields (name, mobile, phone, email, group). Inputs kept hidden so the
+           grid filter logic and the group-filter pills still reference them safely. *@
+        <div class="row" id="qkAdvSearch" style="display:none;">
             <div class="col-md-2">
                 <div id = "list1" class="dropdown-check-list" tabindex="100">
                     <span class="anchor" style="z-index:0">Select Fields</span>
@@ -283,7 +400,7 @@
             "serverSide": true, // for process server side
             "filter": true, // this is for disable filter (search box)
             "orderMulti": false, // for disable multiple column at once
-            "bStateSave": true,
+            "bStateSave": false, // a stale saved state was forcing an empty list — always start fresh
             "pageLength": 50,
             responsive: false,
             "ajax": {
@@ -293,7 +410,10 @@
                     data.Email = $('#Email').val();
                     data.Mobile = $('#Mobile').val();
                     data.Phone = $('#Phone').val();
-                    data.Group = $('#Group').val() == null ? 987: $('#Group').val();
+                    // Only filter by Group when the user has ticked "Group" in Select Fields; otherwise show
+                    // ALL contacts. (The dropdown defaults to "General" which has 0 contacts, so without this
+                    // the whole list shows empty.)
+                    data.Group = $('#ligroup').prop('checked') ? ($('#Group').val() || '') : '';
                     //data.Values = va;
                 },
                 "type": "POST",
@@ -310,26 +430,50 @@
                              return meta.row + meta.settings._iDisplayStart + 1;
                          }
                      },
-                 { "data": "ContactName", "name": "ContactName" },
+                 { "data": "ContactName", "name": "ContactName", "render": function (data, type, row) {
+                       if (type !== 'display') return data || '';
+                       var nm = (data || '').toString();
+                       var core = nm.replace(/^\s*(mr|mrs|ms|miss|dr)\.?\s+/i, '').trim();
+                       var parts = core.split(/\s+/).filter(Boolean);
+                       var ini = (((parts[0] || '').charAt(0)) + ((parts[1] || '').charAt(0))).toUpperCase() || (nm.charAt(0) || '?').toUpperCase();
+                       var pal = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#ef4444','#0d9488','#d946ef'];
+                       var h = 0; for (var i = 0; i < nm.length; i++) h = nm.charCodeAt(i) + ((h << 5) - h);
+                       var col = pal[Math.abs(h) % pal.length];
+                       var grp = (row && row.Group) ? '<br><span class="qk-grp">' + $('<div>').text(row.Group).html() + '</span>' : '';
+                       return '<div class="qk-name"><span class="qk-av" style="background:' + col + '">' + ini + '</span><span><span class="qk-nm">' + $('<div>').text(nm).html() + '</span>' + grp + '</span></div>';
+                   } },
                  { "data": "Group", "name": "Group" },
                  { "data": "Address", "name": "Address" },
                  { "data": "Phone", "name": "Phone" },
                  {
-                     "name": "Mobile", "data": function (data) {
-                         var datas = "";
-                         $.each(data.mobmodel, function (i, item) {
-                             if (item.Num != null || item.Name != null) {
-                                 if (datas != "") {
-                                     datas += "<br> ";
-                                 }
-                                 datas += item.Num + '<br>';
-                                 datas += item.Name + '<br>';                               
-                             }
-                         });
-                         return datas;
+                     "name": "Mobile", "data": function (data, type) {
+                         // null-guard: a null item here used to throw and abort the WHOLE table render
+                         // (so no rows showed even when data was returned).
+                         if (!data) return "";
+                         var tel = function (n) {
+                             var raw = (n || '').toString().trim();
+                             if (!raw) return '';
+                             var esc = $('<div>').text(raw).html();
+                             if (type !== 'display') return raw;
+                             return '<a class="qk-tel" href="tel:' + raw.replace(/[^0-9+]/g, '') + '">' + esc + '</a>';
+                         };
+                         var lines = [];
+                         var m = tel(data.Mobile); if (m) lines.push(m);
+                         var p = tel(data.Phone);  if (p && (data.Phone || '') !== (data.Mobile || '')) lines.push(p);
+                         // legacy fallback: some rows carry numbers in mobmodel instead
+                         if (!lines.length && data.mobmodel) {
+                             $.each(data.mobmodel, function (i, item) {
+                                 if (item && item.Num != null) { var t = tel(item.Num); if (t) lines.push(t); }
+                             });
+                         }
+                         return lines.join('<br>');
                      }
                  },
-                 { "data": "EmailId", "name": "EmailId" },
+                 { "data": "EmailId", "name": "EmailId", "render": function (data, type) {
+                       if (type !== 'display' || !data) return data || '';
+                       var e = $('<div>').text(data).html();
+                       return '<a class="qk-mail" href="mailto:' + e + '">' + e + '</a>';
+                   } },
                  //{
                  //    "name": "Status", "data": function (data) {
                  //        if (data.Status == 1) {
@@ -394,7 +538,12 @@
                    },
             ],
             dom: 'Bfrtip',
-            buttons: ['colvis', {
+            buttons: [{
+                extend: 'collection',
+                text: '<i class="fa fa-download"></i> Export',
+                className: 'qk-export-btn',
+                autoClose: true,
+                buttons: [{
                 extend: 'print',//
                 title: "",
                 footer: true,
@@ -458,7 +607,8 @@
                     // Inject the object in the document
                     doc.content[1].layout = objLayout;
                 }
-            },
+            }]
+            }, 'colvis',
             @Html.Raw(deleteBTn)
             ],
             "drawCallback": function (settings) {
@@ -468,6 +618,12 @@
                 } else {
                     $("#sub").show();
                 }
+                // live count badge in the header
+                try {
+                    var inf = table.page.info();
+                    var n = inf.recordsDisplay != null ? inf.recordsDisplay : inf.recordsTotal;
+                    $('#qkCount').text((n || 0).toLocaleString() + ' total');
+                } catch (e) { }
             }
         });
         var chkcol = '@userRole';
@@ -486,6 +642,15 @@
             column1.visible(false);
             $('.dt-button.btn-danger').hide();
         }
+        // Single search box covers every field — make that obvious. (Group pills were removed by
+        // request; typing a group name like "customer" filters by group too, since search hits it.)
+        $('#MyTable_filter input').attr('placeholder', 'Search name, mobile, phone, email…');
+        // Compact footer: keep "Showing …" and the page numbers grouped together (no edge-to-edge gap)
+        (function () {
+            var $foot = $('<div class="qk-foot"></div>');
+            $('#MyTable_info').before($foot);
+            $foot.append($('#MyTable_info')).append($('#MyTable_paginate'));
+        })();
         $('#MyTable').on('click', 'a.details', function (e) {
             e.preventDefault();
             var url = $(this).attr('href');

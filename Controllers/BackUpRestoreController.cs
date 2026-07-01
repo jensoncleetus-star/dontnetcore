@@ -30,6 +30,87 @@ namespace QuickSoft.Controllers
             db = new ApplicationDbContext();
         }
 
+        // ---- Database Optimize (re-index): rebuilds/reorganizes fragmented indexes + refreshes stats.
+        //      Touches performance only, never data. Admin-only. No user input -> no injection risk. ----
+        private const string ReindexSql = @"
+SET NOCOUNT ON;
+DECLARE @cmds TABLE (id INT IDENTITY(1,1), cmd NVARCHAR(MAX));
+INSERT INTO @cmds(cmd)
+SELECT 'ALTER INDEX ' + QUOTENAME(i.name) + ' ON ' + QUOTENAME(sc.name) + '.' + QUOTENAME(t.name)
+       + CASE WHEN ps.avg_fragmentation_in_percent > 30 THEN ' REBUILD;' ELSE ' REORGANIZE;' END
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ps
+JOIN sys.indexes i ON i.object_id = ps.object_id AND i.index_id = ps.index_id
+JOIN sys.tables t ON t.object_id = i.object_id
+JOIN sys.schemas sc ON sc.schema_id = t.schema_id
+WHERE i.name IS NOT NULL AND i.index_id > 0 AND ps.page_count > 128 AND ps.avg_fragmentation_in_percent > 10;
+DECLARE @cmd NVARCHAR(MAX), @i INT = 1, @mx INT = (SELECT ISNULL(MAX(id),0) FROM @cmds), @done INT = 0;
+WHILE @i <= @mx
+BEGIN
+  SET @cmd = (SELECT cmd FROM @cmds WHERE id = @i);
+  IF @cmd IS NOT NULL BEGIN BEGIN TRY EXEC sp_executesql @cmd; SET @done = @done + 1; END TRY BEGIN CATCH END CATCH END
+  SET @i = @i + 1;
+END
+BEGIN TRY EXEC sp_updatestats; END TRY BEGIN CATCH END CATCH
+SELECT @mx AS Found, @done AS Processed;";
+
+        [QkAuthorize(Roles = "Dev,Database Backup")]
+        public ActionResult Reindex()
+        {
+            try
+            {
+                using (var con = new SqlConnection(db.Database.GetDbConnection().ConnectionString))
+                {
+                    con.Open();
+                    using (var cmd = new SqlCommand(@"SELECT COUNT(*) AS Frag, ISNULL(MAX(ps.avg_fragmentation_in_percent),0) AS Worst
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ps
+JOIN sys.indexes i ON i.object_id = ps.object_id AND i.index_id = ps.index_id
+WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_percent > 10;", con) { CommandTimeout = 180 })
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        if (rdr.Read())
+                        {
+                            ViewBag.FragCount = Convert.ToInt32(rdr["Frag"]);
+                            ViewBag.Worst = Math.Round(Convert.ToDouble(rdr["Worst"]), 1);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) { ViewBag.FragErr = ex.Message; }
+            ViewBag.Active = "Settings";
+            return View();
+        }
+
+        [HttpPost]
+        [QkAuthorize(Roles = "Dev,Database Backup")]
+        public ActionResult RunReindex()
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            int found = 0, processed = 0;
+            try
+            {
+                using (var con = new SqlConnection(db.Database.GetDbConnection().ConnectionString))
+                {
+                    con.Open();
+                    using (var cmd = new SqlCommand(ReindexSql, con) { CommandTimeout = 1800 })
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        if (rdr.Read())
+                        {
+                            found = Convert.ToInt32(rdr["Found"]);
+                            processed = Convert.ToInt32(rdr["Processed"]);
+                        }
+                    }
+                }
+                sw.Stop();
+                return Json(new { ok = true, found = found, processed = processed, seconds = Math.Round(sw.Elapsed.TotalSeconds, 1) });
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                return Json(new { ok = false, error = ex.Message, seconds = Math.Round(sw.Elapsed.TotalSeconds, 1) });
+            }
+        }
+
         [QkAuthorize(Roles = "Dev,Database Backup")]
         public ActionResult BackUp()
         {

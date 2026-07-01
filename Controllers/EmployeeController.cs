@@ -39,6 +39,88 @@ namespace QuickSoft.Controllers
             db = new ApplicationDbContext();
             com = new Common();
         }
+
+        // ---- Human Resources dashboard (styled like the main dashboard) ----
+        public ActionResult Dashboard()
+        {
+            var today = DateTime.Now;
+            var lastdate = today.AddMonths(-1);
+            ViewBag.today = today.ToString("dd-MM-yyyy");
+            ViewBag.lastdate = lastdate.ToString("dd-MM-yyyy");
+
+            var vmodel = new QuickSoft.ViewModel.HomeViewModel();
+            vmodel.totCustomerCount = Convert.ToString(db.Employees.Count());
+            vmodel.totSupplierCount = Convert.ToString(db.Employees.Where(x => x.Status == 0).Count());
+
+            // 12-month trend: Joiners vs New records
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var jByM = db.Employees.Where(e => e.JoinDate >= trendStart)
+                    .GroupBy(e => new { e.JoinDate.Value.Year, e.JoinDate.Value.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, C = g.Count() }).ToList();
+                var rByM = db.Employees.Where(e => e.CreatedDate >= trendStart)
+                    .GroupBy(e => new { e.CreatedDate.Year, e.CreatedDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, C = g.Count() }).ToList();
+                var tl = new List<string>(); var tj = new List<decimal>(); var tr = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    tj.Add(jByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => (decimal)x.C).FirstOrDefault());
+                    tr.Add(rByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => (decimal)x.C).FirstOrDefault());
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(tj);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tr);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
+
+            // Per-period KPIs: New Joiners, New Records, Headcount, Active (+ delta vs previous period)
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);
+                DateTime dToday = today.Date, dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;
+                DateTime wkStart = dToday.AddDays(-dow), wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1), moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1), yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    (decimal)db.Employees.Count(x => x.JoinDate >= from && x.JoinDate < to),
+                    (decimal)db.Employees.Count(x => x.CreatedDate >= from && x.CreatedDate < to),
+                    (decimal)db.Employees.Count(x => x.JoinDate < to),
+                    (decimal)db.Employees.Count(x => x.Status == 0 && x.JoinDate < to)
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to); var p = sums(prevFrom, from);
+                    return new
+                    {
+                        label,
+                        joiners = c[0], records = c[1], headcount = c[2], active = c[3],
+                        dJoiners = dlt(c[0], p[0]), dRecords = dlt(c[1], p[1]), dHeadcount = dlt(c[2], p[2]), dActive = dlt(c[3], p[3])
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
+
+            ViewBag.Active = "Dashboard";
+            ViewBag.Title = "Human Resources";
+            ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
+            return View(vmodel);
+        }
+
         [HttpPost]
         public JsonResult setdocument(long docid, long empid)
         {

@@ -1,0 +1,252 @@
+@model QuickSoft.Models.InvoiceTemplate
+@{
+    Layout = null;
+    var sizeMap = new System.Collections.Generic.Dictionary<string, string> { { "A4", "A4" }, { "A5", "A5" }, { "A3", "A3" }, { "Letter", "letter" }, { "Legal", "legal" } };
+    var pg = sizeMap.ContainsKey(Model.PaperSize ?? "A4") ? sizeMap[Model.PaperSize] : "A4";
+    var orient = Model.Orientation == "landscape" ? "landscape" : "portrait";
+    var designJson = string.IsNullOrWhiteSpace(Model.DesignJson) ? "{\"paper\":\"A4\",\"orientation\":\"portrait\",\"elements\":[]}" : Model.DesignJson;
+    var subLabel = ViewBag.InvoiceNo != null ? ("Invoice " + ViewBag.InvoiceNo) : "sample preview";
+    var realData = ViewBag.DataJson != null ? (string)ViewBag.DataJson : "null";
+    var realItems = ViewBag.ItemsJson != null ? (string)ViewBag.ItemsJson : "null";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@Model.Name — Preview</title>
+    <style>
+        @@page { size: @pg @orient; margin: 8mm; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .bar { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 10px 16px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 8px rgba(15,23,42,.05); }
+        .bar .ttl { font-weight: 700; }
+        .bar .sp { flex: 1; }
+        .bar a, .bar button { border: 0; cursor: pointer; border-radius: 9px; padding: 8px 16px; font-size: 14px; font-weight: 600; text-decoration: none; }
+        .bar .back { background: #f1f5f9; color: #334155; }
+        .bar .print { background: linear-gradient(135deg,#6366f1,#3b82f6); color: #fff; box-shadow: 0 6px 16px rgba(59,130,246,.35); }
+        .stage { padding: 24px; display: flex; justify-content: center; }
+        .sheet { background: #fff; position: relative; box-shadow: 0 6px 28px rgba(15,23,42,.18); }
+        .el { position: absolute; box-sizing: border-box; overflow: hidden; }
+        .it { width: 100%; border-collapse: collapse; }
+        .it th, .it td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; }
+        .it th { background: var(--theme, #4f46e5); color: #fff; }
+        .tt { width: 100%; border-collapse: collapse; }
+        .tt tr.gt { border-top: 2px solid var(--theme, #0f172a); font-weight: 700; color: var(--theme, #0f172a); }
+        .tt td { padding: 3px 6px; }
+        .tt td.r { text-align: right; }
+        .logo { border: 1px dashed #c7d2fe; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
+        @@media print {
+            html, body { background: #fff; }
+            .bar { display: none !important; }
+            .stage { padding: 0; }
+            .sheet { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <span class="ttl">@Model.Name</span>
+        <span style="color:#64748b;font-size:13px;">@Model.PaperSize @Model.Orientation · @subLabel</span>
+        @if (ViewBag.RenderError != null)
+        {
+            <span style="color:#dc2626;font-size:13px;font-weight:600;">⚠ @ViewBag.RenderError</span>
+        }
+        <span class="sp"></span>
+        <a class="back" href="@Url.Action("Index","DesignTemplate")">Back</a>
+        <button class="back" id="btnPdf" type="button">⬇ Download PDF</button>
+        @if (ViewBag.InvoiceNo != null)
+        {
+            <button class="back" id="btnEmail" type="button">✉ Email</button>
+        }
+        <button class="print" onclick="window.print()">🖨 Print</button>
+    </div>
+    @Html.AntiForgeryToken()
+    <div class="stage"><div class="sheet" id="sheet"></div></div>
+
+    <script src="@Url.Content("~/Content/plugins/qrbarcode/qrcode.min.js")"></script>
+    <script src="@Url.Content("~/Content/plugins/qrbarcode/JsBarcode.all.min.js")"></script>
+    <script src="@Url.Content("~/Content/plugins/qrbarcode/html2canvas.min.js")"></script>
+    <script src="@Url.Content("~/Content/plugins/qrbarcode/jspdf.umd.min.js")"></script>
+    <script>
+    (function () {
+        var design = @Html.Raw(designJson);
+        if (!design || !Array.isArray(design.elements)) design = { paper:'@Model.PaperSize', orientation:'@orient', elements:[] };
+
+        // representative SAMPLE data (slice 3a). Real-invoice binding = slice 3b.
+        var DATA = {
+            'COMPANY_HEADER.Name':'Your Company L.L.C', 'COMPANY_HEADER.Address':'Office 101, Business Bay, Dubai, UAE',
+            'COMPANY_HEADER.TRN':'TRN: 100123456700003', 'COMPANY_HEADER.Phone':'+971 4 123 4567', 'COMPANY_HEADER.Email':'info@@yourcompany.com',
+            'CUSTOMER.Name':'ABC Trading L.L.C', 'CUSTOMER.Address':'Al Quoz, Dubai, UAE', 'CUSTOMER.TRN':'TRN: 100987654300003', 'CUSTOMER.Phone':'+971 50 987 6543',
+            'INVOICE.Number':'INV-2026-00042', 'INVOICE.Date':'14-06-2026', 'INVOICE.PONumber':'PO-7781', 'INVOICE.SalesExecutive':'Jenson C.', 'INVOICE.PaymentTerms':'30 Days',
+            'SUMMARY.SubTotal':'1,250.00', 'SUMMARY.TaxAmount':'62.50', 'SUMMARY.TotalDiscount':'50.00', 'SUMMARY.GrandTotal':'1,262.50',
+            'SUMMARY.AmountInWords':'One Thousand Two Hundred Sixty Two and 50/100 Dirhams', 'SUMMARY.OutstandingBalance':'0.00',
+            'COMPANY_HEADER.Logo':'@(ViewBag.CompanyLogo ?? "")'
+        };
+        var LABELS = { 'COMPANY_HEADER.Logo':'Company Logo' };
+        // REAL invoice data (when ?invoiceId= was supplied); otherwise fall back to the SAMPLE map.
+        var REAL = @Html.Raw(realData);
+        function val(k){
+            if (REAL) return REAL.hasOwnProperty(k) ? REAL[k] : '';
+            return DATA.hasOwnProperty(k) ? DATA[k] : (k ? ('['+k+']') : '');
+        }
+        function escAttr(s){ return (s+'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+        // QR / barcode encode either a bound field's value or a literal text/URL the user typed.
+        function codeValue(el){ var v = el.field ? val(el.field) : (el.text||''); return (v==null?'':(''+v)); }
+        function makeQR(text){
+            if (!text) text = ' ';
+            try { if (typeof qrcode!=='function') return ''; var q = qrcode(0,'M'); q.addData(''+text); q.make(); return q.createDataURL(6,2); }
+            catch(e){ return ''; }
+        }
+
+        var PAPER = { A4:[794,1123], A5:[559,794], A3:[1123,1587], Letter:[816,1056], Legal:[816,1344] };
+        function paperPx(){ var s = PAPER[design.paper] || PAPER.A4; return design.orientation==='landscape' ? [s[1],s[0]] : [s[0],s[1]]; }
+
+        var SAMPLEIMG = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="44"><rect width="100%" height="100%" fill="%23eef2ff"/><text x="50%" y="56%" font-size="10" fill="%236366f1" text-anchor="middle">IMG</text></svg>';
+        var SAMPLE_ITEMS = [
+            ['1','Premium Widget','PCS','5','100.00','25.00','525.00',SAMPLEIMG],
+            ['2','Service Charge','NOS','2','250.00','25.00','525.00',SAMPLEIMG],
+            ['3','Spare Part A','PCS','4','50.00','10.00','210.00',SAMPLEIMG]
+        ];
+        var REALITEMS = @Html.Raw(realItems);
+        var ITEMS = REALITEMS || SAMPLE_ITEMS;
+
+        function inner(el){
+            if (el.type==='text')  return '<div>'+ (el.text||'') +'</div>';
+            if (el.type==='field') return '<div>'+ val(el.field) +'</div>';
+            if (el.type==='image') {
+                var imgSrc = el.src || '';
+                if (el.field === 'COMPANY_HEADER.Logo') { var lv = val('COMPANY_HEADER.Logo'); if (lv && lv.charAt(0)==='/') imgSrc = lv; }
+                if (imgSrc) return '<img src="'+imgSrc+'" onerror="this.style.display=&#39;none&#39;" style="width:100%;height:100%;object-fit:contain;" />';
+                return '<div class="logo">'+ (LABELS[el.field]||'Image') +'</div>';
+            }
+            if (el.type==='line')  return '<div style="border-top:'+(el.h||2)+'px solid '+(el.color||'var(--theme,#0f172a)')+';"></div>';
+            if (el.type==='qr')    { var qu = makeQR(codeValue(el)); return qu ? '<img src="'+qu+'" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated;" />' : ''; }
+            if (el.type==='barcode') return '<canvas class="bc" data-v="'+escAttr(codeValue(el))+'" data-dv="'+(el.bcHideText?'0':'1')+'" style="width:100%;height:100%;"></canvas>';
+            if (el.type==='items') {
+                var im = !!el.images;
+                var h = '<table class="it"><thead><tr><th>#</th>'+(im?'<th>Image</th>':'')+'<th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Amount</th></tr></thead><tbody>';
+                ITEMS.forEach(function(r){
+                    var imgcell = im ? '<td style="text-align:center;width:64px;">'+(r[7]?'<img src="'+r[7]+'" style="max-height:42px;max-width:58px;object-fit:contain;" onerror="this.style.display=&#39;none&#39;">':'')+'</td>' : '';
+                    h += '<tr><td>'+(r[0]||'')+'</td>'+imgcell+'<td>'+(r[1]||'')+'</td><td>'+(r[2]||'')+'</td><td>'+(r[3]||'')+'</td><td>'+(r[4]||'')+'</td><td>'+(r[5]||'')+'</td><td style="text-align:right">'+(r[6]||'')+'</td></tr>';
+                });
+                return h + '</tbody></table>';
+            }
+            if (el.type==='totals') {
+                return '<table class="tt">'
+                    + '<tr><td>Sub Total</td><td class="r">'+val('SUMMARY.SubTotal')+'</td></tr>'
+                    + '<tr><td>Discount</td><td class="r">'+val('SUMMARY.TotalDiscount')+'</td></tr>'
+                    + '<tr><td>VAT 5%</td><td class="r">'+val('SUMMARY.TaxAmount')+'</td></tr>'
+                    + '<tr class="gt"><td>Grand Total</td><td class="r">'+val('SUMMARY.GrandTotal')+'</td></tr>'
+                    + '</table>';
+            }
+            return '';
+        }
+
+        var sheet = document.getElementById('sheet');
+        sheet.style.setProperty('--theme', design.theme || '#4f46e5');   // accent colour for tables/totals/lines
+        var p = paperPx(); sheet.style.width = p[0]+'px'; sheet.style.height = p[1]+'px';
+        design.elements.forEach(function(el){
+            var d = document.createElement('div');
+            d.className = 'el';
+            d.style.left=(el.x||0)+'px'; d.style.top=(el.y||0)+'px'; d.style.width=(el.w||160)+'px';
+            if (el.h) d.style.height=el.h+'px';
+            d.style.fontSize=(el.fontSize||12)+'px';
+            d.style.fontWeight=el.bold?'700':'400';
+            d.style.textAlign=el.align||'left';
+            d.style.direction=el.rtl?'rtl':'ltr';
+            if (el.color) d.style.color=el.color;
+            d.innerHTML = inner(el);
+            sheet.appendChild(d);
+        });
+
+        // Barcodes are drawn after the elements are in the DOM (JsBarcode needs a live canvas).
+        Array.prototype.forEach.call(sheet.querySelectorAll('canvas.bc'), function(cv){
+            var v = cv.getAttribute('data-v') || ' ';
+            try {
+                if (typeof JsBarcode !== 'function') return;
+                var box = cv.parentNode, bh = Math.max(28, (box.clientHeight || 60) - (cv.getAttribute('data-dv')!=='0' ? 18 : 4));
+                JsBarcode(cv, v, { format:'CODE128', displayValue: cv.getAttribute('data-dv')!=='0', width:2, height:bh, margin:0, fontSize:13 });
+                cv.style.width='100%'; cv.style.height='100%';   // scale the rendered barcode to fill its box
+            } catch(e){}
+        });
+    })();
+    </script>
+
+    <script>
+    // ---- PDF (download) + Email — built in the browser so the pixel-positioned layout is preserved ----
+    (function () {
+        var PDFDOC = {
+            id: @Model.Id,
+            invoiceId: @(ViewBag.InvoiceIdNum ?? 0),
+            docType: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.DocType ?? "Document")),
+            invoiceNo: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject((string)(ViewBag.InvoiceNo) ?? "")),
+            paper: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model.PaperSize ?? "A4")),
+            orient: '@orient'
+        };
+
+        function buildPdf() {
+            return new Promise(function (resolve, reject) {
+                var sheet = document.getElementById('sheet');
+                if (typeof html2canvas !== 'function') return reject(new Error('PDF engine not loaded.'));
+                var ctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+                if (!ctor) return reject(new Error('PDF engine not loaded.'));
+                html2canvas(sheet, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function (canvas) {
+                    try {
+                        var img = canvas.toDataURL('image/jpeg', 0.9);
+                        var doc = new ctor({ orientation: PDFDOC.orient === 'landscape' ? 'l' : 'p', unit: 'pt', format: (PDFDOC.paper || 'A4').toLowerCase() });
+                        var pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+                        var ratio = Math.min(pw / canvas.width, ph / canvas.height);
+                        doc.addImage(img, 'JPEG', (pw - canvas.width * ratio) / 2, 0, canvas.width * ratio, canvas.height * ratio);
+                        resolve(doc);
+                    } catch (e) { reject(e); }
+                }).catch(reject);
+            });
+        }
+        function pdfFileName() {
+            var n = ('' + (PDFDOC.invoiceNo || PDFDOC.invoiceId || '')).replace(/[^\w\-]+/g, '_');
+            return (PDFDOC.docType || 'Document') + (n ? ('-' + n) : '') + '.pdf';
+        }
+        function busy(b, on, label) { b.disabled = on; b.textContent = on ? label : b.getAttribute('data-label'); }
+
+        var btnPdf = document.getElementById('btnPdf');
+        if (btnPdf) {
+            btnPdf.setAttribute('data-label', btnPdf.textContent);
+            btnPdf.addEventListener('click', function () {
+                var b = this; busy(b, true, '⏳ Building…');
+                buildPdf().then(function (doc) { doc.save(pdfFileName()); })
+                    .catch(function (e) { alert('Could not generate PDF: ' + (e && e.message ? e.message : e)); })
+                    .then(function () { busy(b, false); });
+            });
+        }
+
+        var btnEmail = document.getElementById('btnEmail');
+        if (btnEmail) {
+            btnEmail.setAttribute('data-label', btnEmail.textContent);
+            btnEmail.addEventListener('click', function () {
+                var to = window.prompt('Email this ' + (PDFDOC.docType || 'document').toLowerCase() + ' (PDF) to which address?', '');
+                if (!to) return;
+                var b = this; busy(b, true, '⏳ Sending…');
+                buildPdf().then(function (doc) {
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                    var fd = new FormData();
+                    fd.append('id', PDFDOC.id);
+                    fd.append('invoiceId', PDFDOC.invoiceId);
+                    fd.append('toEmail', to);
+                    fd.append('ccEmail', '');
+                    fd.append('pdfBase64', doc.output('datauristring'));
+                    fd.append('fileName', pdfFileName());
+                    fd.append('subject', '');
+                    if (token) fd.append('__RequestVerificationToken', token.value);
+                    return fetch('@Url.Action("EmailPdf","DesignTemplate")', { method: 'POST', body: fd, credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (r) { alert((r && r.message) ? r.message : (r && r.success ? 'Sent.' : 'Failed to send.')); });
+                })
+                .catch(function (e) { alert('Email failed: ' + (e && e.message ? e.message : e)); })
+                .then(function () { busy(b, false); });
+            });
+        }
+    })();
+    </script>
+</body>
+</html>

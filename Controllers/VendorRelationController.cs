@@ -36,69 +36,85 @@ namespace QuickSoft.Controllers
         {
             return View();
         }
+
+        // ---- Vendor Relation dashboard (styled like the main dashboard) ----
         public ActionResult Dashboard()
         {
             var today = DateTime.Now;
-            var CurrentYear = DateTime.Now.Year;
-            var Currentmonth = DateTime.Now.Month;
-            //every last 6 months first day
-            var ThisMnth1stDay = new DateTime(CurrentYear, Currentmonth, 1);
-            var ThisYear1stDay = new DateTime(CurrentYear, 1, 1);
-            var LastMnth1stDay = ThisMnth1stDay.AddMonths(-1);
-            var Last2ndMnth1stDay = ThisMnth1stDay.AddMonths(-2);
-            var last3rdMnth1stDay = ThisMnth1stDay.AddMonths(-3);
-            var Last4thMnth1stDay = ThisMnth1stDay.AddMonths(-4);
-            var Last5thMnth1stDay = ThisMnth1stDay.AddMonths(-5);
-            var Last6thMnth1stDay = ThisMnth1stDay.AddMonths(-6);
-            var Last7thMnth1stDay = ThisMnth1stDay.AddMonths(-7);
-            var Last8thMnth1stDay = ThisMnth1stDay.AddMonths(-8);
-            var Last9thMnth1stDay = ThisMnth1stDay.AddMonths(-9);
-            var Last10thMnth1stDay = ThisMnth1stDay.AddMonths(-10);
-            var Last11thMnth1stDay = ThisMnth1stDay.AddMonths(-11);
-            //every last 6 months Last day
-            var LastMnthLastDay = ThisMnth1stDay.AddDays(-1);
-            var Last2ndMnthLastDay = LastMnth1stDay.AddDays(-1);
-            var last3rdMnthLastDay = Last2ndMnth1stDay.AddDays(-1);
-            var Last4thMnthLastDay = last3rdMnth1stDay.AddDays(-1);
-            var Last5thMnthLastDay = Last4thMnth1stDay.AddDays(-1);
-            var Last6thMnthLastDay = Last5thMnth1stDay.AddDays(-1);
-            var Last7thMnthLastDay = Last6thMnth1stDay.AddDays(-1);
-            var Last8thMnthLastDay = Last7thMnth1stDay.AddDays(-1);
-            var Last9thMnthLastDay = Last8thMnth1stDay.AddDays(-1);
-            var Last10thMnthLastDay = Last9thMnth1stDay.AddDays(-1);
-            var Last11thMnthLastDay = Last10thMnth1stDay.AddDays(-1);
-            //converting month to string(eg:'1=jan','2=feb'....)
-            ViewBag.mnth12 = Last11thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth11 = Last10thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth10 = Last9thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth9 = Last8thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth8 = Last7thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth7= Last6thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth6 = Last5thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth5 = Last4thMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth4 = last3rdMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth3 = Last2ndMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth2 = LastMnth1stDay.ToString("MMM", CultureInfo.InvariantCulture);
-            ViewBag.mnth1 = today.ToString("MMM", CultureInfo.InvariantCulture);
+            var lastdate = today.AddMonths(-1);
+            ViewBag.today = today.ToString("dd-MM-yyyy");
+            ViewBag.lastdate = lastdate.ToString("dd-MM-yyyy");
 
-            VendorRelationViewModel vmodel = new VendorRelationViewModel();
-            vmodel.totSupplierCount= Convert.ToString(db.Suppliers.Count());
-            vmodel.TodayPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, today) <= 0 && EF.Functions.DateDiffDay(b.PEDate, today) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.ThisMonthPurchase= Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, ThisMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, today) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.ThisYearPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, ThisYear1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, today) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastMonthPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, LastMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, LastMnthLastDay) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastTwoMonthPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, Last2ndMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, Last2ndMnthLastDay) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastThreeMonthPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, last3rdMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, last3rdMnthLastDay) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastFourMonthPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, Last4thMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, Last4thMnthLastDay) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastFiveMonthPurchase = Convert.ToString(db.PurchaseEntrys.Where(b => (EF.Functions.DateDiffDay(b.PEDate, Last5thMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PEDate, Last5thMnthLastDay) >= 0)).Select(b => b.PEGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-           
-            vmodel.ThisMonthPurchaseReturn= Convert.ToString(db.PurchaseReturns.Where(b => (EF.Functions.DateDiffDay(b.PRDate, ThisMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PRDate, today) >= 0)).Select(b => b.PRGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastMonthPurchaseReturn = Convert.ToString(db.PurchaseReturns.Where(b => (EF.Functions.DateDiffDay(b.PRDate, LastMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PRDate, LastMnthLastDay) >= 0)).Select(b => b.PRGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastTwoMonthPurchaseReturn = Convert.ToString(db.PurchaseReturns.Where(b => (EF.Functions.DateDiffDay(b.PRDate, Last2ndMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PRDate, Last2ndMnthLastDay) >= 0)).Select(b => b.PRGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastThreeMonthPurchaseReturn = Convert.ToString(db.PurchaseReturns.Where(b => (EF.Functions.DateDiffDay(b.PRDate, last3rdMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PRDate, last3rdMnthLastDay) >= 0)).Select(b => b.PRGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastFourMonthPurchaseReturn = Convert.ToString(db.PurchaseReturns.Where(b => (EF.Functions.DateDiffDay(b.PRDate, Last4thMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PRDate, Last4thMnthLastDay) >= 0)).Select(b => b.PRGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
-            vmodel.LastFiveMonthPurchaseReturn = Convert.ToString(db.PurchaseReturns.Where(b => (EF.Functions.DateDiffDay(b.PRDate, Last5thMnth1stDay) <= 0 && EF.Functions.DateDiffDay(b.PRDate, Last5thMnthLastDay) >= 0)).Select(b => b.PRGrandTotal).AsEnumerable().DefaultIfEmpty(0).Sum());
+            HomeViewModel vmodel = new HomeViewModel();
+            vmodel.totSupplierCount = Convert.ToString(db.Suppliers.Count());
+            vmodel.totPurchaseEntryCount = Convert.ToString(db.PurchaseEntrys.Where(a => a.Status == 1).Count());
 
+            // 12-month trend: Purchases vs Payments
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var pByM = db.PurchaseEntrys.Where(p => p.Status == 1 && p.PEDate >= trendStart)
+                    .GroupBy(p => new { p.PEDate.Year, p.PEDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.PEGrandTotal) ?? 0 }).ToList();
+                var payByM = db.Payments.Where(p => p.Voucher != 0 && p.Date >= trendStart)
+                    .GroupBy(p => new { p.Date.Year, p.Date.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.GrandTotal) ?? 0 }).ToList();
+                var tl = new List<string>(); var tp = new List<decimal>(); var tpay = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    tp.Add(pByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                    tpay.Add(payByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(tp);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tpay);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
+
+            // Per-period KPIs: Purchases, Payments, Purchase Returns, New Suppliers (+ delta vs previous period)
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);
+                DateTime dToday = today.Date, dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;
+                DateTime wkStart = dToday.AddDays(-dow), wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1), moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1), yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    db.PurchaseEntrys.Where(x => x.Status == 1 && x.PEDate >= from && x.PEDate < to).Select(x => (decimal?)x.PEGrandTotal).Sum() ?? 0m,
+                    db.Payments.Where(x => x.Voucher != 0 && x.Date >= from && x.Date < to).Select(x => (decimal?)x.GrandTotal).Sum() ?? 0m,
+                    db.PurchaseReturns.Where(x => x.PRDate >= from && x.PRDate < to).Select(x => (decimal?)x.PRGrandTotal).Sum() ?? 0m,
+                    (decimal)db.Suppliers.Count(x => x.AccountID.CreatedDate >= from && x.AccountID.CreatedDate < to)
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to); var p = sums(prevFrom, from);
+                    return new
+                    {
+                        label,
+                        purchases = c[0], payments = c[1], returns = c[2], suppliers = c[3],
+                        dPurchases = dlt(c[0], p[0]), dPayments = dlt(c[1], p[1]), dReturns = dlt(c[2], p[2]), dSuppliers = dlt(c[3], p[3])
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
+
+            ViewBag.Active = "Dashboard";
+            ViewBag.Title = "Vendor Relation";
+            ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
             return View(vmodel);
         }
 

@@ -520,7 +520,7 @@ namespace QuickSoft.Controllers
             {
                 // Apply search   
                 v = v.Where(p =>// p.ReceiptId.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.VoucherNo.ToString().ToLower().Equals(search.ToLower())
+                                 p.VoucherNo.ToString().ToLower().Contains(search.ToLower())
                                  //p.GrandTotal.ToString().ToLower().Contains(search.ToLower())
                                  );
 
@@ -2641,7 +2641,7 @@ namespace QuickSoft.Controllers
             {
                 // Apply search   
                 v = v.Where(p =>// p.ReceiptId.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.VoucherNo.ToString().ToLower().Equals(search.ToLower())
+                                 p.VoucherNo.ToString().ToLower().Contains(search.ToLower())
                                  //p.GrandTotal.ToString().ToLower().Contains(search.ToLower())
                                  );
 

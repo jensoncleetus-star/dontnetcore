@@ -5250,7 +5250,7 @@ namespace QuickSoft.Controllers
                      && (ProjectName == 0 || ProjectName == null || j.ProjectId == ProjectName)
                      //&& (Task == 0 || Task == null || k.ProTaskId == Task)
                     && (salesstatus == null || a.SalesStatus == salesstatus)
-                     && (SearchW == "" || a.BillNo.Contains(SearchW)) &&
+                     && (SearchW == "" || a.BillNo.ToLower().Contains(SearchW) || (a.customername != null && a.customername.ToLower().Contains(SearchW))) &&
                     (Ref1 == "" || Ref1 == null || a.Ref1 == Ref1) &&
                     (Ref2 == "" || Ref2 == null || a.Ref2 == Ref2) &&
                     (Ref3 == "" || Ref3 == null || a.Ref3 == Ref3) &&

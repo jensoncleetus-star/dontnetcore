@@ -6,7 +6,7 @@
     string actData = "";
 }
 
-<link rel="stylesheet" href="@Url.Content("~/Content/css/dashboard-futuristic.css")?v=20260630j" />
+<link rel="stylesheet" href="@Url.Content("~/Content/css/dashboard-futuristic.css")?v=20260630q" />
 <script>
     (function () {
         try {
@@ -85,22 +85,34 @@
                 </div></div>
         </div>
     </div>
-    <script type="module">
-        import Chart from 'https://esm.sh/chart.js@4.4.1/auto';
-        const tl=@Html.Raw(ViewBag.trendLabels ?? "[]"), ts=@Html.Raw(ViewBag.trendSales ?? "[]"), tp=@Html.Raw(ViewBag.trendPurchase ?? "[]");
-        const grid='rgba(127,140,170,.14)';
-        const ae=document.getElementById('bxArea');
-        if(ae && tl.length){const cx=ae.getContext('2d');
-            const g1=cx.createLinearGradient(0,0,0,280);g1.addColorStop(0,'rgba(99,102,241,.30)');g1.addColorStop(1,'rgba(99,102,241,0)');
-            const g2=cx.createLinearGradient(0,0,0,280);g2.addColorStop(0,'rgba(34,211,238,.20)');g2.addColorStop(1,'rgba(34,211,238,0)');
-            new Chart(ae,{type:'line',data:{labels:tl,datasets:[{label:'Sales',data:ts,borderColor:'#6366f1',backgroundColor:g1,fill:true,tension:.4,borderWidth:2,pointRadius:0},{label:'Purchase',data:tp,borderColor:'#22d3ee',backgroundColor:g2,fill:true,tension:.4,borderWidth:2,pointRadius:0}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:10,usePointStyle:true}}},scales:{y:{grid:{color:grid}},x:{grid:{display:false}}}}});}
-        const de=document.getElementById('bxDonut');
-        if(de){const sS=ts.reduce((a,b)=>a+ +b,0),sP=tp.reduce((a,b)=>a+ +b,0);
-            new Chart(de,{type:'doughnut',data:{labels:['Sales','Purchase'],datasets:[{data:[sS,sP],backgroundColor:['#6366f1','#22d3ee'],borderWidth:0}]},options:{maintainAspectRatio:false,cutout:'66%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true,padding:14}}}}});}
-        const be=document.getElementById('bxBar');
-        if(be && tl.length)new Chart(be,{type:'bar',data:{labels:tl,datasets:[{label:'Sales',data:ts,backgroundColor:'#6366f1',borderRadius:6}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:grid}},x:{grid:{display:false}}}}});
-        const gg=(id,v,c)=>{const e=document.getElementById(id);if(e)new Chart(e,{type:'doughnut',data:{datasets:[{data:[v,100-v],backgroundColor:[c,grid],borderWidth:0}]},options:{maintainAspectRatio:false,cutout:'78%',plugins:{legend:{display:false},tooltip:{enabled:false}}}});};
-        gg('bxG1',78,'#0ea5e9');gg('bxG2',64,'#10b981');
+    <script src="@Url.Content("~/Content/plugins/chartjs4/chart.umd.min.js")"></script>
+    <script>
+        (function () {
+            var BXChart = window.Chart;   // capture Chart.js 4 now, before the legacy 1.x bundle reassigns window.Chart
+            if (!BXChart) return;
+            var tl = @Html.Raw(ViewBag.trendLabels ?? "[]"), ts = @Html.Raw(ViewBag.trendSales ?? "[]"), tp = @Html.Raw(ViewBag.trendPurchase ?? "[]");
+            var grid = 'rgba(127,140,170,.14)';
+            function draw() {
+                var ae = document.getElementById('bxArea');
+                if (ae && tl.length) {
+                    var cx = ae.getContext('2d');
+                    var g1 = cx.createLinearGradient(0, 0, 0, 280); g1.addColorStop(0, 'rgba(99,102,241,.30)'); g1.addColorStop(1, 'rgba(99,102,241,0)');
+                    var g2 = cx.createLinearGradient(0, 0, 0, 280); g2.addColorStop(0, 'rgba(34,211,238,.20)'); g2.addColorStop(1, 'rgba(34,211,238,0)');
+                    new BXChart(ae, { type: 'line', data: { labels: tl, datasets: [{ label: 'Sales', data: ts, borderColor: '#6366f1', backgroundColor: g1, fill: true, tension: .4, borderWidth: 2, pointRadius: 0 }, { label: 'Purchase', data: tp, borderColor: '#22d3ee', backgroundColor: g2, fill: true, tension: .4, borderWidth: 2, pointRadius: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 10, usePointStyle: true } } }, scales: { y: { grid: { color: grid } }, x: { grid: { display: false } } } } });
+                }
+                var de = document.getElementById('bxDonut');
+                if (de) {
+                    var sS = ts.reduce(function (a, b) { return a + +b; }, 0), sP = tp.reduce(function (a, b) { return a + +b; }, 0);
+                    new BXChart(de, { type: 'doughnut', data: { labels: ['Sales', 'Purchase'], datasets: [{ data: [sS, sP], backgroundColor: ['#6366f1', '#22d3ee'], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '66%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, padding: 14 } } } } });
+                }
+                var be = document.getElementById('bxBar');
+                if (be && tl.length) new BXChart(be, { type: 'bar', data: { labels: tl, datasets: [{ label: 'Sales', data: ts, backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: grid } }, x: { grid: { display: false } } } } });
+                var gg = function (id, v, c) { var e = document.getElementById(id); if (!e) return; new BXChart(e, { type: 'doughnut', data: { datasets: [{ data: [v, 100 - v], backgroundColor: [c, grid], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); var lbl = e.parentElement.querySelector('div'); if (lbl) lbl.textContent = v + '%'; };
+                var pct = function (a) { if (!a || !a.length) return 0; var last = +a[a.length - 1] || 0; var mx = Math.max.apply(null, a.map(function (x) { return +x || 0; })); return mx > 0 ? Math.round(last / mx * 100) : 0; };
+                gg('bxG1', pct(ts), '#0ea5e9'); gg('bxG2', pct(tp), '#10b981');
+            }
+            if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', draw); } else { draw(); }
+        })();
     </script>
 
 <div class="row">
@@ -535,6 +547,26 @@
     <script type="text/javascript">
         $(document).ready(function () {
 
+            // ---- pretty cell renderers: colored avatar initials, aligned amounts, status pills ----
+            function bxEsc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+            function bxAvatar(name){
+                name=(name==null?'':String(name)).trim();
+                var clean=name.replace(/^[0-9]+\s*[-–]\s*/,'');
+                var parts=clean.split(/\s+/).filter(Boolean), ini='';
+                if(parts.length>=2) ini=parts[0].charAt(0)+parts[1].charAt(0);
+                else if(parts.length===1) ini=parts[0].substring(0,2);
+                ini=(ini||'?').toUpperCase();
+                var pal=['#6366f1','#22d3ee','#10b981','#f472b6','#8b5cf6','#0ea5e9','#fbbf24','#f43f5e'];
+                var h=0,i; for(i=0;i<clean.length;i++) h=(h*31+clean.charCodeAt(i))>>>0;
+                return '<span class="bx-av" style="background:'+pal[h%pal.length]+'">'+bxEsc(ini)+'</span><span class="bx-av-name">'+bxEsc(name)+'</span>';
+            }
+            function bxNum(v){ var n=parseFloat(v); if(isNaN(n)) return bxEsc(v); return '<span class="bx-num">'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'; }
+            function bxBalance(v){ var n=parseFloat(v); if(!isNaN(n)&&Math.abs(n)<0.005) return '<span class="bx-pill ok">Paid</span>'; return '<span class="bx-num bx-due">'+(isNaN(n)?bxEsc(v):n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}))+'</span>'; }
+            function bxStatus(v){ var s=(v==null?'':String(v)).trim(), low=s.toLowerCase(), cls='muted';
+                if(/(active|approve|cleared|paid|open|complete|success)/.test(low)) cls='ok';
+                else if(/(expire|reject|cancel|overdue|fail|close)/.test(low)) cls='bad';
+                else if(/(pending|hold|process|partial|due|wait)/.test(low)) cls='warn';
+                return '<span class="bx-pill '+cls+'">'+bxEsc(s||'-')+'</span>'; }
 
             // Quotation Table
             var qTable = $('#QuotTable').DataTable({
@@ -550,10 +582,10 @@
                 },
                 "columns": [
                     { "data": "QuotNo", "name": "QuotNo" },
-                    { "data": "Customer", "name": "Customer" },
+                    { "data": "Customer", "name": "Customer", "render": function (data) { return bxAvatar(data); } },
                     { "data": "QuotDate", "name": "QuotDate", "render": function (data) { return convertToDate(data); } },
-                    { "data": "QuotGrandTotal", "name": "QuotGrandTotal" },
-                    { "data": "validity", "name": "validity" }
+                    { "data": "QuotGrandTotal", "name": "QuotGrandTotal", "className": "bx-amt", "render": function (data) { return bxNum(data); } },
+                    { "data": "validity", "name": "validity", "className": "text-center", "render": function (data) { return bxStatus(data); } }
                 ]
             });
             // Sales Table
@@ -570,11 +602,11 @@
                 },
                 "columns": [
                     { "data": "BillNo", "name": "BillNo" },
-                    { "data": "Customer", "name": "Customer" },
+                    { "data": "Customer", "name": "Customer", "render": function (data) { return bxAvatar(data); } },
                     { "data": "SEDate", "name": "SEDate", "render": function (data) { return convertToDate(data); } },
-                    { "data": "SEGrandTotal", "name": "SEGrandTotal" },
-                    { "data": "SEPaidAmount", "name": "SEPaidAmount" },
-                    { "data": "SEBalanceAmount", "name": "SEBalanceAmount" },
+                    { "data": "SEGrandTotal", "name": "SEGrandTotal", "className": "bx-amt", "render": function (data) { return bxNum(data); } },
+                    { "data": "SEPaidAmount", "name": "SEPaidAmount", "className": "bx-amt", "render": function (data) { return bxNum(data); } },
+                    { "data": "SEBalanceAmount", "name": "SEBalanceAmount", "className": "bx-amt", "render": function (data) { return bxBalance(data); } },
                 ]
             });
             // Purchase Table
@@ -591,11 +623,11 @@
                 },
                 "columns": [
                     { "data": "BillNo", "name": "BillNo" },
-                    { "data": "Supplier", "name": "Supplier" },
+                    { "data": "Supplier", "name": "Supplier", "render": function (data) { return bxAvatar(data); } },
                     { "data": "PEDate", "name": "PEDate", "render": function (data) { return convertToDate(data); } },
-                    { "data": "PEGrandTotal", "name": "PEGrandTotal" },
-                    { "data": "PEPaidAmount", "name": "PEPaidAmount" },
-                    { "data": "PEBalanceAmount", "name": "PEBalanceAmount" },
+                    { "data": "PEGrandTotal", "name": "PEGrandTotal", "className": "bx-amt", "render": function (data) { return bxNum(data); } },
+                    { "data": "PEPaidAmount", "name": "PEPaidAmount", "className": "bx-amt", "render": function (data) { return bxNum(data); } },
+                    { "data": "PEBalanceAmount", "name": "PEBalanceAmount", "className": "bx-amt", "render": function (data) { return bxBalance(data); } },
                 ]
             });
 

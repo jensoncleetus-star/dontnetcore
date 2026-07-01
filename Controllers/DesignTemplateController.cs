@@ -11,12 +11,15 @@ namespace QuickSoft.Controllers
     // BOS — Custom Invoice Template Designer (drag-and-drop). NEW feature; additive.
     // Manages user-designed templates stored in the InvoiceTemplate table (JSON layout).
     [RedirectingAction]
-    public class InvoiceTemplateController : BaseController
+    // Designs the print templates for EVERY document type (invoice, cheque, payment, receipt, …),
+    // so the route is /DesignTemplate. The model/table stays InvoiceTemplate(s). Old /InvoiceTemplate/*
+    // URLs still work via a legacy route alias in Program.cs (per-document "Custom Print" buttons).
+    public class DesignTemplateController : BaseController
     {
         readonly ApplicationDbContext db;
         readonly Common com;
         readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment env;
-        public InvoiceTemplateController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment)
+        public DesignTemplateController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment)
         {
             db = new ApplicationDbContext();
             com = new Common();
@@ -28,6 +31,15 @@ namespace QuickSoft.Controllers
         static readonly string[] DocTypes = { "Sale", "Quotation", "Estimate", "ProForma", "SalesOrder", "DeliveryNote", "CreditNote", "PurchaseOrder", "PurchaseEntry", "Receipt", "Payment", "Cheque", "MaterialRequisition", "TenancyContract" };
         static string NormDoc(string d) => DocTypes.Contains(d, StringComparer.OrdinalIgnoreCase)
             ? DocTypes.First(x => x.Equals(d, StringComparison.OrdinalIgnoreCase)) : "Sale";
+
+        // Reads the bank tag a cheque template carries inside its DesignJson (multi-bank auto-select).
+        // Old-DB-safe: the bank lives in the JSON layout, not in a new InvoiceTemplate column.
+        static string TplBank(string designJson)
+        {
+            if (string.IsNullOrWhiteSpace(designJson)) return null;
+            try { return (string)Newtonsoft.Json.Linq.JObject.Parse(designJson)["bank"]; }
+            catch { return null; }
+        }
 
         // GET: /InvoiceTemplate/Hub  — central "Custom Design" settings page: every document type's
         // template designer in one place (reached from Settings/Company menu).
@@ -46,9 +58,10 @@ namespace QuickSoft.Controllers
         public ActionResult Index(string docType = "Sale")
         {
             docType = NormDoc(docType);
+            // Show ALL templates (enabled + disabled) so the user can re-enable; print uses only enabled ones.
             var list = db.InvoiceTemplates
-                         .Where(t => t.Status == Status.active && t.DocType == docType)
-                         .OrderByDescending(t => t.IsDefault).ThenBy(t => t.Name)
+                         .Where(t => t.DocType == docType)
+                         .OrderByDescending(t => t.Status == Status.active).ThenByDescending(t => t.IsDefault).ThenBy(t => t.Name)
                          .ToList();
             ViewBag.DocType = docType;
             return View(list);
@@ -59,14 +72,32 @@ namespace QuickSoft.Controllers
         public ActionResult Designer(int? id, string docType = "Sale")
         {
             InvoiceTemplate t = null;
-            if (id.HasValue) t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id.Value && x.Status == Status.active);
+            if (id.HasValue) t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id.Value);   // any status — disabled templates stay editable
             if (t == null)
             {
                 // start a new template from a sensible blank, for the requested document type
                 t = new InvoiceTemplate { Name = "New Template", DocType = NormDoc(docType), DesignJson = "{\"paper\":\"A4\",\"orientation\":\"portrait\",\"elements\":[]}" };
             }
             ViewBag.DocType = t.DocType;
+            // Real company logo (from Settings) so the designer shows it instead of a placeholder.
+            ViewBag.CompanyLogo = CompanyLogoUrl();
+            if (t.DocType == "Cheque")
+            {
+                // Multi-bank cheque: offer the banks actually used on cheque payments (PDC.Bank) so the
+                // admin can tag THIS template with its bank. Stored inside DesignJson — no new DB column.
+                ViewBag.Banks = db.PDCs
+                    .Where(p => p.PDCType == "Payment" && p.Bank != null && p.Bank != "")
+                    .Select(p => p.Bank).Distinct().OrderBy(b => b).ToList();
+            }
             return View(t);
+        }
+
+        // The company logo URL from Settings (Companies.CPLogo), or "" if none. Used by the designer
+        // and the sample preview so the real logo shows even without a bound document.
+        private string CompanyLogoUrl()
+        {
+            var comp = db.companys.FirstOrDefault();
+            return (comp != null && !string.IsNullOrWhiteSpace(comp.CPLogo)) ? ("/uploads/company/" + comp.CPLogo) : "";
         }
 
         // POST: /InvoiceTemplate/Save  — upsert a designed template (AJAX). Antiforgery via the
@@ -93,7 +124,7 @@ namespace QuickSoft.Controllers
             return Json(new { success = true, id = t.Id });
         }
 
-        // POST: /InvoiceTemplate/Delete  — soft delete
+        // POST: /InvoiceTemplate/Delete  — permanently remove a template
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Invoice Template,Sales Invoice,Credit Sale")]
         public ActionResult Delete(int id)
@@ -101,10 +132,24 @@ namespace QuickSoft.Controllers
             var t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id);
             if (t == null) return Json(new { success = false, message = "Template not found." });
             if (t.IsDefault) return Json(new { success = false, message = "Cannot delete the default template. Set another as default first." });
-            t.Status = Status.inactive;
-            t.ModifiedDate = DateTime.Now;
+            db.InvoiceTemplates.Remove(t);
             db.SaveChanges();
             return Json(new { success = true });
+        }
+
+        // POST: /InvoiceTemplate/SetEnabled  — enable/disable (check/uncheck) a template WITHOUT deleting it.
+        // Only ENABLED templates appear at print time; disabled ones stay in the list to re-enable later.
+        [HttpPost]
+        [QkAuthorize(Roles = "Dev,Invoice Template,Sales Invoice,Credit Sale")]
+        public ActionResult SetEnabled(int id, bool enabled)
+        {
+            var t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id);
+            if (t == null) return Json(new { success = false, message = "Template not found." });
+            if (!enabled && t.IsDefault) return Json(new { success = false, message = "This is the default template. Make another one default before disabling it." });
+            t.Status = enabled ? Status.active : Status.inactive;
+            t.ModifiedDate = DateTime.Now;
+            db.SaveChanges();
+            return Json(new { success = true, enabled });
         }
 
         // POST: /InvoiceTemplate/SetDefault  — make one template the default (clears the rest)
@@ -129,8 +174,10 @@ namespace QuickSoft.Controllers
         [QkAuthorize(Roles = "Dev,Invoice Template,Sales Invoice,Credit Sale")]
         public ActionResult Render(int id, long? invoiceId)
         {
-            var t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id && x.Status == Status.active);
+            var t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id);   // any status — allow previewing a disabled template
             if (t == null) return Content("Template not found.");
+            ViewBag.InvoiceIdNum = invoiceId ?? 0;   // numeric id for the "Email PDF" post
+            ViewBag.CompanyLogo = CompanyLogoUrl();  // real logo for the sample preview (no bound document)
 
             if (invoiceId.HasValue)
             {
@@ -191,7 +238,15 @@ namespace QuickSoft.Controllers
                             try { map["SUMMARY.AmountInWords"] = d.GrandTotal.HasValue ? (com.ConvertToWords(d.GrandTotal.Value.ToString()) ?? "") : ""; }
                             catch { map["SUMMARY.AmountInWords"] = ""; }
 
-                            var items = (d.pdfItem ?? new List<pdfItemViewModel>()).Select((it, ix) => new object[]
+                            var pdfItems = d.pdfItem ?? new List<pdfItemViewModel>();
+                            // Item photos (for image-enabled templates, e.g. quotations): one batched query,
+                            // join ItemImages by the item master id (pdfItem.Id == ItemImages.ItemID).
+                            var itemIds = pdfItems.Select(x => x.Id).Distinct().ToList();
+                            var imgMap = db.ItemImages.Where(im => itemIds.Contains(im.ItemID) && im.FileName != null && im.FileName != "")
+                                           .GroupBy(im => im.ItemID)
+                                           .Select(g => new { g.Key, File = g.OrderByDescending(x => x.ItemImageID).Select(x => x.FileName).FirstOrDefault() })
+                                           .ToDictionary(x => x.Key, x => x.File);
+                            var items = pdfItems.Select((it, ix) => new object[]
                             {
                                 (ix + 1).ToString(),
                                 string.IsNullOrWhiteSpace(it.ItemName) ? (it.ItemCode ?? "") : it.ItemName,
@@ -199,7 +254,8 @@ namespace QuickSoft.Controllers
                                 money(it.ItemQuantity),
                                 money(it.ItemUnitPrice),
                                 money(it.ItemTaxAmount),
-                                money(it.ItemTotalAmount)
+                                money(it.ItemTotalAmount),
+                                (imgMap.TryGetValue(it.Id, out var fn) && !string.IsNullOrWhiteSpace(fn)) ? ("/uploads/itemimages/" + it.Id + "/" + Uri.EscapeDataString(fn)) : ""
                             }).ToList();
                             ViewBag.ItemsJson = Newtonsoft.Json.JsonConvert.SerializeObject(items);
                             ViewBag.InvoiceNo = d.BillNo ?? invoiceId.Value.ToString();
@@ -375,6 +431,22 @@ namespace QuickSoft.Controllers
                 {
                     ViewBag.RenderError = "Could not load document #" + invoiceId.Value + ": " + ex.Message;
                 }
+
+                // Print/reprint audit — old-DB-safe: reuses the existing LogManager table via com.addlog,
+                // no new table/column. Wrapped so an audit failure can never block a print.
+                try
+                {
+                    var voucher = ViewBag.InvoiceNo as string;
+                    var who = User?.Identity?.Name ?? "";
+                    var ip = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "";
+                    if (ip.Length > 20) ip = ip.Substring(0, 20);
+                    var details = "Printed " + (t.DocType ?? "") + " " +
+                                  (string.IsNullOrWhiteSpace(voucher) ? ("#" + invoiceId.Value) : voucher) +
+                                  " (template: " + (t.Name ?? "") + ")";
+                    if (details.Length > 200) details = details.Substring(0, 200);
+                    com.addlog(LogTypes.Logged, who, "Print", "InvoiceTemplate", ip, t.Id, details);
+                }
+                catch { /* audit must never block a print */ }
             }
             return View(t);
         }
@@ -385,14 +457,110 @@ namespace QuickSoft.Controllers
         public ActionResult Print(long invoiceId, int? templateId, string docType = "Sale")
         {
             docType = NormDoc(docType);
-            if (templateId.HasValue) return RedirectToAction("Render", new { id = templateId.Value, invoiceId });
+            // Explicit Render URL (id in the path): RedirectToAction drops the id under the app's legacy route.
+            if (templateId.HasValue) return Redirect($"/DesignTemplate/Render/{templateId.Value}?invoiceId={invoiceId}");
             var actives = db.InvoiceTemplates.Where(t => t.Status == Status.active && t.DocType == docType)
                             .OrderByDescending(t => t.IsDefault).ThenBy(t => t.Name).ToList();
             if (actives.Count == 0) return Content("No " + docType + " templates yet. Create one under Design Templates.");
-            if (actives.Count == 1) return RedirectToAction("Render", new { id = actives[0].Id, invoiceId });
+            if (actives.Count == 1) return Redirect($"/DesignTemplate/Render/{actives[0].Id}?invoiceId={invoiceId}");
+
+            // Multi-bank cheque auto-select: when several cheque templates exist, pick the one tagged
+            // with the bank of THIS cheque payment (PDC.Bank). The bank tag lives in DesignJson (old-DB-safe).
+            if (docType == "Cheque" && invoiceId != 0)
+            {
+                var pay = db.Payments.FirstOrDefault(x => x.PaymentId == invoiceId);
+                if (pay != null)
+                {
+                    var bank = db.PDCs.Where(p => p.Reference == pay.PaymentId && p.PDCType == "Payment")
+                                      .Select(p => p.Bank).FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(bank))
+                    {
+                        var b = bank.Trim();
+                        // exact (case-insensitive) tag match first, then a loose contains-either-way fallback
+                        var match = actives.FirstOrDefault(t => string.Equals((TplBank(t.DesignJson) ?? "").Trim(), b, StringComparison.OrdinalIgnoreCase))
+                                 ?? actives.FirstOrDefault(t =>
+                                    {
+                                        var tb = (TplBank(t.DesignJson) ?? "").Trim();
+                                        return tb.Length > 0 && (b.IndexOf(tb, StringComparison.OrdinalIgnoreCase) >= 0
+                                                              || tb.IndexOf(b, StringComparison.OrdinalIgnoreCase) >= 0);
+                                    });
+                        if (match != null) return Redirect($"/DesignTemplate/Render/{match.Id}?invoiceId={invoiceId}");
+                    }
+                }
+            }
             ViewBag.InvoiceId = invoiceId;
             ViewBag.DocType = docType;
             return View("Pick", actives);
+        }
+
+        // GET: /InvoiceTemplate/PrintLog — who printed/reprinted which document, when (read from LogManager).
+        // Old-DB-safe: reads the existing LogManagers table, filtered to the "Print" section. Optional search/limit.
+        [QkAuthorize(Roles = "Dev,Invoice Template,Custom Design")]
+        public ActionResult PrintLog(string q = null, int take = 200)
+        {
+            if (take < 1 || take > 1000) take = 200;
+            var rows = db.LogManagers.Where(l => l.LogSection == "Print");
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var s = q.Trim();
+                rows = rows.Where(l => (l.LogDetails != null && l.LogDetails.Contains(s))
+                                    || (l.User != null && l.User.Contains(s)));
+            }
+            var list = rows.OrderByDescending(l => l.LogTime).Take(take).ToList();
+            ViewBag.Query = q;
+            ViewBag.Count = list.Count;
+            return View(list);
+        }
+
+        // POST: /InvoiceTemplate/EmailPdf — email a browser-generated PDF of a rendered document.
+        // The PDF is built client-side (html2canvas + jsPDF) so the pixel-positioned layout is preserved,
+        // then posted here as base64 and sent via the company SMTP. Old-DB-safe; audit-logged.
+        [HttpPost]
+        [QkAuthorize(Roles = "Dev,Invoice Template,Sales Invoice,Credit Sale")]
+        [Microsoft.AspNetCore.Mvc.RequestFormLimits(ValueLengthLimit = 32000000, MultipartBodyLengthLimit = 32000000)]
+        [Microsoft.AspNetCore.Mvc.RequestSizeLimit(32000000)]
+        public ActionResult EmailPdf(int id, long invoiceId, string toEmail, string ccEmail, string pdfBase64, string fileName, string subject)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail)) return Json(new { success = false, message = "Please enter a recipient email address." });
+            if (string.IsNullOrWhiteSpace(pdfBase64)) return Json(new { success = false, message = "No PDF data was received." });
+
+            byte[] bytes;
+            try
+            {
+                var b64 = pdfBase64;
+                var ix = b64.IndexOf("base64,", StringComparison.OrdinalIgnoreCase);
+                if (ix >= 0) b64 = b64.Substring(ix + 7);
+                bytes = Convert.FromBase64String(b64);
+            }
+            catch { return Json(new { success = false, message = "The PDF data was not valid." }); }
+            if (bytes.Length == 0 || bytes.Length > 20 * 1024 * 1024)
+                return Json(new { success = false, message = "PDF is missing or too large (max 20 MB)." });
+
+            var t = db.InvoiceTemplates.FirstOrDefault(x => x.Id == id);
+            var docType = t != null ? (t.DocType ?? "Document") : "Document";
+            var subj = string.IsNullOrWhiteSpace(subject)
+                ? (docType + (invoiceId != 0 ? (" " + invoiceId) : ""))
+                : subject.Trim();
+            var fn = string.IsNullOrWhiteSpace(fileName) ? (docType + ".pdf") : fileName.Trim();
+            var body = "<p>Dear Sir/Madam,</p><p>Please find attached your "
+                       + System.Net.WebUtility.HtmlEncode(docType.ToLower())
+                       + (invoiceId != 0 ? (" (Ref " + invoiceId + ")") : "") + ".</p><p>Best regards.</p>";
+
+            var sm = new QuickSoft.Models.SendMail();
+            var err = sm.SendReadyPdf(toEmail.Trim(), (ccEmail ?? "").Trim(), subj, body, fn, bytes);
+            if (err != null) return Json(new { success = false, message = "Email could not be sent: " + err });
+
+            try
+            {
+                var ip = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "";
+                if (ip.Length > 20) ip = ip.Substring(0, 20);
+                var d = "Emailed " + docType + " " + (invoiceId != 0 ? ("#" + invoiceId) : "") + " to " + toEmail.Trim();
+                if (d.Length > 200) d = d.Substring(0, 200);
+                com.addlog(LogTypes.Logged, User?.Identity?.Name ?? "", "Print", "InvoiceTemplate", ip, t != null ? t.Id : 0, d);
+            }
+            catch { /* audit must never block the response */ }
+
+            return Json(new { success = true, message = "Email sent to " + toEmail.Trim() + "." });
         }
 
         // POST: /InvoiceTemplate/UploadImage  — upload an image (logo/stamp/signature) for use in a template.

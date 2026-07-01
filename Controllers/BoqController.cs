@@ -103,7 +103,7 @@ namespace QuickSoft.Controllers
 				v = v.Where(p => 
 							  p.CustomerName.ToString().ToLower().Contains(search.ToLower()) ||
 							  p.FirstName.ToString().ToLower().Contains(search.ToLower()) ||
-							  p.BillNo.ToString().ToLower().Equals(search.ToLower())
+							  p.BillNo.ToString().ToLower().Contains(search.ToLower())
 							 //p.UserName.ToString().ToLower().Contains(search.ToLower())
 							 );
 			}

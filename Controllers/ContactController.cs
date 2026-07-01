@@ -79,11 +79,23 @@ namespace QuickSoft.Controllers
             var uEdit = User.IsInRole("Edit Contact");
             var uDelete = User.IsInRole("Delete Contact");
 
+            // Distinct names that have at least one record carrying real contact details. LEFT-JOINed
+            // below so EF emits a single hash anti-join (fast) instead of a per-row correlated subquery
+            // (which times out on 215k rows). Distinct() is essential — without it the join would
+            // multiply rows for names that have several populated records.
+            var populatedNames = db.Contacts
+                .Where(x => (x.EmailId != null && x.EmailId != "")
+                         || (x.Mobile != null && x.Mobile != "")
+                         || (x.Phone != null && x.Phone != ""))
+                .Select(x => x.Name)
+                .Distinct();
+
             var v = (from a in db.Contacts
                      join b in db.ContactGroups on a.Group equals b.ContactGroupID into con
                      from b in con.DefaultIfEmpty()
-                     join c in db.ContactRelation on a.ContactID equals c.ContactID into temp1
-                     from c in temp1.DefaultIfEmpty()
+                     join pn in populatedNames on a.Name equals pn into pnj
+                     from pn in pnj.DefaultIfEmpty()   // pn != null  ⇒ this name has a populated record
+                         // (removed an unused ContactRelation join that duplicated every contact row)
                          //let mob = (from z in db.Contacts
                          //           where z.ContactID == a.ContactID
                          //               Num = z.Mobile == null ? z.Phone : z.Mobile,
@@ -99,7 +111,12 @@ namespace QuickSoft.Controllers
                      (Email == "" || a.EmailId.ToLower().Contains(Email.ToLower())) &&
                      (Group == null || a.Group == Group) &&
                      (Mobile == "" || a.Mobile.Contains(Mobile)) && //c.MobileNum.Contains(Mobile)) &&
-                     (Phone == "" || a.Phone.Contains(Phone))
+                     (Phone == "" || a.Phone.Contains(Phone)) &&
+                     // De-dup (display only, nothing deleted): hide a blank "shadow" record — one with
+                     // no email/mobile/phone — when another record with the SAME name DOES have details
+                     // (i.e. its name matched the populatedNames anti-join, so pn != null).
+                     !((string.IsNullOrEmpty(a.EmailId) && string.IsNullOrEmpty(a.Mobile) && string.IsNullOrEmpty(a.Phone))
+                       && pn != null)
                      select new
                      {
                          ContactName = a.Name,
@@ -131,11 +148,14 @@ namespace QuickSoft.Controllers
           
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                // Apply search   
-                v = v.Where(p => p.ContactName.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.Address.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.Phone.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.EmailId.ToString().ToLower().Contains(search.ToLower()));
+                // Apply search across all useful fields (name, mobile, phone, email, address, group)
+                var s = search.ToLower();
+                v = v.Where(p => (p.ContactName != null && p.ContactName.ToString().ToLower().Contains(s)) ||
+                                 (p.Mobile != null && p.Mobile.ToString().ToLower().Contains(s)) ||
+                                 (p.Phone != null && p.Phone.ToString().ToLower().Contains(s)) ||
+                                 (p.EmailId != null && p.EmailId.ToString().ToLower().Contains(s)) ||
+                                 (p.Address != null && p.Address.ToString().ToLower().Contains(s)) ||
+                                 (p.Group != null && p.Group.ToString().ToLower().Contains(s)));
 
             }
 
@@ -145,10 +165,11 @@ namespace QuickSoft.Controllers
                 v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
             }
 
-            recordsTotal = 50;
+            recordsTotal = v.Count();   // real total so the footer is correct and you can page through ALL contacts
             var data = v.Skip(skip).Take(pageSize).ToList();
             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });
         }
+
         [QkAuthorize(Roles = "Dev,Create Contact")]
         public ActionResult Create()
         {

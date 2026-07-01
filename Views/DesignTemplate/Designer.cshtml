@@ -18,14 +18,14 @@
     .dz-add .ic { display:inline-block; width:18px; color:#6366f1; }
     .dz-canvas-area { background:#eef2f7; border-radius:12px; padding:24px; overflow:auto; min-height:60vh; }
     .dz-sheet { background:#fff; margin:0 auto; box-shadow:0 4px 24px rgba(15,23,42,.18); position:relative; }
-    .dz-el { position:absolute; box-sizing:border-box; padding:2px 4px; cursor:move; border:1px dashed transparent; overflow:hidden; }
-    .dz-el:hover { border-color:#c7d2fe; }
+    .dz-el { position:absolute; box-sizing:border-box; padding:2px 4px; cursor:move; border:1px dashed #94a3b8; overflow:hidden; }
+    .dz-el:hover { border-color:#6366f1; }
     .dz-el.sel { border:1px solid #6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.18); }
     .dz-el .rsz { position:absolute; right:-5px; bottom:-5px; width:11px; height:11px; background:#6366f1; border:2px solid #fff; border-radius:50%; cursor:se-resize; }
-    .dz-field { color:#3730a3; background:rgba(99,102,241,.06); border-radius:4px; }
+    .dz-field { color:#3730a3; background:rgba(99,102,241,.16); border:1px solid #a5b4fc; border-radius:4px; font-weight:600; }
     .dz-items table, .dz-totals table { width:100%; border-collapse:collapse; font-size:inherit; }
     .dz-items th, .dz-items td { border:1px solid #cbd5e1; padding:2px 5px; text-align:left; }
-    .dz-items th { background:#eef2ff; color:#3730a3; font-size:.85em; }
+    .dz-items th { background:var(--theme,#4f46e5); color:#fff; font-size:.85em; }
     .dz-totals td { padding:2px 5px; }
     .dz-totals td.r { text-align:right; }
     .dz-line { height:0; border-top:2px solid #0f172a; }
@@ -38,7 +38,7 @@
 </style>
 
 <div class="dz-toolbar">
-    <a href="@Url.Action("Index","InvoiceTemplate", new { docType = ViewBag.DocType })" class="btn btn-default"><i class="glyphicon glyphicon-arrow-left"></i></a>
+    <a href="@Url.Action("Index","DesignTemplate", new { docType = ViewBag.DocType })" class="btn btn-default"><i class="glyphicon glyphicon-arrow-left"></i></a>
     <span class="label label-info" style="font-size:11px;">@ViewBag.DocType</span>
     <input type="hidden" id="tplId" value="@Model.Id" />
     <input type="text" id="tplName" class="name" value="@Model.Name" placeholder="Template name" />
@@ -49,6 +49,20 @@
     <select id="tplOrient" title="Orientation">
         <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
     </select>
+    <label title="Theme / accent colour (table header, totals, lines)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#64748b;font-weight:600;">Theme <input type="color" id="tplTheme" value="#4f46e5" style="width:34px;height:30px;padding:1px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;" /></label>
+    @if ((string)ViewBag.DocType == "Cheque")
+    {
+        <input list="bankList" type="text" id="tplBank" placeholder="Bank (auto-select)"
+               title="Tag this cheque layout with its bank. When you print a cheque, the layout whose bank matches the payment's bank is chosen automatically."
+               style="min-width:160px;" />
+        <datalist id="bankList">
+            @foreach (var b in (ViewBag.Banks as System.Collections.Generic.IEnumerable<string>) ?? System.Linq.Enumerable.Empty<string>())
+            {
+                <option value="@b"></option>
+            }
+        </datalist>
+        <button id="btnSample" class="btn btn-default" title="Insert a ready-made cheque layout (payee, amount, words, date) you can align to your bank's cheque"><i class="glyphicon glyphicon-magic"></i> Sample layout</button>
+    }
     <div class="spacer"></div>
     <span id="saveMsg" style="color:#10b981;font-size:12.5px;font-weight:600;"></span>
     <button id="btnPreview" class="btn btn-default"><i class="glyphicon glyphicon-eye-open"></i> Preview / Print</button>
@@ -64,6 +78,8 @@
         <button class="dz-add" data-add="items"><span class="ic glyphicon glyphicon-th-list"></span> Items Table</button>
         <button class="dz-add" data-add="totals"><span class="ic glyphicon glyphicon-usd"></span> Totals</button>
         <button class="dz-add" data-add="line"><span class="ic glyphicon glyphicon-minus"></span> Line</button>
+        <button class="dz-add" data-add="qr"><span class="ic glyphicon glyphicon-qrcode"></span> QR Code</button>
+        <button class="dz-add" data-add="barcode"><span class="ic glyphicon glyphicon-barcode"></span> Barcode</button>
         <div class="dz-hint">Drag elements on the sheet to position them. Click an element to edit it on the right.</div>
     </div>
 
@@ -84,6 +100,7 @@
     if (!Array.isArray(design.elements)) design.elements = [];
 
     var DOCTYPE = '@(ViewBag.DocType ?? "Sale")';
+    var COMPANYLOGO = '@(ViewBag.CompanyLogo ?? "")';   // real logo from Settings (Companies.CPLogo)
     var COMPANY = ['Company', [['COMPANY_HEADER.Name','Company Name'],['COMPANY_HEADER.Address','Company Address'],['COMPANY_HEADER.TRN','Company TRN'],['COMPANY_HEADER.Phone','Company Phone'],['COMPANY_HEADER.Email','Company Email']]];
     // per-document-type merge-field catalogues
     var FIELDSETS = {
@@ -147,25 +164,49 @@
     function obj(pairs){ var o={}; pairs.forEach(function(p){ o[p[0]]=p[1]; }); return o; }
     var FIELDS = FIELDSETS[DOCTYPE] || FIELDSETS.Sale;
     function fieldLabel(key) { for (var g in FIELDS) { for (var i=0;i<FIELDS[g].length;i++) if (FIELDS[g][i][0]===key) return FIELDS[g][i][1]; } return key; }
+    // Sensible default value for a new QR/Barcode: the document's number/voucher if this type has one.
+    function defaultCodeField() {
+        var prefer = ['INVOICE.Number','CHEQUE.VoucherNo','RECEIPT.VoucherNo','PAYMENT.VoucherNo','TENANCY.Code'];
+        for (var p=0;p<prefer.length;p++){ for (var g in FIELDS){ for (var i=0;i<FIELDS[g].length;i++) if (FIELDS[g][i][0]===prefer[p]) return prefer[p]; } }
+        return '';
+    }
 
     var PAPER = { A4:[794,1123], A5:[559,794], A3:[1123,1587], Letter:[816,1056], Legal:[816,1344] };
     var sheet = document.getElementById('sheet');
     var props = document.getElementById('props');
     var selId = null, uid = Date.now();
+    var SHEETSCALE = 1;   // auto-fit zoom so a wide (landscape) sheet is fully visible in a narrow window
 
     function nextId(){ uid++; return 'e'+uid; }
     function paperPx(){ var s = PAPER[design.paper] || PAPER.A4; return design.orientation==='landscape' ? [s[1],s[0]] : [s[0],s[1]]; }
 
-    function sizeSheet(){ var p = paperPx(); sheet.style.width = p[0]+'px'; sheet.style.height = p[1]+'px'; }
+    function sizeSheet(){
+        var p = paperPx();
+        sheet.style.width = p[0]+'px'; sheet.style.height = p[1]+'px';
+        // Shrink-to-fit the canvas width so the whole sheet shows (e.g. a landscape cheque in a half-screen window).
+        var area = sheet.parentElement;
+        var avail = (area ? area.clientWidth : p[0]) - 24;
+        SHEETSCALE = Math.min(1, Math.max(0.2, avail / p[0]));
+        sheet.style.zoom = SHEETSCALE < 0.999 ? SHEETSCALE : '';
+    }
 
     function elInner(el){
         if (el.type==='text')   return '<div>'+ (el.text||'Text') +'</div>';
         if (el.type==='field')  return '<div class="dz-field">['+ fieldLabel(el.field||'') +']</div>';
-        if (el.type==='image')  return el.src
-            ? '<img src="'+el.src+'" style="width:100%;height:100%;object-fit:contain;pointer-events:none;" />'
-            : '<div style="border:1px dashed #c7d2fe;border-radius:6px;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">'+(el.field==='COMPANY_HEADER.Logo'?'Company Logo':'Image')+'</div>';
+        if (el.type==='image'){
+            var imgsrc = el.src || (el.field==='COMPANY_HEADER.Logo' ? COMPANYLOGO : '');
+            return imgsrc
+                ? '<img src="'+imgsrc+'" style="width:100%;height:100%;object-fit:contain;pointer-events:none;" />'
+                : '<div style="border:1px dashed #c7d2fe;border-radius:6px;height:100%;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;">'+(el.field==='COMPANY_HEADER.Logo'?'Company Logo':'Image')+'</div>';
+        }
         if (el.type==='line')   return '<div class="dz-line"></div>';
-        if (el.type==='items')  return '<div class="dz-items"><table><thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Amount</th></tr></thead><tbody><tr><td>1</td><td>Sample item</td><td>2</td><td>100.00</td><td>5%</td><td>210.00</td></tr><tr><td>2</td><td>Sample item</td><td>1</td><td>50.00</td><td>5%</td><td>52.50</td></tr></tbody></table></div>';
+        if (el.type==='qr')     return '<div style="border:1px solid #c7d2fe;border-radius:6px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#6366f1;font-size:11px;background:repeating-linear-gradient(45deg,#eef2ff,#eef2ff 4px,#fff 4px,#fff 8px);"><span class="glyphicon glyphicon-qrcode" style="font-size:20px;"></span><span style="margin-top:3px;background:#fff;padding:0 4px;border-radius:3px;">'+ (el.field?fieldLabel(el.field):'QR') +'</span></div>';
+        if (el.type==='barcode')return '<div style="border:1px solid #c7d2fe;border-radius:4px;height:100%;display:flex;align-items:center;justify-content:center;color:#334155;font-size:10px;background:repeating-linear-gradient(90deg,#0f172a,#0f172a 2px,#fff 2px,#fff 5px);"><span style="background:#fff;padding:1px 6px;border-radius:3px;">'+ (el.field?fieldLabel(el.field):(el.text||'Barcode')) +'</span></div>';
+        if (el.type==='items'){
+            var ih = el.images ? '<th>Image</th>' : '';
+            var ic = el.images ? '<td style="text-align:center;color:#6366f1;font-size:9px;">IMG</td>' : '';
+            return '<div class="dz-items"><table><thead><tr><th>#</th>'+ih+'<th>Item</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Amount</th></tr></thead><tbody><tr><td>1</td>'+ic+'<td>Sample item</td><td>2</td><td>100.00</td><td>5%</td><td>210.00</td></tr><tr><td>2</td>'+ic+'<td>Sample item</td><td>1</td><td>50.00</td><td>5%</td><td>52.50</td></tr></tbody></table></div>';
+        }
         if (el.type==='totals') return '<div class="dz-totals"><table><tr><td>Sub Total</td><td class="r">150.00</td></tr><tr><td>VAT 5%</td><td class="r">7.50</td></tr><tr><td><b>Grand Total</b></td><td class="r"><b>157.50</b></td></tr></table></div>';
         return '';
     }
@@ -173,6 +214,16 @@
     function render(){
         sizeSheet();
         sheet.innerHTML = '';
+        if (!design.elements.length){
+            // Make an empty sheet obvious (and tell the user which document type this is).
+            var hint = document.createElement('div');
+            hint.style.cssText = 'position:absolute;left:0;right:0;top:36%;text-align:center;color:#64748b;font-size:15px;padding:0 20px;line-height:1.7;';
+            var btn = '<a href="@Url.Action("Index","DesignTemplate")?docType=Cheque" style="display:inline-block;margin-top:14px;background:#6366f1;color:#fff;padding:10px 20px;border-radius:9px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(99,102,241,.35);">Go to Cheque templates &rarr;</a>';
+            hint.innerHTML = (DOCTYPE === 'Cheque'
+                ? 'This cheque template is empty.<br>Click <b>Sample layout</b> above to load the ready cheque.'
+                : 'This is an empty <b>' + DOCTYPE + '</b> template &mdash; <b>not the cheque sample</b>.<br>For your cheque, use the saved <b>Sample Cheque</b>:<br>' + btn);
+            sheet.appendChild(hint);
+        }
         design.elements.forEach(function(el){
             var d = document.createElement('div');
             d.className = 'dz-el' + (el.id===selId?' sel':'');
@@ -183,9 +234,12 @@
             d.style.fontSize=(el.fontSize||12)+'px';
             d.style.fontWeight=el.bold?'700':'400';
             d.style.textAlign=el.align||'left';
+            d.style.direction=el.rtl?'rtl':'ltr';
+            if (el.color) d.style.color=el.color;
             d.innerHTML = elInner(el) + '<span class="rsz"></span>';
             sheet.appendChild(d);
         });
+        sheet.style.setProperty('--theme', design.theme || '#4f46e5');
     }
 
     // ---- selection + properties ----
@@ -209,10 +263,24 @@
                 h += '<div class="row2"><label>Upload image (logo / stamp / sign)</label><input id="p_img" type="file" accept="image/*"><div id="p_imgmsg" style="font-size:11px;color:#64748b;margin-top:4px;">'+(el.src?'Custom image set ✓':'')+'</div></div>';
             }
         }
-        if (el.type!=='line' && el.type!=='items' && el.type!=='totals' && el.type!=='image'){
+        if (el.type==='items'){
+            h += '<div class="row2"><label>Item photos</label><select id="p_items_img"><option value="0"'+(el.images?'':' selected')+'>No image column</option><option value="1"'+(el.images?' selected':'')+'>Show item photo column</option></select></div>';
+        }
+        if (el.type==='qr' || el.type==='barcode'){
+            var copts = '<option value="">— Custom text / URL —</option>';
+            for (var cg in FIELDS){ copts += '<optgroup label="'+cg+'">'; FIELDS[cg].forEach(function(f){ copts += '<option value="'+f[0]+'"'+(el.field===f[0]?' selected':'')+'>'+f[1]+'</option>'; }); copts += '</optgroup>'; }
+            h += row('Encode value','<select id="p_codefield">'+copts+'</select>');
+            if (!el.field){ h += row('Custom text','<input id="p_codetext" value="'+esc(el.text||'')+'" placeholder="Text or URL to encode">'); }
+            if (el.type==='barcode'){ h += '<div class="row2"><label>Show value under bars</label><select id="p_bcdv"><option value="1"'+(el.bcHideText?'':' selected')+'>Yes</option><option value="0"'+(el.bcHideText?' selected':'')+'>No</option></select></div>'; }
+        }
+        if (el.type!=='line' && el.type!=='items' && el.type!=='totals' && el.type!=='image' && el.type!=='qr' && el.type!=='barcode'){
             h += row('Font size','<input id="p_fs" type="number" value="'+(el.fontSize||12)+'">');
             h += '<div class="row2"><label>Style</label><div class="inline"><select id="p_bold" style="flex:1"><option value="0"'+(el.bold?'':' selected')+'>Normal</option><option value="1"'+(el.bold?' selected':'')+'>Bold</option></select>'
                + '<select id="p_align" style="flex:1"><option value="left"'+(el.align==='left'||!el.align?' selected':'')+'>Left</option><option value="center"'+(el.align==='center'?' selected':'')+'>Center</option><option value="right"'+(el.align==='right'?' selected':'')+'>Right</option></select></div></div>';
+            h += '<div class="row2"><label>Text direction</label><select id="p_rtl"><option value="0"'+(el.rtl?'':' selected')+'>Left-to-right</option><option value="1"'+(el.rtl?' selected':'')+'>Right-to-left (Arabic)</option></select></div>';
+        }
+        if (el.type!=='items' && el.type!=='totals' && el.type!=='image' && el.type!=='qr' && el.type!=='barcode'){
+            h += '<div class="row2"><label>Colour</label><div class="inline"><input id="p_color" type="color" value="'+(el.color||'#0f172a')+'" style="flex:0 0 42px;height:32px;padding:1px;"><button id="p_colorclr" class="btn btn-default" style="flex:1;font-size:12px;">Default</button></div></div>';
         }
         h += '<button class="btn btn-danger" id="p_del" style="width:100%;margin-top:6px;"><i class="glyphicon glyphicon-trash"></i> Delete element</button>';
         props.innerHTML = h;
@@ -224,7 +292,7 @@
             var f = this.files && this.files[0]; if(!f) return;
             var msg = document.getElementById('p_imgmsg'); if(msg) msg.textContent='Uploading...';
             var fd = new FormData(); fd.append('file', f);
-            jQuery.ajax({ url:'@Url.Action("UploadImage","InvoiceTemplate")', method:'POST', data:fd, processData:false, contentType:false })
+            jQuery.ajax({ url:'@Url.Action("UploadImage","DesignTemplate")', method:'POST', data:fd, processData:false, contentType:false })
                 .done(function(r){ if(r&&r.success){ el.src=r.url; el.field=''; if(msg) msg.textContent='Custom image set ✓'; render(); }
                     else { alert((r&&r.message)||'Upload failed.'); if(msg) msg.textContent=''; } })
                 .fail(function(){ alert('Upload request failed.'); if(msg) msg.textContent=''; });
@@ -232,6 +300,15 @@
         bind('p_fs','input',function(v){ el.fontSize=parseInt(v)||12; render(); });
         bind('p_bold','change',function(v){ el.bold=(v==='1'); render(); });
         bind('p_align','change',function(v){ el.align=v; render(); });
+        // RTL: when switching to Arabic, default the alignment to the right so the text reads naturally.
+        bind('p_rtl','change',function(v){ el.rtl=(v==='1'); if(el.rtl && (!el.align||el.align==='left')) el.align='right'; render(); showProps(); });
+        bind('p_codefield','change',function(v){ el.field=v; render(); showProps(); });
+        bind('p_codetext','input',function(v){ el.text=v; render(); });
+        bind('p_bcdv','change',function(v){ el.bcHideText=(v==='0'); });
+        bind('p_items_img','change',function(v){ el.images=(v==='1'); render(); });
+        bind('p_color','input',function(v){ el.color=v; render(); });
+        var clr = document.getElementById('p_colorclr');
+        if (clr) clr.onclick = function(){ delete el.color; render(); showProps(); };
         var del = document.getElementById('p_del');
         if (del) del.onclick = function(){ design.elements = design.elements.filter(function(e){return e.id!==selId;}); selId=null; render(); showProps(); };
     }
@@ -248,6 +325,8 @@
         if (type==='items'){ el.h=160; }
         if (type==='totals'){ el.w=300; el.h=110; }
         if (type==='line'){ el.w=700; el.h=2; }
+        if (type==='qr'){ el.field=defaultCodeField(); el.w=96; el.h=96; }
+        if (type==='barcode'){ el.field=defaultCodeField(); el.w=230; el.h=72; }
         design.elements.push(el); selectEl(el.id);
     }
     Array.prototype.forEach.call(document.querySelectorAll('.dz-add'), function(b){
@@ -266,26 +345,35 @@
     });
     document.addEventListener('mousemove', function(e){
         if(!drag) return;
-        var dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+        // divide by the auto-fit zoom so a screen-pixel drag maps to the right sheet-coordinate distance
+        var dx=(e.clientX-drag.sx)/SHEETSCALE, dy=(e.clientY-drag.sy)/SHEETSCALE;
         if (drag.resizing){ drag.el.w=Math.max(30,drag.ow+dx); drag.el.h=Math.max(16,drag.oh+dy); }
         else { drag.el.x=Math.max(0,drag.ox+dx); drag.el.y=Math.max(0,drag.oy+dy); }
         render();
     });
     document.addEventListener('mouseup', function(){ drag=null; });
+    window.addEventListener('resize', function(){ render(); });   // re-fit when the window width changes
 
     // ---- toolbar ----
     document.getElementById('tplPaper').value = design.paper || 'A4';
     document.getElementById('tplOrient').value = design.orientation || 'portrait';
     document.getElementById('tplPaper').addEventListener('change', function(){ design.paper=this.value; render(); });
     document.getElementById('tplOrient').addEventListener('change', function(){ design.orientation=this.value; render(); });
+    var themeInput = document.getElementById('tplTheme');
+    if (themeInput) { themeInput.value = design.theme || '#4f46e5';
+        themeInput.addEventListener('input', function(){ design.theme = this.value; render(); }); }
+    var bankInput = document.getElementById('tplBank');           // present only for Cheque templates
+    if (bankInput) { bankInput.value = design.bank || '';
+        bankInput.addEventListener('change', function(){ design.bank = this.value.trim(); }); }
 
     function doSave(cb){
         var name = document.getElementById('tplName').value.trim();
         if(!name){ alert('Please enter a template name.'); return; }
         design.paper = document.getElementById('tplPaper').value;
         design.orientation = document.getElementById('tplOrient').value;
+        if (bankInput) design.bank = bankInput.value.trim();
         var sBtn=document.getElementById('btnSave'); sBtn.disabled=true;
-        jQuery.post('@Url.Action("Save","InvoiceTemplate")', {
+        jQuery.post('@Url.Action("Save","DesignTemplate")', {
             id: document.getElementById('tplId').value,
             name: name, paperSize: design.paper, orientation: design.orientation,
             docType: DOCTYPE, designJson: JSON.stringify(design)
@@ -300,9 +388,40 @@
     document.getElementById('btnSave').addEventListener('click', function(){ doSave(); });
     document.getElementById('btnPreview').addEventListener('click', function(){
         // save first so the preview reflects the current design, then open the printable page
-        doSave(function(id){ window.open('@Url.Action("Render","InvoiceTemplate")/' + id, '_blank'); });
+        doSave(function(id){ window.open('@Url.Action("Render","DesignTemplate")/' + id, '_blank'); });
     });
 
+    // ---- ready-made cheque sample layout ----
+    function chequeSampleElements(){
+        // Value fields only, positioned for a typical cheque leaf (~A5 landscape, 794×559). The bank's
+        // pre-printed cheque already carries the "Pay"/"Dirhams"/date labels — you drag these over it.
+        function mk(field, x, y, w, opts){ var e = { id:nextId(), type:'field', field:field, x:x, y:y, w:w, fontSize:14, align:'left' }; if(opts) for(var k in opts) e[k]=opts[k]; return e; }
+        // Portrait A4 — fields sit in the cheque band at the top of the page (drag to match your cheque).
+        return [
+            mk('CHEQUE.Date',          560, 55, 190, { align:'center' }),               // date over the DDMMYYYY boxes
+            mk('PAYEE.Name',           130, 105, 560, { fontSize:15 }),                  // payee, after "Pay"
+            mk('CHEQUE.AmountInWords', 150, 150, 560, { fontSize:13 }),                  // amount in words
+            mk('CHEQUE.Amount',        600, 150, 150, { fontSize:16, bold:true, align:'right' }) // figures box
+        ];
+    }
+    function loadChequeSample(){
+        design.paper = 'A4'; design.orientation = 'portrait';
+        document.getElementById('tplPaper').value = 'A4';
+        document.getElementById('tplOrient').value = 'portrait';
+        design.elements = chequeSampleElements();
+        render();
+        selectEl(design.elements[0].id);   // pre-select so the Properties panel shows content
+    }
+    var btnSample = document.getElementById('btnSample');
+    if (btnSample) btnSample.addEventListener('click', function(){
+        if (design.elements.length && !confirm('Replace the current layout with the sample cheque layout?')) return;
+        loadChequeSample();
+    });
+    // A brand-new (or empty) cheque template opens with the sample instead of a blank sheet.
+    if (DOCTYPE === 'Cheque' && (!design.elements || design.elements.length === 0)) { loadChequeSample(); }
+
     render();
+    // On edit, show property content right away: pre-select the first element so the panel isn't blank.
+    if (design.elements.length && !selId) { selectEl(design.elements[0].id); }
 })();
 </script>

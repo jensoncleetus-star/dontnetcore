@@ -1020,10 +1020,12 @@ namespace QuickSoft.Controllers
             //search
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                v = v.Where(p => //p.PFNo.ToString().ToLower().Contains(search.ToLower()) ||
-                                 p.BillNo.ToString().ToLower().Equals(search.ToLower())
-                             //p.PFGrandTotal.ToString().ToLower().Contains(search.ToLower())
-                             );
+                var s = search.ToLower();
+                v = v.Where(p => (p.BillNo != null && p.BillNo.ToString().ToLower().Contains(s)) ||
+                                 (p.Customer != null && p.Customer.ToString().ToLower().Contains(s)) ||
+                                 (p.ProjectName != null && p.ProjectName.ToString().ToLower().Contains(s)) ||
+                                 (p.EmpName != null && p.EmpName.ToString().ToLower().Contains(s)) ||
+                                 (p.user != null && p.user.ToString().ToLower().Contains(s)));
             }
 
             //SORT

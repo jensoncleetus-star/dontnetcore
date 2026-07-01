@@ -37,6 +37,101 @@ namespace QuickSoft.Controllers
             db = new ApplicationDbContext();
         }
 
+        // ---- Inventory dashboard (styled like the main dashboard) ----
+        public ActionResult Dashboard()
+        {
+            var today = DateTime.Now;
+            var lastdate = today.AddMonths(-1);
+            ViewBag.today = today.ToString("dd-MM-yyyy");
+            ViewBag.lastdate = lastdate.ToString("dd-MM-yyyy");
+
+            var vmodel = new QuickSoft.ViewModel.HomeViewModel();
+            vmodel.totCustomerCount = Convert.ToString(db.Items.Count());
+            vmodel.totSupplierCount = Convert.ToString(db.ItemCategorys.Count());
+
+            // 12-month trend: Delivery value + Items delivered (quantity)
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var dByM = db.Deliverynotes.Where(n => n.DvDate >= trendStart)
+                    .GroupBy(n => new { n.DvDate.Year, n.DvDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, V = g.Sum(x => (decimal?)x.DvGrandTotal) ?? 0, Q = g.Sum(x => (decimal?)x.DvItemQuantity) ?? 0 }).ToList();
+                var tl = new List<string>(); var tv = new List<decimal>(); var tq = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    var row = dByM.Where(x => x.Year == d.Year && x.Month == d.Month).FirstOrDefault();
+                    tv.Add(row != null ? row.V : 0);
+                    tq.Add(row != null ? row.Q : 0);
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(tv);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tq);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
+
+            // Per-period KPIs: Delivery value, Delivery Notes, Items Delivered, Avg Note value (+ delta)
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);
+                DateTime dToday = today.Date, dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;
+                DateTime wkStart = dToday.AddDays(-dow), wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1), moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1), yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    db.Deliverynotes.Where(x => x.DvDate >= from && x.DvDate < to).Select(x => (decimal?)x.DvGrandTotal).Sum() ?? 0m,
+                    (decimal)db.Deliverynotes.Count(x => x.DvDate >= from && x.DvDate < to),
+                    db.Deliverynotes.Where(x => x.DvDate >= from && x.DvDate < to).Select(x => (decimal?)x.DvItemQuantity).Sum() ?? 0m
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to); var p = sums(prevFrom, from);
+                    decimal avg = c[1] > 0 ? c[0] / c[1] : 0, pavg = p[1] > 0 ? p[0] / p[1] : 0;
+                    return new
+                    {
+                        label,
+                        value = c[0], notes = c[1], items = c[2], avg = avg,
+                        dValue = dlt(c[0], p[0]), dNotes = dlt(c[1], p[1]), dItems = dlt(c[2], p[2]), dAvg = dlt(avg, pavg)
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
+
+            ViewBag.Active = "Dashboard";
+            ViewBag.Title = "Inventory";
+            ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
+            return View(vmodel);
+        }
+
+        [HttpPost]
+        public ActionResult GetRecentDeliveries()
+        {
+            var v = db.Deliverynotes.OrderByDescending(d => d.DeliverynoteId).Take(6)
+                .Select(d => new
+                {
+                    d.DeliverynoteId,
+                    DvNo = d.DvNo,
+                    Customer = db.Customers.Where(a => a.CustomerID == d.Customer).Select(a => a.CustomerCode + " - " + a.CustomerName).FirstOrDefault(),
+                    d.DvDate,
+                    Items = d.DvItemQuantity,
+                    d.DvGrandTotal
+                }).ToList();
+            return Json(new { data = v });
+        }
+
         #region moment
         [QkAuthorize(Roles = "Dev,Stock Moment")]
         public ActionResult Moment()

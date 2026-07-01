@@ -49,7 +49,7 @@
 </aside>
 
 
-@{ void sideMenu(MenuViewModel module, long parent = 0)
+@{ void sideMenu(MenuViewModel module, long parent = 0, string groupName = "")
 {
     MenuViewModel sub = new MenuViewModel();
     sub.Menu = module.Menu;
@@ -67,6 +67,29 @@
         classn = "class=treeview-menu slimScrollBar";
     }
     <ul @classn>
+        @if (parent != 0 && !string.IsNullOrEmpty(groupName))
+        {
+            string gl = groupName.Trim().ToLower();
+            string dashUrl = null;
+            if (gl.Contains("customer relation")) dashUrl = "/CustomerRelation/Dashboard";
+            else if (gl.Contains("vendor relation")) dashUrl = "/VendorRelation/Dashboard";
+            else if (gl.Contains("account")) dashUrl = "/Accounts/Dashboard";
+            else if (gl.Contains("field service")) dashUrl = "/ProTask/Overview";
+            else if (gl.Contains("inventory")) dashUrl = "/Inventory/Dashboard";
+            else if (gl.Contains("human resource") || gl.Contains("hr")) dashUrl = "/Employee/Dashboard";
+            if (dashUrl != null)
+            {
+                <li><a href="@dashUrl"><i class="fa fa-tachometer"></i> <span>Dashboard</span></a></li>
+            }
+            if (gl.Contains("setting") && (User.IsInRole("Dev") || User.IsInRole("Database Backup")))
+            {
+                <li><a href="/BackUpRestore/Reindex"><i class="fa fa-bolt"></i> <span>Database Optimize</span></a></li>
+            }
+            if (gl.Contains("setting") && (User.IsInRole("Dev") || User.IsInRole("Company Edit") || User.IsInRole("Email Setup")))
+            {
+                <li><a href="/EmailSetup"><i class="fa fa-envelope"></i> <span>Email Setup</span></a></li>
+            }
+        }
         @if (parent == 0)
         {
             var active = CustHtml.CheckActive(ViewBag.Active, "Dashboard", "class");
@@ -101,7 +124,7 @@
                                     <i class="fa fa-angle-left pull-right"></i>
                                 </span>
                             </a>
-                            @{ sideMenu(sub, menus.ModulesID); }
+                            @{ sideMenu(sub, menus.ModulesID, menus.viewName); }
                         </li>
                     }
                 }

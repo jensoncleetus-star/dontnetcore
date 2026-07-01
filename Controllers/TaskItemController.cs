@@ -102,7 +102,7 @@ namespace QuickSoft.Controllers
 			//search
 			if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
 			{
-				v = v.Where(p => p.BOMName.ToString().ToLower().Equals(search.ToLower()) ||
+				v = v.Where(p => p.BOMName.ToString().ToLower().Contains(search.ToLower()) ||
 							 p.ItemName.ToString().ToLower().Contains(search.ToLower())
 							 //p.UserName.ToString().ToLower().Contains(search.ToLower())
 							 );

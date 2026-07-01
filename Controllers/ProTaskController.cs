@@ -1307,6 +1307,104 @@ namespace QuickSoft.Controllers
             db.SaveChanges();
 
         }
+        // ---- Field Service dashboard (styled like the main dashboard) ----
+        public ActionResult Overview()
+        {
+            var today = DateTime.Now;
+            var lastdate = today.AddMonths(-1);
+            ViewBag.today = today.ToString("dd-MM-yyyy");
+            ViewBag.lastdate = lastdate.ToString("dd-MM-yyyy");
+
+            HomeViewModel vmodel = new HomeViewModel();
+            vmodel.totCustomerCount = Convert.ToString(db.ProTasks.Count());
+            vmodel.totSaleEntryCount = Convert.ToString(db.JobCards.Count());
+
+            // 12-month trend: Tasks created vs Job Cards (counts)
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var taskByM = db.ProTasks.Where(t => t.CreatedDate >= trendStart)
+                    .GroupBy(t => new { t.CreatedDate.Year, t.CreatedDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, C = g.Count() }).ToList();
+                var jcByM = db.JobCards.Where(j => j.JCDate >= trendStart)
+                    .GroupBy(j => new { j.JCDate.Year, j.JCDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, C = g.Count() }).ToList();
+                var tl = new List<string>(); var tt = new List<decimal>(); var tj = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    tt.Add(taskByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => (decimal)x.C).FirstOrDefault());
+                    tj.Add(jcByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => (decimal)x.C).FirstOrDefault());
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(tt);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tj);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
+
+            // Per-period KPIs: Job Card value, New Tasks, Job Cards, Tasks Started (+ delta vs previous period)
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);
+                DateTime dToday = today.Date, dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;
+                DateTime wkStart = dToday.AddDays(-dow), wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1), moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1), yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    db.JobCards.Where(x => x.JCDate >= from && x.JCDate < to).Select(x => (decimal?)x.TotalAmount).Sum() ?? 0m,
+                    (decimal)db.ProTasks.Count(x => x.CreatedDate >= from && x.CreatedDate < to),
+                    (decimal)db.JobCards.Count(x => x.JCDate >= from && x.JCDate < to),
+                    (decimal)db.ProTasks.Count(x => x.StartDate >= from && x.StartDate < to)
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to); var p = sums(prevFrom, from);
+                    return new
+                    {
+                        label,
+                        jobvalue = c[0], newtasks = c[1], jobcards = c[2], started = c[3],
+                        dJobvalue = dlt(c[0], p[0]), dNewtasks = dlt(c[1], p[1]), dJobcards = dlt(c[2], p[2]), dStarted = dlt(c[3], p[3])
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
+
+            ViewBag.Active = "Dashboard";
+            ViewBag.Title = "Field Service";
+            ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
+            return View(vmodel);
+        }
+
+        [HttpPost]
+        public ActionResult GetRecentTasks()
+        {
+            var v = db.ProTasks.OrderByDescending(a => a.ProTaskId)
+                .Select(a => new { a.ProTaskId, a.TaskName, a.CreatedDate, a.StartDate, a.Status })
+                .Take(6).ToList();
+            var data = v.Select(a => new
+            {
+                a.ProTaskId,
+                TaskName = a.TaskName,
+                a.CreatedDate,
+                a.StartDate,
+                Status = a.Status.ToString()
+            }).ToList();
+            return Json(new { data = data });
+        }
+
         public ActionResult dashboard()
         {
             DateTime dd = DateTime.Now.AddDays(-60);

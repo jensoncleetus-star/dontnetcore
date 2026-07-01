@@ -163,7 +163,13 @@ namespace QuickSoft.Controllers
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
                 // Apply search   
-                v = v.Where(p => p.Name.ToString().ToLower().Contains(search.ToLower()));
+                var sTerm = search.ToLower();
+                v = v.Where(p => (p.Name != null && p.Name.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Code != null && p.Code.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Location != null && p.Location.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Phone != null && p.Phone.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Email != null && p.Email.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.TaxRegNo != null && p.TaxRegNo.ToString().ToLower().Contains(sTerm)));
             }
 
             //SORT
@@ -285,7 +291,13 @@ namespace QuickSoft.Controllers
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
                 // Apply search   
-                v = v.Where(p => p.Name.ToString().ToLower().Contains(search.ToLower()));
+                var sTerm = search.ToLower();
+                v = v.Where(p => (p.Name != null && p.Name.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Code != null && p.Code.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Location != null && p.Location.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Phone != null && p.Phone.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.Email != null && p.Email.ToString().ToLower().Contains(sTerm)) ||
+                                 (p.TaxRegNo != null && p.TaxRegNo.ToString().ToLower().Contains(sTerm)));
             }
 
             //SORT

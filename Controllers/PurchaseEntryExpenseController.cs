@@ -3176,7 +3176,7 @@ namespace QuickSoft.Controllers
 
             //search
             //    // Apply search   
-            //                     p.BillNo.ToString().ToLower().Equals(search.ToLower())
+            //                     p.BillNo.ToString().ToLower().Contains(search.ToLower())
             //                     //p.PEPaidAmount.ToString().ToLower().Contains(search.ToLower())
             //                     ////p.SEBalanceAmount.ToString().ToLower().Contains(search.ToLower())
 
@@ -3413,7 +3413,7 @@ namespace QuickSoft.Controllers
 
             //search
             //    // Apply search   
-            //                     p.BillNo.ToString().ToLower().Equals(search.ToLower())
+            //                     p.BillNo.ToString().ToLower().Contains(search.ToLower())
             //                     //p.PEPaidAmount.ToString().ToLower().Contains(search.ToLower())
             //                     ////p.SEBalanceAmount.ToString().ToLower().Contains(search.ToLower())
 
@@ -3698,7 +3698,7 @@ namespace QuickSoft.Controllers
 
             //search
             //    // Apply search   
-            //                     p.BillNo.ToString().ToLower().Equals(search.ToLower())
+            //                     p.BillNo.ToString().ToLower().Contains(search.ToLower())
             //                     //p.PEPaidAmount.ToString().ToLower().Contains(search.ToLower())
             //                     ////p.SEBalanceAmount.ToString().ToLower().Contains(search.ToLower())
 

@@ -3,6 +3,8 @@
     var docType = (string)(ViewBag.DocType ?? "Sale");
     ViewBag.Title = docType + " Templates";
     Layout = "~/Views/Shared/_QuickLayout.cshtml";
+    // Multi-bank cheque: each cheque layout carries its bank tag inside DesignJson.
+    Func<string, string> bankOf = j => { if (string.IsNullOrWhiteSpace(j)) return null; try { return (string)Newtonsoft.Json.Linq.JObject.Parse(j)["bank"]; } catch { return null; } };
 }
 
 <style>
@@ -26,6 +28,10 @@
     .tpl-new { border:2px dashed #c7d2fe; background:#fafbff; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#6366f1; cursor:pointer; min-height:230px; font-weight:600; transition:background .15s, border-color .15s; text-decoration:none; }
     .tpl-new:hover { background:#eef2ff; border-color:#6366f1; color:#4f46e5; }
     .tpl-new .plus { width:46px; height:46px; border-radius:50%; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; line-height:1; }
+    .tpl-off { opacity:.6; }
+    .tpl-off .tpl-thumb .doc { filter:grayscale(.7); }
+    .tpl-toggle { position:absolute; top:9px; left:9px; display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.94); border-radius:20px; padding:3px 10px 3px 7px; font-size:11px; font-weight:700; color:#334155; cursor:pointer; box-shadow:0 1px 3px rgba(15,23,42,.18); }
+    .tpl-toggle input { cursor:pointer; margin:0; }
 </style>
 
 <div class="content-wrapper-inner tpl-wrap">
@@ -34,24 +40,40 @@
             <h2><i class="glyphicon glyphicon-duplicate" style="color:#6366f1;"></i> @docType Templates</h2>
             <p>Design, edit and manage the templates used to print your @docType.ToLower() documents. Drag &amp; drop — add your logo, fields and tables.</p>
         </div>
-        <a href="@Url.Action("Designer", "InvoiceTemplate", new { docType = docType })" class="btn btn-primary"><i class="glyphicon glyphicon-plus"></i> New Template</a>
+        <a href="@Url.Action("Designer", "DesignTemplate", new { docType = docType })" class="btn btn-primary"><i class="glyphicon glyphicon-plus"></i> New Template</a>
     </div>
 
     <div class="tpl-grid">
         @foreach (var t in Model)
         {
-            <div class="tpl-card" data-id="@t.Id">
+            <div class="tpl-card@(t.Status == QuickSoft.Models.Status.active ? "" : " tpl-off")" data-id="@t.Id">
                 <div class="tpl-thumb">
                     <div class="doc"></div>
                     @if (t.IsDefault) { <span class="tpl-badge">DEFAULT</span> }
+                    <label class="tpl-toggle" title="Show this template at print time">
+                        <input type="checkbox" class="js-enable" data-id="@t.Id" @(t.Status == QuickSoft.Models.Status.active ? "checked" : "") />
+                        <span>@(t.Status == QuickSoft.Models.Status.active ? "On" : "Off")</span>
+                    </label>
                 </div>
                 <div class="tpl-body">
                     <div class="tpl-name">@t.Name</div>
                     <div class="tpl-meta">@t.DocType &middot; @t.PaperSize @t.Orientation</div>
+                    @if (t.DocType == "Cheque")
+                    {
+                        var bk = bankOf(t.DesignJson);
+                        if (!string.IsNullOrWhiteSpace(bk))
+                        {
+                            <div class="tpl-meta" style="margin-top:4px;"><span style="background:#eef2ff;color:#4f46e5;font-weight:700;font-size:11px;padding:2px 8px;border-radius:20px;"><i class="glyphicon glyphicon-credit-card"></i> @bk</span></div>
+                        }
+                        else
+                        {
+                            <div class="tpl-meta" style="margin-top:4px;color:#f59e0b;"><i class="glyphicon glyphicon-exclamation-sign"></i> No bank tagged</div>
+                        }
+                    }
                 </div>
                 <div class="tpl-actions">
-                    <a href="@Url.Action("Designer", "InvoiceTemplate", new { id = t.Id })" class="btn btn-primary"><i class="glyphicon glyphicon-pencil"></i> Edit</a>
-                    <a href="@Url.Action("Render", "InvoiceTemplate", new { id = t.Id })" target="_blank" class="btn btn-default" title="Preview / Print"><i class="glyphicon glyphicon-print"></i></a>
+                    <a href="/DesignTemplate/Designer/@t.Id" class="btn btn-primary"><i class="glyphicon glyphicon-pencil"></i> Edit</a>
+                    <a href="/DesignTemplate/Render/@t.Id" target="_blank" class="btn btn-default" title="Preview / Print"><i class="glyphicon glyphicon-print"></i></a>
                     <button class="btn btn-default js-clone" data-id="@t.Id" title="Duplicate"><i class="glyphicon glyphicon-copy"></i></button>
                     @if (!t.IsDefault)
                     {
@@ -62,7 +84,7 @@
             </div>
         }
 
-        <a href="@Url.Action("Designer", "InvoiceTemplate", new { docType = docType })" class="tpl-new">
+        <a href="@Url.Action("Designer", "DesignTemplate", new { docType = docType })" class="tpl-new">
             <span class="plus">+</span>
             <span>Create new template</span>
         </a>
@@ -79,13 +101,23 @@
         }
         jQuery(document).on('click', '.js-delete', function () {
             var id = jQuery(this).data('id');
-            if (confirm('Delete this template? This cannot be undone.')) post('@Url.Action("Delete","InvoiceTemplate")', id);
+            if (confirm('Delete this template? This cannot be undone.')) post('@Url.Action("Delete","DesignTemplate")', id);
         });
         jQuery(document).on('click', '.js-default', function () {
-            post('@Url.Action("SetDefault","InvoiceTemplate")', jQuery(this).data('id'));
+            post('@Url.Action("SetDefault","DesignTemplate")', jQuery(this).data('id'));
         });
         jQuery(document).on('click', '.js-clone', function () {
-            post('@Url.Action("Clone","InvoiceTemplate")', jQuery(this).data('id'));
+            post('@Url.Action("Clone","DesignTemplate")', jQuery(this).data('id'));
+        });
+        // Enable / disable (check / uncheck) — only enabled templates appear at print time.
+        jQuery(document).on('change', '.js-enable', function () {
+            var cb = this, id = jQuery(this).data('id'), enabled = this.checked;
+            jQuery.post('@Url.Action("SetEnabled","DesignTemplate")', { id: id, enabled: enabled }, function (r) {
+                if (r && r.success) {
+                    jQuery(cb).closest('.tpl-card').toggleClass('tpl-off', !enabled);
+                    jQuery(cb).siblings('span').text(enabled ? 'On' : 'Off');
+                } else { cb.checked = !enabled; alert((r && r.message) || 'Could not change.'); }
+            }).fail(function () { cb.checked = !enabled; alert('Request failed.'); });
         });
     })();
 </script>

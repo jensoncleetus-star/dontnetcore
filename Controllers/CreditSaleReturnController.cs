@@ -413,13 +413,13 @@ namespace QuickSoft.Controllers
             //search
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                // Apply search   
-                v = v.Where(p =>p.SalesInvoice!=null &&( p.BillNo.ToString().ToLower().Equals(search.ToLower())||
-                                 p.SalesInvoice.ToString().ToLower().Equals(search.ToLower()) 
-                                 //// p.CreditPeriod.ToString().ToLower().Contains(search.ToLower()) ||
-                                 //p.SReturnAmount.ToString().ToLower().Contains(search.ToLower())
-                                 ////p.SEBalanceAmount.ToString().ToLower().Contains(search.ToLower())
-                                 ));
+                // Apply search — voucher no, customer, executive, created-by, against-invoice
+                var s = search.ToLower();
+                v = v.Where(p => (p.BillNo != null && p.BillNo.ToString().ToLower().Contains(s)) ||
+                                 (p.Customer != null && p.Customer.ToString().ToLower().Contains(s)) ||
+                                 (p.EmpName != null && p.EmpName.ToString().ToLower().Contains(s)) ||
+                                 (p.User != null && p.User.ToString().ToLower().Contains(s)) ||
+                                 (p.SalesInvoice != null && p.SalesInvoice.ToString().ToLower().Contains(s)));
             }
 
             //SORT

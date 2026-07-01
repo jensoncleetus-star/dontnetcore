@@ -3642,13 +3642,15 @@ namespace QuickSoft.Controllers
                 v = v.Where(a => a.ApprovalStatus == AppSt);
             }
 
-            //search
+            //search — match across invoice no, customer, project, executive and created-by (in-memory, full set)
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                // Apply search   
-                v = v.Where(p => p.BillNo.ToString().ToLower().Equals(search.ToLower())
-                                 //p.Customer.ToString().ToLower().Contains(search.ToLower())
-                                 );
+                var s = search.ToLower();
+                v = v.Where(p => (p.BillNo != null && p.BillNo.ToString().ToLower().Contains(s)) ||
+                                 (p.Customer != null && p.Customer.ToString().ToLower().Contains(s)) ||
+                                 (p.ProjectName != null && p.ProjectName.ToString().ToLower().Contains(s)) ||
+                                 (p.EmpName != null && p.EmpName.ToString().ToLower().Contains(s)) ||
+                                 (p.user != null && p.user.ToString().ToLower().Contains(s)));
             }
 
             //SORT

@@ -1949,10 +1949,13 @@ namespace QuickSoft.Controllers
             //search
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
              {
-                // Apply search   
-                v = v.Where(p => p.SONo.ToString().ToLower().Equals(search.ToLower())
-                                 //p.Customer.ToString().ToLower().Contains(search.ToLower())
-                                 );
+                // Apply search — invoice no, customer, project, executive, created-by
+                var s = search.ToLower();
+                v = v.Where(p => (p.BillNo != null && p.BillNo.ToString().ToLower().Contains(s)) ||
+                                 (p.Customer != null && p.Customer.ToString().ToLower().Contains(s)) ||
+                                 (p.ProjectName != null && p.ProjectName.ToString().ToLower().Contains(s)) ||
+                                 (p.EmpName != null && p.EmpName.ToString().ToLower().Contains(s)) ||
+                                 (p.user != null && p.user.ToString().ToLower().Contains(s)));
             }
 
             //SORT

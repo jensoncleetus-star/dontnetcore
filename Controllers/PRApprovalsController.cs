@@ -583,7 +583,7 @@ namespace QuickSoft.Controllers
             {
                 // Apply search   
                 v = v.Where(p =>/* p.PaymentId.ToString().ToLower().Contains(search.ToLower()) ||*/
-                                 p.VoucherNo.ToString().ToLower().Equals(search.ToLower()) ||
+                                 p.VoucherNo.ToString().ToLower().Contains(search.ToLower()) ||
                                  //p.MOPayment.ToString().ToLower().Contains(search.ToLower())Reciept
                                  p.PayTo.ToString().ToLower().Contains(search.ToLower())
                                  //p.GrandTotal.ToString().ToLower().Contains(search.ToLower())

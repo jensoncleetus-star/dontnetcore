@@ -1,9 +1,12 @@
 ﻿@using QuickSoft.Helpers
 
 @{
-    var alerts = TempData.ContainsKey(Alert.TempDataKey)
-                ? (Newtonsoft.Json.JsonConvert.DeserializeObject<List<Alert>>((string)TempData[Alert.TempDataKey]) ?? new List<Alert>())
-                : new List<Alert>();
+    // Alerts are consumed once at the top of _QuickLayout (before the response starts) so cookie-TempData
+    // clears properly. Fall back to a direct read for any view that doesn't use that layout.
+    var alerts = (ViewData["__AlertList"] as List<Alert>)
+                ?? (TempData.ContainsKey(Alert.TempDataKey)
+                    ? (Newtonsoft.Json.JsonConvert.DeserializeObject<List<Alert>>((string)TempData[Alert.TempDataKey]) ?? new List<Alert>())
+                    : new List<Alert>());
 
     foreach (var alert in alerts)
     {

@@ -285,6 +285,10 @@ app.MapControllerRoute(name: "calendar_default", pattern: "calendar/taskcalendar
     defaults: new { controller = "taskcalendar" });
 app.MapControllerRoute(name: "DoubleR", pattern: "{controller}/{action}/{id}/{type}",
     defaults: new { controller = "Home", action = "Index", type = "", id = "" });
+// Legacy alias: the template designer controller was renamed InvoiceTemplate -> DesignTemplate.
+// Keep old /InvoiceTemplate/* URLs working (per-document "Custom Print" buttons hardcode them).
+app.MapControllerRoute(name: "invoicetemplate_legacy", pattern: "InvoiceTemplate/{action=Hub}/{id?}",
+    defaults: new { controller = "DesignTemplate" });
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 
 if (app.Environment.IsDevelopment())

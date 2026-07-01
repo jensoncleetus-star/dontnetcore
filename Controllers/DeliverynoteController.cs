@@ -1293,7 +1293,7 @@ namespace QuickSoft.Controllers
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
                 // Apply search   
-                v = v.Where(p => p.BillNo.ToString().ToLower().Equals(search.ToLower())
+                v = v.Where(p => p.BillNo.ToString().ToLower().Contains(search.ToLower())
                                  //p.Customer.ToString().ToLower().Contains(search.ToLower())
                                  );
             }
@@ -2828,7 +2828,7 @@ namespace QuickSoft.Controllers
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
                 // Apply search   
-                v = v.Where(p => p.BillNo.ToString().ToLower().Equals(search.ToLower())
+                v = v.Where(p => p.BillNo.ToString().ToLower().Contains(search.ToLower())
                                  //p.Customer.ToString().ToLower().Contains(search.ToLower())
                                  );
             }

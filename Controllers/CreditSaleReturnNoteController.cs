@@ -406,8 +406,8 @@ namespace QuickSoft.Controllers
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
                 // Apply search   
-                v = v.Where(p =>p.SalesInvoice!=null &&( p.BillNo.ToString().ToLower().Equals(search.ToLower())||
-                                 p.SalesInvoice.ToString().ToLower().Equals(search.ToLower()) 
+                v = v.Where(p =>p.SalesInvoice!=null &&( p.BillNo.ToString().ToLower().Contains(search.ToLower())||
+                                 p.SalesInvoice.ToString().ToLower().Contains(search.ToLower()) 
                                  //// p.CreditPeriod.ToString().ToLower().Contains(search.ToLower()) ||
                                  //p.SReturnAmount.ToString().ToLower().Contains(search.ToLower())
                                  ////p.SEBalanceAmount.ToString().ToLower().Contains(search.ToLower())

@@ -1,0 +1,87 @@
+@{
+    ViewBag.Title = "Database Optimize";
+}
+
+<section class="content-header">
+    <h1>Database Optimize <small>re-index &amp; refresh statistics</small></h1>
+</section>
+
+<section class="content">
+    <div class="row">
+        <div class="col-md-9 col-md-offset-1">
+            <div class="box box-primary">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-database"></i> &nbsp;Database Optimize (Re-index)</h3>
+                </div>
+                <div class="box-body">
+                    <p style="font-size:14px">
+                        Rebuilds and reorganizes <b>fragmented database indexes</b> and refreshes query statistics.
+                        This speeds up reports, dashboards, lists and searches. It changes <b>performance only &mdash; it never
+                        touches, deletes or modifies your data</b> (no balances, no records, no year-end).
+                    </p>
+
+                    @if (ViewBag.FragErr == null)
+                    {
+                        <div class="callout @(((int)(ViewBag.FragCount ?? 0)) > 0 ? "callout-warning" : "callout-success")">
+                            <h4><i class="fa fa-bar-chart"></i> Current status</h4>
+                            @if (((int)(ViewBag.FragCount ?? 0)) > 0)
+                            {
+                                <p><b>@ViewBag.FragCount</b> index(es) are fragmented and worth optimizing. Worst fragmentation: <b>@ViewBag.Worst%</b>.</p>
+                            }
+                            else
+                            {
+                                <p>Indexes look healthy &mdash; little or no fragmentation found. You can still run it, but it'll do very little.</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="callout callout-info"><p>Couldn't read fragmentation stats (need permission). You can still run the optimize below.</p></div>
+                    }
+
+                    <div class="callout callout-warning">
+                        <h4><i class="fa fa-exclamation-triangle"></i> Before you run</h4>
+                        <ul style="margin-bottom:0">
+                            <li>Run it when <b>few users are active</b> &mdash; heavy index rebuilds briefly lock tables.</li>
+                            <li>Make sure you have a recent <b>database backup</b> first.</li>
+                            <li>On a large database it can take a few minutes &mdash; <b>don't close this page</b> while it runs.</li>
+                        </ul>
+                    </div>
+
+                    <button id="runReindexBtn" type="button" class="btn btn-primary btn-lg btn-flat">
+                        <i class="fa fa-bolt"></i> &nbsp;Run Optimization
+                    </button>
+
+                    <div id="reindexResult" style="margin-top:20px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script type="text/javascript">
+        $('#runReindexBtn').on('click', function () {
+            var $b = $(this);
+            $b.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> &nbsp;Optimizing… please wait (do not close)');
+            $('#reindexResult').html('');
+            $.ajax({ url: '@Url.Action("RunReindex", "BackUpRestore")', type: 'POST', timeout: 0 })
+                .done(function (r) {
+                    if (r && r.ok) {
+                        $('#reindexResult').html(
+                            '<div class="callout callout-success"><h4><i class="fa fa-check-circle"></i> Optimization complete</h4>' +
+                            '<p>Optimized <b>' + r.processed + '</b> of <b>' + r.found + '</b> fragmented index(es) and refreshed statistics in <b>' + r.seconds + 's</b>. ' +
+                            'Your reports and dashboards should feel faster now.</p></div>');
+                    } else {
+                        $('#reindexResult').html('<div class="callout callout-danger"><h4><i class="fa fa-times-circle"></i> Failed</h4><p>' + ((r && r.error) ? r.error : 'Unknown error') + '</p></div>');
+                    }
+                })
+                .fail(function () {
+                    $('#reindexResult').html('<div class="callout callout-danger"><h4><i class="fa fa-times-circle"></i> Connection ended</h4><p>The request didn\'t return in time, but the database may still be optimizing in the background. Wait a couple of minutes, then reload this page to check fragmentation.</p></div>');
+                })
+                .always(function () {
+                    $b.prop('disabled', false).html('<i class="fa fa-bolt"></i> &nbsp;Run Optimization');
+                });
+        });
+    </script>
+}

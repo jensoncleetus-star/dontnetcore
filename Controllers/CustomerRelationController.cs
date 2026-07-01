@@ -101,6 +101,90 @@ public class CustomerRelationController : BaseController
             ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
             return View(vmodel);
         }
+
+        // ---- Customer Relation dashboard (styled like the main dashboard) ----
+        public ActionResult Dashboard()
+        {
+            var today = DateTime.Now;
+            var lastdate = today.AddMonths(-1);
+            ViewBag.today = today.ToString("dd-MM-yyyy");
+            ViewBag.lastdate = lastdate.ToString("dd-MM-yyyy");
+
+            HomeViewModel vmodel = new HomeViewModel();
+            // totals (KPI cards 5 & 6)
+            vmodel.totCustomerCount = Convert.ToString(db.Customers.Where(x => x.Type == CRMCustomerType.Customer).Count());
+            vmodel.totSupplierCount = Convert.ToString(db.Customers.Where(x => x.Type == CRMCustomerType.Leads).Count());     // re-used field = Leads total
+            vmodel.totQuotCount = Convert.ToString(db.Quotations.Count());
+            vmodel.totSaleEntryCount = Convert.ToString(db.SalesEntrys.Where(a => a.Status == 1).Count());
+
+            // 12-month trend: Sales vs Quotations (re-uses trendSales/trendPurchase view-bags so the chart code matches the main dashboard)
+            try
+            {
+                var trendStart = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+                var sByM = db.SalesEntrys.Where(s => s.Status == 1 && s.SEDate >= trendStart)
+                    .GroupBy(s => new { s.SEDate.Year, s.SEDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.SEGrandTotal) ?? 0 }).ToList();
+                var qByM = db.Quotations.Where(q => q.QuotDate >= trendStart)
+                    .GroupBy(q => new { q.QuotDate.Year, q.QuotDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, T = g.Sum(x => (decimal?)x.QuotGrandTotal) ?? 0 }).ToList();
+                var tl = new List<string>(); var ts = new List<decimal>(); var tq = new List<decimal>();
+                for (int i = 0; i < 12; i++)
+                {
+                    var d = trendStart.AddMonths(i);
+                    tl.Add(d.ToString("MMM"));
+                    ts.Add(sByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                    tq.Add(qByM.Where(x => x.Year == d.Year && x.Month == d.Month).Select(x => x.T).FirstOrDefault());
+                }
+                ViewBag.trendLabels = Newtonsoft.Json.JsonConvert.SerializeObject(tl);
+                ViewBag.trendSales = Newtonsoft.Json.JsonConvert.SerializeObject(ts);
+                ViewBag.trendPurchase = Newtonsoft.Json.JsonConvert.SerializeObject(tq);
+            }
+            catch { ViewBag.trendLabels = "[]"; ViewBag.trendSales = "[]"; ViewBag.trendPurchase = "[]"; }
+
+            // Per-period KPIs: Sales value, Quotation value, New Customers, New Leads (+ delta vs previous period)
+            try
+            {
+                DateTime endEx = today.Date.AddDays(1);
+                DateTime dToday = today.Date, dYest = dToday.AddDays(-1);
+                int dow = ((int)today.DayOfWeek + 6) % 7;
+                DateTime wkStart = dToday.AddDays(-dow), wkPrev = wkStart.AddDays(-7);
+                DateTime moStart = new DateTime(today.Year, today.Month, 1), moPrev = moStart.AddMonths(-1);
+                DateTime yrStart = new DateTime(today.Year, 1, 1), yrPrev = yrStart.AddYears(-1);
+
+                Func<DateTime, DateTime, decimal[]> sums = (from, to) => new[]
+                {
+                    db.SalesEntrys.Where(x => x.Status == 1 && x.SEDate >= from && x.SEDate < to).Select(x => (decimal?)x.SEGrandTotal).Sum() ?? 0m,
+                    db.Quotations.Where(x => x.QuotDate >= from && x.QuotDate < to).Select(x => (decimal?)x.QuotGrandTotal).Sum() ?? 0m,
+                    (decimal)db.Customers.Count(x => x.Type == CRMCustomerType.Customer && x.AccountID.CreatedDate >= from && x.AccountID.CreatedDate < to),
+                    (decimal)db.Customers.Count(x => x.Type == CRMCustomerType.Leads && x.AccountID.CreatedDate >= from && x.AccountID.CreatedDate < to)
+                };
+                Func<decimal, decimal, double?> dlt = (cur, prev) => prev == 0 ? (double?)null : (double)Math.Round((cur - prev) / prev * 100, 1);
+                Func<string, DateTime, DateTime, DateTime, object> mk = (label, from, to, prevFrom) =>
+                {
+                    var c = sums(from, to); var p = sums(prevFrom, from);
+                    return new
+                    {
+                        label,
+                        sales = c[0], quotations = c[1], customers = c[2], leads = c[3],
+                        dSales = dlt(c[0], p[0]), dQuotations = dlt(c[1], p[1]), dCustomers = dlt(c[2], p[2]), dLeads = dlt(c[3], p[3])
+                    };
+                };
+                var periodData = new
+                {
+                    today = mk("today", dToday, endEx, dYest),
+                    week = mk("week", wkStart, endEx, wkPrev),
+                    month = mk("month", moStart, endEx, moPrev),
+                    year = mk("year", yrStart, endEx, yrPrev)
+                };
+                ViewBag.periodJson = Newtonsoft.Json.JsonConvert.SerializeObject(periodData);
+            }
+            catch { ViewBag.periodJson = "null"; }
+
+            ViewBag.Active = "Dashboard";
+            ViewBag.Title = "Customer Relation";
+            ViewBag.BusinessType = db.EnableSettings.Where(a => a.EnableType == "BusinessType" && a.Status == 0).Select(x => x.TypeValue).FirstOrDefault();
+            return View(vmodel);
+        }
         //  [HttpPost]
 
 

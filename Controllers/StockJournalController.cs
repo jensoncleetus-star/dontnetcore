@@ -805,7 +805,7 @@ namespace QuickSoft.Controllers
             //search
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                v = v.Where(p => p.Voucher.ToString().ToLower().Equals(search.ToLower()));
+                v = v.Where(p => p.Voucher.ToString().ToLower().Contains(search.ToLower()));
             }
             //SORT
             if (!fastPage && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
