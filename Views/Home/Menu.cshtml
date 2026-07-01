@@ -8,7 +8,10 @@
     }
     .sidebar-menu {
         height: 60px;
-        overflow: scroll !important;
+        /* overflow:visible so the dropdown sub-menus aren't clipped by the 60px bar.
+           (overflow:scroll hid every menu's dropdown; per-axis won't work because the browser
+           coerces overflow-y:visible to auto when overflow-x is non-visible.) */
+        overflow: visible !important;
     }
     .skin-blue .sidebar-menu > li > .treeview-menu {
         background: @ViewBag.MenuColor !important;
@@ -140,9 +143,11 @@
         }
         @if (parent == 0)
         {
-            @* Real Estate: full Property-area menu (hardcoded partial mirroring _PropertyMenu),
-               shown only to property/real-estate users. *@
-            if (User.IsInRole("Dev") || User.IsInRole("Property Management") || User.IsInRole("Real Estate"))
+            @* Real Estate: hardcoded Property-area menu (Property Management / Master / Transactions /
+               Reports). Renders ONLY when this company's data-driven "Real Estate" menu node is INACTIVE,
+               so companies using the data-driven hub menu are unaffected and there is no duplicate.
+               (Role gating still applies: the node is only in the list if the user holds the role.) *@
+            if (module.Menu.Any(m => m.Name == "Real Estate" && m.Status != Status.active))
             {
                 Html.RenderPartial("_RealEstateMenu");
             }

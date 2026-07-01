@@ -468,7 +468,7 @@ namespace QuickSoft.Areas.Property.Controllers
                     {
                         foreach (var arr in vmodel.docmodel)
                         {
-                            if (arr.Date!=null)
+                            if (arr.Date!=null&& arr.Date!="")
                             {
                                 PropertyDocumentType doc = new PropertyDocumentType();
                                 doc.DocumentType = Convert.ToInt64(arr.Type);
