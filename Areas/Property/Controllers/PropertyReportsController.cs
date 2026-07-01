@@ -167,7 +167,7 @@ namespace QuickSoft.Areas.Property.Controllers
 
                 long? tenant = db.TenancyContracts.Where(o => o.Property == ddlProperty).Select(o => o.Tenant).FirstOrDefault();
                 if (tenant != null)
-                    vmodel.tenantname = db.Tenants.Where(o => o.TenantID == tenant).Select(o => o.TenantName).FirstOrDefault();
+                    vmodel.tenantname = db.Customers.Where(o => o.CustomerID == tenant).Select(o => o.CustomerName).FirstOrDefault();
                 vmodel.startdate = tc.StartDate.ToString("dd/MM/yyyy"); 
                 vmodel.enddate = tc.EndDate.ToString("dd/MM/yyyy");
                 vmodel.rent = tc.Rent.ToString();
@@ -272,20 +272,24 @@ namespace QuickSoft.Areas.Property.Controllers
             {
 
                 long? tenant = db.TenancyContracts.Where(o => o.Property == vmodel.propertyid).Select(o => o.Tenant).FirstOrDefault();
+                // The lessee is now a Customer (TenancyContracts.Tenant holds a CustomerID), so read the
+                // name/address from the Customers table instead of the legacy Tenants table.
                 if (tenant != null)
-                    vmodel.tenantname = db.Tenants.Where(o => o.TenantID == tenant).Select(o => o.TenantName).FirstOrDefault();
-                vmodel.tenstartdate = tc.StartDate.ToString("dd/MM/yyyy"); 
+                    vmodel.tenantname = db.Customers.Where(o => o.CustomerID == tenant).Select(o => o.CustomerName).FirstOrDefault();
+                vmodel.tenstartdate = tc.StartDate.ToString("dd/MM/yyyy");
                 vmodel.tenenddate = tc.EndDate.ToString("dd/MM/yyyy");
-                var tenadress = (from a in db.Tenants
-                                        join b in db.Contacts on a.Contact equals b.ContactID
+                var tenadress = (from a in db.Customers
+                                        where a.CustomerID == tenant
+                                        join b in db.Contacts on a.Contact equals b.ContactID into cc
+                                        from b in cc.DefaultIfEmpty()
                                         select new
                                         {
-                                                tenentaddress= b.Address
+                                                tenentaddress = b.Address
 
                                         }
 
                                        ).FirstOrDefault();
-                vmodel.tenentaddress = tenadress.tenentaddress;
+                vmodel.tenentaddress = tenadress != null ? tenadress.tenentaddress : null;
             }
             Maintenance mc = db.Maintenances.Find(db.Maintenances.Where(o => o.Property == vmodel.propertyid).Select(o => o.ID).FirstOrDefault());
             if (mc != null)
@@ -342,7 +346,7 @@ namespace QuickSoft.Areas.Property.Controllers
 
                 long? tenant = db.TenancyContracts.Where(o => o.Property == ddlProperty).Select(o => o.Tenant).FirstOrDefault();
                 if (tenant != null)
-                    vmodel.tenantname = db.Tenants.Where(o => o.TenantID == tenant).Select(o => o.TenantName).FirstOrDefault();
+                    vmodel.tenantname = db.Customers.Where(o => o.CustomerID == tenant).Select(o => o.CustomerName).FirstOrDefault();
                 vmodel.startdate = tc.StartDate.ToString("dd/MM/yyyy");
                 vmodel.enddate = tc.EndDate.ToString("dd/MM/yyyy");
                 vmodel.rent = tc.Rent.ToString();
@@ -532,7 +536,7 @@ namespace QuickSoft.Areas.Property.Controllers
             }
 
             var v = (from a in db.Rentals
-                     join b in db.Tenants on a.Tenant equals b.TenantID into cust
+                     join b in db.Customers on a.Tenant equals b.CustomerID into cust
                      from b in cust.DefaultIfEmpty()
                      join d in db.PropertyUnits on a.Unit equals d.Id into emp
                      from d in emp.DefaultIfEmpty()
@@ -549,7 +553,7 @@ namespace QuickSoft.Areas.Property.Controllers
                          Id = a.RentalID,
                          Voucher = a.VoucherNo,
                          Date = a.RDate,
-                         Tenant = b.TenantName,
+                         Tenant = b.CustomerName,
                          Unit = d.Name,
                          Property = e.Name,
                          Amount = a.Amount

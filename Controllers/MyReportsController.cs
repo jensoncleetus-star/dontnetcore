@@ -9272,7 +9272,7 @@ namespace QuickSoft.Controllers
             var supgroupsdata = db.Database.SqlQueryRaw<AccountsGroup>("allchildGroups @parentid", supparentid).AsEnumerable().ToList();
             var supgpid = supgroupsdata.Select(a => a.AccountsGroupID).ToArray();
 
-            var incparentid = new SqlParameter("@parentid", 31);
+            var incparentid = new SqlParameter("@parentid", 2);
             var incgroupsdata = db.Database.SqlQueryRaw<AccountsGroup>("allchildGroups @parentid", incparentid).AsEnumerable().ToList();
             var incgpid = incgroupsdata.Select(a => a.AccountsGroupID).ToArray();
 
@@ -9414,9 +9414,9 @@ namespace QuickSoft.Controllers
                           {
                               ProjectId = o.ProjectId,
                               o.ProjectName,
-                              expense = Math.Abs(o.expense1 - o.expense2),
-                              income = Math.Abs(o.income2 - o.income1 - o.security),
-                              profit = Math.Abs(o.income2 - o.income1 - o.security) - Math.Abs(o.expense1 - o.expense2),
+                              expense = Math.Abs(o.expense1 ),
+                              income = Math.Abs(o.income2 ),
+                              profit = Math.Abs(o.income2 ) - Math.Abs(o.expense1),
                               purchase = Math.Abs(o.purchase2 - o.purchase1),
                               rateofreturn = 0,// ((o.income2 - o.income1 - o.security) - (o.expense1 - o.expense2)) / (((o.purchase3) == 0) ? 1 : (o.purchase3)),
                               o.PropertyType,

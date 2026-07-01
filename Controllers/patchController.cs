@@ -29,6 +29,10 @@ using System.ServiceProcess;
 using System.Threading;
 namespace QuickSoft.Controllers
 {
+    // Accessible before login: bypasses the global RequireAuthenticatedUser fallback policy so patch/
+    // maintenance actions can run on a fresh or unmigrated instance. QkAuthorize honors [AllowAnonymous],
+    // so any action-level role gates on this controller are also bypassed — see the security note.
+    [AllowAnonymous]
     public class patchController : BaseController
     {
         ApplicationDbContext db;

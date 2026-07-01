@@ -372,14 +372,17 @@ namespace QuickSoft.Areas.Property.Controllers
                         GrandTotal = vmodel.Paying;
                         Paying = vmodel.Paying;
                     }
-                    IFormFile file = Request.Form.Files["RecieptDoc"];
-                    var fileNames = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
+                    // Legacy Request.Files[...] returned null when absent; ASP.NET Core throws
+                    // InvalidOperationException on Request.Form if the request has no form Content-Type
+                    // (e.g. an AJAX/urlencoded POST with no upload). Guard it and treat as "no file".
+                    IFormFile file = Request.HasFormContentType ? Request.Form.Files["RecieptDoc"] : null;
+                    var fileNames = Guid.NewGuid().ToString() + (file != null ? System.IO.Path.GetExtension(file.FileName) : "");
                     vmodel.Ref5 = fileNames;
                     Int64 PaymentId = com.addPayment(Date, vmodel.PayFrom, vmodel.PayTo, SubTotal, Paying, GrandTotal, vmodel.Remark, UserId, Branch, 0, "Direct Payment", vmodel.TaxPer, vmodel.TaxAmount, vmodel.MOPayment, vmodel.Tax, pdcDate, choice.Yes, vmodel.CheckNo, vmodel.Bank, vmodel.pdcNote, vmodel.VoucherNo, vmodel.invoicedata, vmodel.Discount, vmodel.Project, vmodel.ProTask, vmodel.Ref1, vmodel.Ref2, vmodel.Ref3, vmodel.Ref4, vmodel.Ref5);
                     // 
 
 
-                    if (file.FileName != "")
+                    if (file != null && file.FileName != "")
                     {
                         // var fileNames = ReceiptId + System.IO.Path.GetExtension(file.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/RecieptDoc/");
@@ -1217,8 +1220,9 @@ namespace QuickSoft.Areas.Property.Controllers
                     Pay.Ref4 = vmodel.Ref4;
 
 
-                    IFormFile file = Request.Form.Files["RecieptDoc"];
-                    var fileNames = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
+                    // See note above: guard Request.Form for requests without a form Content-Type.
+                    IFormFile file = Request.HasFormContentType ? Request.Form.Files["RecieptDoc"] : null;
+                    var fileNames = Guid.NewGuid().ToString() + (file != null ? System.IO.Path.GetExtension(file.FileName) : "");
                     if (fileNames == null)
                         fileNames = "";
                     if (file != null)
@@ -2139,7 +2143,7 @@ namespace QuickSoft.Areas.Property.Controllers
             {
                 jrlid = Convert.ToInt64(id);
             }
-            if (Request.Form.Files.Count > 0)
+            if (Request.HasFormContentType && Request.Form.Files.Count > 0)
             {
                 try
                 {
