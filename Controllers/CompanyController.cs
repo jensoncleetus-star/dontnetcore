@@ -322,18 +322,11 @@ namespace QuickSoft.Controllers
 
                 if (cmp.RemoveLogo == false)
                 {
-<<<<<<< HEAD
                     // Read the uploaded file BY NAME (not by index): the browser only sends files that were
                     // actually chosen, so positional Files[0/1/2] breaks when e.g. only the header is uploaded.
                     var file = Request.Form.Files["Company.CPLogo"];
                     if (file != null && file.Length > 0)
                     {
-=======
-                    if (cmp.Company.CPLogo != null && Request.Form.Files["Company.CPLogo"] != null)
-                    {
-                        // files upload
-                        IFormFile file = Request.Form.Files["Company.CPLogo"];
->>>>>>> 49c7df34775747627dec0237d073286707e42c02
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/company/");
                         file.SaveAs(Path.Combine(uploadUrl, fileName));
@@ -349,13 +342,9 @@ namespace QuickSoft.Controllers
                     }
                     company.CPLogo = null;
                 }
-<<<<<<< HEAD
                 // Payrolldate is a STRING that is "" (not null) when blank — guard against DateTime.Parse("").
                 if (!string.IsNullOrWhiteSpace(cmp.Payrolldate)
                     && DateTime.TryParse(cmp.Payrolldate, new CultureInfo("en-GB"), System.Globalization.DateTimeStyles.None, out var payDt))
-=======
-                if (cmp.Payrolldate != null&& cmp.Payrolldate!="")
->>>>>>> 49c7df34775747627dec0237d073286707e42c02
                 {
                     company.Payrolldate = payDt;
                 }
@@ -366,7 +355,6 @@ namespace QuickSoft.Controllers
                 db.Entry(company).State = EntityState.Modified;
                 db.SaveChanges();
 
-<<<<<<< HEAD
                 CompanyHeader CompanyHead = db.CompanyHeaders.Find(1L);
                 if (cmp.RemoveHeaderFooter == false)
                 {
@@ -374,30 +362,14 @@ namespace QuickSoft.Controllers
                     if (hfile != null && hfile.Length > 0)
                     {
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(hfile.FileName);
-=======
-                CompanyHeader CompanyHead = db.CompanyHeaders.Find((long)1);
-                if (cmp.RemoveHeaderFooter == false)
-                {
-                    if (cmp.Header != null && Request.Form.Files["Header"] != null)
-                    {
-                        IFormFile file = Request.Form.Files["Header"];
-                        var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
->>>>>>> 49c7df34775747627dec0237d073286707e42c02
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/companyheader/header");
                         hfile.SaveAs(Path.Combine(uploadUrl, fileName));
                         CompanyHead.Header = fileName;
                     }
-<<<<<<< HEAD
                     var ffile = Request.Form.Files["Footer"];
                     if (ffile != null && ffile.Length > 0)
                     {
                         var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(ffile.FileName);
-=======
-                    if (cmp.Footer != null && Request.Form.Files["Footer"] != null&& cmp.Footer!="")
-                    {
-                        IFormFile file = Request.Form.Files["Footer"];
-                        var fileName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
->>>>>>> 49c7df34775747627dec0237d073286707e42c02
                         var uploadUrl = LegacyWeb.MapPath("~/uploads/companyheader/footer");
                         ffile.SaveAs(Path.Combine(uploadUrl, fileName));
                         CompanyHead.Footer = fileName;
