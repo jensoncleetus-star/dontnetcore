@@ -32,6 +32,7 @@ function bosxActiveItemRows() {
             var idx = sel.id.replace('item_name_', '');
             rows.push({
                 idx: idx,
+                item: v,
                 qty: bosxNum((document.getElementById('total_qntt_' + idx) || {}).value),
                 rate: bosxNum((document.getElementById('price_item_' + idx) || {}).value),
                 sub: bosxNum((document.getElementById('sub_total_' + idx) || {}).value),
@@ -59,10 +60,13 @@ function bosxInvoiceHardBlocks() {
 // SMART WARNINGS: non-blocking things worth double-checking. Returns an array of strings.
 function bosxInvoiceWarnings() {
     var w = [];
-    bosxActiveItemRows().forEach(function (r) {
+    var rows = bosxActiveItemRows();
+    var seen = {}, dupWarned = false;
+    rows.forEach(function (r) {
         if (r.qty > 10000) w.push('Very large quantity entered (' + r.qty + ').');
         if (r.list > 0 && r.rate > 0 && (r.rate > r.list * 5 || r.rate < r.list / 5))
             w.push('Rate ' + r.rate + ' is far from the item list price (' + r.list + ').');
+        if (r.item) { if (seen[r.item] && !dupWarned) { w.push('The same item is entered on more than one line — is that intended?'); dupWarned = true; } seen[r.item] = true; }
     });
     try {
         var dv = jQuery('#SEDate').val();
