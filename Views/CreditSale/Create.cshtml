@@ -2494,7 +2494,7 @@ else
     @Scripts.Render("~/js/wysihtml5")
 
     <script src="~/Content/js/UsedMaterials.js?a=2ss2"></script>
-    <script src="~/Content/js/salesinvoice2.js?a=sx2f2h"></script>
+    <script src="~/Content/js/salesinvoice2.js?a=sx2f2i"></script>
 
     <div>
         <script type="text/javascript">
@@ -3930,6 +3930,23 @@ placeholder: 'Search Quotation No',
         $('#saleform').on('submit', function (e) {
             e.preventDefault();
             grandtotalcalculation();
+
+            // ===== Safe-entry gate: hard blocks + pre-save confirmation (mistake prevention) =====
+            if (typeof bosxInvoiceHardBlocks === 'function' && !window.__bosxSaleConfirmed) {
+                var _blk = bosxInvoiceHardBlocks();
+                if (_blk) { bosxAlert(_blk, 'error'); return false; }
+                var _form = this;
+                bosxConfirmInvoice(bosxInvoiceWarnings(), function () {
+                    window.__bosxSaleConfirmed = true;
+                    jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', true);   // no double-submit
+                    setTimeout(function () { jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', false); }, 12000); // fallback re-enable
+                    jQuery(_form).trigger('submit');
+                });
+                return false;
+            }
+            window.__bosxSaleConfirmed = false;
+            // ===== end safe-entry gate =====
+
             var flagg = 0;
             $("#addbillsundry tr").each(function () {
                 var type = parseFloat($(this).find('.bstype').val());

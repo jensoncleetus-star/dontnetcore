@@ -19,6 +19,96 @@ function bosxAlert(msg, icon) {
         } else { alert(msg); }
     } catch (e) { try { alert(msg); } catch (x) { } }
 }
+
+// ================= Safe-entry guards for the sales invoice (mistake prevention) =================
+function bosxNum(v) { var n = parseFloat((v == null ? '' : ('' + v)).replace(/,/g, '')); return isNaN(n) ? 0 : n; }
+// Every item row that actually has an item selected, with its numbers.
+function bosxActiveItemRows() {
+    var rows = [];
+    var sels = document.querySelectorAll('[id^="item_name_"]');
+    for (var s = 0; s < sels.length; s++) {
+        var sel = sels[s], v = sel.value;
+        if (v && v !== '' && v !== '0') {
+            var idx = sel.id.replace('item_name_', '');
+            rows.push({
+                idx: idx,
+                qty: bosxNum((document.getElementById('total_qntt_' + idx) || {}).value),
+                rate: bosxNum((document.getElementById('price_item_' + idx) || {}).value),
+                sub: bosxNum((document.getElementById('sub_total_' + idx) || {}).value),
+                list: bosxNum((document.getElementById('base_rate_' + idx) || {}).value)
+            });
+        }
+    }
+    return rows;
+}
+// HARD BLOCKS: returns an error message that must stop the save, or null when clean.
+function bosxInvoiceHardBlocks() {
+    var cust = jQuery('#ddlCustomer').val();
+    if (!cust || cust === '' || cust === '0') return 'Please select a customer before saving.';
+    var rows = bosxActiveItemRows();
+    if (rows.length === 0) return 'Add at least one item before saving.';
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (!(r.qty > 0)) return 'An item has a blank or zero quantity. Enter a quantity greater than 0.';
+        if (!(r.rate > 0)) return 'An item has a blank or zero rate. Enter a rate greater than 0.';
+        if (r.sub < 0) return 'An item discount is larger than its amount (negative line). Please correct it.';
+    }
+    if (!(bosxNum(jQuery('#GrandTotal').val()) > 0)) return 'Grand total is zero. Please check the item amounts.';
+    return null;
+}
+// SMART WARNINGS: non-blocking things worth double-checking. Returns an array of strings.
+function bosxInvoiceWarnings() {
+    var w = [];
+    bosxActiveItemRows().forEach(function (r) {
+        if (r.qty > 10000) w.push('Very large quantity entered (' + r.qty + ').');
+        if (r.list > 0 && r.rate > 0 && (r.rate > r.list * 5 || r.rate < r.list / 5))
+            w.push('Rate ' + r.rate + ' is far from the item list price (' + r.list + ').');
+    });
+    try {
+        var dv = jQuery('#SEDate').val();
+        if (dv) { var p = dv.split(/[-\/]/); if (p.length === 3) { var dt = new Date(+p[2], +p[1] - 1, +p[0]); if (Math.abs((new Date() - dt) / 86400000) > 30) w.push('Invoice date ' + dv + ' is more than a month from today.'); } }
+    } catch (e) { }
+    try {
+        var sig = jQuery('#ddlCustomer').val() + '|' + bosxNum(jQuery('#GrandTotal').val()).toFixed(2);
+        var last = JSON.parse(sessionStorage.getItem('bosxLastSale') || 'null');
+        if (last && last.sig === sig && (new Date().getTime() - last.t) < 300000)
+            w.push('A near-identical invoice (same customer & total) was saved a few minutes ago — possible duplicate.');
+    } catch (e) { }
+    return w;
+}
+// PRE-SAVE CONFIRMATION: summary + any warnings; calls onConfirm() only if the user confirms.
+function bosxConfirmInvoice(warnings, onConfirm) {
+    var esc = function (t) { return jQuery('<div>').text(t == null ? '' : t).html(); };
+    var custTxt = jQuery('#ddlCustomer option:selected').text() || '(none)';
+    var items = bosxActiveItemRows().length;
+    var gt = bosxNum(jQuery('#GrandTotal').val());
+    var html = '<div style="text-align:left;font-size:14px;line-height:1.9">'
+        + '<div><b>Customer:</b> ' + esc(custTxt) + '</div>'
+        + '<div><b>Items:</b> ' + items + '</div>'
+        + '<div><b>Grand Total:</b> ' + gt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div></div>';
+    if (warnings && warnings.length) {
+        html += '<div style="text-align:left;margin-top:12px;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:13px">'
+            + '<b>Please double-check:</b><ul style="margin:6px 0 0;padding-left:18px">'
+            + warnings.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+    }
+    var save = function () {
+        try { sessionStorage.setItem('bosxLastSale', JSON.stringify({ sig: jQuery('#ddlCustomer').val() + '|' + gt.toFixed(2), t: new Date().getTime() })); } catch (e) { }
+        onConfirm();
+    };
+    if (window.Swal) {
+        Swal.fire({
+            title: 'Save this invoice?', html: html, icon: (warnings && warnings.length) ? 'warning' : 'question',
+            showCancelButton: true, confirmButtonText: 'Confirm & Save', cancelButtonText: 'Cancel',
+            confirmButtonColor: '#4f46e5', reverseButtons: true, focusCancel: true
+        }).then(function (res) { if (res.isConfirmed) save(); });
+    } else { if (confirm('Save this invoice? Total: ' + gt)) save(); }
+}
+// re-enable the save buttons if a save request fails (so the user can fix and retry).
+try {
+    jQuery(document).ajaxComplete(function (ev, xhr, s) {
+        try { if (s && /CreateSale|UpdateSale/i.test(s.url || '')) { setTimeout(function () { jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', false); window.__bosxSaleConfirmed = false; }, 60); } } catch (e) { }
+    });
+} catch (e) { }
 var discountglog = 0;
 limits = 1000;
 //Add Row 

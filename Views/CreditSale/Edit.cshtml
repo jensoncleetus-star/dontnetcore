@@ -2330,7 +2330,7 @@ else
     @Scripts.Render("~/js/wysihtml5")
     @Scripts.Render("~/js/bootstrap-fileinput")
     @Scripts.Render("~/js/returninsale")
-    <script src="~/Content/js/salesinvoice2.js?c=stage4"></script>
+    <script src="~/Content/js/salesinvoice2.js?c=stage5"></script>
     <script type="text/javascript">
         function AlertFunctionown(SalesEntryId, userEditDays, purpose, callBack) {
 
@@ -3225,6 +3225,23 @@ else
 
             e.preventDefault();
             grandtotalcalculation();
+
+            // ===== Safe-entry gate: hard blocks + pre-save confirmation (mistake prevention) =====
+            if (typeof bosxInvoiceHardBlocks === 'function' && !window.__bosxSaleConfirmed) {
+                var _blk = bosxInvoiceHardBlocks();
+                if (_blk) { bosxAlert(_blk, 'error'); return false; }
+                var _form = this;
+                bosxConfirmInvoice(bosxInvoiceWarnings(), function () {
+                    window.__bosxSaleConfirmed = true;
+                    jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', true);
+                    setTimeout(function () { jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', false); }, 12000);
+                    jQuery(_form).trigger('submit');
+                });
+                return false;
+            }
+            window.__bosxSaleConfirmed = false;
+            // ===== end safe-entry gate =====
+
             //check if exists VAT in Bill-Sundry
             var vatexist = 0;
             $("#addbillsundry tr").each(function (e) {
