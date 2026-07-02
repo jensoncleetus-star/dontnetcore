@@ -2427,7 +2427,8 @@ function unitchange(selectObject, arg, action) {
     grandtotalcalculation();
     paidamountcalculation();
     // batch stock
-    var unitname = selectObject.options[selectObject.selectedIndex].text;
+    var _unitOpt = (selectObject && selectObject.selectedIndex >= 0) ? selectObject.options[selectObject.selectedIndex] : null;
+    var unitname = _unitOpt ? _unitOpt.text : '';
     var unitval = $('#unit_name_' + arg).val();
     $("#bts_Unit_" + arg).text(unitname);
     $("#batchtbl-" + arg + " .bts_units").val(unitval);
@@ -4488,7 +4489,7 @@ function GetCustomerMail() {
             dataType: "JSON",
             data: { CustID: CustomerId },
             success: function (result) {
-                $("#custEmailId").val(result.EmailId);
+                if (result) $("#custEmailId").val(result.EmailId);
             }
         });
 
