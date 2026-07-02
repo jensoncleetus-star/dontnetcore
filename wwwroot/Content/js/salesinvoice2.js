@@ -72,7 +72,7 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
         if (inote == null)
             inote = "";
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button></div>' +
             '</div></div></div>';
         notbtn = "<button type='button' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o'></i></button>";
@@ -261,7 +261,9 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
         }
         //end
         if (ismobile==false)
-        $('#itemnote-' + count).wysihtml5();
+        // Stage 2: on pages that load CKEditor (Create/Edit via _BosxRichEditor), let the modal-open handler
+        // create a rich CKEditor (with "Add Image") for the item note; otherwise fall back to wysihtml5.
+        if (!window.CKEDITOR) { $('#itemnote-' + count).wysihtml5(); }
 
 
         if (Item != null) {
@@ -430,7 +432,7 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         if (inote == null)
             inote = "";
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button></div>' +
             '</div></div></div>';
         notbtn = "<button type='button' id='itmnote' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o sh-icon2'></i></button>";
@@ -612,7 +614,9 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         }
         //end
         if (ismobile == false)
-        $('#itemnote-' + count).wysihtml5();
+        // Stage 2: on pages that load CKEditor (Create/Edit via _BosxRichEditor), let the modal-open handler
+        // create a rich CKEditor (with "Add Image") for the item note; otherwise fall back to wysihtml5.
+        if (!window.CKEDITOR) { $('#itemnote-' + count).wysihtml5(); }
 
 
         if (Item != null) {
