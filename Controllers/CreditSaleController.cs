@@ -3214,10 +3214,22 @@ namespace QuickSoft.Controllers
                 decimal pHTax = saledata.Length > 5 ? pd(saledata[5]) : 0m;
                 decimal pHGrand = saledata.Length > 7 ? pd(saledata[7]) : 0m;
                 decimal sundryDelta = pHGrand - pHSub - pHTax;                    // bill-sundry / roundoff / header discount effect (preserved)
-                if (saledata.Length > 8 && Math.Abs(pHSub - sumSub) > TOL) { saledata[8] = ps(sumSub); corrected = true; note.Append("docsub " + pHSub + "->" + sumSub + "; "); }
-                if (saledata.Length > 5 && Math.Abs(pHTax - sumTax) > TOL) { saledata[5] = ps(sumTax); if (saledata.Length > 9) saledata[9] = ps(sumTax); corrected = true; note.Append("doctax " + pHTax + "->" + sumTax + "; "); }
-                decimal expGrand = sumSub + sumTax + sundryDelta;
-                if (saledata.Length > 7 && Math.Abs(pHGrand - expGrand) > TOL) { saledata[7] = ps(expGrand); corrected = true; note.Append("docgrand " + pHGrand + "->" + expGrand + "; "); }
+                // SAFETY GUARD: if the posted line array parses to ~nothing (sumSub ~ 0) yet the client posted a
+                // real document subtotal, the LINE data - not the header - is the malformed/incomplete part
+                // (e.g. a half-built row from a client-side JS glitch). NEVER zero out a real invoice on that
+                // basis: skip the header corrections and just log it for review.
+                if (sumSub <= 0.01m && pHSub > 0.01m)
+                {
+                    corrected = true;
+                    note.Append("SKIPPED header correction (degenerate line data: line-sum " + sumSub + " vs posted docsub " + pHSub + "); ");
+                }
+                else
+                {
+                    if (saledata.Length > 8 && Math.Abs(pHSub - sumSub) > TOL) { saledata[8] = ps(sumSub); corrected = true; note.Append("docsub " + pHSub + "->" + sumSub + "; "); }
+                    if (saledata.Length > 5 && Math.Abs(pHTax - sumTax) > TOL) { saledata[5] = ps(sumTax); if (saledata.Length > 9) saledata[9] = ps(sumTax); corrected = true; note.Append("doctax " + pHTax + "->" + sumTax + "; "); }
+                    decimal expGrand = sumSub + sumTax + sundryDelta;
+                    if (saledata.Length > 7 && Math.Abs(pHGrand - expGrand) > TOL) { saledata[7] = ps(expGrand); corrected = true; note.Append("docgrand " + pHGrand + "->" + expGrand + "; "); }
+                }
                 if (corrected)
                     com.addlog(LogTypes.Updated, user, "CreditSale", "SalesCalcAudit", findip(), logId, "ENFORCE corrected tampered totals (" + ctx + "): " + note.ToString());
             }
