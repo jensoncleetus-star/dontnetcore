@@ -33,6 +33,24 @@ namespace QuickSoft.ViewModel
         public string State { get; set; }
 
     }
+    public class hirereturs
+    {
+        public long SalesEntryId { get; set; }
+        public string billno { get; set; }
+        public DateTime sedate { get; set; }
+        public string lpono { get; set; }
+        public List<hirereturndetails> details { get; set; }
+
+
+    }
+    public class hirereturndetails
+    {
+        public decimal? ItemQuantity { get; set; }
+        public DateTime? createddate { get; set; }
+        public decimal selqty { get; set; }
+        public decimal? balanceqty { get; set; }
+        public string itemname { get; set; }
+    }
     public class LedgerViewModel
     {
         public decimal OpeningBalance { get; set; }
