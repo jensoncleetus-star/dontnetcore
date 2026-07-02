@@ -1,4 +1,16 @@
 ﻿var count = 1, type = '';
+// Modern, non-blocking stock notification (replaces native alert()). Uses SweetAlert2 toast when
+// available, falls back to alert() otherwise. Non-blocking so it never halts the page or automation.
+function bosxStockNotify(msg) {
+    try {
+        if (window.Swal) {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'warning',
+                title: msg, showConfirmButton: false, timer: 3500, timerProgressBar: true
+            });
+        } else { alert(msg); }
+    } catch (e) { try { alert(msg); } catch (x) { } }
+}
 var discountglog = 0;
 limits = 1000;
 //Add Row 
@@ -958,7 +970,7 @@ function itemUpdate(selectObject, dataid, action) {
                 if (VoucherType == "Sales" && result.lastPur != false) {
                     LastSalePurList(result, dataid);
                 }
-                alert("This Item is Out of Stock!!!");
+                bosxStockNotify("This item is out of stock");
 
                 $("#total_qntt_" + dataid).val(0);
                 var classname = $($("#total_qntt_" + dataid)).closest('tr').attr('class');
@@ -1749,7 +1761,7 @@ function minstockcheck(arg, action) {
             //}
             else if (totstock < 0 && ItemOutOfStock == 'inactive' && action != "foredit") {
                 stock = parseFloat($(".minstock_" + arg).attr('data-stock'));
-                alert("This Item Is Going To Out of Stock!!! Only " + available + " " + unitname + "Items Are Available In Stock.." + "");
+                bosxStockNotify("Only " + available + " " + unitname + " available in stock");
                 if(action!="foredit")
                  $(".total_qntt_" + arg).val(0);
             }
@@ -1761,7 +1773,7 @@ function minstockcheck(arg, action) {
                 //alert("Stock Exceeds Minimum Stock");
             }
             if (totstock < 0 && ItemOutOfStock == 'inactive' && action != "foredit") {
-                alert("This Item Is Going To Out of Stock!!! Only " + stock + " " + unitname + " Items Are Available In Stock..");
+                bosxStockNotify("Only " + stock + " " + unitname + " available in stock");
                 //$(".total_qntt_" + arg).val(stock);
             }
 
