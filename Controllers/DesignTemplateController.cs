@@ -229,6 +229,7 @@ namespace QuickSoft.Controllers
                             map["INVOICE.Date"] = d.Date.ToString("dd-MM-yyyy");
                             map["INVOICE.PONumber"] = d.PONo ?? "";
                             map["INVOICE.SalesExecutive"] = d.Cashier ?? "";
+                            map["INVOICE.SalesExecutiveMobile"] = d.ContactNo ?? "";
                             map["INVOICE.PaymentTerms"] = d.PaymentTerms ?? "";
                             map["SUMMARY.SubTotal"] = money(d.SubTotal);
                             map["SUMMARY.TaxAmount"] = money(d.TaxAmount);
@@ -237,6 +238,10 @@ namespace QuickSoft.Controllers
                             map["SUMMARY.OutstandingBalance"] = money(d.Balance);
                             try { map["SUMMARY.AmountInWords"] = d.GrandTotal.HasValue ? (com.ConvertToWords(d.GrandTotal.Value.ToString()) ?? "") : ""; }
                             catch { map["SUMMARY.AmountInWords"] = ""; }
+                            // Terms & Conditions / Remarks are rich HTML (may contain images) — pass them through so
+                            // templates (and the auto-append in Render.cshtml) can print them.
+                            map["NOTES.Terms"] = d.Note ?? "";
+                            map["NOTES.Remarks"] = d.Remarks ?? "";
 
                             var pdfItems = d.pdfItem ?? new List<pdfItemViewModel>();
                             // Item photos (for image-enabled templates, e.g. quotations): one batched query,
@@ -246,16 +251,62 @@ namespace QuickSoft.Controllers
                                            .GroupBy(im => im.ItemID)
                                            .Select(g => new { g.Key, File = g.OrderByDescending(x => x.ItemImageID).Select(x => x.FileName).FirstOrDefault() })
                                            .ToDictionary(x => x.Key, x => x.File);
-                            var items = pdfItems.Select((it, ix) => new object[]
+                            // Item-cell text: match the LEGACY print (salesinvoice2.js ItemsBind) so the typed
+                            // note/heading (the "description", which may contain colours + images) prints, and the
+                            // raw item-master name is hidden when a description exists. Items flagged InSaleInvoice
+                            // in the item master always print description-only (these are the service rows the user
+                            // set up as "print description, not the item name"). ItemNote holds heading||note.
+                            bool hideName = d.HideItemName == Status.active;      // legacy '== 0'; null (quotations) => name+note
+                            bool showCode = d.chkCode == Status.active;
+                            // ItemNote is stored as "heading||note". The HEADING (before ||) is a SECTION TITLE that
+                            // prints as its OWN full-width row (no S/N, no qty/rate) above the item; the NOTE (after ||)
+                            // is the item's description shown in the Item cell. Clean each without merging them.
+                            Func<string, string> cleanHtml = raw =>
                             {
-                                (ix + 1).ToString(),
-                                string.IsNullOrWhiteSpace(it.ItemName) ? (it.ItemCode ?? "") : it.ItemName,
-                                it.ItemUnit ?? "",
-                                money(it.ItemQuantity),
-                                money(it.ItemUnitPrice),
-                                money(it.ItemTaxAmount),
-                                money(it.ItemTotalAmount),
-                                (imgMap.TryGetValue(it.Id, out var fn) && !string.IsNullOrWhiteSpace(fn)) ? ("/uploads/itemimages/" + it.Id + "/" + Uri.EscapeDataString(fn)) : ""
+                                if (string.IsNullOrEmpty(raw)) return "";
+                                var s = raw.Replace("-:{Bundle_Item}", "");
+                                s = s.Replace("<p></p>", "").Replace("<p><br /></p>", "").Replace("<p><br></p>", "").Replace("<p>&nbsp;</p>", "");
+                                return s.Trim();
+                            };
+                            Func<string, bool> noteHasContent = html =>
+                            {
+                                if (string.IsNullOrWhiteSpace(html)) return false;
+                                if (html.IndexOf("<img", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                                var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", "").Replace("&nbsp;", " ").Trim();
+                                return text.Length > 0;
+                            };
+                            var items = pdfItems.Select((it, ix) =>
+                            {
+                                // ItemNote = "heading||note". Real data is messy (empty leading "||" when no heading
+                                // was typed, or repeated "||" from old save/load cycles), so: split on "||", DROP the
+                                // empty pieces, then first piece = section heading, the rest = the item note.
+                                var parts = (it.ItemNote ?? "").Split(new[] { "||" }, StringSplitOptions.None)
+                                                .Select(p => cleanHtml(p)).Where(p => noteHasContent(p)).ToList();
+                                string heading = "", note = "";
+                                if (parts.Count >= 2) { heading = parts[0]; note = string.Join("<br/>", parts.Skip(1)); }
+                                else if (parts.Count == 1) { note = parts[0]; }
+                                var hasHeading = noteHasContent(heading);
+                                var hasNote = noteHasContent(note);
+                                var codePrefix = (showCode && !string.IsNullOrWhiteSpace(it.ItemCode)) ? (System.Net.WebUtility.HtmlEncode(it.ItemCode) + " - ") : "";
+                                var name = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(it.ItemName) ? (it.ItemCode ?? "") : it.ItemName);
+                                string cell;
+                                if (it.InSaleInvoice) cell = hasNote ? note : (codePrefix + name);                 // description-only item
+                                else if (hideName && hasNote) cell = note;                                          // note replaces the name
+                                else if (hasNote) cell = codePrefix + name + "<div>" + note + "</div>";             // name + description
+                                else cell = codePrefix + name;                                                      // plain item, no note
+                                var imgUrl = (imgMap.TryGetValue(it.Id, out var fn) && !string.IsNullOrWhiteSpace(fn)) ? ("/uploads/itemimages/" + it.Id + "/" + Uri.EscapeDataString(fn)) : "";
+                                return new object[]
+                                {
+                                    (ix + 1).ToString(),
+                                    cell,
+                                    it.ItemUnit ?? "",
+                                    money(it.ItemQuantity),
+                                    money(it.ItemUnitPrice),
+                                    money(it.ItemTaxAmount),
+                                    money(it.ItemTotalAmount),
+                                    imgUrl,
+                                    hasHeading ? heading : ""     // index 8 = section-heading row (empty when none)
+                                };
                             }).ToList();
                             ViewBag.ItemsJson = Newtonsoft.Json.JsonConvert.SerializeObject(items);
                             ViewBag.InvoiceNo = d.BillNo ?? invoiceId.Value.ToString();
@@ -344,6 +395,7 @@ namespace QuickSoft.Controllers
                             map["INVOICE.Date"] = jo.Value<DateTime?>("Date")?.ToString("dd-MM-yyyy") ?? "";
                             map["INVOICE.PONumber"] = jo.Value<string>("AgainstInvoice") ?? "";
                             map["INVOICE.SalesExecutive"] = jo.Value<string>("CreatedBy") ?? jo.Value<string>("Cashier") ?? "";
+                            map["INVOICE.SalesExecutiveMobile"] = jo.Value<string>("ContactNo") ?? "";
                             map["SUMMARY.SubTotal"] = jo.Value<decimal?>("SubTotal")?.ToString("N2") ?? "";
                             map["SUMMARY.TaxAmount"] = jo.Value<decimal?>("TaxAmount")?.ToString("N2") ?? "";
                             map["SUMMARY.TotalDiscount"] = jo.Value<decimal?>("Discount")?.ToString("N2") ?? "";
@@ -583,6 +635,39 @@ namespace QuickSoft.Controllers
                 return Json(new { success = true, url = "/uploads/templates/" + name });
             }
             catch (Exception ex) { return Json(new { success = false, message = ex.Message }); }
+        }
+
+        // Server-side fetch of an EXTERNAL image so the browser's PDF/print engine (html2canvas) can render
+        // it same-origin. A cross-origin <img src="http://othersite/..."> pasted into an item note loads BLANK
+        // in html2canvas (it requests the image with crossOrigin=anonymous via useCORS; if the remote server
+        // sends no Access-Control-Allow-Origin header the load fails and the image is skipped) — so "image from
+        // a link" never printed. This streams the remote bytes back through our OWN origin, so the browser sees
+        // a same-origin image and never taints the canvas. Guarded: http(s) only, image content-type only,
+        // size-capped, short timeout; behind the app's global auth. Reused by buildPdf() in Render.cshtml.
+        static readonly System.Net.Http.HttpClient _imgClient = new System.Net.Http.HttpClient { Timeout = System.TimeSpan.FromSeconds(12) };
+
+        [QkAuthorize(Roles = "Dev,Invoice Template,Sales Invoice,Credit Sale")]
+        public async System.Threading.Tasks.Task<ActionResult> ProxyImage(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return NotFound();
+            if (!System.Uri.TryCreate(url, System.UriKind.Absolute, out var uri) ||
+                (uri.Scheme != System.Uri.UriSchemeHttp && uri.Scheme != System.Uri.UriSchemeHttps))
+                return BadRequest("Only http/https image URLs are allowed.");
+            try
+            {
+                using (var resp = await _imgClient.GetAsync(uri, System.Net.Http.HttpCompletionOption.ResponseHeadersRead))
+                {
+                    if (!resp.IsSuccessStatusCode) return NotFound();
+                    var ct = resp.Content.Headers.ContentType?.MediaType ?? "";
+                    if (!ct.StartsWith("image/", System.StringComparison.OrdinalIgnoreCase)) return NotFound();
+                    var len = resp.Content.Headers.ContentLength;
+                    if (len.HasValue && len.Value > 10 * 1024 * 1024) return NotFound();
+                    var bytes = await resp.Content.ReadAsByteArrayAsync();
+                    if (bytes.Length > 10 * 1024 * 1024) return NotFound();
+                    return File(bytes, ct);
+                }
+            }
+            catch { return NotFound(); }
         }
 
         // POST: /InvoiceTemplate/Clone  — duplicate an existing template

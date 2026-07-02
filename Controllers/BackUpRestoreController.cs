@@ -1,4 +1,4 @@
-using System.Linq.Dynamic.Core;
+﻿using System.Linq.Dynamic.Core;
 using ApplicationUserManager = Microsoft.AspNetCore.Identity.UserManager<QuickSoft.Models.ApplicationUser>;
 using ApplicationSignInManager = Microsoft.AspNetCore.Identity.SignInManager<QuickSoft.Models.ApplicationUser>;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -118,69 +118,61 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
             ViewBag.FPath = db.companys.Where(a => a.CompanyID == 1).Select(a => a.DbBackUpPath).FirstOrDefault();
             return View();
         }
-       // [HttpPost]
-       // [QkAuthorize(Roles = "Dev,Database Backup")]
+        // Backups are written here (content root, outside wwwroot) unless the company has a configured
+        // DbBackUpPath, so a finished backup is never reachable through the static-file server.
+        private static string DefaultBackupDir => Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "DbBackups");
+
+        [HttpPost]
+        [QkAuthorize(Roles = "Dev,Database Backup")]
         public ActionResult BackUpdone()
         {
-            string result = string.Empty;
-            string filepath = "c:/shiyas/";
-            if (filepath != null) {
-                string orgpath = "c:/shiyas/";//LegacyWeb.MapPath("/backup/");
-                string fname = "BackUp_" + DateTime.Now.ToString("dd-MM-yyyy--HH-mm-sstt") + ".Bak";
-                filepath = orgpath + fname;
-                SqlConnection cnn = new SqlConnection();
-                cnn.ConnectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ToString();
-                cnn.Open();
-                SqlCommand cmd = new SqlCommand();
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandText = "SP_BackUpAndRestore";
-                cmd.Connection = cnn;
-                cmd.CommandTimeout = 1000;
-                cmd.Parameters.AddWithValue("@filepath", filepath);
-                cmd.Parameters.AddWithValue("@mode", 0);
+            var connectionString = LegacyWeb.ConnectionString;
+            var dbName = new SqlConnectionStringBuilder(connectionString).InitialCatalog;
+            var configuredPath = db.companys.Where(a => a.CompanyID == 1).Select(a => a.DbBackUpPath).FirstOrDefault();
+            var orgpath = !string.IsNullOrWhiteSpace(configuredPath) ? configuredPath : DefaultBackupDir;
 
-                result = cmd.ExecuteNonQuery().ToString();
+            var fname = $"{dbName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+            var bakFile = Path.Combine(orgpath, fname + ".bak");
+            var zipFile = Path.Combine(orgpath, fname + ".zip");
 
-                if (result == "-1")
-                {
-
-                    if (System.IO.File.Exists(orgpath + "backup.zip"))
-                    {
-                        System.IO.File.Delete(orgpath + "backup.zip");
-
-                    }
-                    using (ZipArchive zip = ZipFile.Open(orgpath + "backup.zip", ZipArchiveMode.Create))
-                    {
-                        zip.CreateEntryFromFile(filepath, "backup");
-                    }
-                    if (System.IO.File.Exists(LegacyWeb.MapPath("/uploads/") + "backup.zip"))
-                    {
-                        System.IO.File.Delete(LegacyWeb.MapPath("/uploads/") + "backup.zip");
-
-                    }
-                    System.IO.File.Move(orgpath+"backup.zip", LegacyWeb.MapPath("/uploads/") + "backup.zip");
-
-                    System.IO.File.Delete(filepath);
-                    ViewBag.link = "<a href='/uploads/backup.zip'>Download</a>";
-                    byte[] filedata = System.IO.File.ReadAllBytes(LegacyWeb.MapPath("/uploads/") + "backup.zip");
-                    return File(filedata, "application/zip", "BackUp_" + DateTime.Now.ToString("dd-MM-yyyy--HH-mm-sstt") + ".zip");
-
-                    //    client.DownloadFile(LegacyWeb.MapPath("/uploads/") + "backup.zip","backup.zip");
-                }
-                else
-                {
-                    Danger("BackUp Database Failed.", false);
-                    return RedirectToAction("BackUp", "BackUpRestore");
-                }
-            } 
-            else
+            try
             {
-                Danger("Folder Not found.", false);
+                Directory.CreateDirectory(orgpath);
+
+                using (var cnn = new SqlConnection(connectionString))
+                {
+                    cnn.Open();
+                    using (var cmd = new SqlCommand("SP_BackUpAndRestore", cnn) { CommandType = CommandType.StoredProcedure, CommandTimeout = 1800 })
+                    {
+                        cmd.Parameters.AddWithValue("@filepath", bakFile);
+                        cmd.Parameters.AddWithValue("@mode", 0);
+                        var result = cmd.ExecuteNonQuery().ToString();
+                        if (result != "-1")
+                        {
+                            Danger("BackUp Database Failed.", false);
+                            return RedirectToAction("BackUp", "BackUpRestore");
+                        }
+                    }
+                }
+
+                using (var zip = ZipFile.Open(zipFile, ZipArchiveMode.Create))
+                {
+                    zip.CreateEntryFromFile(bakFile, fname + ".bak");
+                }
+                System.IO.File.Delete(bakFile);
+
+                byte[] filedata = System.IO.File.ReadAllBytes(zipFile);
+                return File(filedata, "application/zip", fname + ".zip");
+            }
+            catch (Exception ex)
+            {
+                Danger("BackUp Database Failed: " + ex.Message, false);
                 return RedirectToAction("BackUp", "BackUpRestore");
             }
-   
         }
 
+        [HttpPost]
+        [QkAuthorize(Roles = "Dev,Database Backup")]
         public ActionResult BackUpdonenew()
         {
             string result = string.Empty;
@@ -242,6 +234,7 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
 
         }
 
+        [QkAuthorize(Roles = "Dev,Database Backup")]
         public ActionResult downloadallbackup()
         {
             string qry = "exec sp_BackupDatabases @backupType='F',@backupLocation='C:\\QUCKSOFT\\SOFTWARE\\QUICKNET-1200\\uploads\\'";
@@ -275,70 +268,75 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
             
 
         }
+        [QkAuthorize(Roles = "Dev,Database Backup")]
         public ActionResult Restore()
         {
-           
+
             return View();
         }
-        //[HttpPost]
-        //      //var file = LegacyWeb.MapPath(filename);
-        //      //if (Request.Form.Files.Count > 0)
-        //      //    try
-
-        //      //  Get all files from Request object  
-
-
-        //      //// Checking for Internet Explorer  
-        //      //if (Request.Browser.Browser.ToUpper() == "IE" || Request.Browser.Browser.ToUpper() == "INTERNETEXPLORER")
-        //      //else
-
-        //      //// Get the complete folder path and store the file inside it.  
-        //      //fname = Path.Combine(LegacyWeb.MapPath("~/Uploads/"), fname);
-
-        //      //// Returns message that successfully uploaded  
-
-
-
-
-
-        //      //    catch (Exception ex)
-        //      //else
+        // Uploaded .bak files land here (content root, outside wwwroot) so a restore file is never
+        // reachable through the static-file server the way /uploads content is.
+        private static string RestoreUploadDir => Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "DbRestore");
 
         [HttpPost]
-        public ActionResult Restore(string filepath)
+        [QkAuthorize(Roles = "Dev,Database Backup")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 5_368_709_120)]
+        [DisableRequestSizeLimit]
+        public ActionResult Restore(string filepath, IFormFile bakfile)
         {
-            string result = string.Empty;
-            //var absolutePath = LegacyWeb.MapPath(filepath);
-            if (filepath != null)
-            {
-                SqlConnection cnn = new SqlConnection();
-                cnn.ConnectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ToString();
-                cnn.Open();
-                SqlCommand cmd = new SqlCommand();
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandText = "SP_BackUpAndRestore";
-                cmd.Connection = cnn;
-                cmd.Parameters.AddWithValue("@filepath", filepath);
-                cmd.Parameters.AddWithValue("@mode", 1);
+            string resolvedPath = filepath;
+            bool isUploadedTemp = false;
 
-                result = cmd.ExecuteNonQuery().ToString();
-                if (result == "-1")
+            if (bakfile != null && bakfile.Length > 0)
+            {
+                var ext = Path.GetExtension(bakfile.FileName);
+                if (!string.Equals(ext, ".bak", StringComparison.OrdinalIgnoreCase))
                 {
-                    Success("Successfully Restore The Database", true);
+                    Danger("Only .bak files are allowed.", false);
                     return RedirectToAction("Restore", "BackUpRestore");
                 }
-                else
-                {
-                    Danger("Restore Database Failed.", false);
-                    return RedirectToAction("Restore", "BackUpRestore");
-                }
+                Directory.CreateDirectory(RestoreUploadDir);
+                resolvedPath = Path.Combine(RestoreUploadDir, Guid.NewGuid().ToString("N") + ".bak");
+                bakfile.SaveAs(resolvedPath);
+                isUploadedTemp = true;
             }
-            else
+
+            if (string.IsNullOrWhiteSpace(resolvedPath))
             {
                 Danger("File Not found.", false);
                 return RedirectToAction("Restore", "BackUpRestore");
             }
 
+            try
+            {
+                using (var cnn = new SqlConnection(LegacyWeb.ConnectionString))
+                {
+                    cnn.Open();
+                    using (var cmd = new SqlCommand("SP_BackUpAndRestore", cnn) { CommandType = CommandType.StoredProcedure, CommandTimeout = 1800 })
+                    {
+                        cmd.Parameters.AddWithValue("@filepath", resolvedPath);
+                        cmd.Parameters.AddWithValue("@mode", 1);
+                        var result = cmd.ExecuteNonQuery().ToString();
+                        if (result == "-1")
+                            Success("Successfully Restore The Database", true);
+                        else
+                            Danger("Restore Database Failed.", false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Danger("Restore Database Failed: " + ex.Message, false);
+            }
+            finally
+            {
+                if (isUploadedTemp && System.IO.File.Exists(resolvedPath))
+                {
+                    try { System.IO.File.Delete(resolvedPath); } catch { }
+                }
+            }
+
+            return RedirectToAction("Restore", "BackUpRestore");
         }
 
         protected override void Dispose(bool disposing)

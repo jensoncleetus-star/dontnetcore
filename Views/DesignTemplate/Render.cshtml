@@ -15,32 +15,80 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@Model.Name — Preview</title>
+    <link href="~/Content/fonts/inter/inter.css" rel="stylesheet" />
     <style>
-        @@page { size: @pg @orient; margin: 8mm; }
+        @@page { size: @pg @orient; margin: 4mm; }  /* small margin = maximum print area; user can also pick Margins:None */
         * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        /* Inter first for Latin text (matches the app UI + gives an Apple/SF-like look on the printed
+           document); Segoe UI/Tahoma/Arial Unicode MS stay as fallback since Inter has no Arabic glyphs —
+           the browser falls through per-glyph, so RTL/Arabic content still renders correctly. */
+        html, body { margin: 0; padding: 0; background: #eef2f7; font-family: 'Inter', 'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .bar { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 10px 16px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 8px rgba(15,23,42,.05); }
         .bar .ttl { font-weight: 700; }
         .bar .sp { flex: 1; }
         .bar a, .bar button { border: 0; cursor: pointer; border-radius: 9px; padding: 8px 16px; font-size: 14px; font-weight: 600; text-decoration: none; }
         .bar .back { background: #f1f5f9; color: #334155; }
         .bar .print { background: linear-gradient(135deg,#6366f1,#3b82f6); color: #fff; box-shadow: 0 6px 16px rgba(59,130,246,.35); }
-        .stage { padding: 24px; display: flex; justify-content: center; }
-        .sheet { background: #fff; position: relative; box-shadow: 0 6px 28px rgba(15,23,42,.18); }
+        .stage { padding: 24px; display: flex; justify-content: center; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        /* flex-shrink:0 is critical: .sheet is a flex child of .stage, and its true A4/A5/etc. pixel size is set
+           inline via JS. Without flex-shrink:0, a flex child is allowed to shrink below that size to fit a narrow
+           (phone) viewport — squeezing the whole invoice down while its absolutely-positioned content keeps its
+           original pixel coordinates, so text overlaps/clips AND the captured PDF/print canvas is wrong (mis-sized,
+           content cut off, pages mostly blank). Let .stage's overflow-x:auto handle narrow screens instead. */
+        .sheet { background: #fff; position: relative; box-shadow: 0 6px 28px rgba(15,23,42,.18); flex-shrink: 0; }
         .el { position: absolute; box-sizing: border-box; overflow: hidden; }
         .it { width: 100%; border-collapse: collapse; }
-        .it th, .it td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; }
+        .it th, .it td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; vertical-align: top; }
         .it th { background: var(--theme, #4f46e5); color: #fff; }
+        /* Notes/images typed into an item cell: auto-fit to the column by default, but honour any
+           explicit width the user set in the editor (width:NNpx wins, capped so it never overflows). */
+        .it td img { max-width: 100%; height: auto; vertical-align: top; }
+        /* Section-heading row (full width, no columns) — e.g. "Structured Cabling" */
+        .it tr.ithead td { background: #f1f5f9; color: var(--theme, #4f46e5); font-weight: 700; font-size: 12.5px; padding: 5px 8px; border-top: 1.5px solid var(--theme, #4f46e5); }
+        .it tr.ithead img { max-width: 100%; height: auto; }
+        .it tr.ithead p { margin: 2px 0; }
+        /* Per-section subtotal row */
+        .it tr.itsubtot td { font-weight: 700; background: #f8fafc; border-top: 1px solid var(--theme, #4f46e5); }
+        .bosx-terms img { max-width: 100%; height: auto; }
+        .bosx-terms p, .bosx-terms div { margin: 2px 0; }
+        .bosx-terms ul, .bosx-terms ol { margin: 2px 0; padding-left: 18px; }
+        .it td p, .it td div { margin: 2px 0; }
+        .it td ul, .it td ol { margin: 2px 0; padding-left: 18px; }
         .tt { width: 100%; border-collapse: collapse; }
         .tt tr.gt { border-top: 2px solid var(--theme, #0f172a); font-weight: 700; color: var(--theme, #0f172a); }
         .tt td { padding: 3px 6px; }
         .tt td.r { text-align: right; }
         .logo { border: 1px dashed #c7d2fe; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 12px; }
+        .bosx-pagelbl { position: absolute; right: 6px; font-size: 8.5px; font-weight: 700; letter-spacing: .3px; color: #94a3b8; background: rgba(255,255,255,.85); padding: 1px 5px; border-radius: 4px; }
+        /* Full-width divider marking exactly where a new printed/PDF page begins — unmistakable in the
+           continuously-scrolling on-screen preview (unlike the small corner tag alone). */
+        .bosx-pagebreak { position: absolute; left: 0; right: 0; width: 100%; height: 0; border-top: 1.5px dashed #cbd5e1; text-align: center; }
+        .bosx-pagebreak span { position: relative; top: -8px; background: #eef2f7; color: #64748b; font-size: 9.5px; font-weight: 700; letter-spacing: .3px; padding: 2px 10px; border-radius: 20px; border: 1px solid #e2e8f0; }
+        @@media print { .bosx-pagebreak { display: none !important; } }  /* the real page boundary + corner tag are enough on paper; the on-screen-only divider line would otherwise print as a stray dashed rule */
         @@media print {
             html, body { background: #fff; }
             .bar { display: none !important; }
             .stage { padding: 0; }
             .sheet { box-shadow: none; }
+            /* Long quotes span multiple pages — don't let a row, image, heading or the terms be cut across the
+               page break. */
+            .it tr, .it td img, .bosx-terms img, .bosx-terms { page-break-inside: avoid; break-inside: avoid; }
+            .it tr.ithead, .it thead { page-break-after: avoid; }
+            .el { overflow: visible !important; }
+        }
+        /* Mobile/tablet: keep the action buttons big, tappable, and wrapped instead of squeezed off-screen.
+           The invoice canvas is SCALED-TO-FIT the screen width via JS (fitToWidth) — transform:scale on .sheet,
+           top-left origin — so the whole A4 shows at once (no pinch-zoom / sideways scroll to read it). The
+           layout box stays full-size (transform is visual only), so all page-break math + the PDF capture keep
+           using true A4 pixels; buildPdf() temporarily clears the transform so the PDF is always full quality.
+           .stage aligns the scaled sheet to the left and hides the (now off-screen) full-size layout overflow. */
+        @@media (max-width: 900px) {
+            .bar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            .bar .ttl { flex: 1 1 100%; font-size: 15px; }
+            .bar > span:nth-child(2) { flex: 1 1 100%; margin-bottom: 2px; }
+            .bar .sp { display: none; }
+            .bar a, .bar button { flex: 1 1 auto; text-align: center; padding: 11px 14px; font-size: 13.5px; min-height: 44px; }
+            .stage { padding: 12px; justify-content: flex-start; overflow-x: hidden; }
         }
     </style>
 </head>
@@ -53,13 +101,15 @@
             <span style="color:#dc2626;font-size:13px;font-weight:600;">⚠ @ViewBag.RenderError</span>
         }
         <span class="sp"></span>
-        <a class="back" href="@Url.Action("Index","DesignTemplate")">Back</a>
+        @* Back returns to wherever you came from (the quote/document or the designer), NOT the design list.
+           Falls back to the design Index only when there is no history (page opened directly). *@
+        <a class="back" href="@Url.Action("Index","DesignTemplate")" onclick="if(window.history.length>1){window.history.back();return false;}return true;">Back</a>
         <button class="back" id="btnPdf" type="button">⬇ Download PDF</button>
         @if (ViewBag.InvoiceNo != null)
         {
             <button class="back" id="btnEmail" type="button">✉ Email</button>
         }
-        <button class="print" onclick="window.print()">🖨 Print</button>
+        <button class="print" id="btnPrint" type="button">🖨 Print</button>
     </div>
     @Html.AntiForgeryToken()
     <div class="stage"><div class="sheet" id="sheet"></div></div>
@@ -104,9 +154,10 @@
 
         var SAMPLEIMG = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="44"><rect width="100%" height="100%" fill="%23eef2ff"/><text x="50%" y="56%" font-size="10" fill="%236366f1" text-anchor="middle">IMG</text></svg>';
         var SAMPLE_ITEMS = [
-            ['1','Premium Widget','PCS','5','100.00','25.00','525.00',SAMPLEIMG],
-            ['2','Service Charge','NOS','2','250.00','25.00','525.00',SAMPLEIMG],
-            ['3','Spare Part A','PCS','4','50.00','10.00','210.00',SAMPLEIMG]
+            ['1','Cat6 Cable','ROLL','5','100.00','25.00','525.00',SAMPLEIMG,'<strong>Structured Cabling</strong>'],
+            ['2','Patch Panel 24-Port','NOS','2','250.00','25.00','525.00',SAMPLEIMG],
+            ['1','Wi-Fi Router','PCS','4','50.00','10.00','210.00',SAMPLEIMG,'<strong>Networking</strong>'],
+            ['2','PoE Switch','PCS','1','400.00','20.00','420.00',SAMPLEIMG]
         ];
         var REALITEMS = @Html.Raw(realItems);
         var ITEMS = REALITEMS || SAMPLE_ITEMS;
@@ -125,11 +176,30 @@
             if (el.type==='barcode') return '<canvas class="bc" data-v="'+escAttr(codeValue(el))+'" data-dv="'+(el.bcHideText?'0':'1')+'" style="width:100%;height:100%;"></canvas>';
             if (el.type==='items') {
                 var im = !!el.images;
+                var colCount = im ? 8 : 7;
+                // Sections: a HEADING (r[8]) starts a section. Serial numbers RESTART at 1 in each section, and a
+                // "Section Total" row is printed after each section's items. (Grand total is the totals element.)
+                var hasSections = ITEMS.some(function (x) { return x[8]; });
+                function nnum(s) { return parseFloat(String(s == null ? '' : s).replace(/,/g, '')) || 0; }
                 var h = '<table class="it"><thead><tr><th>#</th>'+(im?'<th>Image</th>':'')+'<th>Item</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Amount</th></tr></thead><tbody>';
+                var sn = 0, secTot = 0, secOpen = hasSections;
+                function flushSec() {
+                    if (hasSections && secOpen && sn > 0) {
+                        h += '<tr class="itsubtot"><td colspan="'+(colCount-1)+'" style="text-align:right;">Section Total</td><td style="text-align:right;">'+secTot.toFixed(2)+'</td></tr>';
+                    }
+                }
                 ITEMS.forEach(function(r){
+                    if (r[8]) {                                  // new section heading -> full-width row, restart numbering
+                        flushSec();
+                        h += '<tr class="ithead"><td colspan="'+colCount+'">'+r[8]+'</td></tr>';
+                        sn = 0; secTot = 0; secOpen = true;
+                    }
+                    sn++; secTot += nnum(r[6]);
                     var imgcell = im ? '<td style="text-align:center;width:64px;">'+(r[7]?'<img src="'+r[7]+'" style="max-height:42px;max-width:58px;object-fit:contain;" onerror="this.style.display=&#39;none&#39;">':'')+'</td>' : '';
-                    h += '<tr><td>'+(r[0]||'')+'</td>'+imgcell+'<td>'+(r[1]||'')+'</td><td>'+(r[2]||'')+'</td><td>'+(r[3]||'')+'</td><td>'+(r[4]||'')+'</td><td>'+(r[5]||'')+'</td><td style="text-align:right">'+(r[6]||'')+'</td></tr>';
+                    var serial = hasSections ? sn : (r[0]||'');   // restart per section; else global number
+                    h += '<tr><td>'+serial+'</td>'+imgcell+'<td>'+(r[1]||'')+'</td><td>'+(r[2]||'')+'</td><td>'+(r[3]||'')+'</td><td>'+(r[4]||'')+'</td><td>'+(r[5]||'')+'</td><td style="text-align:right">'+(r[6]||'')+'</td></tr>';
                 });
+                flushSec();                                      // close the last section
                 return h + '</tbody></table>';
             }
             if (el.type==='totals') {
@@ -146,11 +216,15 @@
         var sheet = document.getElementById('sheet');
         sheet.style.setProperty('--theme', design.theme || '#4f46e5');   // accent colour for tables/totals/lines
         var p = paperPx(); sheet.style.width = p[0]+'px'; sheet.style.height = p[1]+'px';
+        var _placed = [];
         design.elements.forEach(function(el){
             var d = document.createElement('div');
             d.className = 'el';
             d.style.left=(el.x||0)+'px'; d.style.top=(el.y||0)+'px'; d.style.width=(el.w||160)+'px';
-            if (el.h) d.style.height=el.h+'px';
+            // An items table must GROW to fit its rows/notes/images — never clip it to the designed height
+            // (else item photos and multi-line notes get chopped off in the print). Other elements keep their box.
+            if (el.type === 'items') { d.style.height='auto'; d.style.overflow='visible'; }
+            else if (el.h) d.style.height=el.h+'px';
             d.style.fontSize=(el.fontSize||12)+'px';
             d.style.fontWeight=el.bold?'700':'400';
             d.style.textAlign=el.align||'left';
@@ -158,7 +232,206 @@
             if (el.color) d.style.color=el.color;
             d.innerHTML = inner(el);
             sheet.appendChild(d);
+            d._ely = (el.y || 0); d._elh = (el.h || 0); d._eltype = el.type; d._elx = (el.x || 0); d._elw = (el.w || 0); d._elfield = el.field;
+            _placed.push(d);
         });
+        var _sheetH0 = sheet.offsetHeight;
+
+        // Build the Terms & Conditions block ONCE (positioned by relayout() below). NOT added to _placed so it
+        // always lands BELOW every real element.
+        var _termsEl = null;
+        (function createTerms() {
+            var terms = (REAL && REAL['NOTES.Terms']) || '';
+            var hasVisible = terms && (/<img/i.test(terms) || terms.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim().length > 0);
+            if (!hasVisible) return;
+            if (_placed.some(function (d) { return d._elfield === 'NOTES.Terms'; })) return;
+            var itEl = _placed.filter(function (d) { return d._eltype === 'items'; })[0];
+            var lx = itEl ? itEl._elx : 24;
+            var lw = itEl ? (itEl._elw || itEl.offsetWidth) : (paperPx()[0] - 48);
+            var t = document.createElement('div');
+            t.className = 'el'; t.style.left = lx + 'px'; t.style.width = lw + 'px'; t.style.top = '0px'; t.style.fontSize = '11px';
+            t.innerHTML = '<div style="border-top:1.5px solid var(--theme,#4f46e5);padding-top:6px;">'
+                + '<div style="font-weight:700;color:var(--theme,#4f46e5);margin-bottom:4px;">Terms &amp; Conditions</div>'
+                + '<div class="bosx-terms">' + terms + '</div></div>';
+            sheet.appendChild(t);
+            _termsEl = t;
+        })();
+
+        // Unified layout so nothing ever overlaps: (1) push everything below the items table down by the table's
+        // overflow, (2) drop the Terms block right after items+totals, (3) push anything designed to sit further
+        // down (the "Thank you for your business" footer etc.) below Terms so the footer stays the true LAST
+        // thing in the document, (4) grow the sheet. Idempotent (recomputes from original positions) and re-run
+        // after EVERY image loads — item photos AND terms photos set their real height late.
+        function bottomOfPlaced() { var mb = 0; _placed.forEach(function (d) { var b = d.offsetTop + d.offsetHeight; if (b > mb) mb = b; }); return mb; }
+        function relayout() {
+            var it = _placed.filter(function (d) { return d._eltype === 'items'; })[0];
+            if (it) {
+                var designedBottom = it._ely + it._elh;
+                var delta = (it._ely + it.offsetHeight) - designedBottom;
+                if (delta < 0) delta = 0;
+                _placed.forEach(function (d) { if (d !== it && d._ely >= designedBottom - 2) d.style.top = (d._ely + delta) + 'px'; });
+            }
+            // Terms goes right after items+totals — everything ORIGINALLY designed to sit further down than
+            // totals (e.g. a footer/"thank you" note) is treated as "after Terms" and pushed below it instead,
+            // so the footer ends up last regardless of how tall Terms turns out to be.
+            var totalsEl = _placed.filter(function (d) { return d._eltype === 'totals'; })[0];
+            var totalsDesignBottom = totalsEl ? (totalsEl._ely + totalsEl._elh) : (it ? (it._ely + it._elh) : 0);
+            var beforeTermsBottom = 0;
+            _placed.forEach(function (d) { if (d._ely <= totalsDesignBottom + 2) { var b = d.offsetTop + d.offsetHeight; if (b > beforeTermsBottom) beforeTermsBottom = b; } });
+            if (_termsEl) _termsEl.style.top = (beforeTermsBottom + 20) + 'px';
+            var termsBottom = _termsEl ? (_termsEl.offsetTop + _termsEl.offsetHeight) : beforeTermsBottom;
+            // Shift the WHOLE footer group by one uniform delta (based on whichever of them starts highest) —
+            // pushing each element independently to the same target would collapse their relative spacing and
+            // stack them on top of each other (e.g. "Thank you for your business" + the sub-line below it).
+            var footerGroup = _placed.filter(function (d) { return d._ely > totalsDesignBottom + 2; });
+            if (footerGroup.length) {
+                var minFooterEly = Math.min.apply(null, footerGroup.map(function (d) { return d._ely; }));
+                var footerDelta = Math.max(0, (termsBottom + 20) - minFooterEly);
+                footerGroup.forEach(function (d) { d.style.top = (d._ely + footerDelta) + 'px'; });
+            }
+            var full = Math.max(termsBottom, bottomOfPlaced()) + 24;
+            sheet.style.height = Math.max(_sheetH0, full) + 'px';
+            renderPageLabels();
+            fitToWidth();
+        }
+        // Scale the A4 sheet DOWN to fit narrow (phone/tablet) screens so the whole width is visible at once,
+        // instead of forcing pinch-zoom + sideways scroll. Uses transform:scale (visual only — offsetWidth/Height
+        // stay true, so page-break math and the PDF capture are unaffected). A negative margin-bottom reclaims the
+        // empty space left below the visually-shrunk (but layout-full-height) sheet. No-op on wide screens and
+        // while a PDF/print capture is in progress (window.__bosxCapturing).
+        var _trueSheetW = paperPx()[0];
+        function fitToWidth() {
+            if (window.__bosxCapturing) return;
+            var stage = sheet.parentNode;
+            if (!stage) return;
+            var reset = function () { sheet.style.transform = ''; sheet.style.transformOrigin = ''; sheet.style.marginBottom = ''; };
+            if (window.innerWidth > 900) { reset(); return; }
+            var cs = getComputedStyle(stage);
+            var avail = stage.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+            var s = avail / _trueSheetW;
+            if (!(s > 0) || s >= 0.999) { reset(); return; }
+            sheet.style.transformOrigin = 'top left';
+            sheet.style.transform = 'scale(' + s + ')';
+            sheet.style.marginBottom = (-(1 - s) * sheet.offsetHeight) + 'px';
+        }
+        window.addEventListener('resize', function () { fitToWidth(); });
+        window.addEventListener('orientationchange', function () { setTimeout(fitToWidth, 200); });
+        // Small top margin reserved on every continuation page (2nd, 3rd, ...) so content doesn't start flush
+        // against the physical page edge — page 1 already has room above the letterhead so is left alone.
+        var CONT_TOP_MARGIN_PX = 16;
+        // Page breaks must land at a row/element boundary, never mid-row (else the row gets visibly sliced in
+        // half in the downloaded PDF). Collect every candidate "safe" cut line, then greedily fill each page up to
+        // its height using the LAST safe line that still fits (falls back to an element's own end if a single
+        // element is taller than one whole page, so pagination can't get stuck).
+        function collectSafeBreaksPx() {
+            // `.it tr` sits several levels below `sheet` (tr > tbody > table > .el > sheet), and the <table>
+            // itself is a positioned offsetParent — so tr.offsetTop is relative to the TABLE, not to `sheet`,
+            // and mixing it with sheet-relative values (0, sheet.offsetHeight, top-level .el offsets) produces
+            // break points that don't correspond to real pixel positions. Use getBoundingClientRect() relative
+            // to `sheet` for every candidate so all coordinates share one consistent origin.
+            var sheetTop = sheet.getBoundingClientRect().top;
+            var pts = [0, sheet.offsetHeight];
+            Array.prototype.forEach.call(sheet.querySelectorAll('.it tr'), function (tr) { var r = tr.getBoundingClientRect(); pts.push(r.top - sheetTop); pts.push(r.bottom - sheetTop); });
+            Array.prototype.forEach.call(sheet.children, function (el) { if (el.classList && el.classList.contains('el')) { pts.push(el.offsetTop); pts.push(el.offsetTop + el.offsetHeight); } });
+            // Also allow a break WITHIN a tall item-note cell (between paragraphs/bullets) instead of only at
+            // the row's own top/bottom — otherwise a row that's just slightly too tall for the remaining page
+            // gets pushed whole to the next page, wasting most of the current one. Splitting between bullets is
+            // fine visually (unlike splitting an image, which stays forbidden via the zone filter below).
+            Array.prototype.forEach.call(sheet.querySelectorAll('.it td > p, .it td > ul, .it td > ol, .it td > div, .it td li'), function (el) { var r = el.getBoundingClientRect(); pts.push(r.top - sheetTop); pts.push(r.bottom - sheetTop); });
+            var raw = Array.prototype.filter.call(Array.from(new Set(pts)), function (v) { return isFinite(v); }).sort(function (a, b) { return a - b; });
+            // An image can render taller than its containing row/element reports (e.g. a row that doesn't
+            // clear a floated image), so a break line picked from row/element bounds alone can still land
+            // INSIDE an image. Collect every image's own rendered top/bottom (relative to `sheet`) as a
+            // "forbidden zone" and drop any candidate that falls inside one — images are never split.
+            var zones = Array.prototype.map.call(sheet.querySelectorAll('img'), function (im) {
+                var r = im.getBoundingClientRect();
+                return { top: r.top - sheetTop, bottom: r.bottom - sheetTop };
+            }).filter(function (z) { return z.bottom > z.top + 1; });
+            return raw.filter(function (v) { return !zones.some(function (z) { return v > z.top + 0.5 && v < z.bottom - 0.5; }); });
+        }
+        // The items table's header row (# | Item | Unit | Qty | Rate | Tax | Amount) only exists once in the
+        // DOM, at the top of the table — so a page that continues the item list onto page 2/3 has no header
+        // unless we repeat it. Used to reserve space for that repeated header (see computePageSpans below) and
+        // to actually redraw it in buildPdf().
+        function itemsHeaderBoundsPx() {
+            var row = sheet.querySelector('.it thead tr');
+            if (!row) return null;
+            var sheetTop = sheet.getBoundingClientRect().top;
+            var r = row.getBoundingClientRect();
+            return { top: r.top - sheetTop, bottom: r.bottom - sheetTop, height: r.height };
+        }
+        function computePageSpans(totalH, pageH, breaks, continuationPageH) {
+            var spans = [], cursor = 0, guard = 0;
+            while (cursor < totalH - 0.5 && guard++ < 500) {
+                var effPageH = (spans.length > 0 && continuationPageH != null) ? continuationPageH : pageH;
+                var limit = cursor + effPageH;
+                var candidates = breaks.filter(function (b) { return b > cursor + 0.5 && b <= limit + 0.5; });
+                var end = candidates.length ? Math.max.apply(null, candidates) : null;
+                if (end === null) {
+                    var nexts = breaks.filter(function (b) { return b > cursor + 0.5; });
+                    end = nexts.length ? Math.min.apply(null, nexts) : totalH;
+                }
+                if (end <= cursor) end = Math.min(totalH, cursor + effPageH);
+                if (end > totalH) end = totalH;
+                spans.push({ start: cursor, end: end });
+                cursor = end;
+            }
+            return spans;
+        }
+        // "Page X of Y" at the top-right of every physical page — so if a long, multi-page quote gets separated
+        // (or a reader jumps straight to page 2/3), it's obvious which page it is and how many follow. Uses the
+        // SAME safe-break math as the Download-PDF slicer below, so the labels always match the true page starts.
+        function renderPageLabels() {
+            Array.prototype.forEach.call(sheet.querySelectorAll('.bosx-pagelbl, .bosx-pagebreak'), function (d) { d.remove(); });
+            var pageH = paperPx()[1];
+            var hdr = itemsHeaderBoundsPx();
+            // Continuation pages (2nd, 3rd, ...) get a small top margin before their content starts — page 1
+            // already has enough breathing room above the letterhead, so this only applies past the first page.
+            var contPageH = Math.max(200, pageH - (hdr ? hdr.height : 0) - CONT_TOP_MARGIN_PX);
+            var spans = computePageSpans(sheet.offsetHeight, pageH, collectSafeBreaksPx(), contPageH);
+            var totalPages = spans.length;
+            if (totalPages <= 1) return;   // single-page document needs no page markers
+            spans.forEach(function (span, p) {
+                // small corner tag on every page (incl. page 1) — matches the printed/PDF output exactly
+                var d = document.createElement('div');
+                d.className = 'bosx-pagelbl';
+                d.style.top = (span.start + 6) + 'px';
+                d.textContent = 'Page ' + (p + 1) + ' of ' + totalPages;
+                sheet.appendChild(d);
+                // full-width dashed divider right at the start of every page AFTER the first — makes it obvious
+                // in the on-screen (continuously scrolling) preview exactly where one page ends and the next
+                // begins, instead of a small easy-to-miss corner tag.
+                if (p > 0) {
+                    var b = document.createElement('div');
+                    b.className = 'bosx-pagebreak';
+                    b.style.top = span.start + 'px';
+                    b.innerHTML = '<span>Page ' + (p + 1) + ' of ' + totalPages + '</span>';
+                    sheet.appendChild(b);
+                }
+            });
+        }
+        relayout();
+        // Every item photo / heading / terms image reflows the layout (and moves the page dividers) as it
+        // finishes loading — so Print/Download-PDF/Email must wait for ALL of them before capturing, or they can
+        // grab a mid-reflow frame (a page break landing mid-row before its final position is set). Exposed as
+        // window.__bosxSettled so the buttons below (and the Print button) can await it first.
+        var _pending = 0;
+        function _imgSettled() { _pending--; if (_pending <= 0) relayout(); }
+        Array.prototype.forEach.call(sheet.querySelectorAll('img'), function (im) {
+            if (!im.complete) { _pending++; im.addEventListener('load', _imgSettled); im.addEventListener('error', _imgSettled); }
+        });
+        // Wait for the Inter web font too, not just images — otherwise a slow first load can bake the
+        // fallback (Segoe UI/Arial) font into the captured PDF instead of Inter (font-display:swap means
+        // text renders immediately in the fallback, then swaps once Inter's woff2 finishes downloading).
+        var _fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready.catch(function () { }) : Promise.resolve();
+        window.__bosxSettled = _fontsReady.then(function () { return new Promise(function (resolve) {
+            function check() {
+                var imgs = sheet.querySelectorAll('img');
+                if (Array.prototype.every.call(imgs, function (i) { return i.complete; })) { relayout(); setTimeout(resolve, 60); }
+                else setTimeout(check, 100);
+            }
+            check();
+        }); });
 
         // Barcodes are drawn after the elements are in the DOM (JsBarcode needs a live canvas).
         Array.prototype.forEach.call(sheet.querySelectorAll('canvas.bc'), function(cv){
@@ -185,23 +458,172 @@
             orient: '@orient'
         };
 
+        // Same continuation-page top margin as the on-screen label script above (kept in sync).
+        var CONT_TOP_MARGIN_PX = 16;
+        // Page breaks must never cut through a table row or element — that produces a half-sliced line at the
+        // page boundary. Collect every row/element's top+bottom as a "safe" cut line, then for each page pick the
+        // LAST safe line that still fits; if nothing fits (one element taller than a whole page) fall back to
+        // cutting at its own end so pagination can't get stuck.
+        function collectSafeBreaksPx(sheet) {
+            // Same offsetParent pitfall as the on-screen label script above (kept in sync): `.it tr` is nested
+            // below a positioned <table>, so tr.offsetTop is relative to the TABLE, not `sheet`. Use
+            // getBoundingClientRect() relative to `sheet` for every candidate instead.
+            var sheetTop = sheet.getBoundingClientRect().top;
+            var pts = [0, sheet.offsetHeight];
+            Array.prototype.forEach.call(sheet.querySelectorAll('.it tr'), function (tr) { var r = tr.getBoundingClientRect(); pts.push(r.top - sheetTop); pts.push(r.bottom - sheetTop); });
+            Array.prototype.forEach.call(sheet.children, function (el) { if (el.classList && el.classList.contains('el')) { pts.push(el.offsetTop); pts.push(el.offsetTop + el.offsetHeight); } });
+            // Same "allow a break inside a tall note cell" relaxation as the on-screen label script above (kept
+            // in sync) — otherwise a row that's just slightly too tall for the remaining page gets pushed whole
+            // to the next page, wasting most of the current one.
+            Array.prototype.forEach.call(sheet.querySelectorAll('.it td > p, .it td > ul, .it td > ol, .it td > div, .it td li'), function (el) { var r = el.getBoundingClientRect(); pts.push(r.top - sheetTop); pts.push(r.bottom - sheetTop); });
+            var raw = Array.prototype.filter.call(Array.from(new Set(pts)), function (v) { return isFinite(v); }).sort(function (a, b) { return a - b; });
+            // Same image-zone exclusion as the on-screen label script above (kept in sync) — a row/element's
+            // own reported box can be shorter than an image it contains actually renders, so exclude any
+            // candidate break that falls inside an image's real rendered span.
+            var zones = Array.prototype.map.call(sheet.querySelectorAll('img'), function (im) {
+                var r = im.getBoundingClientRect();
+                return { top: r.top - sheetTop, bottom: r.bottom - sheetTop };
+            }).filter(function (z) { return z.bottom > z.top + 1; });
+            return raw.filter(function (v) { return !zones.some(function (z) { return v > z.top + 0.5 && v < z.bottom - 0.5; }); });
+        }
+        // Same header-repeat helper as the on-screen label script above (kept in sync) — the items table's
+        // header row only exists once in the DOM, so a page continuing the item list needs it redrawn.
+        function itemsHeaderBoundsPx(sheet) {
+            var row = sheet.querySelector('.it thead tr');
+            if (!row) return null;
+            var sheetTop = sheet.getBoundingClientRect().top;
+            var r = row.getBoundingClientRect();
+            return { top: r.top - sheetTop, bottom: r.bottom - sheetTop, height: r.height };
+        }
+        function computePageSpans(totalH, pageH, breaks, continuationPageH) {
+            var spans = [], cursor = 0, guard = 0;
+            while (cursor < totalH - 0.5 && guard++ < 500) {
+                var effPageH = (spans.length > 0 && continuationPageH != null) ? continuationPageH : pageH;
+                var limit = cursor + effPageH;
+                var candidates = breaks.filter(function (b) { return b > cursor + 0.5 && b <= limit + 0.5; });
+                var end = candidates.length ? Math.max.apply(null, candidates) : null;
+                if (end === null) {
+                    var nexts = breaks.filter(function (b) { return b > cursor + 0.5; });
+                    end = nexts.length ? Math.min.apply(null, nexts) : totalH;
+                }
+                if (end <= cursor) end = Math.min(totalH, cursor + effPageH);
+                if (end > totalH) end = totalH;
+                spans.push({ start: cursor, end: end });
+                cursor = end;
+            }
+            return spans;
+        }
+        // Inline any EXTERNAL (cross-origin http/https) <img> as a same-origin data URL BEFORE html2canvas runs.
+        // html2canvas requests cross-origin images with crossOrigin=anonymous (useCORS) and renders them BLANK
+        // when the remote server sends no CORS header — i.e. an image pasted into an item note from a website
+        // link never printed. We fetch each through our own /DesignTemplate/ProxyImage endpoint (same-origin, no
+        // canvas taint), swap the <img> src to the resulting data URL, wait for it to decode, capture, then
+        // restore the originals so the on-screen view is unchanged. Per-image failures degrade gracefully
+        // (original src kept — no worse than before) and never abort the whole PDF.
+        function inlineExternalImages(sheet) {
+            var imgs = Array.prototype.filter.call(sheet.querySelectorAll('img'), function (im) {
+                var s = im.getAttribute('src') || '';
+                if (!/^https?:\/\//i.test(s)) return false;   // data:, blob:, relative/same-origin already fine
+                try { return new URL(s, location.href).origin !== location.origin; } catch (e) { return true; }
+            });
+            if (!imgs.length) return Promise.resolve(function () { });
+            var restores = [];
+            return Promise.all(imgs.map(function (im) {
+                var orig = im.getAttribute('src');
+                return fetch('/DesignTemplate/ProxyImage?url=' + encodeURIComponent(orig), { credentials: 'include' })
+                    .then(function (r) { if (!r.ok) throw new Error('proxy ' + r.status); return r.blob(); })
+                    .then(function (blob) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = function () { res(null); }; fr.readAsDataURL(blob); }); })
+                    .then(function (dataUrl) {
+                        if (!dataUrl) return;
+                        return new Promise(function (res) {
+                            restores.push({ im: im, orig: orig });
+                            im.onload = function () { res(); };
+                            im.onerror = function () { res(); };
+                            im.src = dataUrl;
+                        });
+                    })
+                    .catch(function () { /* leave original src; degrade to prior behaviour */ });
+            })).then(function () {
+                return function restore() { restores.forEach(function (x) { x.im.onload = null; x.im.onerror = null; x.im.setAttribute('src', x.orig); }); };
+            });
+        }
         function buildPdf() {
-            return new Promise(function (resolve, reject) {
+            return (window.__bosxSettled || Promise.resolve()).then(function () { return new Promise(function (resolve, reject) {
                 var sheet = document.getElementById('sheet');
                 if (typeof html2canvas !== 'function') return reject(new Error('PDF engine not loaded.'));
                 var ctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
                 if (!ctor) return reject(new Error('PDF engine not loaded.'));
-                html2canvas(sheet, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function (canvas) {
-                    try {
-                        var img = canvas.toDataURL('image/jpeg', 0.9);
-                        var doc = new ctor({ orientation: PDFDOC.orient === 'landscape' ? 'l' : 'p', unit: 'pt', format: (PDFDOC.paper || 'A4').toLowerCase() });
-                        var pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-                        var ratio = Math.min(pw / canvas.width, ph / canvas.height);
-                        doc.addImage(img, 'JPEG', (pw - canvas.width * ratio) / 2, 0, canvas.width * ratio, canvas.height * ratio);
+                var dividers = sheet.querySelectorAll('.bosx-pagebreak');
+                Array.prototype.forEach.call(dividers, function (d) { d.style.display = 'none'; });
+                // Neutralise the on-screen fit-to-width scale (mobile/tablet) so the PDF is captured at TRUE A4
+                // size = full quality; restore it after. The guard stops the fitToWidth/resize hooks from
+                // re-applying the scale mid-capture.
+                window.__bosxCapturing = true;
+                var _svT = sheet.style.transform, _svTO = sheet.style.transformOrigin, _svMB = sheet.style.marginBottom;
+                sheet.style.transform = ''; sheet.style.transformOrigin = ''; sheet.style.marginBottom = '';
+                function cleanup() {
+                    Array.prototype.forEach.call(dividers, function (d) { d.style.display = ''; });
+                    sheet.style.transform = _svT; sheet.style.transformOrigin = _svTO; sheet.style.marginBottom = _svMB;
+                    window.__bosxCapturing = false;
+                }
+
+                // Capture the WHOLE sheet exactly once (no DOM hiding/mutation, so nothing can accidentally
+                // disappear), then slice the single resulting canvas into per-page images with plain 2D canvas
+                // pixel copies. Page-break lines never land inside a table row, top-level element, or image
+                // (see collectSafeBreaksPx above), so a slice boundary can't visually cut through content.
+                // Continuation pages (any page after the one containing the header) reserve headerH of budget
+                // and get the header row re-drawn at their top, so a long item table stays readable mid-way.
+                try {
+                    var doc = new ctor({ orientation: PDFDOC.orient === 'landscape' ? 'l' : 'p', unit: 'pt', format: (PDFDOC.paper || 'A4').toLowerCase() });
+                    var pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+                    var pageHpx = ph * 96 / 72;
+                    var breaks = collectSafeBreaksPx(sheet);
+                    var hdr = itemsHeaderBoundsPx(sheet);
+                    var contTopMarginPt = CONT_TOP_MARGIN_PX * 72 / 96;
+                    var contPageH = Math.max(200, pageHpx - (hdr ? hdr.height : 0) - CONT_TOP_MARGIN_PX);
+                    var spans = computePageSpans(sheet.offsetHeight, pageHpx, breaks, contPageH);
+                    var bodyRows = hdr ? Array.prototype.map.call(sheet.querySelectorAll('.it tbody tr'), function (tr) {
+                        var r = tr.getBoundingClientRect(), sheetTop = sheet.getBoundingClientRect().top;
+                        return { top: r.top - sheetTop, bottom: r.bottom - sheetTop };
+                    }) : [];
+                    inlineExternalImages(sheet).then(function (restoreImgs) {
+                    html2canvas(sheet, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function (canvas) {
+                        restoreImgs();
+                        var scale = canvas.width / sheet.offsetWidth;
+                        var headerImgData = null, headerHpt = 0;
+                        if (hdr) {
+                            var hsy = Math.round(hdr.top * scale), hsh = Math.max(1, Math.round(hdr.height * scale));
+                            var hCanvas = document.createElement('canvas');
+                            hCanvas.width = canvas.width; hCanvas.height = hsh;
+                            hCanvas.getContext('2d').drawImage(canvas, 0, hsy, canvas.width, hsh, 0, 0, canvas.width, hsh);
+                            headerImgData = hCanvas.toDataURL('image/jpeg', 0.95);
+                            headerHpt = hsh * (pw / canvas.width);
+                        }
+                        spans.forEach(function (span, idx) {
+                            var needsHeader = hdr && idx > 0 && span.start >= hdr.bottom - 0.5 &&
+                                bodyRows.some(function (r) { return r.bottom > span.start + 0.5 && r.top < span.end - 0.5; });
+                            var sy = Math.round(span.start * scale);
+                            var sh = Math.max(1, Math.min(canvas.height - sy, Math.round((span.end - span.start) * scale)));
+                            var slice = document.createElement('canvas');
+                            slice.width = canvas.width;
+                            slice.height = sh;
+                            var sctx = slice.getContext('2d');
+                            sctx.fillStyle = '#ffffff';
+                            sctx.fillRect(0, 0, slice.width, slice.height);
+                            sctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
+                            var imgData = slice.toDataURL('image/jpeg', 0.92);
+                            var sliceHpt = sh * (pw / canvas.width);
+                            if (idx > 0) doc.addPage();
+                            var yPt = idx > 0 ? contTopMarginPt : 0;
+                            if (needsHeader) { doc.addImage(headerImgData, 'JPEG', 0, yPt, pw, headerHpt); yPt += headerHpt; }
+                            doc.addImage(imgData, 'JPEG', 0, yPt, pw, sliceHpt);
+                        });
+                        cleanup();
                         resolve(doc);
-                    } catch (e) { reject(e); }
-                }).catch(reject);
-            });
+                    }).catch(function (e) { restoreImgs(); cleanup(); reject(e); });
+                    }).catch(function (e) { cleanup(); reject(e); });
+                } catch (e) { cleanup(); reject(e); }
+            }); });
         }
         function pdfFileName() {
             var n = ('' + (PDFDOC.invoiceNo || PDFDOC.invoiceId || '')).replace(/[^\w\-]+/g, '_');
@@ -217,6 +639,45 @@
                 buildPdf().then(function (doc) { doc.save(pdfFileName()); })
                     .catch(function (e) { alert('Could not generate PDF: ' + (e && e.message ? e.message : e)); })
                     .then(function () { busy(b, false); });
+            });
+        }
+
+        // Native browser print (window.print()) works fine for a single page, but is UNRELIABLE for a multi-page
+        // document here: the browser's own print engine inserts its own page-break gaps to avoid splitting a
+        // table row, which our absolutely-positioned totals/terms/footer blocks (JS-positioned assuming
+        // continuous flow, no gaps) don't know about — causing them to land on the wrong page and visually
+        // overlap other content. So for a multi-page document, Print builds the SAME safely-paginated PDF that
+        // Download PDF produces and opens the system print dialog for THAT (a real, correctly-paginated PDF)
+        // instead of printing the live absolutely-positioned canvas directly.
+        var btnPrint = document.getElementById('btnPrint');
+        if (btnPrint) {
+            btnPrint.setAttribute('data-label', btnPrint.textContent);
+            btnPrint.addEventListener('click', function () {
+                var b = this;
+                (window.__bosxSettled || Promise.resolve()).then(function () {
+                    var sheet = document.getElementById('sheet');
+                    var ctor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : (window.jsPDF || null);
+                    var isMultiPage = false;
+                    try {
+                        var probe = new ctor({ orientation: PDFDOC.orient === 'landscape' ? 'l' : 'p', unit: 'pt', format: (PDFDOC.paper || 'A4').toLowerCase() });
+                        var pageHpx = probe.internal.pageSize.getHeight() * 96 / 72;
+                        isMultiPage = computePageSpans(sheet.offsetHeight, pageHpx, collectSafeBreaksPx(sheet)).length > 1;
+                    } catch (e) { }
+                    if (!isMultiPage) { window.print(); return; }
+                    busy(b, true, '⏳ Preparing…');
+                    buildPdf().then(function (doc) {
+                        var blobUrl = URL.createObjectURL(doc.output('blob'));
+                        var ifr = document.createElement('iframe');
+                        ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+                        ifr.src = blobUrl;
+                        ifr.onload = function () {
+                            try { ifr.contentWindow.focus(); ifr.contentWindow.print(); }
+                            catch (e) { window.open(blobUrl, '_blank'); }
+                            setTimeout(function () { busy(b, false); }, 800);
+                        };
+                        document.body.appendChild(ifr);
+                    }).catch(function (e) { busy(b, false); alert('Could not prepare the print PDF: ' + (e && e.message ? e.message : e)); window.print(); });
+                });
             });
         }
 

@@ -789,6 +789,30 @@
             });
         })();
     </script>
+    <script>
+        // ===== Spell check everywhere (browser-native, OFFLINE, no external service) =====
+        // Turns on the browser's built-in spell checker (red underline + right-click "correct spelling")
+        // on every text field, textarea, and rich editor across the whole app. Works without internet.
+        (function () {
+            try { document.documentElement.setAttribute('lang', 'en'); } catch (e) { }
+            function enable(el) {
+                if (!el || el.__bosxSpell) return;
+                var tag = el.tagName, t = (el.type || '').toLowerCase();
+                if (tag === 'TEXTAREA' || (tag === 'INPUT' && (t === 'text' || t === '')) || el.isContentEditable) {
+                    el.setAttribute('spellcheck', 'true'); el.__bosxSpell = 1;
+                }
+            }
+            // focus covers dynamically-added rows/modals too (item notes, popups, DataTables editors)
+            document.addEventListener('focusin', function (e) { enable(e.target); }, true);
+            function pass() { try { Array.prototype.forEach.call(document.querySelectorAll('input,textarea,[contenteditable]'), enable); } catch (e) { } }
+            if (document.readyState !== 'loading') pass(); else document.addEventListener('DOMContentLoaded', pass);
+            // CKEditor disables the native checker by default — turn it back ON for every instance.
+            if (window.CKEDITOR) {
+                CKEDITOR.on('instanceCreated', function (ev) { ev.editor.on('configLoaded', function () { ev.editor.config.disableNativeSpellChecker = false; }); });
+                CKEDITOR.on('instanceReady', function (ev) { try { ev.editor.editable().$.setAttribute('spellcheck', 'true'); } catch (e) { } });
+            }
+        })();
+    </script>
     @Html.Partial("_Calculator")
 
     <style>

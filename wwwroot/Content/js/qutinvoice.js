@@ -77,11 +77,12 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
             inote = "";
         var headingnote = "";
         if (inote != "") {
-            var arr = inote.split('||');
+            var arr = inote.split('||').filter(function (p) { return /<img/i.test(p) || p.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim() !== ''; });
             var headingexist = (arr.length >= 2) ? true : false;
-            if (headingexist == true) {
+            if (arr.length === 1) { inote = arr[0]; }
+            else if (headingexist == true) {
                 headingnote = arr[0];
-                inote = arr[1];
+                inote = arr.slice(1).join('');
 
 
             }
@@ -89,11 +90,11 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
         var searchbtnnote = "<a type='button' href='/Item/AddItemnoteSearch' class='modal-create-lg btn btn-success btn-flat btn-sh pull-left'><i class='fa fa-1x fa-search-plus'></i></a>";
 
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button>' + searchbtnnote + '</div>' +
             '</div></div></div>';
         headingitemnote = '<div id="modal-item-heading' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnoteheading" cols="40" rows="10" class="form-control itemnote" id="itemnoteheading-' + count + '" maxlength="1000">' + headingnote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnoteheading" cols="40" rows="10" class="form-control itemnote" id="itemnoteheading-' + count + '" maxlength="20000">' + headingnote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button>' + searchbtnnote + '</div>' +
             '</div></div></div>';
         notbtn = "<button type='button' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o'></i></button>";
@@ -263,7 +264,7 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
         if (ismobile == false) {
             // $('#itemnote-' + count).wysihtml5();
             CKEDITOR.replace('itemnote-' + count, { versionCheck: false });
-            $('#itemnoteheading-' + count).wysihtml5();
+            CKEDITOR.replace('itemnoteheading-' + count, { versionCheck: false });   // BOS: rich CKEditor (colour + images) instead of minimal wysihtml5
         }
 
 
@@ -434,11 +435,12 @@ function addrowinsert(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantit
             inote = "";
         var headingnote = "";
         if (inote != "") {
-            var arr = inote.split('||');
+            var arr = inote.split('||').filter(function (p) { return /<img/i.test(p) || p.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim() !== ''; });
             var headingexist = (arr.length >= 2) ? true : false;
-            if (headingexist == true) {
+            if (arr.length === 1) { inote = arr[0]; }
+            else if (headingexist == true) {
                 headingnote = arr[0];
-                inote = arr[1];
+                inote = arr.slice(1).join('');
 
 
             }
@@ -446,11 +448,11 @@ function addrowinsert(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantit
         var searchbtnnote = "<a type='button' href='/Item/AddItemnoteSearch' class='modal-create-lg btn btn-success btn-flat btn-sh pull-left'><i class='fa fa-1x fa-search-plus'></i></a>";
 
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button>' + searchbtnnote + '</div>' +
             '</div></div></div>';
         headingitemnote = '<div id="modal-item-heading' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnoteheading" cols="40" rows="10" class="form-control itemnote" id="itemnoteheading-' + count + '" maxlength="1000">' + headingnote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnoteheading" cols="40" rows="10" class="form-control itemnote" id="itemnoteheading-' + count + '" maxlength="20000">' + headingnote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button>' + searchbtnnote + '</div>' +
             '</div></div></div>';
         notbtn = "<button type='button' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o'></i></button>";
@@ -620,7 +622,7 @@ function addrowinsert(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantit
         if (ismobile == false) {
             //  $('#itemnote-' + count).wysihtml5();
             CKEDITOR.replace('itemnote-' + count);
-            $('#itemnoteheading-' + count).wysihtml5();
+            CKEDITOR.replace('itemnoteheading-' + count, { versionCheck: false });   // BOS: rich CKEditor (colour + images) instead of minimal wysihtml5
         }
 
 
@@ -745,7 +747,9 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         var mrp = 0;
         var htdata = "";
         var itemnote = "";
+        var headingitemnote = "";
         var notbtn = "";
+        var headingbtn = "";
         var searchbtn2 = "";
         var divid = "item_name_" + Item;
         var PurchaseType = $("#PurchaseType").val() || "";
@@ -789,11 +793,29 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         }
         if (inote == null)
             inote = "";
+        // BOS: mobile item rows get the SAME heading feature as desktop (was missing entirely on mobile —
+        // no heading button/modal, and the raw "heading||note" string wasn't split, so "||" printed literally).
+        var headingnote = "";
+        if (inote != "") {
+            var arr = inote.split('||').filter(function (p) { return /<img/i.test(p) || p.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim() !== ''; });
+            var headingexist = (arr.length >= 2) ? true : false;
+            if (arr.length === 1) { inote = arr[0]; }
+            else if (headingexist == true) {
+                headingnote = arr[0];
+                inote = arr.slice(1).join('');
+            }
+        }
+        var searchbtnnote = "<a type='button' href='/Item/AddItemnoteSearch' class='modal-create-lg btn btn-success btn-flat btn-sh pull-left'><i class='fa fa-1x fa-search-plus'></i></a>";
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
-            '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button>' + searchbtnnote + '</div>' +
+            '</div></div></div>';
+        headingitemnote = '<div id="modal-item-heading' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
+            '<div class="form-group"><textarea name="itemnoteheading" cols="40" rows="10" class="form-control itemnote" id="itemnoteheading-' + count + '" maxlength="20000">' + headingnote + '</textarea></div>' +
+            '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button>' + searchbtnnote + '</div>' +
             '</div></div></div>';
         notbtn = "<button type='button' id='itmnote' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o sh-icon2'></i></button>";
+        headingbtn = "<button type='button' id='itmheading' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-heading" + count + "'><i class='fa fa-1x fa-bookmark sh-icon2'></i></button>";
 
         var TaxInclusive = $("#TaxInclusive").val() || "";
         var TInRate = "";
@@ -836,7 +858,8 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
                 }
             }
         }
-        var itemaddbtn = "<span class='input-group-btn'><a type='button' href='/Item/Create' id='sh-btn-add' class='modal-create-lgg btn btn-success btn-flat' target='_blank'><i class='fa fa-1x fa-plus-circle sh-icon1'></i></a>" + notbtn + "</span>";
+        searchbtn2 = "<a type='button' href='/Item/AddItemSearch' class='modal-create-lg btn btn-success btn-flat btn-sh pull-left'><i class='fa fa-1x fa-search-plus'></i></a>";
+        var itemaddbtn = "<span class='input-group-btn'><a type='button' href='/Item/Create' id='sh-btn-add' class='modal-create-lgg btn btn-success btn-flat' target='_blank'><i class='fa fa-1x fa-plus-circle sh-icon1'></i></a>" + notbtn + headingbtn + "</span>";
         var searchbtn = "<span class='input-group-btn'><a type='button' href='/Item/Searchmodal' class='modal-create-lg btn btn-success btn-flat'z><i class='fa fa-search' aria-hidden='true'></i></a></span>"
         searchbtn2 = "<a type='button' href='/Item/AddItemSearch' class='modal-create-lg btn btn-success btn-flat btn-sh pull-left'><i class='fa fa-1x fa-search-plus'></i></a>"
 
@@ -875,7 +898,7 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         if (PricingStrategy == true)
             $("#price_item_" + count).attr('readonly', false);
         data = "<td class='text-center' id=" + divid + "> " + slno + " </td>" +
-            "<td class='input-group input-group-sm'><select class='form-control item_name' " + required + " data-id='" + count + "' placeholder='Item Name' id='item_name_" + count + "'  data-msg-required='The Item field is required' onchange='GetItemdetails(this," + count + ",\"" + type + "\")'>" + Option + "</select> " + itemaddbtn + "</td>" +
+            "<td class='input-group input-group-sm'>" + searchbtn2 + "<select class='form-control item_name' " + required + " data-id='" + count + "' placeholder='Item Name' id='item_name_" + count + "'  data-msg-required='The Item field is required' onchange='GetItemdetails(this," + count + ",\"" + type + "\")'>" + Option + "</select> " + itemaddbtn + "</td>" +
             "<td style='width:100px;'>Unit<select class='form-control units unit_name_" + count + "' style='text-align:center!important;' id='unit_name_" + count + "' data-id='" + count + "' id='unit_name' onchange='unitchange(this," + count + ",\"" + type + "\"); '></select></td>" +
             "<td style='width:50px;'>Qty<input type='number' name='product_quantity[]' data-msg-min ='The Item Quantity must be Greater than Zero' onblur='quantity_change(" + count + ",\"" + type + "\");' id='total_qntt_" + count + "' value='" + ItemQuantity + "'  class='total_qntt_" + count + " form-control text-right quty' placeholder='0' value='0' min='.01' tabindex='" + tab2 + "'/></td>" +
             TInRate +
@@ -909,7 +932,7 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         }
 
         //"" + setproject + settask + "";
-        protask += "<td class='text-center'><button tabindex='" + tab5 + "' style='text-align: right;' class='btn btn-danger'  id='sh-btn-dlt2' type='button' value='Delete' onclick='deleteRow(this)'><i class='fa fa-trash fa-1x'></i></button>" + itemnote + htdata + "</td>";
+        protask += "<td class='text-center'><button tabindex='" + tab5 + "' style='text-align: right;' class='btn btn-danger'  id='sh-btn-dlt2' type='button' value='Delete' onclick='deleteRow(this)'><i class='fa fa-trash fa-1x'></i></button>" + itemnote + htdata + headingitemnote + "</td>";
 
         //Autosave 
 
@@ -958,6 +981,7 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         if (ismobile == false) {
             //$('#itemnote-' + count).wysihtml5();
             CKEDITOR.replace('itemnote-' + count);
+            CKEDITOR.replace('itemnoteheading-' + count, { versionCheck: false });   // BOS: heading feature parity with desktop
         }
 
 
@@ -1192,6 +1216,19 @@ function itemUpdate(selectObject, dataid, action) {
             $("#base_rate_" + dataid).val(result.BasePrice);
             $("#cfactor_" + dataid).val(result.ConFactor);
             $("#itemimagepath").val("http://" + window.location.host + "/uploads/itemimages/" + result.ItemID + "/" + result.FileName);
+            // BOS: if the picked item has a master image, drop it into this row's note editor (no dup)
+            try {
+                if (result.FileName && String(result.FileName).trim() !== "" && window.CKEDITOR) {
+                    var _imgUrl = "/uploads/itemimages/" + result.ItemID + "/" + result.FileName;
+                    var _ck = CKEDITOR.instances['itemnote-' + dataid] || CKEDITOR.instances['itemnoteheading-' + dataid];
+                    if (_ck) {
+                        var _cur = _ck.getData() || "";
+                        if (_cur.indexOf(_imgUrl) < 0) {
+                            _ck.setData(_cur + '<p><img src="' + _imgUrl + '" alt="item image" style="max-width:100%;width:200px;height:auto" /></p>');
+                        }
+                    }
+                }
+            } catch (e) { }
             if (TaxInclusive == "active") {
                 price_change(dataid);
             } else {

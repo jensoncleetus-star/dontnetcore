@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewBag.Title = "Restore Database";
     ViewBag.SubTitle = "Restore Database";
     ViewBag.Active = "Utility";
@@ -8,18 +8,45 @@
         <h3 class="box-title">Restore Database</h3>
     </div>
     <div class="box-body">
-        @using (Html.BeginForm("Restore", "BackUpRestore", FormMethod.Post, new { @id = "createform", role = "form", @class = "form-horizontal"}))
+        @using (Html.BeginForm("Restore", "BackUpRestore", FormMethod.Post, new { @id = "createform", role = "form", @class = "form-horizontal", enctype = "multipart/form-data" }))
         {
             <div class="form-group">
-                <label class="control-label col-md-4">Enter File Path</label>
-                <div class="col-sm-3">
+                <label class="control-label col-md-4">Upload Backup File (.bak)</label>
+                <div class="col-sm-4">
+                    <input type="file" name="bakfile" id="bakfile" class="form-control" accept=".bak" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label col-md-4">Or Enter Server File Path</label>
+                <div class="col-sm-4">
                     @Html.TextBox("filepath", "", new { @class = "form-control" })
                 </div>
             </div>
             <div class="box-footer col-md-12">
-                <input type="submit" id="submit" class="btn btn-info col-sm-offset-5" value="Restore" />
-                @*<input type="button" class="btn btn-default" value="Reset" id="btnreset" />*@
+                <input type="submit" id="submit" class="btn btn-info col-sm-offset-4" value="Restore" />
             </div>
         }
     </div>
 </div>
+
+<div id="restoreWaitOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:9999;color:#fff;text-align:center;">
+    <div style="margin-top:20vh;">
+        <i class="fa fa-spinner fa-spin fa-3x"></i>
+        <h3 style="margin-top:15px;">Restoring database, please wait...</h3>
+        <p>This can take several minutes for large backups. Do not close or refresh this page.</p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('createform').addEventListener('submit', function (e) {
+        var hasFile = document.getElementById('bakfile').files.length > 0;
+        var hasPath = document.querySelector('input[name="filepath"]').value.trim().length > 0;
+        if (!hasFile && !hasPath) {
+            e.preventDefault();
+            alert('Please upload a .bak file or enter a server file path.');
+            return;
+        }
+        document.getElementById('restoreWaitOverlay').style.display = 'block';
+        document.getElementById('submit').disabled = true;
+    });
+</script>
