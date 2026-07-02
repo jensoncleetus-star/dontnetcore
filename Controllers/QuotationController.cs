@@ -138,6 +138,7 @@ namespace QuickSoft.Controllers
 
 
             long id = Convert.ToInt64(Request.Form.GetValues("id").First());
+            var UploadUserId = User.Identity.GetUserId();
 
 
 
@@ -197,11 +198,13 @@ namespace QuickSoft.Controllers
                                 {
                                     quotationID = id,
                                     FileName = newFName,//Path.GetFileName(file.FileName),
+                                    Notes = fileName, // keep the ORIGINAL file name for display/download (disk name stays numeric to avoid collisions)
                                     Status = FStatus,
                                     CreatedDate = Convert.ToDateTime(System.DateTime.Now)
                                 };
                                 db.quotationdocuments.Add(qtndoc);
                                 db.SaveChanges();
+                                com.addlog(LogTypes.Created, UploadUserId, "Quotation", "quotationdocuments", findip(), id, "Attached document '" + fileName + "' to Quotation #" + id);
 
                                 if (extension == ".jpg" || extension == ".jfif" || extension == ".png" || extension == ".jpeg")
                                 {
@@ -264,6 +267,71 @@ namespace QuickSoft.Controllers
                 return Json("No files selected.");
             }
         }
+
+        // Returns the list of documents attached to a quotation (for the Edit gallery + the list-page attach modal).
+        [QkAuthorize(Roles = "Dev,Edit Quotation,Quotation Entry,All Quotation Entry")]
+        public ActionResult GetQuotationDocuments(long id)
+        {
+            var docs = db.quotationdocuments
+                .Where(d => d.quotationID == id)
+                .OrderByDescending(d => d.qutid)
+                .Select(d => new { d.qutid, d.FileName, d.Notes, d.CreatedDate })
+                .ToList();
+            var imageExt = new[] { ".jpg", ".jpeg", ".jfif", ".png", ".gif", ".bmp", ".webp" };
+            var list = docs.Select(d => new
+            {
+                qutid = d.qutid,
+                // display/download the ORIGINAL name (stored in Notes); fall back to the disk name for old records
+                fileName = string.IsNullOrWhiteSpace(d.Notes) ? d.FileName : d.Notes,
+                url = "/uploads/quotationdocument/" + d.FileName, // physical (numeric) file on disk
+                isImage = imageExt.Contains((System.IO.Path.GetExtension(d.FileName) ?? "").ToLower()),
+                created = string.Format("{0:dd-MM-yyyy hh:mm tt}", d.CreatedDate)
+            }).ToList();
+            return new QuickSoft.Models.LegacyJsonResult { Data = list };
+        }
+
+        // Deletes a single quotation attachment: removes the file (and its thumb/resize variants) then the DB row, and logs it.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [QkAuthorize(Roles = "Dev,Edit Quotation")]
+        public ActionResult DeleteQuotationDocument(long qutid)
+        {
+            var UserId = User.Identity.GetUserId();
+            var doc = db.quotationdocuments.Find(qutid);
+            if (doc == null)
+            {
+                return new QuickSoft.Models.LegacyJsonResult { Data = new { status = false, message = "Attachment not found." } };
+            }
+            try
+            {
+                string dir = LegacyWeb.MapPath("~/uploads/quotationdocument/");
+                var fn = doc.FileName ?? "";
+                var names = new List<string> { fn };
+                // images are stored as "resize_<n>.<ext>" with sibling "<n>.<ext>" and "thumb_<n>.<ext>"
+                if (fn.StartsWith("resize_"))
+                {
+                    var baseName = fn.Substring("resize_".Length);
+                    names.Add(baseName);
+                    names.Add("thumb_" + baseName);
+                }
+                foreach (var n in names.Distinct())
+                {
+                    if (string.IsNullOrEmpty(n)) continue;
+                    var p = System.IO.Path.Combine(dir, n);
+                    if (System.IO.File.Exists(p)) System.IO.File.Delete(p);
+                }
+                long quotId = doc.quotationID;
+                db.quotationdocuments.Remove(doc);
+                db.SaveChanges();
+                com.addlog(LogTypes.Deleted, UserId, "Quotation", "quotationdocuments", findip(), quotId, "Deleted attachment '" + fn + "' from Quotation #" + quotId);
+                return new QuickSoft.Models.LegacyJsonResult { Data = new { status = true, message = "Attachment deleted." } };
+            }
+            catch (Exception ex)
+            {
+                return new QuickSoft.Models.LegacyJsonResult { Data = new { status = false, message = "Error: " + ex.Message } };
+            }
+        }
+
         public ActionResult convert()
         {
 
@@ -764,7 +832,7 @@ namespace QuickSoft.Controllers
             var userpermission = User.IsInRole("All Quotation Entry");
             var UserId = User.Identity.GetUserId();
 
-            ViewBag.LastEntry = db.Quotations.Where(a => a.CreatedUserId == UserId || userpermission == true).Select(p => p.QuotationId).AsEnumerable().DefaultIfEmpty(0).Max();
+            ViewBag.LastEntry = db.Quotations.Where(a => a.CreatedUserId == UserId || userpermission == true).Select(p => (long?)p.QuotationId).Max() ?? 0;
 
             var mail = db.EnableSettings.Where(a => a.EnableType == "SaveAndMail").FirstOrDefault();
             var mailcheck = mail != null ? mail.Status : Status.inactive;
@@ -987,7 +1055,7 @@ namespace QuickSoft.Controllers
             var userpermission = User.IsInRole("All Quotation Entry");
             var UserId = User.Identity.GetUserId();
 
-            ViewBag.LastEntry = db.Quotations.Where(a => a.CreatedUserId == UserId || userpermission == true).Select(p => p.QuotationId).AsEnumerable().DefaultIfEmpty(0).Max();
+            ViewBag.LastEntry = db.Quotations.Where(a => a.CreatedUserId == UserId || userpermission == true).Select(p => (long?)p.QuotationId).Max() ?? 0;
 
             var mail = db.EnableSettings.Where(a => a.EnableType == "SaveAndMail").FirstOrDefault();
             var mailcheck = mail != null ? mail.Status : Status.inactive;
@@ -1399,7 +1467,8 @@ namespace QuickSoft.Controllers
                     }
                 }
 
-                com.addlog(LogTypes.Created, UserId, "Quotation", "Quotations", findip(), quotationId, "Successfully Submitted Quotations");
+                var _qlog = db.Quotations.Where(x => x.QuotationId == quotationId).Select(x => new { x.BillNo, x.QuotGrandTotal }).FirstOrDefault();
+                com.addlog(LogTypes.Created, UserId, "Quotation", "Quotations", findip(), quotationId, _qlog != null ? ("Created Quotation " + _qlog.BillNo + " — Grand Total " + string.Format("{0:N2}", _qlog.QuotGrandTotal)) : "Successfully Submitted Quotations");
 
 
 
@@ -1785,7 +1854,8 @@ namespace QuickSoft.Controllers
                     }
                 }
 
-                com.addlog(LogTypes.Created, UserId, "Quotation", "Quotations", findip(), quotationId, "Successfully Submitted Quotations");
+                var _qlog = db.Quotations.Where(x => x.QuotationId == quotationId).Select(x => new { x.BillNo, x.QuotGrandTotal }).FirstOrDefault();
+                com.addlog(LogTypes.Created, UserId, "Quotation", "Quotations", findip(), quotationId, _qlog != null ? ("Created Quotation " + _qlog.BillNo + " — Grand Total " + string.Format("{0:N2}", _qlog.QuotGrandTotal)) : "Successfully Submitted Quotations");
 
 
 
@@ -3133,7 +3203,8 @@ namespace QuickSoft.Controllers
                                 db.SaveChanges();
                             }
                         }
-                        com.addlog(LogTypes.Updated, UserId, "Quotation", "Quotations", findip(), quotEntryId, "Successfully Updated Quotations");
+                        var _qulog = db.Quotations.Where(x => x.QuotationId == quotEntryId).Select(x => new { x.BillNo, x.QuotGrandTotal }).FirstOrDefault();
+                        com.addlog(LogTypes.Updated, UserId, "Quotation", "Quotations", findip(), quotEntryId, _qulog != null ? ("Updated Quotation " + _qulog.BillNo + " — Grand Total " + string.Format("{0:N2}", _qulog.QuotGrandTotal)) : "Successfully Updated Quotations");
                     }
                     Int64? TimeOut = Convert.ToInt32(db.EnableSettings.Where(a => a.EnableType == "SetTimeOut").Select(a => a.TypeValue).FirstOrDefault());
                     TimeOut = (TimeOut != null && TimeOut != 0) ? TimeOut : 10;
@@ -3642,15 +3713,24 @@ namespace QuickSoft.Controllers
                 v = v.Where(a => a.ApprovalStatus == AppSt);
             }
 
-            //search — match across invoice no, customer, project, executive and created-by (in-memory, full set)
+            //search — "search anything": match across EVERY visible column + more (in-memory, full set):
+            // quote no, customer (code+name), project, executive, created-by, quotation type, task, remarks,
+            // validity (Active/Expired), amount, and the date in both dd-MM-yyyy and dd/MM/yyyy formats.
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                var s = search.ToLower();
-                v = v.Where(p => (p.BillNo != null && p.BillNo.ToString().ToLower().Contains(s)) ||
-                                 (p.Customer != null && p.Customer.ToString().ToLower().Contains(s)) ||
-                                 (p.ProjectName != null && p.ProjectName.ToString().ToLower().Contains(s)) ||
-                                 (p.EmpName != null && p.EmpName.ToString().ToLower().Contains(s)) ||
-                                 (p.user != null && p.user.ToString().ToLower().Contains(s)));
+                var s = search.ToLower().Trim();
+                v = v.Where(p => (p.BillNo != null && p.BillNo.ToLower().Contains(s)) ||
+                                 (p.Customer != null && p.Customer.ToLower().Contains(s)) ||
+                                 (p.ProjectName != null && p.ProjectName.ToLower().Contains(s)) ||
+                                 (p.EmpName != null && p.EmpName.ToLower().Contains(s)) ||
+                                 (p.user != null && p.user.ToLower().Contains(s)) ||
+                                 (p.QuotType != null && p.QuotType.ToLower().Contains(s)) ||
+                                 (p.Task != null && p.Task.ToLower().Contains(s)) ||
+                                 (p.Remarks != null && p.Remarks.ToLower().Contains(s)) ||
+                                 (p.validity != null && p.validity.ToLower().Contains(s)) ||
+                                 (p.QuotGrandTotal.ToString().ToLower().Contains(s)) ||
+                                 (p.QuotDate.ToString("dd-MM-yyyy").Contains(s)) ||
+                                 (p.QuotDate.ToString("dd/MM/yyyy").Contains(s)));
             }
 
             //SORT
@@ -4042,7 +4122,7 @@ namespace QuickSoft.Controllers
             db.Quotations.Remove(QSum);
             db.SaveChanges();
 
-            com.addlog(LogTypes.Deleted, UserId, "Quotation", "Quotations", findip(), QSum.QuotationId, "Successfully Deleted Quotations");
+            com.addlog(LogTypes.Deleted, UserId, "Quotation", "Quotations", findip(), QSum.QuotationId, "Deleted Quotation " + QSum.BillNo + " — Grand Total " + string.Format("{0:N2}", QSum.QuotGrandTotal));
             return true;
         }
 

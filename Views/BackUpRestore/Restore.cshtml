@@ -8,45 +8,137 @@
         <h3 class="box-title">Restore Database</h3>
     </div>
     <div class="box-body">
-        @using (Html.BeginForm("Restore", "BackUpRestore", FormMethod.Post, new { @id = "createform", role = "form", @class = "form-horizontal", enctype = "multipart/form-data" }))
-        {
-            <div class="form-group">
-                <label class="control-label col-md-4">Upload Backup File (.bak)</label>
-                <div class="col-sm-4">
-                    <input type="file" name="bakfile" id="bakfile" class="form-control" accept=".bak" />
-                </div>
+        <div class="form-group">
+            <label class="control-label col-md-4">Upload Backup File (.bak)</label>
+            <div class="col-sm-4">
+                <input type="file" name="bakfile" id="bakfile" class="form-control" accept=".bak" />
             </div>
-            <div class="form-group">
-                <label class="control-label col-md-4">Or Enter Server File Path</label>
-                <div class="col-sm-4">
-                    @Html.TextBox("filepath", "", new { @class = "form-control" })
-                </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label col-md-4">Or Enter Server File Path</label>
+            <div class="col-sm-4">
+                @Html.TextBox("filepath", "", new { @class = "form-control" })
             </div>
-            <div class="box-footer col-md-12">
-                <input type="submit" id="submit" class="btn btn-info col-sm-offset-4" value="Restore" />
-            </div>
-        }
+        </div>
+        <div class="box-footer col-md-12">
+            <input type="button" id="submit" class="btn btn-info col-sm-offset-4" value="Restore" />
+        </div>
     </div>
 </div>
 
 <div id="restoreWaitOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:9999;color:#fff;text-align:center;">
     <div style="margin-top:20vh;">
-        <i class="fa fa-spinner fa-spin fa-3x"></i>
-        <h3 style="margin-top:15px;">Restoring database, please wait...</h3>
-        <p>This can take several minutes for large backups. Do not close or refresh this page.</p>
+        <i id="restoreSpinner" class="fa fa-spinner fa-spin fa-3x"></i>
+        <i id="restoreDoneIcon" class="fa fa-check-circle fa-3x" style="display:none;color:#5cb85c;"></i>
+        <i id="restoreFailIcon" class="fa fa-times-circle fa-3x" style="display:none;color:#d9534f;"></i>
+        <h3 id="restoreHeading" style="margin-top:15px;">Restoring database, please wait...</h3>
+        <div style="max-width:500px;margin:15px auto 0;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden;">
+            <div id="restoreProgressBar" style="width:0%;height:18px;background:#5cb85c;transition:width .4s;"></div>
+        </div>
+        <p id="restoreMessage" style="margin-top:10px;max-width:600px;margin-left:auto;margin-right:auto;word-break:break-word;">Starting restore...</p>
+        <button id="restoreCloseBtn" type="button" class="btn btn-default" style="display:none;margin-top:10px;">Close</button>
     </div>
 </div>
 
 <script>
-    document.getElementById('createform').addEventListener('submit', function (e) {
-        var hasFile = document.getElementById('bakfile').files.length > 0;
-        var hasPath = document.querySelector('input[name="filepath"]').value.trim().length > 0;
-        if (!hasFile && !hasPath) {
-            e.preventDefault();
-            alert('Please upload a .bak file or enter a server file path.');
-            return;
+    (function () {
+        var overlay = document.getElementById('restoreWaitOverlay');
+        var spinner = document.getElementById('restoreSpinner');
+        var doneIcon = document.getElementById('restoreDoneIcon');
+        var failIcon = document.getElementById('restoreFailIcon');
+        var heading = document.getElementById('restoreHeading');
+        var bar = document.getElementById('restoreProgressBar');
+        var message = document.getElementById('restoreMessage');
+        var closeBtn = document.getElementById('restoreCloseBtn');
+        var submitBtn = document.getElementById('submit');
+        var fileInput = document.getElementById('bakfile');
+        var pathInput = document.querySelector('input[name="filepath"]');
+        var pollTimer = null;
+
+        function resetOverlay() {
+            spinner.style.display = '';
+            doneIcon.style.display = 'none';
+            failIcon.style.display = 'none';
+            heading.textContent = 'Restoring database, please wait...';
+            bar.style.width = '0%';
+            message.textContent = 'Starting restore...';
+            closeBtn.style.display = 'none';
         }
-        document.getElementById('restoreWaitOverlay').style.display = 'block';
-        document.getElementById('submit').disabled = true;
-    });
+
+        function poll(jobId) {
+            pollTimer = setTimeout(function () {
+                $.getJSON('/BackUpRestore/RestoreStatus', { jobId: jobId }, function (data) {
+                    bar.style.width = (data.percent || 0) + '%';
+                    message.textContent = data.message || '';
+
+                    if (data.state === 'Completed') {
+                        spinner.style.display = 'none';
+                        doneIcon.style.display = '';
+                        heading.textContent = 'Restore completed successfully!';
+                        bar.style.width = '100%';
+                        closeBtn.style.display = '';
+                        submitBtn.disabled = false;
+                    } else if (data.state === 'Failed') {
+                        spinner.style.display = 'none';
+                        failIcon.style.display = '';
+                        heading.textContent = 'Restore failed';
+                        closeBtn.style.display = '';
+                        submitBtn.disabled = false;
+                    } else {
+                        poll(jobId);
+                    }
+                }).fail(function () {
+                    poll(jobId);
+                });
+            }, 1500);
+        }
+
+        submitBtn.addEventListener('click', function () {
+            var hasFile = fileInput.files.length > 0;
+            var hasPath = pathInput.value.trim().length > 0;
+            if (!hasFile && !hasPath) {
+                alert('Please upload a .bak file or enter a server file path.');
+                return;
+            }
+
+            resetOverlay();
+            overlay.style.display = 'block';
+            submitBtn.disabled = true;
+
+            var formData = new FormData();
+            if (hasFile) formData.append('bakfile', fileInput.files[0]);
+            formData.append('filepath', pathInput.value.trim());
+
+            $.ajax({
+                url: '/BackUpRestore/RestoreStart',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false
+            }).done(function (data) {
+                if (data.error) {
+                    spinner.style.display = 'none';
+                    failIcon.style.display = '';
+                    heading.textContent = 'Restore failed';
+                    message.textContent = data.error;
+                    closeBtn.style.display = '';
+                    submitBtn.disabled = false;
+                    return;
+                }
+                poll(data.jobId);
+            }).fail(function () {
+                spinner.style.display = 'none';
+                failIcon.style.display = '';
+                heading.textContent = 'Restore failed';
+                message.textContent = 'Could not start the restore. Please try again.';
+                closeBtn.style.display = '';
+                submitBtn.disabled = false;
+            });
+        });
+
+        closeBtn.addEventListener('click', function () {
+            if (pollTimer) clearTimeout(pollTimer);
+            overlay.style.display = 'none';
+        });
+    })();
 </script>

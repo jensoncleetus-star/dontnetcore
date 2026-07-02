@@ -13339,6 +13339,9 @@ namespace QuickSoft.Controllers
         }
 
         //For Uploading the File
+        // Security (audit F14): role-gated so only sales-invoice users can attach. Dangerous extensions
+        // (.html/.svg/.js/…) are already blocked by the SaveAs shim + the /uploads serving block.
+        [QkAuthorize(Roles = "Dev,Sales Entry,Edit Sales Entry,No Tax Sales,Edit Item Sales Entry")]
         public ActionResult UploadFiles()
         {
             if (Request.Form.Files.Count > 0)
@@ -13408,11 +13411,13 @@ namespace QuickSoft.Controllers
                                     TransactionID = SId,
                                     TransactionType = "CreditSale",
                                     FileName = Realname,
+                                    Notes = fileName, // keep ORIGINAL name for display/download (disk name stays numeric)
                                     Status = FStatus,
                                     CreatedDate = Convert.ToDateTime(System.DateTime.Now)
                                 };
                                 db.AttachmentDocuments.Add(PODocument);
                                 db.SaveChanges();
+                                com.addlog(LogTypes.Created, User.Identity.GetUserId(), "CreditSale", "AttachmentDocuments", findip(), SId, "Attached document '" + fileName + "' to Sales Invoice #" + SId);
 
                                 if (extension == ".jpg" || extension == ".jfif" || extension == ".png" || extension == ".jpeg")
                                 {
@@ -13466,13 +13471,42 @@ namespace QuickSoft.Controllers
             }
         }
 
+        // Returns the documents attached to a sales invoice (Edit gallery + list-page attach modal).
+        // NOTE: `id` binds from the URL PATH in this app, so call as /CreditSale/GetCreditSaleDocuments/{id}.
+        [QkAuthorize(Roles = "Dev,Sales Entry,Edit Sales Entry,No Tax Sales,Edit Item Sales Entry")]
+        public ActionResult GetCreditSaleDocuments(long id)
+        {
+            var docs = db.AttachmentDocuments
+                .Where(d => d.TransactionID == id && d.TransactionType == "CreditSale")
+                .OrderByDescending(d => d.DocumentID)
+                .Select(d => new { d.DocumentID, d.FileName, d.Notes, d.CreatedDate })
+                .ToList();
+            var imageExt = new[] { ".jpg", ".jpeg", ".jfif", ".png", ".gif", ".bmp", ".webp" };
+            var list = docs.Select(d => new
+            {
+                docid = d.DocumentID,
+                fileName = string.IsNullOrWhiteSpace(d.Notes) ? d.FileName : d.Notes, // original name if captured
+                url = "/uploads/CreditSaleDocuments/" + d.FileName,
+                isImage = imageExt.Contains((System.IO.Path.GetExtension(d.FileName) ?? "").ToLower()),
+                created = string.Format("{0:dd-MM-yyyy hh:mm tt}", d.CreatedDate)
+            }).ToList();
+            return new QuickSoft.Models.LegacyJsonResult { Data = list };
+        }
+
         //end
 
         //For deleteing when any of the image deleted
+        // Security (audit F13): role-gated, scoped to CreditSale attachments only, and null-checked so it can't
+        // delete another module's document by primary key or 500 on a bad key.
+        [QkAuthorize(Roles = "Dev,Edit Sales Entry,Sales Entry,No Tax Sales,Edit Item Sales Entry")]
         public JsonResult ImageDelete(long key)
         {
             //To remove the attached file(single row) from database
             AttachmentDocuments Document = db.AttachmentDocuments.Find(key);
+            if (Document == null || Document.TransactionType != "CreditSale")
+            {
+                return new QuickSoft.Models.LegacyJsonResult { Data = new { status = false, message = "Attachment not found." } };
+            }
             db.AttachmentDocuments.Remove(Document);
             db.SaveChanges();
 

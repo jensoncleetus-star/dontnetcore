@@ -2259,7 +2259,11 @@ function price_change(arg, type, foredit) {
     var itemdiscount = $(".item_discount" + arg).val();
     subtotal = subtotal - itemdiscount;
 
-    var taxAmount = (parseFloat(TaxAMT) * quantity);
+    // F2 fix: tax the DISCOUNTED subtotal (identical to rowSubTotal), so editing a line via the price/rate
+    // field gives the same VAT as editing qty/discount. Previously this was TaxAMT*qty = tax on the full
+    // (undiscounted) amount, which over-charged VAT on any discounted line. Correct for exclusive, inclusive
+    // (rate is already the net price) and exempt (tax=0).
+    var taxAmount = (Math.round(subtotal * tax) / 100);
     var Total = subtotal + taxAmount;
 
     $("#tot_tax_" + arg).val(taxAmount.toFixed(2));

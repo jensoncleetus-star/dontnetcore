@@ -1,0 +1,196 @@
+<script src="~/Content/plugins/ckeditor/ckeditor.js"></script>
+@* BOS: richer CKEditor toolbar for ALL editors on this page (Terms / Remarks / item-note).
+   Uses only plugins present in the standard build; colours are provided via the Styles dropdown
+   (stylesSet) so no extra plugin is needed. Save logic (getData) is unchanged. *@
+<script>
+    (function () {
+        if (!window.CKEDITOR) return;
+        CKEDITOR.on('instanceCreated', function (ev) {
+            var ed = ev.editor;
+            ed.on('configLoaded', function () {
+                ed.config.toolbar = [
+                    { name: 'styles', items: ['Format', 'Styles'] },
+                    { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', 'RemoveFormat'] },
+                    { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                    { name: 'links', items: ['Link', 'Unlink'] },
+                    { name: 'insert', items: ['Table', 'HorizontalRule', 'SpecialChar'] },   // built-in image-by-URL dialog removed; use the green "Add Image" (upload) instead
+                    { name: 'clipboard', items: ['Undo', 'Redo'] },
+                    { name: 'tools', items: ['Maximize', 'Source'] }
+                ];
+                // "Styles" dropdown = text colours + highlights + emphasis (no colorbutton plugin required)
+                ed.config.stylesSet = [
+                    { name: 'Red text',    element: 'span', styles: { color: '#dc2626' } },
+                    { name: 'Green text',  element: 'span', styles: { color: '#16a34a' } },
+                    { name: 'Blue text',   element: 'span', styles: { color: '#2563eb' } },
+                    { name: 'Orange text', element: 'span', styles: { color: '#ea580c' } },
+                    { name: 'Purple text', element: 'span', styles: { color: '#7c3aed' } },
+                    { name: 'Grey text',   element: 'span', styles: { color: '#64748b' } },
+                    { name: 'Yellow highlight', element: 'span', styles: { 'background-color': '#fef08a' } },
+                    { name: 'Green highlight',  element: 'span', styles: { 'background-color': '#bbf7d0' } },
+                    { name: 'Blue highlight',   element: 'span', styles: { 'background-color': '#bfdbfe' } },
+                    { name: 'Bold red',    element: 'strong', styles: { color: '#dc2626' } },
+                    { name: 'Big',   element: 'big' },
+                    { name: 'Small', element: 'small' },
+                    { name: 'Marker', element: 'mark' }
+                ];
+                ed.config.format_tags = 'p;h1;h2;h3;h4;pre';
+                ed.config.removeButtons = '';
+                ed.config.removePlugins = '';
+                // no content filtering: keep colours, inline styles, and drag/dropped or pasted images (base64)
+                ed.config.allowedContent = true;
+                ed.config.disableNativeSpellChecker = false;   // browser spell check (red underline) in the note editor
+                // images are UPLOADED (see bosxEnhanceEditor) and inserted as short URLs — do NOT let
+                // CKEditor embed dropped/pasted images as base64 (base64 overflows the note maxlength).
+                ed.config.pasteFilter = null;
+                ed.config.clipboard_handleImages = false;
+            });
+        });
+
+        // ---- add a visible colour / highlight / align / image bar to EVERY editor once ready ----
+        CKEDITOR.on('instanceReady', function (ev) { try { bosxEnhanceEditor(ev.editor); } catch (e) { } });
+        // Warn when an image is PASTED from an external website (e.g. copied from a shopping site) instead of
+        // added via the green "Add Image" button. External images can have a much larger natural resolution than
+        // their shrunk display size, and the PDF/print engine can render them at that larger size — causing them
+        // to spill across a page break even though they look fine on screen. Non-blocking: the paste still goes
+        // through, this just tells the user to fix it via Add Image.
+        CKEDITOR.on('instanceReady', function (ev) {
+            ev.editor.on('paste', function (evt) {
+                var html = evt.data && evt.data.dataValue;
+                if (html && /<img[^>]+src=["'](https?:)?\/\/(?!.*localhost)[^"']+["']/i.test(html)) {
+                    try {
+                        ev.editor.showNotification('This image looks like it was copied from a website. Please remove it and use the green "Add Image" button instead — external images can print at the wrong size and split across pages.', 'warning', 8000);
+                    } catch (e) { }
+                }
+            });
+        });
+
+        // MOBILE FIX (kept in sync with Edit.cshtml): ensure the item note/heading CKEditor exists + is sized
+        // whenever its pop-up opens, so the mobile pop-up shows the rich editor instead of the raw textarea.
+        (function () {
+            if (!window.jQuery) return;
+            jQuery(document).on('shown.bs.modal', '[id^="modal-item-"]', function () {
+                try {
+                    var ta = this.querySelector('textarea[id^="itemnote-"], textarea[id^="itemnoteheading-"]');
+                    if (!ta || !window.CKEDITOR) return;
+                    if (!CKEDITOR.instances[ta.id]) { CKEDITOR.replace(ta.id, { versionCheck: false }); }
+                    else { setTimeout(function () { try { CKEDITOR.instances[ta.id].resize('100%', 260); } catch (e) { } }, 40); }
+                } catch (e) { }
+            });
+        })();
+        function bosxEnhanceEditor(editor) {
+            var container = editor.container && editor.container.$;
+            if (!container) return;
+            var top = container.querySelector('.cke_top');
+            if (!top || container.querySelector('.bosx-cke-extra')) return;
+
+            var textCols = ['#111827', '#dc2626', '#ea580c', '#f59e0b', '#16a34a', '#0ea5e9', '#2563eb', '#7c3aed', '#db2777', '#64748b', '#ffffff'];
+            var hiCols = ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#e9d5ff'];
+            function sw(list, type) { return list.map(function (c) { return '<button type="button" class="bosx-sw" data-type="' + type + '" data-c="' + c + '" title="' + c + '" style="background:' + c + '"></button>'; }).join(''); }
+
+            var bar = document.createElement('div');
+            bar.className = 'bosx-cke-extra';
+            bar.innerHTML =
+                '<span class="bosx-lbl" style="color:#dc2626">A</span>' + sw(textCols, 'fore') +
+                '<span class="bosx-sep"></span><i class="fa fa-paint-brush bosx-lbl"></i>' + sw(hiCols, 'back') +
+                '<span class="bosx-sep"></span>' +
+                '<button type="button" class="bosx-al" data-a="justifyLeft" title="Align left"><i class="fa fa-align-left"></i></button>' +
+                '<button type="button" class="bosx-al" data-a="justifyCenter" title="Align center"><i class="fa fa-align-center"></i></button>' +
+                '<button type="button" class="bosx-al" data-a="justifyRight" title="Align right"><i class="fa fa-align-right"></i></button>' +
+                '<button type="button" class="bosx-al" data-a="justifyFull" title="Justify"><i class="fa fa-align-justify"></i></button>' +
+                '<span class="bosx-sep"></span>' +
+                '<button type="button" class="bosx-imgbtn" title="Insert image(s) from your device"><span class="bxi">&#128247;</span> Add Image</button>' +
+                '<span class="bosx-sep"></span>' +
+                '<span class="bosx-lbl" title="Click an image in the note, then choose its print size">SIZE</span>' +
+                '<button type="button" class="bosx-isz" data-w="110" title="Small image">S</button>' +
+                '<button type="button" class="bosx-isz" data-w="180" title="Medium image">M</button>' +
+                '<button type="button" class="bosx-isz" data-w="300" title="Large image">L</button>' +
+                '<button type="button" class="bosx-isz" data-w="full" title="Full width">Full</button>';
+            top.parentNode.insertBefore(bar, top.nextSibling);
+
+            function applyColor(type, c) { editor.focus(); try { editor.document.$.execCommand('styleWithCSS', false, true); } catch (e0) { } try { editor.document.$.execCommand(type === 'fore' ? 'foreColor' : 'hiliteColor', false, c); } catch (e) { try { editor.document.$.execCommand(type === 'fore' ? 'foreColor' : 'backColor', false, c); } catch (e2) { } } }
+            Array.prototype.forEach.call(bar.querySelectorAll('.bosx-sw'), function (b) {
+                b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                b.addEventListener('click', function (e) { e.preventDefault(); applyColor(b.getAttribute('data-type'), b.getAttribute('data-c')); });
+            });
+            Array.prototype.forEach.call(bar.querySelectorAll('.bosx-al'), function (b) {
+                b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                b.addEventListener('click', function (e) { e.preventDefault(); editor.focus(); try { editor.document.$.execCommand('styleWithCSS', false, true); } catch (e0) { } try { editor.document.$.execCommand(b.getAttribute('data-a'), false, null); } catch (ex) { } });
+            });
+            // UPLOAD images to the server and insert the (short) URL — NOT base64 (base64 blew past the
+            // note textarea's maxlength and got truncated, so the image was lost on save).
+            function note(msg, type) { try { if (editor.showNotification) return editor.showNotification(msg, type || 'info', type === 'progress' ? 0 : 4000); } catch (e) { } }
+            function insertImages(files) {
+                var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+                Array.prototype.forEach.call(files, function (f) {
+                    if (!/^image\//.test(f.type)) return;
+                    if (f.size > 4 * 1024 * 1024) { note('Image "' + (f.name || '') + '" is too large (max 4 MB).', 'warning'); return; }
+                    var fd = new FormData(); fd.append('file', f);
+                    var busy = note('Uploading image…', 'progress');
+                    // track in-flight uploads so a Save/Print doesn't fire before the <img> is inserted (which
+                    // would save the note WITHOUT the image = "added image not there when I come back").
+                    window.__bosxUploads = (window.__bosxUploads || 0) + 1;
+                    var _doneUpload = function () { window.__bosxUploads = Math.max(0, (window.__bosxUploads || 1) - 1); };
+                    fetch('/DesignTemplate/UploadImage', { method: 'POST', headers: tokenEl ? { 'RequestVerificationToken': tokenEl.value } : {}, body: fd })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (busy && busy.hide) busy.hide();
+                            if (res && res.success && res.url) {
+                                editor.focus();
+                                // default (auto) size = medium, capped to the container; use the SIZE buttons to change
+                                editor.insertHtml('<p><img src="' + res.url + '" style="max-width:100%;width:200px;height:auto" alt="" /></p>');
+                                try { editor.updateElement(); } catch (e) { }
+                                note('Image added — click it then use SIZE to resize.', 'success');
+                            } else {
+                                note('Image upload failed' + (res && res.message ? (': ' + res.message) : '.'), 'warning');
+                            }
+                            _doneUpload();
+                        })
+                        .catch(function () { if (busy && busy.hide) busy.hide(); note('Image upload failed — please try again.', 'warning'); _doneUpload(); });
+                });
+            }
+            // Keep the file <input> OUT of the editor/bar DOM. The item-note editor lives INSIDE the item
+            // row <td>, and the save reads item columns by index — an extra <input> here shifts every column
+            // and corrupts the save (symptom: "Update And Print" hangs, no request sent). So the input lives
+            // on <body> and the button triggers it.
+            var fi = document.createElement('input');
+            fi.type = 'file'; fi.accept = 'image/*'; fi.multiple = true;
+            fi.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;';
+            fi.setAttribute('data-bosx-img', '1');
+            document.body.appendChild(fi);
+            fi.addEventListener('change', function () { insertImages(fi.files); fi.value = ''; });
+            bar.querySelector('.bosx-imgbtn').addEventListener('click', function (e) { e.preventDefault(); fi.click(); });
+
+            // ---- image RESIZE: click an image in the note, then press S / M / L / Full ----
+            function selectedImg() {
+                try { var el = editor.getSelection().getSelectedElement(); if (el && el.getName && el.getName() === 'img') return el.$; } catch (e) { }
+                return editor._bosxImg || null;
+            }
+            function setImgWidth(w) {
+                var img = selectedImg();
+                if (!img) { note('Click an image in the note first, then pick a size.', 'info'); return; }
+                if (w === 'full') { img.style.width = '100%'; } else { img.style.width = w + 'px'; }
+                img.style.maxWidth = '100%'; img.style.height = 'auto';
+                try { editor.fire('change'); editor.fire('saveSnapshot'); } catch (e) { }
+                note('Image size set to ' + (w === 'full' ? 'full width' : w + 'px') + '.', 'success');
+            }
+            Array.prototype.forEach.call(bar.querySelectorAll('.bosx-isz'), function (b) {
+                b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                b.addEventListener('click', function (e) { e.preventDefault(); setImgWidth(b.getAttribute('data-w')); });
+            });
+
+            // real drag & drop AND paste of image files onto the editing area -> upload + insert URL,
+            // and remember which image was last clicked so the SIZE buttons know their target.
+            function wireDrop() {
+                try {
+                    var edbl = editor.editable(); if (!edbl || edbl.$.__bosxDrop) return; edbl.$.__bosxDrop = 1;
+                    edbl.$.addEventListener('dragover', function (e) { if (e.dataTransfer && e.dataTransfer.types && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { e.preventDefault(); } }, true);
+                    edbl.$.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) { var imgs = Array.prototype.filter.call(e.dataTransfer.files, function (f) { return /^image\//.test(f.type); }); if (imgs.length) { e.preventDefault(); e.stopPropagation(); insertImages(imgs); } } }, true);
+                    edbl.$.addEventListener('paste', function (e) { var cd = e.clipboardData || window.clipboardData; if (cd && cd.files && cd.files.length) { var imgs = Array.prototype.filter.call(cd.files, function (f) { return /^image\//.test(f.type); }); if (imgs.length) { e.preventDefault(); e.stopPropagation(); insertImages(imgs); } } }, true);
+                    edbl.$.addEventListener('click', function (e) { if (e.target && e.target.tagName === 'IMG') { editor._bosxImg = e.target; e.target.style.outline = '2px solid #6366f1'; e.target.style.outlineOffset = '1px'; var t = e.target; setTimeout(function () { try { t.style.outline = ''; } catch (_) { } }, 900); } }, true);
+                } catch (e) { }
+            }
+            wireDrop();
+            editor.on('contentDom', wireDrop);
+        }
+    })();
+</script>
