@@ -3620,6 +3620,35 @@ namespace QuickSoft.Controllers
                     dtItem.Columns.Add("Item");
                     dtItem.Columns.Add("Type");
 
+                    // --- F1/F15 (LOG-ONLY phase): recompute line money server-side to detect client tampering.
+                    //     Changes/blocks NOTHING yet — only logs mismatches (section "SalesCalcAudit") so we can
+                    //     confirm the recompute matches real invoices before switching to enforce. Wrapped in
+                    //     try/catch so it can never affect the save. ---
+                    try
+                    {
+                        System.Func<string, decimal> pd = s => (string.IsNullOrWhiteSpace(s) || s == "http://") ? 0m
+                            : (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0m);
+                        decimal recTax = 0m;
+                        var issues = new System.Text.StringBuilder();
+                        foreach (var a in array)
+                        {
+                            if (a == null || a.Length < 13 || string.IsNullOrWhiteSpace(a[0])) continue;
+                            decimal q = pd(a[2]), r = pd(a[4]), disc = pd(a[7]), tr = pd(a[11]);
+                            decimal pSub = pd(a[6]), pTax = pd(a[10]), pTot = pd(a[12]);
+                            decimal eSub = q * r - disc;                                  // qty*rate - discount
+                            decimal eTax = tr == 0m ? 0m : Math.Round(eSub * tr) / 100m;   // tax on discounted base (net rate covers inclusive/exclusive)
+                            decimal eTot = eSub + eTax;
+                            recTax += eTax;
+                            if (Math.Abs(pSub - eSub) > 0.01m || Math.Abs(pTax - eTax) > 0.02m || Math.Abs(pTot - eTot) > 0.02m)
+                                issues.Append("item " + a[0] + " sub " + pSub + "/" + eSub + " tax " + pTax + "/" + eTax + " tot " + pTot + "/" + eTot + "; ");
+                        }
+                        decimal pTaxTotal = pd(saledata != null && saledata.Length > 5 ? saledata[5] : "0");
+                        if (Math.Abs(pTaxTotal - recTax) > 0.05m) issues.Append("doctax " + pTaxTotal + "/" + recTax + "; ");
+                        if (issues.Length > 0)
+                            com.addlog(LogTypes.Updated, UserId, "CreditSale", "SalesCalcAudit", findip(), salesEntryId, "CALC MISMATCH posted/expected (CreateSale): " + issues.ToString());
+                    }
+                    catch { }
+
                     foreach (var arr in array)
                     {
                         var qty = 0;// db.BatchStocks.Where(x => x.Invoice == Convert.ToString(saledata[17]) && x.Item == Convert.ToInt32(arr[0]) && x.type == "Sale").Select(y => y.Quantity).Sum();
@@ -9458,6 +9487,33 @@ namespace QuickSoft.Controllers
                 dtItem.Columns.Add("SaleEntry");
                 dtItem.Columns.Add("Item");
                 dtItem.Columns.Add("Type");
+
+                // --- F1/F15 (LOG-ONLY phase): recompute line money server-side to detect client tampering.
+                //     Changes/blocks NOTHING — only logs mismatches ("SalesCalcAudit"). try/catch = never affects save. ---
+                try
+                {
+                    System.Func<string, decimal> pd = s => (string.IsNullOrWhiteSpace(s) || s == "http://") ? 0m
+                        : (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0m);
+                    decimal recTax = 0m;
+                    var issues = new System.Text.StringBuilder();
+                    foreach (var a in array)
+                    {
+                        if (a == null || a.Length < 13 || string.IsNullOrWhiteSpace(a[0])) continue;
+                        decimal q = pd(a[2]), r = pd(a[4]), disc = pd(a[7]), tr = pd(a[11]);
+                        decimal pSub = pd(a[6]), pTax = pd(a[10]), pTot = pd(a[12]);
+                        decimal eSub = q * r - disc;
+                        decimal eTax = tr == 0m ? 0m : Math.Round(eSub * tr) / 100m;
+                        decimal eTot = eSub + eTax;
+                        recTax += eTax;
+                        if (Math.Abs(pSub - eSub) > 0.01m || Math.Abs(pTax - eTax) > 0.02m || Math.Abs(pTot - eTot) > 0.02m)
+                            issues.Append("item " + a[0] + " sub " + pSub + "/" + eSub + " tax " + pTax + "/" + eTax + " tot " + pTot + "/" + eTot + "; ");
+                    }
+                    decimal pTaxTotal = pd(saledata != null && saledata.Length > 5 ? saledata[5] : "0");
+                    if (Math.Abs(pTaxTotal - recTax) > 0.05m) issues.Append("doctax " + pTaxTotal + "/" + recTax + "; ");
+                    if (issues.Length > 0)
+                        com.addlog(LogTypes.Updated, UserId, "CreditSale", "SalesCalcAudit", findip(), salesEntryId, "CALC MISMATCH posted/expected (UpdateSale): " + issues.ToString());
+                }
+                catch { }
 
                 foreach (var arr in array)
                 {
