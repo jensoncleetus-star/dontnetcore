@@ -1165,7 +1165,10 @@ namespace QuickSoft.Areas.Property.Controllers
                     rec.Discount = vmodel.Discount;
 
 
-                    IFormFile file = Request.Form.Files["RecieptDoc"];
+                    // The receipt.js submit posts application/json (no form Content-Type), so touching
+                    // Request.Form throws InvalidOperationException → 500 → the client never prints.
+                    // Guard it and treat as "no file"; the if(file!=null) below already handles null.
+                    IFormFile file = Request.HasFormContentType ? Request.Form.Files["RecieptDoc"] : null;
                     if(file!=null)
                     {
                     var fileNames = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(file.FileName);
@@ -1298,9 +1301,9 @@ namespace QuickSoft.Areas.Property.Controllers
             }
             var fmapp = db.FieldMappings.Where(a => a.Section == "Receipt" && a.Print == FMPrint.Yes && a.Status == Status.active).ToList();
 
-           // return new QuickSoft.Models.LegacyJsonResult { Data = new { tbldata = Oustanding, status = stat, data = vmodel, message = msg, type = vmodel.submittype , fmapp = fmapp } };
+            return new QuickSoft.Models.LegacyJsonResult { Data = new { tbldata = Oustanding, status = stat, data = vmodel, message = msg, type = vmodel.submittype , fmapp = fmapp } };
        
-       return RedirectToAction("index","PReceipt");
+      // return RedirectToAction("index","PReceipt");
         
         }
 

@@ -306,15 +306,15 @@ namespace QuickSoft.Controllers
     // ref: https://stackoverflow.com/questions/4793452/mvc-redirect-inside-the-constructor
     public class RedirectingActionAttribute : ActionFilterAttribute
     {
-        ApplicationDbContext db;
-        public RedirectingActionAttribute()
-        {
-            db = new ApplicationDbContext();
-        }
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             if (!filterContext.HttpContext.Request.IsAjaxRequest())
             {
+                // Filter attributes are cached and reused across requests, so a DbContext held in a
+                // field is shared by concurrent requests → "A second operation was started on this
+                // context instance before a previous operation completed". Use a fresh, short-lived
+                // context per invocation instead.
+                using var db = new ApplicationDbContext();
                 base.OnActionExecuting(filterContext);
                 var qry = @"IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Accounts') SELECT 1 ELSE SELECT 0";
                 int rslt = db.Database.SqlQueryRaw<int>(qry).AsEnumerable().FirstOrDefault();

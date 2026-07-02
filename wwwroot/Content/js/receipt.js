@@ -675,7 +675,10 @@ function formsubmition(fnval) {
             }
             else {
                 var FileUpload = $("#input-24").get(0);
-
+                if (FileUpload == null) {
+                    recprint(data.data, data.tbldata, data.fmapp);
+                    location.reload();
+                }
                 var Files = FileUpload.files
 
                 // Create FormData object

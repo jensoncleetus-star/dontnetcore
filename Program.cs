@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -10,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using QuickSoft.Models;
 using QuickSoft.Web;
+using System.Configuration.Provider;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,9 +27,8 @@ if (string.IsNullOrWhiteSpace(conn))
     if (!builder.Environment.IsDevelopment())
         throw new System.InvalidOperationException(
             "ConnectionStrings:DefaultConnection is not configured. Set it (per branch database) before running in Production.");
-    conn = @"Server=.\SQLEXPRESS;Database=emirtechlatest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
+    conn = @"Server=192.168.35.201;Database=REALESTATE-1163;;User Id=rmo;password=wint3er;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
 }
-
 // EF Core 10 translates `list.Contains(column)` via OPENJSON, which fails on SQL Server databases at an
 // older compatibility level ("Incorrect syntax near '$'"). Inline such collections as constants instead
 // (the pre-EF8 behavior) so every Contains-on-collection query works regardless of the DB's compat level.

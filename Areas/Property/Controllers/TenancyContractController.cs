@@ -1278,7 +1278,7 @@ namespace QuickSoft.Areas.Property.Controllers
 
                     
 
-                        if (Convert.ToInt32(arr.ID)==0 && arr.Type!= null)
+                        if (arr.Type!="" && Convert.ToInt32(arr.ID)==0 && arr.Type!= null)
                             {
 
                            // var cheqdate = DateTime.Parse(arr.Date, new CultureInfo("en-GB"));
@@ -1321,7 +1321,7 @@ namespace QuickSoft.Areas.Property.Controllers
 
                             }
 
-                            else if(arr.Type!=null)
+                            else if(arr.Type!="" && arr.Type!=null)
                             {
                             doc = db.PropertyDocumentTypes.Find(arr.ID);
 
