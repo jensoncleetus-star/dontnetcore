@@ -143,6 +143,14 @@
     .dataTables_paginate .paginate_button { border:1px solid #e7eaf0 !important; border-radius:8px !important; padding:6px 12px !important; margin:0 3px !important; color:#475569 !important; background:#fff !important; font-size:13px; }
     .dataTables_paginate .paginate_button.current, .dataTables_paginate .paginate_button.current:hover { background:#6366f1 !important; border-color:#6366f1 !important; color:#fff !important; }
     .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) { background:#eef2ff !important; border-color:#c7d2fe !important; color:#4f46e5 !important; }
+
+    /* ===== #4: one powerful common search — hide Filters button + filter panel ===== */
+    #srch, #advsearchlist, #list1, .bosx-filters-toggle { display:none !important; }
+    /* make the common search the primary, prominent control */
+    .dataTables_filter { float:left !important; margin:0 0 12px 0 !important; }
+    .dataTables_filter input { min-width:360px !important; height:42px !important; font-size:14px !important; padding:8px 16px 8px 40px !important; background-position:14px center !important; }
+    .dataTables_filter input:focus { border-color:#6366f1 !important; box-shadow:0 0 0 3px rgba(99,102,241,.14) !important; }
+    @@media (max-width:640px){ .dataTables_filter { float:none !important; } .dataTables_filter input { min-width:0 !important; width:100% !important; } }
 </style>
 
 <div class="box box-info">
@@ -656,13 +664,17 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
             "pageLength": 50,
             responsive: true,
             "bLengthChange": false,
+            "language": { "search": "", "searchPlaceholder": "Search invoices — no, customer, executive, PO, phone, amount…" },
             "ajax": {
                 "url": '/CreditSale/GetSalesEntry',
                 "data": function (data) {
                     data.vouchertype = $('#ddlsalestype').val();
                     data.InvoiceNo = $('#InvoiceNo').val();
-                    data.FromDate = $('#FromDate').val();
-                    data.ToDate = $('#ToDate').val();
+                    // #4 powerful search: when the common search box has a term, drop the default date
+                    // window so the search spans the FULL invoice history; otherwise keep the fast recent view.
+                    var _gsearch = ($('#SalesTable_filter input').val() || '').trim();
+                    data.FromDate = _gsearch !== '' ? '' : $('#FromDate').val();
+                    data.ToDate = _gsearch !== '' ? '' : $('#ToDate').val();
                     data.customer = $('#ddlCustomer').val();
                     data.salesperson = $('#ddlEmployee').val();
                     data.paymethod = $('#ddlPayMethod').val();

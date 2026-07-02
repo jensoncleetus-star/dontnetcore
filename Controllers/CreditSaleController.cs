@@ -5319,7 +5319,22 @@ namespace QuickSoft.Controllers
                      && (ProjectName == 0 || ProjectName == null || j.ProjectId == ProjectName)
                      //&& (Task == 0 || Task == null || k.ProTaskId == Task)
                     && (salesstatus == null || a.SalesStatus == salesstatus)
-                     && (SearchW == "" || a.BillNo.ToLower().Contains(SearchW) || (a.customername != null && a.customername.ToLower().Contains(SearchW))) &&
+                     // Powerful "search anything" — one box matches invoice no, customer (name/code),
+                     // PO no, phone, sales executive, customer's executive, material center, and amount.
+                     && (SearchW == ""
+                        || (a.BillNo != null && a.BillNo.ToLower().Contains(SearchW))
+                        || (a.customername != null && a.customername.ToLower().Contains(SearchW))
+                        || (b != null && b.CustomerName != null && b.CustomerName.ToLower().Contains(SearchW))
+                        || (b != null && b.CustomerCode != null && b.CustomerCode.ToLower().Contains(SearchW))
+                        || (a.PONo != null && a.PONo.ToLower().Contains(SearchW))
+                        || (a.phonenumber != null && a.phonenumber.ToLower().Contains(SearchW))
+                        || (d != null && d.FirstName != null && d.FirstName.ToLower().Contains(SearchW))
+                        || (d != null && d.LastName != null && d.LastName.ToLower().Contains(SearchW))
+                        || (l != null && l.FirstName != null && l.FirstName.ToLower().Contains(SearchW))
+                        || (l != null && l.LastName != null && l.LastName.ToLower().Contains(SearchW))
+                        || (i != null && i.MCName != null && i.MCName.ToLower().Contains(SearchW))
+                        || (a.SEGrandTotal.ToString().Contains(SearchW))
+                        ) &&
                     (Ref1 == "" || Ref1 == null || a.Ref1 == Ref1) &&
                     (Ref2 == "" || Ref2 == null || a.Ref2 == Ref2) &&
                     (Ref3 == "" || Ref3 == null || a.Ref3 == Ref3) &&
