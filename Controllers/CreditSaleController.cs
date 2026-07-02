@@ -3172,12 +3172,67 @@ namespace QuickSoft.Controllers
         [RedirectingAction]
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Sales Entry,No Tax Sales")]
+        // ---- F1/F15 ENFORCE ---------------------------------------------------------------
+        // Recompute per-line and document money server-side and CORRECT any client tampering
+        // in-place on `array` / `saledata` BEFORE they are consumed, so the header row, the
+        // line items, the GL postings and the payment leg all use trusted values.
+        //  * qty*rate-discount for the line subtotal; round(sub*rate)/100 for the line tax.
+        //  * A 0.05 tolerance means cent-level rounding (the client taxes the full-precision
+        //    subtotal, we only see the rounded one) is NEVER touched — only real, dollar-level
+        //    tampering is corrected. Legitimate invoices are provably left byte-for-byte alone.
+        //  * The grand total keeps the posted bill-sundry / roundoff delta so bill-sundry
+        //    invoices are preserved; any correction is written to log section "SalesCalcAudit".
+        //  * try/catch => a bug here can never break a legitimate save (falls back to posted).
+        private void EnforceSaleTotals(string[][] array, string[] saledata, string user, long logId, string ctx)
+        {
+            try
+            {
+                if (array == null || saledata == null) return;
+                System.Func<string, decimal> pd = s => (string.IsNullOrWhiteSpace(s) || s == "http://") ? 0m
+                    : (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0m);
+                System.Func<decimal, string> ps = v => v.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+                const decimal TOL = 0.05m;
+                bool corrected = false;
+                decimal sumSub = 0m, sumTax = 0m;
+                var note = new System.Text.StringBuilder();
+                foreach (var a in array)
+                {
+                    if (a == null || a.Length < 13 || string.IsNullOrWhiteSpace(a[0])) continue;
+                    decimal q = pd(a[2]), r = pd(a[4]), disc = pd(a[7]), tr = pd(a[11]);
+                    decimal pSub = pd(a[6]), pTax = pd(a[10]), pTot = pd(a[12]);
+                    decimal eSub = q * r - disc;                                 // line subtotal
+                    decimal eTax = tr == 0m ? 0m : Math.Round(eSub * tr) / 100m;  // line tax (net rate covers exclusive pricing)
+                    decimal effSub = pSub, effTax = pTax;
+                    if (Math.Abs(pSub - eSub) > TOL) { a[6] = ps(eSub); effSub = eSub; corrected = true; note.Append("item " + a[0] + " sub " + pSub + "->" + eSub + "; "); }
+                    if (Math.Abs(pTax - eTax) > TOL) { a[10] = ps(eTax); effTax = eTax; corrected = true; note.Append("item " + a[0] + " tax " + pTax + "->" + eTax + "; "); }
+                    decimal effTot = effSub + effTax;
+                    if (Math.Abs(pTot - effTot) > TOL) { a[12] = ps(effTot); corrected = true; note.Append("item " + a[0] + " tot " + pTot + "->" + effTot + "; "); }
+                    sumSub += effSub; sumTax += effTax;
+                }
+                // header string[] indices: 5=TaxAmount, 6=Discount, 7=GrandTotal, 8=SubTotal, 9=Tax
+                decimal pHSub = saledata.Length > 8 ? pd(saledata[8]) : 0m;
+                decimal pHTax = saledata.Length > 5 ? pd(saledata[5]) : 0m;
+                decimal pHGrand = saledata.Length > 7 ? pd(saledata[7]) : 0m;
+                decimal sundryDelta = pHGrand - pHSub - pHTax;                    // bill-sundry / roundoff / header discount effect (preserved)
+                if (saledata.Length > 8 && Math.Abs(pHSub - sumSub) > TOL) { saledata[8] = ps(sumSub); corrected = true; note.Append("docsub " + pHSub + "->" + sumSub + "; "); }
+                if (saledata.Length > 5 && Math.Abs(pHTax - sumTax) > TOL) { saledata[5] = ps(sumTax); if (saledata.Length > 9) saledata[9] = ps(sumTax); corrected = true; note.Append("doctax " + pHTax + "->" + sumTax + "; "); }
+                decimal expGrand = sumSub + sumTax + sundryDelta;
+                if (saledata.Length > 7 && Math.Abs(pHGrand - expGrand) > TOL) { saledata[7] = ps(expGrand); corrected = true; note.Append("docgrand " + pHGrand + "->" + expGrand + "; "); }
+                if (corrected)
+                    com.addlog(LogTypes.Updated, user, "CreditSale", "SalesCalcAudit", findip(), logId, "ENFORCE corrected tampered totals (" + ctx + "): " + note.ToString());
+            }
+            catch { }
+        }
+
         public JsonResult CreateSale(string[][] array, string[] saledata, SEBillSundryViewModel bsmodel, string[][] arrayR, ICollection<BatchStockPViewModel> bstmodel, ICollection<UBatchStockPViewModel> ubstmodel, string[][] arrayused, long? protask, ICollection<commissionViewmodel> commission, string TenderingMode, string Mode, ICollection<SettlementViewModel> SettlementData, decimal? BalanceAmount, ICollection<RackStockPViewModel> bsrackData)
         {
      
 
+            // F1/F15 ENFORCE: sanitize client-posted totals/prices before anything consumes them.
+            EnforceSaleTotals(array, saledata, User.Identity.GetUserId(), 0, "CreateSale");
+
             var currdate = User.IsInRole("Read Only Sales Invoice Date");
-           
+
 
             bool stat = false;
             string msg;
@@ -3620,34 +3675,7 @@ namespace QuickSoft.Controllers
                     dtItem.Columns.Add("Item");
                     dtItem.Columns.Add("Type");
 
-                    // --- F1/F15 (LOG-ONLY phase): recompute line money server-side to detect client tampering.
-                    //     Changes/blocks NOTHING yet — only logs mismatches (section "SalesCalcAudit") so we can
-                    //     confirm the recompute matches real invoices before switching to enforce. Wrapped in
-                    //     try/catch so it can never affect the save. ---
-                    try
-                    {
-                        System.Func<string, decimal> pd = s => (string.IsNullOrWhiteSpace(s) || s == "http://") ? 0m
-                            : (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0m);
-                        decimal recTax = 0m;
-                        var issues = new System.Text.StringBuilder();
-                        foreach (var a in array)
-                        {
-                            if (a == null || a.Length < 13 || string.IsNullOrWhiteSpace(a[0])) continue;
-                            decimal q = pd(a[2]), r = pd(a[4]), disc = pd(a[7]), tr = pd(a[11]);
-                            decimal pSub = pd(a[6]), pTax = pd(a[10]), pTot = pd(a[12]);
-                            decimal eSub = q * r - disc;                                  // qty*rate - discount
-                            decimal eTax = tr == 0m ? 0m : Math.Round(eSub * tr) / 100m;   // tax on discounted base (net rate covers inclusive/exclusive)
-                            decimal eTot = eSub + eTax;
-                            recTax += eTax;
-                            if (Math.Abs(pSub - eSub) > 0.01m || Math.Abs(pTax - eTax) > 0.02m || Math.Abs(pTot - eTot) > 0.02m)
-                                issues.Append("item " + a[0] + " sub " + pSub + "/" + eSub + " tax " + pTax + "/" + eTax + " tot " + pTot + "/" + eTot + "; ");
-                        }
-                        decimal pTaxTotal = pd(saledata != null && saledata.Length > 5 ? saledata[5] : "0");
-                        if (Math.Abs(pTaxTotal - recTax) > 0.05m) issues.Append("doctax " + pTaxTotal + "/" + recTax + "; ");
-                        if (issues.Length > 0)
-                            com.addlog(LogTypes.Updated, UserId, "CreditSale", "SalesCalcAudit", findip(), salesEntryId, "CALC MISMATCH posted/expected (CreateSale): " + issues.ToString());
-                    }
-                    catch { }
+                    // F1/F15: line/header money already sanitized by EnforceSaleTotals() at method start.
 
                     foreach (var arr in array)
                     {
@@ -9024,6 +9052,9 @@ namespace QuickSoft.Controllers
         [QkAuthorize(Roles = "Dev,Edit Sales Entry,No Tax Sales")]
         public ActionResult UpdateSale(string[][] array, string[] saledata, SEBillSundryViewModel bsmodel, ICollection<BatchStockPViewModel> bstmodel, ICollection<UBatchStockPViewModel> ubstmodel, string[][] arrayused, ICollection<commissionViewmodel> commission, string TenderingMode, string Mode, ICollection<SettlementViewModel> SettlementData, decimal? BalanceAmount, string[][] arrayR, ICollection<RackStockPViewModel> bsrackData)
         {
+            // F1/F15 ENFORCE: sanitize client-posted totals/prices before anything consumes them.
+            EnforceSaleTotals(array, saledata, User.Identity.GetUserId(), 0, "UpdateSale");
+
             string result2 = string.Empty;
             DataTable dtItem2 = new DataTable();
             dtItem2.Columns.Add("ItemUnit");
@@ -9488,32 +9519,7 @@ namespace QuickSoft.Controllers
                 dtItem.Columns.Add("Item");
                 dtItem.Columns.Add("Type");
 
-                // --- F1/F15 (LOG-ONLY phase): recompute line money server-side to detect client tampering.
-                //     Changes/blocks NOTHING — only logs mismatches ("SalesCalcAudit"). try/catch = never affects save. ---
-                try
-                {
-                    System.Func<string, decimal> pd = s => (string.IsNullOrWhiteSpace(s) || s == "http://") ? 0m
-                        : (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0m);
-                    decimal recTax = 0m;
-                    var issues = new System.Text.StringBuilder();
-                    foreach (var a in array)
-                    {
-                        if (a == null || a.Length < 13 || string.IsNullOrWhiteSpace(a[0])) continue;
-                        decimal q = pd(a[2]), r = pd(a[4]), disc = pd(a[7]), tr = pd(a[11]);
-                        decimal pSub = pd(a[6]), pTax = pd(a[10]), pTot = pd(a[12]);
-                        decimal eSub = q * r - disc;
-                        decimal eTax = tr == 0m ? 0m : Math.Round(eSub * tr) / 100m;
-                        decimal eTot = eSub + eTax;
-                        recTax += eTax;
-                        if (Math.Abs(pSub - eSub) > 0.01m || Math.Abs(pTax - eTax) > 0.02m || Math.Abs(pTot - eTot) > 0.02m)
-                            issues.Append("item " + a[0] + " sub " + pSub + "/" + eSub + " tax " + pTax + "/" + eTax + " tot " + pTot + "/" + eTot + "; ");
-                    }
-                    decimal pTaxTotal = pd(saledata != null && saledata.Length > 5 ? saledata[5] : "0");
-                    if (Math.Abs(pTaxTotal - recTax) > 0.05m) issues.Append("doctax " + pTaxTotal + "/" + recTax + "; ");
-                    if (issues.Length > 0)
-                        com.addlog(LogTypes.Updated, UserId, "CreditSale", "SalesCalcAudit", findip(), salesEntryId, "CALC MISMATCH posted/expected (UpdateSale): " + issues.ToString());
-                }
-                catch { }
+                // F1/F15: line/header money already sanitized by EnforceSaleTotals() at method start.
 
                 foreach (var arr in array)
                 {
