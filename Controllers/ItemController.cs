@@ -2453,11 +2453,11 @@ namespace QuickSoft.Controllers
                     }
 
 
-                    if (ProdViewModel.ItemImage.ToList().First() != null)
+                    if (ProdViewModel.ItemImage!=null && ProdViewModel.ItemImage.ToList().First() != null)
                     {
                         var itimage = com.Images(ProdViewModel, id);
                     }
-                    if (ProdViewModel.ItemDocument.ToList().First() != null)
+                    if (ProdViewModel.ItemDocument!=null&&ProdViewModel.ItemDocument.ToList().First() != null)
                     {
                         var itdoc = com.Document(ProdViewModel, id);
                     }
