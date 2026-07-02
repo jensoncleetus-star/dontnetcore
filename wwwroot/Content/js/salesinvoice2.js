@@ -11,6 +11,14 @@ function bosxStockNotify(msg) {
         } else { alert(msg); }
     } catch (e) { try { alert(msg); } catch (x) { } }
 }
+// Modern modal alert (replaces native alert() for validations that must be acknowledged).
+function bosxAlert(msg, icon) {
+    try {
+        if (window.Swal) {
+            Swal.fire({ icon: icon || 'warning', title: msg, confirmButtonText: 'OK', confirmButtonColor: '#6366f1' });
+        } else { alert(msg); }
+    } catch (e) { try { alert(msg); } catch (x) { } }
+}
 var discountglog = 0;
 limits = 1000;
 //Add Row 
