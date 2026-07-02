@@ -18,7 +18,7 @@
             <input type="hidden" id="cname" value="@ViewBag.CName" />
             <input type="hidden" id="caddress" value="@ViewBag.CAddress" />
             <input type="hidden" id="todate" value="@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.To))" />
-            <table class="table table-bordered table-hover  dtable" id="UserTable" style="width:100%">
+            <table class="table table-bordered table-hover  dtable display" id="UserTable" style="width:100%">
                 <thead>
                     <tr class="bg-gray">
                         <td class="text-center" colspan="5">
@@ -44,7 +44,31 @@
         </div>
     </div>
 </div>
-@{ void TreeView(TrialBalanceAccViewModeltwo module, long? parent = 0, string spaces = "")
+@functions {
+    // Recursively sums the amounts of all descendant ledger (non-Group) rows under a group.
+    void SumGroup(System.Collections.Generic.IEnumerable<TrialBalanceAccmodal2> data, long? groupId,
+        ref decimal opening, ref decimal debit, ref decimal credit, ref decimal closing)
+    {
+        foreach (var n in data)
+        {
+            if (n.Parent == groupId)
+            {
+                if (n.Type == "Group")
+                {
+                    SumGroup(data, n.ID, ref opening, ref debit, ref credit, ref closing);
+                }
+                else
+                {
+                    opening += Convert.ToDecimal(n.opening);
+                    debit += Convert.ToDecimal(n.Debit);
+                    credit += Convert.ToDecimal(n.Credit);
+                    closing += Convert.ToDecimal(n.closing);
+                }
+            }
+        }
+    }
+}
+@{ void TreeView(TrialBalanceAccViewModeltwo module, long? parent = 0, string spaces = "", int level = 0)
 {
     ViewBag.Count++;
     TrialBalanceAccViewModeltwo sub = new TrialBalanceAccViewModeltwo();
@@ -80,73 +104,43 @@
             //    Cr = 0 - Sum;
             //}
 
+            var pad = level * 22 + 8;
             if (menus.Type == "Group")
             {
-<tr>
-    @if (menus.Parent == 0)
-        {
-        <td class="text-red">@Html.Raw(spaces)@menus.text</td>
-        <td class="text-right"></td>
-        <td class="text-right"></td>
-        <td class="text-right"></td>
-        <td class="text-right"></td>
-    }
-    else
-    {
-        <td class="text-black">@Html.Raw(spaces)@menus.text</td>
-        <td class="text-right"></td>
-        <td class="text-right"></td>
-        <td class="text-right"></td>
-        <td class="text-right"></td>
-
-    }
+                decimal gOpening = 0, gDebit = 0, gCredit = 0, gClosing = 0;
+                SumGroup(module.Data, menus.ID, ref gOpening, ref gDebit, ref gCredit, ref gClosing);
+                var gOpenSuffix = gOpening < 0 ? "Cr" : "Dr";
+                var gCloseSuffix = gClosing < 0 ? "Cr" : "Dr";
+                var nameClass = (menus.Parent == 0) ? "text-red" : "text-black";
+<tr class="tree-row tree-group" data-node-id="@menus.ID" data-parent-id="@menus.Parent" data-level="@level" style="@(menus.Parent == 0 ? "" : "display:none;")">
+    <td class="@nameClass" style="padding-left:@(pad)px;"><span class="tree-toggle"></span>@menus.text</td>
+    <td class="text-right @nameClass">@System.Math.Abs(gOpening).ToString("0.00") @gOpenSuffix</td>
+    <td class="text-right @nameClass">@gDebit.ToString("0.00")</td>
+    <td class="text-right @nameClass">@gCredit.ToString("0.00")</td>
+    <td class="text-right @nameClass">@System.Math.Abs(gClosing).ToString("0.00") @gCloseSuffix</td>
 </tr>
-            }
-            else if (1==1)
-{
-<tr>
-    <td class="text-blue"><a href="/MyReports/Ledger2?particular=@menus.AccountId" target="_new">@Html.Raw(spaces)@menus.text</a></td>
-    <td class="text-right ">@System.Math.Abs(opening).ToString("0.00")
-    
-    @{
-
-    if (opening < 0)
-    {
-        s = "Cr";
-    }
-    else
-    {
-        s = "Dr";
-    }
-
-}
-    @s;   
-    </td>
-    <td class="text-right ">@Dr.Value.ToString("0.00")</td>
-    <td class="text-right">@Cr.Value.ToString("0.00")</td>
-    <td class="text-right ">
-        @System.Math.Abs(closing).ToString("0.00")
-       
-        @{
-           
-            if (closing < 0)
-            {
-                dd= "Cr";
             }
             else
             {
-                dd = "Dr";
-            }
-        }
-        @dd;
-    </td>
+                s = (opening < 0) ? "Cr" : "Dr";
+                dd = (closing < 0) ? "Cr" : "Dr";
+<tr class="tree-row tree-leaf" data-node-id="@menus.ID" data-parent-id="@menus.Parent" data-level="@level" style="display:none;">
+    <td style="padding-left:@(pad)px;"><span class="tree-spacer"></span><a class="text-blue" href="/MyReports/Ledger2?particular=@menus.AccountId" target="_new">@menus.text</a></td>
+    <td class="text-right ">@System.Math.Abs(opening).ToString("0.00") @s</td>
+    <td class="text-right ">@Dr.Value.ToString("0.00")</td>
+    <td class="text-right">@Cr.Value.ToString("0.00")</td>
+    <td class="text-right ">@System.Math.Abs(closing).ToString("0.00") @dd</td>
 </tr>
             }
-            ViewBag.TDr += Dr;
-            ViewBag.TCr += Cr;
+            if (menus.Type != "Group")
+            {
+                // Only ledger rows contribute to the grand total, so it matches the sum of the red group subtotals.
+                ViewBag.TDr += Dr;
+                ViewBag.TCr += Cr;
+            }
             if (menus.Type == "Group")
             {
-                TreeView(sub, menus.ID, space);
+                TreeView(sub, menus.ID, space, level + 1);
             }
 
         }
@@ -157,20 +151,58 @@
         <tr>
             <td><b>Total</b></td>
             <td></td>
-            <td class="text-right" id="ddlTCredit"><b>@ViewBag.TDr</b></td>
-            <td class="text-right" id="ddlTDebit"><b>@ViewBag.TCr</b></td>
+            <td class="text-right" id="ddlTCredit"><b>@Convert.ToDecimal(ViewBag.TDr).ToString("0.00")</b></td>
+            <td class="text-right" id="ddlTDebit"><b>@Convert.ToDecimal(ViewBag.TCr).ToString("0.00")</b></td>
             <td></td>
         </tr>
 
     }
 } }
+<style>
+    .text-red {
+        color: #ff0000 !important;
+    }
 
+    .text-black {
+        color: #000000 !important;
+    }
+
+    .tree-group {
+        cursor: pointer; /* hand icon on expandable rows */
+    }
+
+        .tree-group > td {
+            font-weight: bold;
+        }
+
+    .tree-toggle {
+        display: inline-block;
+        width: 16px;
+        text-align: center;
+        color: #888;
+    }
+
+        .tree-toggle:before {
+            content: "\25B6"; /* right-pointing triangle when collapsed */
+            font-size: 10px;
+        }
+
+    .tree-group.expanded > td:first-child .tree-toggle:before {
+        content: "\25BC"; /* down-pointing triangle when expanded */
+    }
+
+    .tree-spacer {
+        display: inline-block;
+        width: 16px;
+    }
+</style>
 @section Scripts {
     @Scripts.Render("~/js/bootstrap-datepicker")
     <script type="text/javascript">
+        var oTable = "";
         $(document).ready(function () {
             jQuery(function ($) {
-                var oTable = $('#UserTable').DataTable({
+                oTable = $('#UserTable').DataTable({
                     "processing": true, // for show progress bar
                     "serverSide": false, // for process server side
                     "filter": false, // this is for disable filter (search box)
@@ -183,75 +215,16 @@
                     //"order": [[0, "asc"]],
                     buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
                      {
-                         extend: 'print',//
-                         title: "",
-                         footer: true,
-                         filename: function () {
-                             return 'Trial BalanceAcc';
-                         },
-                         message: '<table class="tblcompact table table-bordered"><thead>' +
-                         ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Trial Balance</h4></th></tr>' +
-                         ' <tr><th class="text-center"><span>  To : ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>',
-                         customize: function (win) {
-
-                             $(win.document.body).find('table, th,tr, td ')
-                                // .css('border', 'inherit')
-                                 .css('font-size', '10pt')
-                                 .css('padding', '5px')
-                                 .addClass('compact');
-                             $(win.document.body).append('</td></tr></tbody>')
-
+                         text: 'Print',
+                         action: function (e, dt, node, config) {
+                             printTrialBalanceTree();
                          }
                      }, 'copy', 'csv', 'excel',
                      {
-                         extend: 'pdf',
-                         title: "",
-                         footer: true,
-                         filename: function () {
-                             return 'Trial Balance';
-                         },
-                         message:
-                             '' + $('#cname').val() + '\n' +
-                         '' + $('#caddress').val() + '\n' +
-                         ' Trial Balance \n' +
-                         ' To :  ' + $('#todate').val() + ''
-                         ,
-                         pageSize: 'A4',
-                         exportOptions: {
-                             columns: [0, 1, 2]
-                         },
-                         customize: function (doc) {
-                             doc.pageMargins = [10, 10, 10, 10];
-                             doc.defaultStyle.fontSize = 10;
-                             doc.styles.tableHeader.fontSize = 10;
-                             doc.styles.title.fontSize = 12;
-                             // Remove spaces around page title
-                             doc.content[0].text = doc.content[0].text.trim();
-
-                             doc.content[1].table.widths = [
-                             '40%',
-                             '30%',
-                             '30%',
-                             ]
-
-                             var objLayout = {};
-                             // Horizontal line thickness
-                             objLayout['hLineWidth'] = function (i) { return .5; };
-                             // Vertikal line thickness
-                             objLayout['vLineWidth'] = function (i) { return .5; };
-                             //// Horizontal line color
-                             //objLayout['hLineColor'] = function (i) { return '#aaa'; };
-                             //// Vertical line color
-                             //objLayout['vLineColor'] = function (i) { return '#aaa'; };
-                             // Left padding of the cell
-                             objLayout['paddingLeft'] = function (i) { return 4; };
-                             // Right padding of the cell
-                             objLayout['paddingRight'] = function (i) { return 4; };
-                             // Inject the object in the document
-                             doc.content[1].layout = objLayout;
+                         text: 'PDF',
+                         action: function (e, dt, node, config) {
+                             exportTrialBalancePdf();
                          }
-
-
                      },
 
                     ],
@@ -261,11 +234,167 @@
             });
 
         });
+        // ---- Print the full tree (all rows expanded, indented, with column borders) ----
+        function printTrialBalanceTree() {
+            var cname = $('#cname').val();
+            var caddress = $('#caddress').val();
+            var todate = $('#todate').val();
+
+            // Clone the live table so the on-screen view is untouched.
+            var $clone = $('#UserTable').clone();
+            // Reveal every collapsed row and drop the expand/collapse markers.
+            $clone.find('tr').css('display', '');
+            $clone.find('.tree-toggle, .tree-spacer').remove();
+            // Turn ledger drill-down links into plain text for printing.
+            $clone.find('a').each(function () {
+                $(this).replaceWith($(this).text());
+            });
+
+            var html =
+                '<html><head><title>Trial Balance</title><style>' +
+                'body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;margin:12px;}' +
+                '.tb-head{text-align:center;margin-bottom:10px;}' +
+                '.tb-head h3{margin:0;font-size:14pt;}' +
+                '.tb-head h4{margin:4px 0;font-size:12pt;}' +
+                'table{border-collapse:collapse;width:100%;}' +
+                'th,td{border:1px solid #000;padding:4px 6px;font-size:9pt;}' +
+                '.text-right{text-align:right;}' +
+                '.text-red{color:#d00000;font-weight:bold;}' +
+                '.text-black{color:#000;font-weight:bold;}' +
+                '.tree-group>td{font-weight:bold;}' +
+                '</style></head><body>' +
+                '<div class="tb-head"><h3>' + cname + '</h3><div>' + caddress + '</div>' +
+                '<h4>Trial Balance</h4><div>To : ' + todate + '</div></div>' +
+                $clone.prop('outerHTML') +
+                '</body></html>';
+
+            var win = window.open('', '', 'height=800,width=1100');
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            setTimeout(function () { win.print(); win.close(); }, 400);
+        }
+
+        // ---- Export the full tree to PDF (mirrors the print layout) ----
+        function exportTrialBalancePdf() {
+            if (typeof pdfMake === 'undefined') {
+                // pdfmake not loaded yet - fall back to the print view.
+                printTrialBalanceTree();
+                return;
+            }
+
+            var cname = $('#cname').val();
+            var caddress = $('#caddress').val();
+            var todate = $('#todate').val();
+
+            var body = [];
+            // Header row
+            body.push([
+                { text: 'Particulars', bold: true, fillColor: '#eeeeee' },
+                { text: 'Opening', bold: true, alignment: 'right', fillColor: '#eeeeee' },
+                { text: 'Debit (AED)', bold: true, alignment: 'right', fillColor: '#eeeeee' },
+                { text: 'Credit (AED)', bold: true, alignment: 'right', fillColor: '#eeeeee' },
+                { text: 'Closing', bold: true, alignment: 'right', fillColor: '#eeeeee' }
+            ]);
+
+            // Every row in the table (all rows, regardless of collapsed state).
+            $('#UserTable tbody tr').each(function () {
+                var $tr = $(this);
+                var $tds = $tr.children('td');
+                if ($tds.length < 5) { return; }
+
+                var level = parseInt($tr.attr('data-level'), 10) || 0;
+                var isGroup = $tr.hasClass('tree-group');
+                var name = $.trim($tds.eq(0).text());
+                var isTotal = (name.toLowerCase() === 'total');
+                var strong = isGroup || isTotal;
+
+                var nameCell = {
+                    text: name,
+                    bold: strong,
+                    margin: [level * 12, 0, 0, 0]
+                };
+                if (isGroup) {
+                    nameCell.color = (level === 0) ? '#c00000' : '#000000';
+                }
+
+                function amt(idx) {
+                    return {
+                        text: $.trim($tds.eq(idx).text()),
+                        alignment: 'right',
+                        bold: strong,
+                        color: (isGroup && level === 0) ? '#c00000' : '#000000'
+                    };
+                }
+
+                body.push([nameCell, amt(1), amt(2), amt(3), amt(4)]);
+            });
+
+            var docDefinition = {
+                pageSize: 'A4',
+                pageOrientation: 'landscape',
+                pageMargins: [20, 20, 20, 20],
+                content: [
+                    { text: cname, fontSize: 14, bold: true, alignment: 'center' },
+                    { text: caddress, fontSize: 9, alignment: 'center' },
+                    { text: 'Trial Balance', fontSize: 12, bold: true, alignment: 'center', margin: [0, 4, 0, 0] },
+                    { text: 'To : ' + todate, fontSize: 9, alignment: 'center', margin: [0, 0, 0, 8] },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: ['*', 'auto', 'auto', 'auto', 'auto'],
+                            body: body
+                        },
+                        layout: {
+                            hLineWidth: function () { return 0.5; },
+                            vLineWidth: function () { return 0.5; },
+                            hLineColor: function () { return '#000000'; },
+                            vLineColor: function () { return '#000000'; },
+                            paddingLeft: function () { return 4; },
+                            paddingRight: function () { return 4; },
+                            paddingTop: function () { return 2; },
+                            paddingBottom: function () { return 2; }
+                        }
+                    }
+                ],
+                defaultStyle: { fontSize: 8 }
+            };
+
+            pdfMake.createPdf(docDefinition).download('Trial Balance.pdf');
+        }
+
+        // ---- Proper hierarchical tree expand / collapse ----
+        function treeChildren(nodeId) {
+            return $('#UserTable tbody tr[data-parent-id="' + nodeId + '"]');
+        }
+
+        // Collapse a group: hide every descendant and reset their expanded state.
+        function treeCollapse($row) {
+            $row.removeClass('expanded');
+            treeChildren($row.attr('data-node-id')).each(function () {
+                var $child = $(this);
+                $child.hide();
+                if ($child.hasClass('tree-group')) {
+                    treeCollapse($child);
+                }
+            });
+        }
+
+        // Expand a group: reveal only its direct children (their own subtrees stay collapsed).
+        function treeExpand($row) {
+            $row.addClass('expanded');
+            treeChildren($row.attr('data-node-id')).show();
+        }
+
+        $('#UserTable tbody').on('click', 'tr.tree-group', function () {
+            var $row = $(this);
+            if ($row.hasClass('expanded')) {
+                treeCollapse($row);
+            } else {
+                treeExpand($row);
+            }
+        });
 
     </script>
 }
-
-
-
-
-

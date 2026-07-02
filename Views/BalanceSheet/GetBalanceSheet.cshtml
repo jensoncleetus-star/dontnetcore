@@ -219,6 +219,59 @@
 @section Scripts {
     @Scripts.Render("~/js/bootstrap-datepicker")
     <script type="text/javascript">
+        // ---- Print a clean, standard bordered balance sheet ----
+        function printBalanceSheet() {
+            var cname = $('#cname').val();
+            var caddress = $('#caddress').val();
+
+            // Clone the live table so the on-screen view is untouched.
+            var $clone = $('#UserTable').clone();
+
+            // Flatten drill-down links to plain text for printing.
+            $clone.find('a').each(function () {
+                $(this).replaceWith($(this).text());
+            });
+
+            // Collapse the two empty spacer columns so it becomes a clean
+            // 4-column layout: LIABILITIES | Amount | ASSETS | Amount.
+            $clone.find('tr').each(function () {
+                var $cells = $(this).children('td, th');
+                if ($cells.length === 6) {
+                    $cells.eq(4).remove();
+                    $cells.eq(1).remove();
+                } else if ($cells.length === 1) {
+                    $cells.attr('colspan', 4); // the From/To date banner row
+                }
+            });
+
+            var html =
+                '<html><head><title>Balance Sheet</title><style>' +
+                'body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;margin:14px;}' +
+                '.bs-head{text-align:center;margin-bottom:10px;}' +
+                '.bs-head h2{margin:0;font-size:15pt;}' +
+                '.bs-head h4{margin:4px 0;font-size:12pt;}' +
+                'table{border-collapse:collapse;width:100%;table-layout:fixed;}' +
+                'th,td{border:1px solid #000;padding:5px 8px;font-size:9.5pt;word-wrap:break-word;}' +
+                'thead td{font-weight:bold;background:#eee;text-align:center;}' +
+                'thead tr:nth-child(2) td:nth-child(1),thead tr:nth-child(2) td:nth-child(3){text-align:left;}' +
+                '.text-center{text-align:center;}' +
+                '.text-right{text-align:right;}' +
+                '.text-red{color:#000;font-weight:bold;}' +
+                'tfoot td{font-weight:bold;background:#eee;}' +
+                '</style></head><body>' +
+                '<div class="bs-head"><h2>' + cname + '</h2><div>' + caddress + '</div>' +
+                '<h4>Balance Sheet</h4></div>' +
+                $clone.prop('outerHTML') +
+                '</body></html>';
+
+            var win = window.open('', '', 'height=800,width=1100');
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            setTimeout(function () { win.print(); win.close(); }, 400);
+        }
+
         $(window).scroll(function (e) {
             var scroll = $(window).scrollTop();
             if (scroll >= 0) {
@@ -245,24 +298,9 @@
                 //"order": [[0, "asc"]],
                 buttons: [//'copy', 'csv', 'excel', 'pdf', 'print'
                     {
-                        extend: 'print',//
-                        title: "",
-                        footer: true,
-                        filename: function () {
-                            return 'Balance Sheet';
-                        },
-                        message: '<table class="tblcompact table table-bordered"><thead>' +
-                            ' <tr><th class="text-center"><h3 style="margin-top: 0px;">' + $('#cname').val() + '</h3>' + $('#caddress').val() + '<h4>Balance Sheet</h4></th></tr>' +
-                            ' <tr><th class="text-center"><span> From :  ' + $('#fromdate').val() + '</span><span> To :  ' + $('#todate').val() + '</span></th></tr></thead><tbody><tr><td>',
-                        customize: function (win) {
-
-                            $(win.document.body).find('table, th,tr, td ')
-                                // .css('border', 'inherit')
-                                .css('font-size', '10pt')
-                                .css('padding', '5px')
-                                .addClass('compact');
-                            $(win.document.body).append('</td></tr></tbody>')
-
+                        text: 'Print',
+                        action: function (e, dt, node, config) {
+                            printBalanceSheet();
                         }
                     }, 'copy', 'csv',
                     {
