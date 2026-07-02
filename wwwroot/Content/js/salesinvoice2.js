@@ -949,7 +949,7 @@ function itemUpdate(selectObject, dataid, action) {
                                 $(".item_").remove();
                                 $.each(data, function (i, item) {
                                     var taxamt = item.SellingPrice * (item.Tax / 100);
-                                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                    if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                         addrow2('addinvoiceItem', 'sales', item.ItemUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, taxamt, 0, '', item);
 
                                     } else {
@@ -957,7 +957,7 @@ function itemUpdate(selectObject, dataid, action) {
 
                                     }
                                 });
-                                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                     addrow2('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
                                 } else {
                                     addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
@@ -1034,7 +1034,7 @@ function itemUpdate(selectObject, dataid, action) {
                     minstockupdate(result, dataid);
                 }
                 if ($(".item_").length == 0) {
-                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                         addrow2('addinvoiceItem', '', '', '0.00', '0.00', '0');
                     } else {
                         addrow('addinvoiceItem', '', '', '0.00', '0.00', '0');
@@ -1052,7 +1052,7 @@ function itemUpdate(selectObject, dataid, action) {
                         minstockupdate(result, dataid);
                     }
                     if ($(".item_").length == 0) {
-                        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                             addrow2('addinvoiceItem', '', '', '0.00', '0.00', '0');
                         } else {
                             addrow('addinvoiceItem', '', '', '0.00', '0.00', '0');
@@ -2822,7 +2822,7 @@ function bsUpdate(selectObject, dataid) {
 
             $(selectObject).closest('tr').attr('class', "bs_" + result.BillSundryId);
             if ($(".bs_").length == 0) {
-                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                     addbillsundry2('addbillsundry', '', '0.00', '', '0.00', '');
                 } else {
                     addbillsundry('addbillsundry', '', '0.00', '', '0.00', '');
@@ -4614,7 +4614,7 @@ function GetCustomerMail() {
             //alert($('#InvoiceId').text());
             if ($('#InvoiceId').text() != "") {
                 $("#addinvoiceItem").html("");
-                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                     addrow2('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
                 } else {
                     addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
