@@ -3,6 +3,21 @@
     ViewBag.Title = "Edit";
     ViewBag.SubTitle = "Edit Sales Entry";
     ViewBag.Active = "Transactions";
+    ViewBag.BodyClass = "bosx-qc";   // premium overlay (CSS-only), same skin as Quotation Create/Edit
+}
+<link href="~/Content/css/bosx-qc.css?v=20260702i" rel="stylesheet" />
+@* rich CKEditor (formatting + "Add Image" upload) for the Terms & Conditions editor — same as Quotation *@
+@Html.Partial("_BosxRichEditor")
+<script>
+    $(function () {
+        try {
+            if (window.CKEDITOR && document.getElementById('SENote') && !CKEDITOR.instances['SENote']) {
+                CKEDITOR.replace('SENote', { versionCheck: false });
+            }
+        } catch (e) { }
+    });
+</script>
+@{
     var TimeOut = @ViewBag.TMOut;
     string IRateCheck = "inactive";
     string check = "";
@@ -44,7 +59,7 @@
 }
 @*
     <script>
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                 var SalesEntryID = getQueryString('');
                 window.location = "/CreditSale/Editmobile/" + SalesEntryID;
             }
@@ -1371,7 +1386,7 @@
                     </div>
                 </div>
                 <div class="col-md-2 col-xs-12">
-                    <div class="pull-right">
+                    <div class="pull-right bosx-topnav-btns">
                         @if (@ViewBag.preEntry != 0)
                         {
                             if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry"))
@@ -2033,21 +2048,45 @@
                     </div>
                 </div>
                 @*----------------------For File Attachment----------------------------*@
-                <div class="row col-md-12 hide1">
-                    <div class="form-group" style="margin-bottom: 10px !important;">
-                        @Html.Label("Documents", null, new { @class = "control-label temp2" })
-                        <div class="file-loading">
-                            <input id="input-24" name="input24[]" type="file" multiple>
-                        </div>
+                <div class="row col-md-12">
+                    <div class="form-group col-xs-12 col-sm-12 col-md-12 qc-attach-card">
+                        @Html.AntiForgeryToken()
+                        <label class="control-label temp2"><i class="fa fa-paperclip"></i> Attachments &amp; Documents</label>
+                        <div class="qc-attach-hint"><i class="fa fa-cloud-upload"></i> Drag &amp; drop files here, or click to browse — attach a signed copy, PO, LPO, or any supporting document. Files are <b>saved instantly</b>.</div>
+                        <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9aa1ab;margin-bottom:6px;">Attached documents</div>
+                        <div id="qcDocList" class="qc-doc-list"></div>
+                        <label id="qcEditDrop" class="qc-dropzone" style="display:block;margin:0;cursor:pointer;">
+                            <i class="fa fa-cloud-upload"></i>
+                            <div class="qc-dz-text">Drag &amp; drop files here, or <span class="qc-browse">click to browse</span></div>
+                            <div class="qc-dz-hint">JPG, PNG, PDF, Word, Excel, DWG&hellip; — saved instantly</div>
+                            <input id="input-24" name="input24[]" type="file" multiple style="display:none" />
+                        </label>
+                        <div id="qcSelPreview" class="qc-doc-list" style="margin-top:12px;"></div>
+                        <div id="qcUpWrap" style="display:none;margin-top:12px;"><div style="height:8px;background:#e5e7eb;border-radius:6px;overflow:hidden;"><div id="qcUpBar" style="height:100%;width:0;background:#059669;transition:width .15s;"></div></div></div>
+                        <div id="qcUpMsg2" style="margin-top:8px;"></div>
                     </div>
-                    @foreach (var arr in @ViewBag.Image)
-                    {
-                        check = "\"/uploads/CreditsaleDocuments/" + arr.FileName + "\"";
-
-                        strImage += check + ',';
-
-                        partialconfig += "{ key:" + arr.DocumentID + " }" + ',';
-                    }
+                    <style>
+                        .qc-attach-card { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:8px 12px; margin:6px 0 2px; }
+                        .qc-attach-card > .control-label { font-size:12.5px; font-weight:700; color:#111827; margin-bottom:2px; }
+                        .qc-attach-card > .control-label .fa { color:#059669; margin-right:6px; }
+                        .qc-attach-hint { display:none; }
+                        .qc-dropzone { border:1.5px dashed #cbd5e1; border-radius:9px; padding:9px 14px; text-align:center; cursor:pointer; color:#64748b; background:#fff; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
+                        .qc-dropzone:hover, .qc-dropzone.dragover { border-color:#059669; background:#f0fdf4; color:#059669; }
+                        .qc-dropzone .fa { font-size:17px; color:#059669; margin:0; }
+                        .qc-dz-text { font-size:12.5px; font-weight:600; }
+                        .qc-dz-hint { font-size:10.5px; color:#94a3b8; width:100%; margin-top:1px; }
+                        .qc-browse { color:#059669; text-decoration:underline; }
+                        .qc-dz-hint { font-size:11px; color:#9ca3af; margin-top:3px; }
+                        .qc-doc-list { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+                        .qc-doc-empty { font-size:12.5px; color:#9ca3af; font-style:italic; }
+                        .qc-doc-item { display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px; min-width:240px; max-width:340px; }
+                        .qc-doc-thumb { width:40px; height:40px; object-fit:cover; border-radius:7px; flex:0 0 40px; border:1px solid #eef0f2; }
+                        .qc-doc-ico { width:40px; height:40px; flex:0 0 40px; border-radius:7px; background:#eef2ff; color:#4f46e5; display:flex; align-items:center; justify-content:center; font-size:18px; }
+                        .qc-doc-meta { flex:1 1 auto; min-width:0; line-height:1.35; }
+                        .qc-doc-name { display:block; font-size:12.5px; font-weight:600; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                        .qc-doc-meta small { color:#9ca3af; font-size:11px; }
+                        .qc-doc-actions { display:flex; gap:6px; flex:0 0 auto; }
+                    </style>
                 </div>
                 @*-----------------------------------------------------------------*@
 
@@ -2146,13 +2185,13 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group pull-right">
+                        <div class="form-group text-center bosx-actionbar">
                             @if (@ViewBag.disableupdate == false)
                             {
-                                <button type="submit" id="save" class="btn btn-success btnupd">
+                                <button type="submit" id="save" class="btn btn-success btnupd sh-btn">
                                     <span class="glyphicon glyphicon-floppy-disk"></span> Update
                                 </button>
-                                <button type="submit" id="print" class="btn btn-success">
+                                <button type="submit" id="print" class="btn btn-success sh-btn">
                                     <span class="glyphicon glyphicon-print"></span> Update And Print
                                 </button>
                                 <div id="downloadlink" class="btn btn-success"></div>
@@ -2167,18 +2206,18 @@
                                     </button>*@
                                 if (@ViewBag.CheckMail == 0)
                                 {
-                                    <button type="submit" id="sendmail" class="btn btn-success">
+                                    <button type="submit" id="sendmail" class="btn btn-success sh-btn">
                                         <span class="glyphicon glyphicon-envelope"></span> Print And Mail
                                     </button>
                                 }
                             }
                             else
                             {
-                                <button type="submit" id="printonly" class="btn btn-success">
+                                <button type="submit" id="printonly" class="btn btn-success sh-btn">
                                     <span class="glyphicon glyphicon-print"></span> Print
                                 </button>
                             }
-                            <button type="button" class="btn btn-warning" id="sh-cancel" onclick="@(" window.location.href='/CreditSale/Index' ");">Cancel</button>
+                            <button type="button" class="btn btn-warning sh-btn" id="sh-cancel" onclick="@(" window.location.href='/CreditSale/Index' ");">Cancel</button>
                             <input type="hidden" value="@ViewBag.StartDate" class="Start" name="Start" id="Start">
                             <input type="hidden" value="@ViewBag.EndDate" class="End" name="End" id="End">
                         </div>
@@ -2291,7 +2330,7 @@ else
     @Scripts.Render("~/js/wysihtml5")
     @Scripts.Render("~/js/bootstrap-fileinput")
     @Scripts.Render("~/js/returninsale")
-    <script src="~/Content/js/salesinvoice2.js?c=1sssdsdfdsfsfsfsde3"></script>
+    <script src="~/Content/js/salesinvoice2.js?c=stage7"></script>
     <script type="text/javascript">
         function AlertFunctionown(SalesEntryId, userEditDays, purpose, callBack) {
 
@@ -2538,7 +2577,7 @@ else
             // $("#ddlCustomer").select2({});
             CallCustomer();
             $("#ddlpricecategoryid").val("@ViewBag.priceper");
-          if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+          if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                 $('.mobView2').remove();
             } else {
                 $('.mobView1').remove();
@@ -2775,14 +2814,14 @@ else
                     success: function (data) {
                         $('#addinvoiceItem').html('');
                         $.each(data, function (i, item) {
-                           if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                           if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                 addrow2('addinvoiceItem', 'foredit', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', item.PricingStrategy);
                             } else {
                                 addrow('addinvoiceItem', 'foredit', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', item.PricingStrategy);
                             }
                         });
 
-                        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                             addrow2('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
                         } else {
                             addrow('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
@@ -2836,14 +2875,14 @@ else
                     success: function (data) {
                         $.each(data, function (i, bs) {
 
-                            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                            if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
 
                                 addbillsundry2('addbillsundry', 'sales', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
                             } else {
                                 addbillsundry('addbillsundry', 'sales', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
                             }
                         });
-                        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
 
                             addbillsundry2('addbillsundry', 'sales', '0.00', '', '0.00', '');
                         } else {
@@ -2940,7 +2979,7 @@ else
                                             $(".item_").remove();
                                             $.each(data, function (i, item) {
                                                 var taxamt = item.SellingPrice * (item.Tax / 100);
-                                                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                                     addrow2('addinvoiceItem', 'sales', item.ItemUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, taxamt, 0, '', item);
 
                                                 } else {
@@ -2948,7 +2987,7 @@ else
 
                                                 }
                                             });
-                                            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                            if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                                 addrow2('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
                                             } else {
                                                 addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
@@ -3186,6 +3225,23 @@ else
 
             e.preventDefault();
             grandtotalcalculation();
+
+            // ===== Safe-entry gate: hard blocks + pre-save confirmation (mistake prevention) =====
+            if (typeof bosxInvoiceHardBlocks === 'function' && !window.__bosxSaleConfirmed) {
+                var _blk = bosxInvoiceHardBlocks();
+                if (_blk) { bosxAlert(_blk, 'error'); return false; }
+                var _form = this;
+                bosxConfirmInvoice(bosxInvoiceWarnings(), function () {
+                    window.__bosxSaleConfirmed = true;
+                    jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', true);
+                    setTimeout(function () { jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', false); }, 12000);
+                    jQuery(_form).trigger('submit');
+                });
+                return false;
+            }
+            window.__bosxSaleConfirmed = false;
+            // ===== end safe-entry gate =====
+
             //check if exists VAT in Bill-Sundry
             var vatexist = 0;
             $("#addbillsundry tr").each(function (e) {
@@ -3195,7 +3251,7 @@ else
             var stype = $("#SalesType").val();
             if(stype == 3 && vatexist == 0)//
             {
-                alert("Please Select VAT in Bill-Sundry..!!");
+                bosxAlert("Please select VAT in Bill Sundry", "warning");
             } else {
                 var qtyflag = 0;
                 // for (var ij = 1; ij < count; ij++) {
@@ -3342,6 +3398,8 @@ else
             var Layout = $('#ddlPrintlayout').val();
             var HTMLtbl = {
                 getData: function (table) {
+                    // Stage 2: flush rich item-note CKEditors into their textareas before reading (else .val() is stale)
+                    if (window.CKEDITOR) { for (var _ck in CKEDITOR.instances) { try { CKEDITOR.instances[_ck].updateElement(); } catch (e) { } } }
                     var data = [];
                     table.find('tr').not(':first').not('.item_').each(function (rowIndex, r) {
                         var cols = [];
@@ -4637,7 +4695,7 @@ else
                     success: function (data) {
                         $.each($.parseJSON(data), function (i, item) {
 
-         if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+         if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                 addrow2('addinvoiceItem', 'sales', item.ItemUnit, item.ItemTax, item.ItemTotalAmount, item.ItemQuantity, item.Item, item.ItemCode, item.ItemName, item.ItemUnitPrice, item.ItemSubTotal, item.ItemWithCode, item.ItemTaxAmount, item.ItemDiscount, item.ItemNote, item, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', item.PricingStrategy);
 
                             } else {
@@ -4647,7 +4705,7 @@ else
                         });
 
 
-                            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                            if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                 addrow2('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
                             } else {
                                 addrow('addinvoiceItem', 'sales', '', '0.00', '0.00', '0');
@@ -4668,7 +4726,7 @@ else
                         $.each(data, function (i, bs) {
 
 
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
 
                                 addbillsundry2('addbillsundry', 'quot', bs.BsValue, bs.AmountType, bs.BsAmount, bs.BsType, bs.BSName, bs.BillSundry);
                             } else {
@@ -4676,7 +4734,7 @@ else
                             }
                         });
 
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
 
                             addbillsundry2('addbillsundry', 'sales', '0.00', '', '0.00', '');
                         } else {
@@ -4782,45 +4840,102 @@ else
     </script>
     <script type="text/javascript">
 
-        $("#input-24").fileinput({
-            initialPreview: [@Html.Raw(strImage)],
-            maxFilePreviewSize: 10240,
-            showUploadedThumbs: true,
-            overwriteInitial: false,
-            showUpload: false,
-            enableResumableUpload: true,
-            autoReplace: true,
-            required: false,
-            Download:true,
-            initialPreviewAsData: true, // identify if you are sending preview data only and not the raw markup
-            initialPreviewFileType: 'image', // image is the default and can be overridden in config below
-            allowedFileExtensions: ["dwg ", "xlsx", "gif", "jpg", "png", "jfif", "jpeg", "doc", "docx", "pdf", "dwg", "pptx", "vsdx",
-                'M4A', 'FLAC', 'MP3', 'MP4', 'WAV', 'WMA', 'AAC', 'ogg', 'opus', 'mpg', 'mpeg'],
-            fileActionSettings: {
-                showRemove: true,
-                showUpload: false,
-                showZoom: true,
-            },
-            initialPreviewConfig: [
-               @partialconfig
-            ],
-            initialPreviewDownloadUrl: [@Html.Raw(strImage)],
-            deleteUrl: "/CreditSale/ImageDelete",
-        }).on('filesorted', function (e, params) {
-            console.log('File sorted params', params);
-        }).on('fileuploaded', function (e, params) {
-            console.log('File uploaded params', params);
-        }).on('filebeforedelete', function () {
-            var aborted = !window.confirm('Are you sure you want to delete this file?');
-            if (aborted) {
-                //window.alert('File deletion was aborted!');
-            };
-            return aborted;
-        }).on('filedeleted', function () {
-            setTimeout(function () {
-                //window.alert('File deletion was successful!');
-            }, 900);
+        // Plain dropzone (replaces the bootstrap-fileinput plugin). Click via the <label>, drop handled here.
+        $(document).on('dragover', '#qcEditDrop', function (e) { e.preventDefault(); e.stopPropagation(); $(this).addClass('dragover'); });
+        $(document).on('dragleave', '#qcEditDrop', function (e) { e.preventDefault(); e.stopPropagation(); $(this).removeClass('dragover'); });
+        $(document).on('drop', '#qcEditDrop', function (e) {
+            e.preventDefault(); e.stopPropagation(); $(this).removeClass('dragover');
+            if (window.qcEditUpload) window.qcEditUpload(e.originalEvent.dataTransfer.files);
         });
+        // Keep the file input enabled even when the invoice is "not editable" — attachments must always work.
+        function qcEnableInput() { $('#input-24').prop('disabled', false).prop('readonly', false).css('pointer-events', 'auto'); }
+        setTimeout(qcEnableInput, 400); setTimeout(qcEnableInput, 1500);
+        $(document).on('mousedown touchstart', '#qcEditDrop', qcEnableInput);
+
+        // ---- Attachments panel for the sales invoice (upload / list / view / download / delete) ----
+        (function () {
+            var qid = (location.pathname.split('/').filter(Boolean).pop() || '').replace(/\D/g, '');
+            function token() { return $('input[name="__RequestVerificationToken"]').first().val(); }
+            var qcBusy = false;
+            function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+            function renderSelected(files) {
+                var $p = $('#qcSelPreview'); $p.empty();
+                for (var i = 0; i < files.length; i++) {
+                    var f = files[i], nm = $('<div>').text(f.name).html();
+                    var isImg = /^image\//.test(f.type);
+                    var icon = isImg ? ('<img src="' + URL.createObjectURL(f) + '" class="qc-doc-thumb">') : '<span class="qc-doc-ico"><i class="fa fa-file-o"></i></span>';
+                    $p.append('<div class="qc-doc-item">' + icon + '<div class="qc-doc-meta"><span class="qc-doc-name" title="' + nm + '">' + nm + '</span><small>' + fmtSize(f.size) + '</small></div></div>');
+                }
+            }
+            function uploadNow(files) {
+                if (qcBusy || !files || !files.length || !qid) return;
+                qcBusy = true;
+                renderSelected(files);
+                var fd = new FormData();
+                for (var i = 0; i < files.length; i++) { fd.append(files[i].name, files[i]); }
+                fd.append('id', qid);
+                fd.append('__RequestVerificationToken', token()); // app uses global AutoValidateAntiforgeryToken
+                $('#qcUpWrap').show(); $('#qcUpBar').css('width', '0');
+                $('#qcUpMsg2').html('<span style="color:#374151;font-size:12.5px;"><i class="fa fa-spinner fa-spin"></i> Uploading ' + files.length + ' file(s)…</span>');
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/CreditSale/UploadFiles');
+                if (xhr.upload) { xhr.upload.onprogress = function (e) { if (e.lengthComputable) $('#qcUpBar').css('width', Math.round(e.loaded / e.total * 100) + '%'); }; }
+                xhr.onload = function () {
+                    qcBusy = false;
+                    var ok = xhr.status >= 200 && xhr.status < 300 && !/error occurred|no files/i.test(xhr.responseText || '');
+                    if (ok) {
+                        $('#qcUpBar').css('width', '100%');
+                        $('#qcUpMsg2').html('<span style="color:#059669;font-size:12.5px;"><i class="fa fa-check"></i> Uploaded.</span>');
+                        try { var el = $('#input-24').get(0); if (el) el.value = ''; } catch (e) { }
+                        $('#qcSelPreview').empty();
+                        setTimeout(function () { $('#qcUpWrap').hide(); $('#qcUpBar').css('width', '0'); $('#qcUpMsg2').fadeOut(400, function () { $(this).empty().show(); }); }, 1600);
+                        window.loadCsDocs();
+                    } else {
+                        $('#qcUpWrap').hide();
+                        $('#qcUpMsg2').html('<span style="color:#dc2626;font-size:12.5px;"><i class="fa fa-times"></i> Upload failed (status ' + xhr.status + '): ' + $('<div>').text((xhr.responseText || '').replace(/^"|"$/g, '').slice(0, 140)).html() + '</span>');
+                    }
+                };
+                xhr.onerror = function () { qcBusy = false; $('#qcUpWrap').hide(); $('#qcUpMsg2').html('<span style="color:#dc2626;font-size:12.5px;"><i class="fa fa-times"></i> Upload failed (network).</span>'); };
+                xhr.send(fd);
+            }
+            window.qcEditUpload = uploadNow;
+            $(document).on('change', '#input-24', function () { uploadNow(this.files); }); // delegated: always fires
+            window.loadCsDocs = function () {
+                if (!qid) return;
+                $.ajax({ url: '/CreditSale/GetCreditSaleDocuments/' + qid + '?_=' + Date.now(), dataType: 'json', // id binds from the PATH
+                  error: function (x) { $('#qcDocList').html('<div class="qc-doc-empty">Could not load documents (status ' + x.status + ').</div>'); },
+                  success: function (list) {
+                    var $c = $('#qcDocList'); $c.empty();
+                    if (!list || !list.length) { $c.html('<div class="qc-doc-empty">No documents attached yet.</div>'); return; }
+                    list.forEach(function (d) {
+                        var name = $('<div>').text(d.fileName).html();
+                        var icon = d.isImage ? ('<img src="' + d.url + '" class="qc-doc-thumb">') : '<span class="qc-doc-ico"><i class="fa fa-file-o"></i></span>';
+                        $c.append(
+                            '<div class="qc-doc-item" data-id="' + d.docid + '">' + icon +
+                            '<div class="qc-doc-meta"><a href="' + d.url + '" target="_blank" class="qc-doc-name" title="' + name + '">' + name + '</a><small>' + (d.created || '') + '</small></div>' +
+                            '<div class="qc-doc-actions">' +
+                            '<a href="' + d.url + '" target="_blank" class="btn btn-xs btn-default" title="View / Preview"><i class="fa fa-eye"></i></a>' +
+                            '<a href="' + d.url + '" download="' + name + '" class="btn btn-xs btn-primary" title="Download"><i class="fa fa-download"></i></a>' +
+                            '<button type="button" class="btn btn-xs btn-danger qc-doc-del" title="Delete permanently"><i class="fa fa-trash"></i></button>' +
+                            '</div></div>'
+                        );
+                    });
+                  }
+                });
+            };
+            $(document).off('click.csdoc').on('click.csdoc', '.qc-doc-del', function () {
+                var $item = $(this).closest('.qc-doc-item'), id = $item.data('id');
+                if (!confirm('Delete this attachment permanently? This removes the file from the server.')) return;
+                $.ajax({ url: '/CreditSale/ImageDelete?key=' + id, type: 'GET',
+                    success: function (r) {
+                        if (r && r.status) { $item.remove(); if (!$('#qcDocList .qc-doc-item').length) $('#qcDocList').html('<div class="qc-doc-empty">No documents attached yet.</div>'); }
+                        else { alert((r && r.message) || 'Delete failed.'); }
+                    },
+                    error: function () { alert('Delete failed (server error).'); }
+                });
+            });
+            $(function () { window.loadCsDocs(); });
+        })();
 
         //cancel button for Sales Return
         $('#modal-returninsale').on('hidden.bs.modal', function () {

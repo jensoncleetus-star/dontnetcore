@@ -1,258 +1,246 @@
 @model QuickSoft.ViewModel.QuotationViewModel
 @{
     Layout = null;
-    decimal Subtotal = 0;
+    decimal taxTotal = 0;
+    foreach (var it in Model.QuotItem) { taxTotal += it.ItemTaxAmount; }
+    // helper: split the stored "heading||note" and drop empty fragments
+    Func<string, string[]> splitNote = (raw) =>
+    {
+        if (string.IsNullOrEmpty(raw)) return new string[] { "", "" };
+        var parts = raw.Split(new string[] { "||" }, StringSplitOptions.None);
+        if (parts.Length == 1) return new string[] { "", parts[0] };
+        return new string[] { parts[0], string.Join("", parts, 1, parts.Length - 1) };
+    };
+    Func<string, bool> hasContent = (html) =>
+        !string.IsNullOrEmpty(html) && (html.Contains("<img") || System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", "").Replace("&nbsp;", " ").Trim().Length > 0);
 }
-<div class="modal-header">
+<div class="modal-header qv-mhead">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-    <h4> Quotation Details</h4>
+    <h4><i class="fa fa-file-text-o"></i> Quotation Preview</h4>
 </div>
-<div class="modal-body">
-    <div class="box box-info">
-        <div class="box-body">
-            <div class="row">
-                <div class="col-sm-2 form-group">
-                    @Html.Label("Type :", null, new { @class = "control-label" })
-                    @Html.DisplayFor(m => m.QTypeName)
-                </div>
-                <div class="col-sm-2 form-group ">
-                    @Html.Label("Quot No :", null, new { @class = "control-label" })
-                    @Html.DisplayFor(m => m.BillNo)
-                </div>
-                <div class="col-sm-2 form-group"> 
-                    @Html.Label("Date :", null, new { @class = "control-label" })
-                    @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.QuotDate))
-                </div>
-                @if (@ViewBag.ProjCheck == 0)
-                {
-                    <div class="col-sm-2 form-group">
-                        @Html.Label("Project :", null, new { @class = "control-label" })
-                        @Html.DisplayFor(m => m.ProjectName)
-                    </div>
-                }               
-                 <div class="col-sm-2 form-group">
-                    @Html.Label("Sales Executive :", null, new { @class = "control-label" })
-                    @Html.DisplayFor(m => m.EmployeeName)
-                </div>
-                <div class="col-sm-2 form-group">
-                    @Html.Label("Customer Name :", null, new { @class = "control-label" })
-                    @Html.DisplayFor(m => m.CustomerName)
-                </div>
-                <div class="col-sm-2 form-group">
-                    @Html.Label("Sale Type :", null, new { @class = "control-label" })
-                    @Html.DisplayFor(m => m.QuotTypeName)
-                </div>
-                <div class="col-sm-2 form-group">
-                    @Html.Label("PaymentTerms :", null, new { @class = "control-label" })
-                    @Html.DisplayFor(m => m.PaymentTerms)
-                </div>
-
-                @if (Model.QTypeName == "Hire")
-                {
-                    <div class="col-sm-2 form-group">
-                        @Html.Label("Hire Type :", null, new { @class = "control-label" })
-                        @Html.DisplayFor(m => m.HType)
-                    </div>
-                    <div class="col-sm-2 form-group">
-                        @Html.Label("Start Date :", null, new { @class = "control-label" })
-                        @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.StartDate))
-                    </div>
-                    <div class="col-sm-2 form-group">
-                        @Html.Label("End Date :", null, new { @class = "control-label" })
-                        @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.EndDate))
-                    </div>
-                }
-                <div class="col-sm-12 form-group">
-                    @if (Model.Emp != null && Model.Emp.Count() > 0)
-                    {
-                        @Html.Label("Approved By:", null, new { @class = "control-label" })
-                        bool CHECK = true;
-                        foreach (var Ext in Model.Emp)
-                        {
-                            var EmpName = "";
-                            if (CHECK == true)
-                            {
-                                EmpName = @Ext.EmpName;
-                                CHECK = false;
-                            }
-                            else
-                            {
-                                EmpName = ", "+ @Ext.EmpName ;
-                            }
-
-                            @Html.Label(@EmpName, new { @style = "font-weight:normal" })
-                        }
-                    }
-                </div>
-
-
-                @if (Model.FieldMap.Count > 0)
-                {
-                    for (int i = 0; i < Model.FieldMap.Count; i++)
-                    {
-                        <div class="form-group col-sm-2">
-
-                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref1")
-                            {
-                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
-                                @Html.DisplayFor(m => m.Ref1)
-                            }
-                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref2")
-                            {
-                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
-                                @Html.DisplayFor(m => m.Ref2)
-                            }
-                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref3")
-                            {
-                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
-                                @Html.DisplayFor(m => m.Ref3)
-                            }
-                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref4")
-                            {
-                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
-                                @Html.DisplayFor(m => m.Ref4)
-                            }
-                            @if (Model.FieldMap[i].FieldName != "" && Model.FieldMap[i].Field == "Ref5")
-                            {
-                                <label class="control-label" for="FieldName"> @Model.FieldMap[i].FieldName :</label>
-                                @Html.DisplayFor(m => m.Ref5)
-                            }
-                        </div>
-                    }
-                }
-                    <div class="clearfix"></div>
-                </div>
+<div class="modal-body qv-body">
+    <style>
+        /* Self-contained print-style quotation preview (scoped to .qv-wrap) */
+        .qv-wrap { max-width: 820px; margin: 0 auto; background: #fff; color: #0f172a;
+            font-family: 'Inter','Segoe UI',Tahoma,Arial,sans-serif; font-size: 12.5px; line-height: 1.45; }
+        .qv-wrap * { box-sizing: border-box; }
+        .qv-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+            padding-bottom: 12px; border-bottom: 3px solid #059669; margin-bottom: 16px; }
+        .qv-title { font-size: 26px; font-weight: 800; letter-spacing: .5px; color: #059669; }
+        .qv-top .qv-meta { text-align: right; font-size: 12.5px; }
+        .qv-top .qv-meta .qv-no { font-size: 16px; font-weight: 800; color: #0f172a; }
+        .qv-top .qv-meta .qv-lbl { color: #64748b; }
+        .qv-grid { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-bottom: 16px; }
+        .qv-fld { min-width: 150px; }
+        .qv-fld .qv-k { display: block; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: #64748b; margin-bottom: 2px; }
+        .qv-fld .qv-v { font-weight: 600; color: #0f172a; }
+        .qv-billto { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
+        .qv-billto .qv-k { display: block; font-size: 10px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #059669; margin-bottom: 2px; }
+        .qv-billto .qv-name { font-size: 15px; font-weight: 800; }
+        .qv-tbl { width: 100%; border-collapse: collapse; margin: 6px 0 14px; }
+        .qv-tbl th { background: #059669; color: #fff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; padding: 8px 8px; text-align: left; }
+        .qv-tbl td { border: 1px solid #e2e8f0; padding: 8px 8px; vertical-align: top; }
+        .qv-tbl tr:nth-child(even) td { background: #f8fafc; }
+        .qv-tbl .qv-r { text-align: right; white-space: nowrap; }
+        .qv-tbl .qv-c { text-align: center; }
+        .qv-itemname { font-weight: 700; }
+        .qv-head { display: block; font-weight: 800; color: #059669; margin: 4px 0; }
+        .qv-note { color: #475569; font-size: 12px; margin-top: 4px; }
+        .qv-note img { max-width: 100%; height: auto; max-height: 130px; border-radius: 4px; margin: 4px 0; }
+        .qv-note p, .qv-note div { margin: 2px 0; }
+        .qv-note ul, .qv-note ol { margin: 2px 0; padding-left: 18px; }
+        .qv-bundle { color: #64748b; font-size: 11px; }
+        .qv-section-h { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: #334155; margin: 14px 0 6px; }
+        .qv-bottom { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 6px; }
+        .qv-terms { flex: 1 1 300px; min-width: 260px; }
+        .qv-terms h5 { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: #059669; margin: 0 0 4px; }
+        .qv-terms .qv-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; color: #475569; }
+        .qv-terms .qv-box img { max-width: 100%; height: auto; }
+        .qv-totals { flex: 0 0 300px; margin-left: auto; }
+        .qv-totals table { width: 100%; border-collapse: collapse; }
+        .qv-totals td { padding: 7px 10px; }
+        .qv-totals td.k { color: #475569; }
+        .qv-totals td.v { text-align: right; font-weight: 700; white-space: nowrap; }
+        .qv-totals tr.qv-gt td { border-top: 2px solid #059669; font-size: 16px; font-weight: 800; color: #059669; }
+        .qv-approve { margin-top: 10px; font-size: 12px; color: #475569; }
+        .qv-approve b { color: #0f172a; }
+        @@media (max-width: 640px) {
+            .qv-top { flex-direction: column; }
+            .qv-top .qv-meta { text-align: left; }
+            .qv-totals { flex-basis: 100%; margin-left: 0; }
+            .qv-tbl { display: block; overflow-x: auto; }
+        }
+    </style>
+    <div class="qv-wrap">
+        <div class="qv-top">
             <div>
-                <div class="table-responsive">
-                   
-                        <div class="box-header with-border">
-                            <h3 class="box-title">Items</h3>
-                        </div>
-                        <div class="box-body">
-                            <table class="table table-bordered table-hover">
-                                <tr class="bg-gray">
-                                    @if (@ViewBag.PartNoCheck == 0)
-                                    {
-                                        <th>Part No</th>
-                                    }
-                                    <th>Item</th>
-                                    <th>Item Unit</th>
-                                    <th>Unit Price</th>
-                                    <th>Quantity</th>
-                                    <th>Sub Total</th>
-                                    <th>Tax</th>
-                                    <th>Tax Amount</th>
-                                    <th>Total Amount</th>
-                                </tr>
-                                @foreach (var quot in Model.QuotItem)
-                                {
-                                    var itemnote = "";
-                                    if (@quot.ItemNote != "")
-                                    {
-                                        itemnote = "<br /><small>" + @quot.ItemNote + "</small>";
-                                    }
-                                    if (@quot.bundleitem != null && @quot.bundleitem.Count() > 0)
-                                    {
-                                        var desc = "<br/>[<span class='descr' data-name='itemNote'>";
-                                        foreach (var saleitem in @quot.bundleitem)
-                                        {
-                                            desc += saleitem.ItemCode + " - " + saleitem.ItemName;
-                                            desc += " - " + saleitem.ItemQuantity + " ";
-                                            desc += (saleitem.ItemUnit != null) ? saleitem.ItemUnit : "";
-                                            desc += "<br/>";
-                                        }
-                                        desc += "</span>]";
-                                        itemnote = itemnote + desc;
-                                    }
-                                    <tr>
-                                        @if (@ViewBag.PartNoCheck == 0)
-                                        {
-                                            <td>@quot.PartNumber</td>
-                                        }
-                                        <td>@quot.ItemCode - @quot.ItemName @Html.Raw(itemnote)</td>
-                                        <td>@quot.ItemUnit</td>
-                                        <td>@quot.ItemUnitPrice</td>
-                                        <td>@quot.ItemQuantity</td>
-                                        <td>@quot.ItemSubTotal</td>
-                                        <td>@quot.ItemTax</td>
-                                        <td>@quot.ItemTaxAmount</td>
-                                        <td>@quot.ItemTotalAmount</td>
-                                    </tr>
-                                    Subtotal += @quot.ItemTotalAmount;
-                                }
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td>Total</td>
-                                    <td>@Subtotal</td>
-                                </tr>
-                            </table>
-                        </div>
-                    
-                </div>
-                <div class="row">
-                    @if (Model.QtBillSundry.Any())
-                    {
-                        <div class="col-md-12">
-                            <div class="table-responsive">
-                               
-                                    <div class="box-header with-border">
-                                        <h3 class="box-title">Bill Sundry</h3>
-                                    </div>
-                                    <div class="box-body">
-                                        <table class="table table-bordered table-hover">
-                                            <tr class="bg-gray">
-                                                <th>Bill Sundry</th>
-                                                <th>Value</th>
-                                                <th>Type</th>
-                                                <th>Amount</th>
-                                            </tr>
-                                            @foreach (var bs in Model.QtBillSundry)
-                                            {
-                                                <tr>
-                                                    <td>@bs.Type : @bs.BillSundry</td>
-                                                    <td>@bs.BsValue</td>
-                                                    <td>@bs.AmtType</td>
-                                                    <td>@bs.BsAmount</td>
-                                                </tr>
-                                            }
-                                        </table>
-                                    </div>
-                               
-                            </div>
-                        </div>
-                    }
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <strong>Remarks </strong><br />
-                            @Model.Remarks
-                        </div>
-                        <div class="form-group">
-                            <strong>Terms And Conditions </strong><br />
-                            @Model.TermsCondition
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group col-md-6 no-paddingleft">
-                            @Html.Label("Discount :", null, new { @class = "control-label" })
-                            @Html.DisplayFor(m => m.QuotDiscount)
-                        </div>
-                        <div class="form-group col-md-6 no-padding">
-                            @Html.Label("Grand Total :", null, new { @class = "control-label" })
-                            @Html.DisplayFor(m => m.QuotGrandTotal)
-                        </div>
-                        <div class="form-group col-md-6 no-paddingleft">
-                            @Html.Label("Validity :", null, new { @class = "control-label" })
-                            @Html.DisplayFor(m => m.QuotValidity) Days
-                        </div>
-                    </div>
-                </div>
+                <div class="qv-title">QUOTATION</div>
+                @if (@ViewBag.ProjCheck == 0 && !string.IsNullOrEmpty(Model.ProjectName))
+                {
+                    <div style="color:#64748b;margin-top:4px;">Project: <b style="color:#0f172a;">@Model.ProjectName</b></div>
+                }
+            </div>
+            <div class="qv-meta">
+                <div class="qv-no">@Model.BillNo</div>
+                <div><span class="qv-lbl">Date:</span> @Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.QuotDate))</div>
+                @if (Model.QuotValidity != null)
+                {
+                    <div><span class="qv-lbl">Validity:</span> @Model.QuotValidity days</div>
+                }
             </div>
         </div>
-    </div>
 
+        <div class="qv-billto">
+            <span class="qv-k">Bill To</span>
+            <span class="qv-name">@Model.CustomerName</span>
+            @if (!string.IsNullOrEmpty(Model.EmailId))
+            {
+                <div style="color:#475569;">@Model.EmailId</div>
+            }
+        </div>
+
+        <div class="qv-grid">
+            <div class="qv-fld"><span class="qv-k">Type</span><span class="qv-v">@Model.QTypeName</span></div>
+            <div class="qv-fld"><span class="qv-k">Sale Type</span><span class="qv-v">@Model.QuotTypeName</span></div>
+            <div class="qv-fld"><span class="qv-k">Sales Executive</span><span class="qv-v">@Model.EmployeeName</span></div>
+            @if (!string.IsNullOrEmpty(Model.PaymentTerms))
+            {
+                <div class="qv-fld"><span class="qv-k">Payment Terms</span><span class="qv-v">@Model.PaymentTerms</span></div>
+            }
+            @if (Model.QTypeName == "Hire")
+            {
+                <div class="qv-fld"><span class="qv-k">Hire Type</span><span class="qv-v">@Model.HType</span></div>
+                <div class="qv-fld"><span class="qv-k">Start Date</span><span class="qv-v">@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.StartDate))</span></div>
+                <div class="qv-fld"><span class="qv-k">End Date</span><span class="qv-v">@Convert.ToString(string.Format("{0:dd-MM-yyyy}", Model.EndDate))</span></div>
+            }
+            @if (Model.FieldMap != null)
+            {
+                foreach (var fm in Model.FieldMap)
+                {
+                    var val = "";
+                    if (fm.Field == "Ref1") { val = Model.Ref1; }
+                    else if (fm.Field == "Ref2") { val = Model.Ref2; }
+                    else if (fm.Field == "Ref3") { val = Model.Ref3; }
+                    else if (fm.Field == "Ref4") { val = Model.Ref4; }
+                    else if (fm.Field == "Ref5") { val = Model.Ref5; }
+                    if (!string.IsNullOrEmpty(fm.FieldName) && !string.IsNullOrEmpty(val))
+                    {
+                        <div class="qv-fld"><span class="qv-k">@fm.FieldName</span><span class="qv-v">@val</span></div>
+                    }
+                }
+            }
+        </div>
+
+        <table class="qv-tbl">
+            <thead>
+                <tr>
+                    <th class="qv-c" style="width:34px;">#</th>
+                    @if (@ViewBag.PartNoCheck == 0)
+                    {
+                        <th>Part No</th>
+                    }
+                    <th>Item &amp; Description</th>
+                    <th>Unit</th>
+                    <th class="qv-r">Qty</th>
+                    <th class="qv-r">Rate</th>
+                    <th class="qv-r">Tax</th>
+                    <th class="qv-r">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int sn = 0; }
+                @foreach (var quot in Model.QuotItem)
+                {
+                    sn++;
+                    var np = splitNote(quot.ItemNote);
+                    var heading = np[0];
+                    var note = np[1];
+                    <tr>
+                        <td class="qv-c">@sn</td>
+                        @if (@ViewBag.PartNoCheck == 0)
+                        {
+                            <td>@quot.PartNumber</td>
+                        }
+                        <td>
+                            <span class="qv-itemname">@quot.ItemCode - @quot.ItemName</span>
+                            @if (hasContent(heading))
+                            {
+                                <span class="qv-head">@Html.Raw(heading)</span>
+                            }
+                            @if (hasContent(note))
+                            {
+                                <div class="qv-note">@Html.Raw(note)</div>
+                            }
+                            @if (quot.bundleitem != null && quot.bundleitem.Count() > 0)
+                            {
+                                <div class="qv-bundle">
+                                    @foreach (var si in quot.bundleitem)
+                                    {
+                                        <div>• @si.ItemCode - @si.ItemName — @si.ItemQuantity @si.ItemUnit</div>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td>@quot.ItemUnit</td>
+                        <td class="qv-r">@quot.ItemQuantity.ToString("N2")</td>
+                        <td class="qv-r">@quot.ItemUnitPrice.ToString("N2")</td>
+                        <td class="qv-r">@quot.ItemTaxAmount.ToString("N2")</td>
+                        <td class="qv-r">@quot.ItemTotalAmount.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.QtBillSundry != null && Model.QtBillSundry.Any())
+        {
+            <div class="qv-section-h">Charges / Bill Sundry</div>
+            <table class="qv-tbl">
+                <thead>
+                    <tr><th>Charge</th><th class="qv-r">Value</th><th class="qv-c">Type</th><th class="qv-r">Amount</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var bs in Model.QtBillSundry)
+                    {
+                        <tr>
+                            <td>@bs.Type : @bs.BillSundry</td>
+                            <td class="qv-r">@bs.BsValue</td>
+                            <td class="qv-c">@bs.AmtType</td>
+                            <td class="qv-r">@((bs.BsAmount ?? 0).ToString("N2"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="qv-bottom">
+            <div class="qv-terms">
+                @if (hasContent(Model.TermsCondition))
+                {
+                    <h5>Terms &amp; Conditions</h5>
+                    <div class="qv-box">@Html.Raw(Model.TermsCondition)</div>
+                }
+                @if (hasContent(Model.Remarks))
+                {
+                    <h5>Remarks</h5>
+                    <div class="qv-box">@Html.Raw(Model.Remarks)</div>
+                }
+            </div>
+            <div class="qv-totals">
+                <table>
+                    <tr><td class="k">Sub Total</td><td class="v">@Model.QuotSubTotal.ToString("N2")</td></tr>
+                    <tr><td class="k">Discount</td><td class="v">@Model.QuotDiscount.ToString("N2")</td></tr>
+                    <tr><td class="k">Tax / VAT</td><td class="v">@taxTotal.ToString("N2")</td></tr>
+                    <tr class="qv-gt"><td class="k">Grand Total</td><td class="v">@Model.QuotGrandTotal.ToString("N2")</td></tr>
+                </table>
+            </div>
+        </div>
+
+        @if (Model.Emp != null && Model.Emp.Count() > 0)
+        {
+            <div class="qv-approve">
+                <b>Approved By:</b>
+                @string.Join(", ", Model.Emp.Select(x => x.EmpName))
+            </div>
+        }
+    </div>
 </div>

@@ -122,9 +122,27 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
         // DbBackUpPath, so a finished backup is never reachable through the static-file server.
         private static string DefaultBackupDir => Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "DbBackups");
 
+        public class BackupJobStatus
+        {
+            public string State = "Running"; // Running | Completed | Failed
+            public int Percent;
+            public string Message = "Starting backup...";
+            public string ZipPath;
+            public string FileName;
+        }
+
+        // In-memory job board for the async backup flow below. A single-process app (this one runs as a
+        // Windows Service / one instance per customer) doesn't need anything heavier than this.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, BackupJobStatus> BackupJobs
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, BackupJobStatus>();
+
+        // Kicks off the backup on a background thread and returns immediately with a job id, so the
+        // browser can poll BackUpStatus for real progress instead of hanging on one long request
+        // (which also meant a returned File() result never navigated the page, leaving the "please
+        // wait" overlay stuck forever with no way to know the backup had actually finished).
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Database Backup")]
-        public ActionResult BackUpdone()
+        public ActionResult BackUpStart()
         {
             var connectionString = LegacyWeb.ConnectionString;
             var dbName = new SqlConnectionStringBuilder(connectionString).InitialCatalog;
@@ -135,6 +153,17 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
             var bakFile = Path.Combine(orgpath, fname + ".bak");
             var zipFile = Path.Combine(orgpath, fname + ".zip");
 
+            var jobId = Guid.NewGuid().ToString("N");
+            var status = new BackupJobStatus();
+            BackupJobs[jobId] = status;
+
+            System.Threading.Tasks.Task.Run(() => RunBackupJob(connectionString, orgpath, bakFile, zipFile, fname, status));
+
+            return Json(new { jobId });
+        }
+
+        private static void RunBackupJob(string connectionString, string orgpath, string bakFile, string zipFile, string fname, BackupJobStatus status)
+        {
             try
             {
                 Directory.CreateDirectory(orgpath);
@@ -146,29 +175,113 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
                     {
                         cmd.Parameters.AddWithValue("@filepath", bakFile);
                         cmd.Parameters.AddWithValue("@mode", 0);
-                        var result = cmd.ExecuteNonQuery().ToString();
+
+                        string result;
+                        using (var progressCts = new System.Threading.CancellationTokenSource())
+                        {
+                            var progressTask = System.Threading.Tasks.Task.Run(() => PollBackupProgress(connectionString, status, progressCts.Token));
+                            try
+                            {
+                                result = cmd.ExecuteNonQuery().ToString();
+                            }
+                            finally
+                            {
+                                progressCts.Cancel();
+                                progressTask.Wait(2000);
+                            }
+                        }
+
                         if (result != "-1")
                         {
-                            Danger("BackUp Database Failed.", false);
-                            return RedirectToAction("BackUp", "BackUpRestore");
+                            status.State = "Failed";
+                            status.Message = "Backup Database Failed.";
+                            return;
                         }
                     }
                 }
 
+                status.Percent = 95;
+                status.Message = "Compressing backup...";
                 using (var zip = ZipFile.Open(zipFile, ZipArchiveMode.Create))
                 {
                     zip.CreateEntryFromFile(bakFile, fname + ".bak");
                 }
                 System.IO.File.Delete(bakFile);
 
-                byte[] filedata = System.IO.File.ReadAllBytes(zipFile);
-                return File(filedata, "application/zip", fname + ".zip");
+                status.Percent = 100;
+                status.ZipPath = zipFile;
+                status.FileName = fname + ".zip";
+                status.State = "Completed";
+                status.Message = "Backup completed successfully.";
             }
             catch (Exception ex)
             {
-                Danger("BackUp Database Failed: " + ex.Message, false);
+                status.State = "Failed";
+                status.Message = "Backup Database Failed: " + ex.Message;
+            }
+        }
+
+        // Best-effort progress via SQL Server's own DMV. Requires VIEW SERVER STATE; if the login
+        // doesn't have it, this just silently never advances the bar past 0 and the backup still runs.
+        private static void PollBackupProgress(string connectionString, BackupJobStatus status, System.Threading.CancellationToken token)
+        {
+            try
+            {
+                using (var cnn = new SqlConnection(connectionString))
+                {
+                    cnn.Open();
+                    while (!token.IsCancellationRequested)
+                    {
+                        System.Threading.Thread.Sleep(1500);
+                        if (token.IsCancellationRequested) break;
+                        try
+                        {
+                            using (var cmd = new SqlCommand(
+                                "SELECT TOP 1 percent_complete FROM sys.dm_exec_requests WHERE command = 'BACKUP DATABASE' ORDER BY percent_complete DESC", cnn))
+                            {
+                                var pct = cmd.ExecuteScalar();
+                                if (pct != null && pct != DBNull.Value)
+                                {
+                                    status.Percent = Math.Min(94, (int)Math.Round(Convert.ToDouble(pct)));
+                                    status.Message = $"Backing up database... {status.Percent}%";
+                                }
+                            }
+                        }
+                        catch { /* transient polling error: keep last known percent */ }
+                    }
+                }
+            }
+            catch { /* no VIEW SERVER STATE or similar: progress just stays indeterminate */ }
+        }
+
+        [HttpGet]
+        [QkAuthorize(Roles = "Dev,Database Backup")]
+        public ActionResult BackUpStatus(string jobId)
+        {
+            if (jobId == null || !BackupJobs.TryGetValue(jobId, out var status))
+                return Json(new { state = "Failed", percent = 0, message = "Unknown backup job." });
+
+            return Json(new
+            {
+                state = status.State,
+                percent = status.Percent,
+                message = status.Message,
+                downloadUrl = status.State == "Completed" ? Url.Action("BackUpDownload", "BackUpRestore", new { jobId }) : null
+            });
+        }
+
+        [HttpGet]
+        [QkAuthorize(Roles = "Dev,Database Backup")]
+        public ActionResult BackUpDownload(string jobId)
+        {
+            if (jobId == null || !BackupJobs.TryRemove(jobId, out var status) || status.State != "Completed" || !System.IO.File.Exists(status.ZipPath))
+            {
+                Danger("Backup file not found or already downloaded.", false);
                 return RedirectToAction("BackUp", "BackUpRestore");
             }
+
+            byte[] filedata = System.IO.File.ReadAllBytes(status.ZipPath);
+            return File(filedata, "application/zip", status.FileName);
         }
 
         [HttpPost]
@@ -278,11 +391,24 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
         // reachable through the static-file server the way /uploads content is.
         private static string RestoreUploadDir => Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "DbRestore");
 
+        public class RestoreJobStatus
+        {
+            public string State = "Running"; // Running | Completed | Failed
+            public int Percent;
+            public string Message = "Starting restore...";
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, RestoreJobStatus> RestoreJobs
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, RestoreJobStatus>();
+
+        // Same async job pattern as BackUpStart: kick off on a background thread, return a job id
+        // immediately, let the browser poll RestoreStatus for live percent + a clear final state
+        // instead of blocking on one request with no feedback until the page reloads.
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Database Backup")]
         [RequestFormLimits(MultipartBodyLengthLimit = 5_368_709_120)]
         [DisableRequestSizeLimit]
-        public ActionResult Restore(string filepath, IFormFile bakfile)
+        public ActionResult RestoreStart(string filepath, IFormFile bakfile)
         {
             string resolvedPath = filepath;
             bool isUploadedTemp = false;
@@ -291,10 +417,8 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
             {
                 var ext = Path.GetExtension(bakfile.FileName);
                 if (!string.Equals(ext, ".bak", StringComparison.OrdinalIgnoreCase))
-                {
-                    Danger("Only .bak files are allowed.", false);
-                    return RedirectToAction("Restore", "BackUpRestore");
-                }
+                    return Json(new { error = "Only .bak files are allowed." });
+
                 Directory.CreateDirectory(RestoreUploadDir);
                 resolvedPath = Path.Combine(RestoreUploadDir, Guid.NewGuid().ToString("N") + ".bak");
                 bakfile.SaveAs(resolvedPath);
@@ -302,31 +426,63 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
             }
 
             if (string.IsNullOrWhiteSpace(resolvedPath))
-            {
-                Danger("File Not found.", false);
-                return RedirectToAction("Restore", "BackUpRestore");
-            }
+                return Json(new { error = "Please upload a .bak file or enter a server file path." });
 
+            var jobId = Guid.NewGuid().ToString("N");
+            var status = new RestoreJobStatus();
+            RestoreJobs[jobId] = status;
+
+            var connectionString = LegacyWeb.ConnectionString;
+            System.Threading.Tasks.Task.Run(() => RunRestoreJob(connectionString, resolvedPath, isUploadedTemp, status));
+
+            return Json(new { jobId });
+        }
+
+        private static void RunRestoreJob(string connectionString, string resolvedPath, bool isUploadedTemp, RestoreJobStatus status)
+        {
             try
             {
-                using (var cnn = new SqlConnection(LegacyWeb.ConnectionString))
+                using (var cnn = new SqlConnection(connectionString))
                 {
                     cnn.Open();
                     using (var cmd = new SqlCommand("SP_BackUpAndRestore", cnn) { CommandType = CommandType.StoredProcedure, CommandTimeout = 1800 })
                     {
                         cmd.Parameters.AddWithValue("@filepath", resolvedPath);
                         cmd.Parameters.AddWithValue("@mode", 1);
-                        var result = cmd.ExecuteNonQuery().ToString();
+
+                        string result;
+                        using (var progressCts = new System.Threading.CancellationTokenSource())
+                        {
+                            var progressTask = System.Threading.Tasks.Task.Run(() => PollRestoreProgress(connectionString, status, progressCts.Token));
+                            try
+                            {
+                                result = cmd.ExecuteNonQuery().ToString();
+                            }
+                            finally
+                            {
+                                progressCts.Cancel();
+                                progressTask.Wait(2000);
+                            }
+                        }
+
                         if (result == "-1")
-                            Success("Successfully Restore The Database", true);
+                        {
+                            status.Percent = 100;
+                            status.State = "Completed";
+                            status.Message = "Database restored successfully.";
+                        }
                         else
-                            Danger("Restore Database Failed.", false);
+                        {
+                            status.State = "Failed";
+                            status.Message = "Restore Database Failed.";
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Danger("Restore Database Failed: " + ex.Message, false);
+                status.State = "Failed";
+                status.Message = "Restore Database Failed: " + ex.Message;
             }
             finally
             {
@@ -335,8 +491,51 @@ WHERE i.name IS NOT NULL AND ps.page_count > 128 AND ps.avg_fragmentation_in_per
                     try { System.IO.File.Delete(resolvedPath); } catch { }
                 }
             }
+        }
 
-            return RedirectToAction("Restore", "BackUpRestore");
+        // Best-effort progress via SQL Server's own DMV, same approach as PollBackupProgress.
+        private static void PollRestoreProgress(string connectionString, RestoreJobStatus status, System.Threading.CancellationToken token)
+        {
+            try
+            {
+                using (var cnn = new SqlConnection(connectionString))
+                {
+                    cnn.Open();
+                    while (!token.IsCancellationRequested)
+                    {
+                        System.Threading.Thread.Sleep(1500);
+                        if (token.IsCancellationRequested) break;
+                        try
+                        {
+                            using (var cmd = new SqlCommand(
+                                "SELECT TOP 1 percent_complete FROM sys.dm_exec_requests WHERE command = 'RESTORE DATABASE' ORDER BY percent_complete DESC", cnn))
+                            {
+                                var pct = cmd.ExecuteScalar();
+                                if (pct != null && pct != DBNull.Value)
+                                {
+                                    status.Percent = Math.Min(99, (int)Math.Round(Convert.ToDouble(pct)));
+                                    status.Message = $"Restoring database... {status.Percent}%";
+                                }
+                            }
+                        }
+                        catch { /* transient polling error: keep last known percent */ }
+                    }
+                }
+            }
+            catch { /* no VIEW SERVER STATE or similar: progress just stays indeterminate */ }
+        }
+
+        [HttpGet]
+        [QkAuthorize(Roles = "Dev,Database Backup")]
+        public ActionResult RestoreStatus(string jobId)
+        {
+            if (jobId == null || !RestoreJobs.TryGetValue(jobId, out var status))
+                return Json(new { state = "Failed", percent = 0, message = "Unknown restore job." });
+
+            if (status.State != "Running")
+                RestoreJobs.TryRemove(jobId, out _);
+
+            return Json(new { state = status.State, percent = status.Percent, message = status.Message });
         }
 
         protected override void Dispose(bool disposing)

@@ -856,6 +856,7 @@ namespace QuickSoft.Controllers
             {
                 return NotFound();
             }
+            ViewBag.id = id;   // carried into the confirm form so the POST always knows which record to toggle
             if (type == "active")
             {
                 ViewBag.type = "Active";
@@ -880,7 +881,10 @@ namespace QuickSoft.Controllers
             string msg;
             string types = "";
             BillSundry Bls = db.BillSundrys.Find(id);
-            if (bls.Status == Status.inactive)
+            // Decide from the reliable `type` route/hidden value ("inactive"/"active"). The old code read
+            // bls.Status from the form's HiddenFor, but that field renders EMPTY (null model + capital-V
+            // @Value), so it always defaulted to active — i.e. Deactivate never worked.
+            if (type == "inactive" || (bls != null && bls.Status == Status.inactive))
             {
                 types = " Inactive";
                 Bls.Status = Status.inactive;
@@ -907,33 +911,36 @@ namespace QuickSoft.Controllers
         {
 
             object serialisedJson;
+            // ONLY active bill sundries appear in the quote/invoice dropdowns — an inactive one must be
+            // re-enabled from the Bill Sundries list before it can be picked anywhere.
+            var qActive = db.BillSundrys.Where(x => x.Status == Status.active);
             if (!(string.IsNullOrEmpty(q) && string.IsNullOrEmpty(q)))
             {
-                serialisedJson = db.BillSundrys.Where(p => p.BSName.ToLower().Contains(q.ToLower()) || p.BSName.Contains(q))
+                serialisedJson = qActive.Where(p => p.BSName.ToLower().Contains(q.ToLower()) || p.BSName.Contains(q))
                         .Select(b => new
                         {
-                            text = b.BSName, //each json object will have 
+                            text = b.BSName, //each json object will have
                             id = b.BillSundryId,
                             b.PAccount,
                             b.SAccount,
                         }).Where(o=>o.PAccount!=null && o.SAccount!=null).Select(b=>new
                         {
-                            text = b.text, //each json object will have 
+                            text = b.text, //each json object will have
                             id = b.id,
                         }).OrderBy(b => b.text).ToList();
             }
             else
             {
-                serialisedJson = db.BillSundrys.Select(b => new
+                serialisedJson = qActive.Select(b => new
                 {
-                    text = b.BSName, //each json object will have 
+                    text = b.BSName, //each json object will have
                     id = b.BillSundryId,
-                    
+
                     b.PAccount,
                     b.SAccount,
                 }).Where(o => o.PAccount != null && o.SAccount != null).Select(b => new
                 {
-                    text = b.text, //each json object will have 
+                    text = b.text, //each json object will have
                     id = b.id,
                 }).OrderBy(b => b.text).ToList();
             }
@@ -943,24 +950,25 @@ namespace QuickSoft.Controllers
         {
 
             object serialisedJson;
+            var qActive = db.BillSundrys.Where(x => x.Status == Status.active);   // active-only in dropdowns
             if (!(string.IsNullOrEmpty(q) && string.IsNullOrEmpty(q)))
             {
-                serialisedJson = db.BillSundrys.Where(p => (p.BSName.ToLower().Contains(q.ToLower()) || p.BSName.Contains(q))&&p.AmountType==AmountType.AbsoluteAmount)
+                serialisedJson = qActive.Where(p => (p.BSName.ToLower().Contains(q.ToLower()) || p.BSName.Contains(q))&&p.AmountType==AmountType.AbsoluteAmount)
                         .Select(b => new
                         {
-                            text = b.BSName, //each json object will have 
+                            text = b.BSName, //each json object will have
                             id = b.BillSundryId,
                             b.PAccount,
                             b.SAccount,
                         }).Where(o => o.PAccount != 0 && o.SAccount != 0).Select(b => new
                         {
-                            text = b.text, //each json object will have 
+                            text = b.text, //each json object will have
                             id = b.id,
                         }).OrderBy(b => b.text).ToList();
             }
             else
             {
-                serialisedJson = db.BillSundrys.Where(o => o.PAccount != 0 && o.SAccount != 0& o.AmountType == AmountType.AbsoluteAmount).Select(b => new
+                serialisedJson = qActive.Where(o => o.PAccount != 0 && o.SAccount != 0& o.AmountType == AmountType.AbsoluteAmount).Select(b => new
                 {
                     text = b.BSName, //each json object will have 
                     id = b.BillSundryId,
@@ -979,24 +987,25 @@ namespace QuickSoft.Controllers
         {
 
             object serialisedJson;
+            var qActive = db.BillSundrys.Where(x => x.Status == Status.active);   // active-only in dropdowns
             if (!(string.IsNullOrEmpty(q) && string.IsNullOrEmpty(q)))
             {
-                serialisedJson = db.BillSundrys.Where(p => (p.BSName.ToLower().Contains(q.ToLower()) || p.BSName.Contains(q)))
+                serialisedJson = qActive.Where(p => (p.BSName.ToLower().Contains(q.ToLower()) || p.BSName.Contains(q)))
                         .Select(b => new
                         {
-                            text = b.BSName, //each json object will have 
+                            text = b.BSName, //each json object will have
                             id = b.BillSundryId,
                             b.PAccount,
                             b.SAccount,
                         }).Where(o => o.PAccount != 0 && o.SAccount != 0).Select(b => new
                         {
-                            text = b.text, //each json object will have 
+                            text = b.text, //each json object will have
                             id = b.id,
                         }).OrderBy(b => b.text).ToList();
             }
             else
             {
-                serialisedJson = db.BillSundrys.Where(o => o.PAccount != 0 && o.SAccount != 0).Select(b => new
+                serialisedJson = qActive.Where(o => o.PAccount != 0 && o.SAccount != 0).Select(b => new
                 {
                     text = b.BSName, //each json object will have 
                     id = b.BillSundryId,

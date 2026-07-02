@@ -1,4 +1,118 @@
 ﻿var count = 1, type = '';
+// Modern, non-blocking stock notification (replaces native alert()). Uses SweetAlert2 toast when
+// available, falls back to alert() otherwise. Non-blocking so it never halts the page or automation.
+function bosxStockNotify(msg) {
+    try {
+        if (window.Swal) {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'warning',
+                title: msg, showConfirmButton: false, timer: 3500, timerProgressBar: true
+            });
+        } else { alert(msg); }
+    } catch (e) { try { alert(msg); } catch (x) { } }
+}
+// Modern modal alert (replaces native alert() for validations that must be acknowledged).
+function bosxAlert(msg, icon) {
+    try {
+        if (window.Swal) {
+            Swal.fire({ icon: icon || 'warning', title: msg, confirmButtonText: 'OK', confirmButtonColor: '#6366f1' });
+        } else { alert(msg); }
+    } catch (e) { try { alert(msg); } catch (x) { } }
+}
+
+// ================= Safe-entry guards for the sales invoice (mistake prevention) =================
+function bosxNum(v) { var n = parseFloat((v == null ? '' : ('' + v)).replace(/,/g, '')); return isNaN(n) ? 0 : n; }
+// Every item row that actually has an item selected, with its numbers.
+function bosxActiveItemRows() {
+    var rows = [];
+    var sels = document.querySelectorAll('[id^="item_name_"]');
+    for (var s = 0; s < sels.length; s++) {
+        var sel = sels[s], v = sel.value;
+        if (v && v !== '' && v !== '0') {
+            var idx = sel.id.replace('item_name_', '');
+            rows.push({
+                idx: idx,
+                item: v,
+                qty: bosxNum((document.getElementById('total_qntt_' + idx) || {}).value),
+                rate: bosxNum((document.getElementById('price_item_' + idx) || {}).value),
+                sub: bosxNum((document.getElementById('sub_total_' + idx) || {}).value),
+                list: bosxNum((document.getElementById('base_rate_' + idx) || {}).value)
+            });
+        }
+    }
+    return rows;
+}
+// HARD BLOCKS: returns an error message that must stop the save, or null when clean.
+function bosxInvoiceHardBlocks() {
+    var cust = jQuery('#ddlCustomer').val();
+    if (!cust || cust === '' || cust === '0') return 'Please select a customer before saving.';
+    var rows = bosxActiveItemRows();
+    if (rows.length === 0) return 'Add at least one item before saving.';
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (!(r.qty > 0)) return 'An item has a blank or zero quantity. Enter a quantity greater than 0.';
+        if (!(r.rate > 0)) return 'An item has a blank or zero rate. Enter a rate greater than 0.';
+        if (r.sub < 0) return 'An item discount is larger than its amount (negative line). Please correct it.';
+    }
+    if (!(bosxNum(jQuery('#GrandTotal').val()) > 0)) return 'Grand total is zero. Please check the item amounts.';
+    return null;
+}
+// SMART WARNINGS: non-blocking things worth double-checking. Returns an array of strings.
+function bosxInvoiceWarnings() {
+    var w = [];
+    var rows = bosxActiveItemRows();
+    var seen = {}, dupWarned = false;
+    rows.forEach(function (r) {
+        if (r.qty > 10000) w.push('Very large quantity entered (' + r.qty + ').');
+        if (r.list > 0 && r.rate > 0 && (r.rate > r.list * 5 || r.rate < r.list / 5))
+            w.push('Rate ' + r.rate + ' is far from the item list price (' + r.list + ').');
+        if (r.item) { if (seen[r.item] && !dupWarned) { w.push('The same item is entered on more than one line — is that intended?'); dupWarned = true; } seen[r.item] = true; }
+    });
+    try {
+        var dv = jQuery('#SEDate').val();
+        if (dv) { var p = dv.split(/[-\/]/); if (p.length === 3) { var dt = new Date(+p[2], +p[1] - 1, +p[0]); if (Math.abs((new Date() - dt) / 86400000) > 30) w.push('Invoice date ' + dv + ' is more than a month from today.'); } }
+    } catch (e) { }
+    try {
+        var sig = jQuery('#ddlCustomer').val() + '|' + bosxNum(jQuery('#GrandTotal').val()).toFixed(2);
+        var last = JSON.parse(sessionStorage.getItem('bosxLastSale') || 'null');
+        if (last && last.sig === sig && (new Date().getTime() - last.t) < 300000)
+            w.push('A near-identical invoice (same customer & total) was saved a few minutes ago — possible duplicate.');
+    } catch (e) { }
+    return w;
+}
+// PRE-SAVE CONFIRMATION: summary + any warnings; calls onConfirm() only if the user confirms.
+function bosxConfirmInvoice(warnings, onConfirm) {
+    var esc = function (t) { return jQuery('<div>').text(t == null ? '' : t).html(); };
+    var custTxt = jQuery('#ddlCustomer option:selected').text() || '(none)';
+    var items = bosxActiveItemRows().length;
+    var gt = bosxNum(jQuery('#GrandTotal').val());
+    var html = '<div style="text-align:left;font-size:14px;line-height:1.9">'
+        + '<div><b>Customer:</b> ' + esc(custTxt) + '</div>'
+        + '<div><b>Items:</b> ' + items + '</div>'
+        + '<div><b>Grand Total:</b> ' + gt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div></div>';
+    if (warnings && warnings.length) {
+        html += '<div style="text-align:left;margin-top:12px;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:13px">'
+            + '<b>Please double-check:</b><ul style="margin:6px 0 0;padding-left:18px">'
+            + warnings.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+    }
+    var save = function () {
+        try { sessionStorage.setItem('bosxLastSale', JSON.stringify({ sig: jQuery('#ddlCustomer').val() + '|' + gt.toFixed(2), t: new Date().getTime() })); } catch (e) { }
+        onConfirm();
+    };
+    if (window.Swal) {
+        Swal.fire({
+            title: 'Save this invoice?', html: html, icon: (warnings && warnings.length) ? 'warning' : 'question',
+            showCancelButton: true, confirmButtonText: 'Confirm & Save', cancelButtonText: 'Cancel',
+            confirmButtonColor: '#4f46e5', reverseButtons: true, focusCancel: true
+        }).then(function (res) { if (res.isConfirmed) save(); });
+    } else { if (confirm('Save this invoice? Total: ' + gt)) save(); }
+}
+// re-enable the save buttons if a save request fails (so the user can fix and retry).
+try {
+    jQuery(document).ajaxComplete(function (ev, xhr, s) {
+        try { if (s && /CreateSale|UpdateSale/i.test(s.url || '')) { setTimeout(function () { jQuery('#save,#print,#download,#sendmail,#printmail,#sreturn').prop('disabled', false); window.__bosxSaleConfirmed = false; }, 60); } } catch (e) { }
+    });
+} catch (e) { }
 var discountglog = 0;
 limits = 1000;
 //Add Row 
@@ -72,7 +186,7 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
         if (inote == null)
             inote = "";
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button></div>' +
             '</div></div></div>';
         notbtn = "<button type='button' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o'></i></button>";
@@ -261,7 +375,9 @@ function addrow(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, Ite
         }
         //end
         if (ismobile==false)
-        $('#itemnote-' + count).wysihtml5();
+        // Stage 2: on pages that load CKEditor (Create/Edit via _BosxRichEditor), let the modal-open handler
+        // create a rich CKEditor (with "Add Image") for the item note; otherwise fall back to wysihtml5.
+        if (!window.CKEDITOR) { $('#itemnote-' + count).wysihtml5(); }
 
 
         if (Item != null) {
@@ -430,7 +546,7 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         if (inote == null)
             inote = "";
         itemnote = '<div id="modal-item-' + count + '" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">' +
-            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="1000">' + inote + '</textarea></div>' +
+            '<div class="form-group"><textarea name="itemnote" cols="40" rows="10" class="form-control itemnote" id="itemnote-' + count + '" maxlength="20000">' + inote + '</textarea></div>' +
             '<div class="form-group"><button class="btn btn-info" type="button" data-dismiss="modal">Save</button></div>' +
             '</div></div></div>';
         notbtn = "<button type='button' id='itmnote' class='itnote btn btn-default btn-flat' data-toggle='modal' data-target='#modal-item-" + count + "'><i class='fa fa-1x fa-file-text-o sh-icon2'></i></button>";
@@ -612,7 +728,9 @@ function addrow2(t, action, ItemUnit, ItemTax, ItemTotalAmount, ItemQuantity, It
         }
         //end
         if (ismobile == false)
-        $('#itemnote-' + count).wysihtml5();
+        // Stage 2: on pages that load CKEditor (Create/Edit via _BosxRichEditor), let the modal-open handler
+        // create a rich CKEditor (with "Add Image") for the item note; otherwise fall back to wysihtml5.
+        if (!window.CKEDITOR) { $('#itemnote-' + count).wysihtml5(); }
 
 
         if (Item != null) {
@@ -831,7 +949,7 @@ function itemUpdate(selectObject, dataid, action) {
                                 $(".item_").remove();
                                 $.each(data, function (i, item) {
                                     var taxamt = item.SellingPrice * (item.Tax / 100);
-                                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                    if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                         addrow2('addinvoiceItem', 'sales', item.ItemUnit, item.Tax, '', 1, item.ItemID, item.ItemCode, item.ItemName, item.SellingPrice, item.SellingPrice, item.ItemWithCode, taxamt, 0, '', item);
 
                                     } else {
@@ -839,7 +957,7 @@ function itemUpdate(selectObject, dataid, action) {
 
                                     }
                                 });
-                                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                                     addrow2('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
                                 } else {
                                     addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
@@ -916,7 +1034,7 @@ function itemUpdate(selectObject, dataid, action) {
                     minstockupdate(result, dataid);
                 }
                 if ($(".item_").length == 0) {
-                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                         addrow2('addinvoiceItem', '', '', '0.00', '0.00', '0');
                     } else {
                         addrow('addinvoiceItem', '', '', '0.00', '0.00', '0');
@@ -934,7 +1052,7 @@ function itemUpdate(selectObject, dataid, action) {
                         minstockupdate(result, dataid);
                     }
                     if ($(".item_").length == 0) {
-                        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                        if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                             addrow2('addinvoiceItem', '', '', '0.00', '0.00', '0');
                         } else {
                             addrow('addinvoiceItem', '', '', '0.00', '0.00', '0');
@@ -954,7 +1072,7 @@ function itemUpdate(selectObject, dataid, action) {
                 if (VoucherType == "Sales" && result.lastPur != false) {
                     LastSalePurList(result, dataid);
                 }
-                alert("This Item is Out of Stock!!!");
+                bosxStockNotify("This item is out of stock");
 
                 $("#total_qntt_" + dataid).val(0);
                 var classname = $($("#total_qntt_" + dataid)).closest('tr').attr('class');
@@ -1745,7 +1863,7 @@ function minstockcheck(arg, action) {
             //}
             else if (totstock < 0 && ItemOutOfStock == 'inactive' && action != "foredit") {
                 stock = parseFloat($(".minstock_" + arg).attr('data-stock'));
-                alert("This Item Is Going To Out of Stock!!! Only " + available + " " + unitname + "Items Are Available In Stock.." + "");
+                bosxStockNotify("Only " + available + " " + unitname + " available in stock");
                 if(action!="foredit")
                  $(".total_qntt_" + arg).val(0);
             }
@@ -1757,7 +1875,7 @@ function minstockcheck(arg, action) {
                 //alert("Stock Exceeds Minimum Stock");
             }
             if (totstock < 0 && ItemOutOfStock == 'inactive' && action != "foredit") {
-                alert("This Item Is Going To Out of Stock!!! Only " + stock + " " + unitname + " Items Are Available In Stock..");
+                bosxStockNotify("Only " + stock + " " + unitname + " available in stock");
                 //$(".total_qntt_" + arg).val(stock);
             }
 
@@ -2259,7 +2377,11 @@ function price_change(arg, type, foredit) {
     var itemdiscount = $(".item_discount" + arg).val();
     subtotal = subtotal - itemdiscount;
 
-    var taxAmount = (parseFloat(TaxAMT) * quantity);
+    // F2 fix: tax the DISCOUNTED subtotal (identical to rowSubTotal), so editing a line via the price/rate
+    // field gives the same VAT as editing qty/discount. Previously this was TaxAMT*qty = tax on the full
+    // (undiscounted) amount, which over-charged VAT on any discounted line. Correct for exclusive, inclusive
+    // (rate is already the net price) and exempt (tax=0).
+    var taxAmount = (Math.round(subtotal * tax) / 100);
     var Total = subtotal + taxAmount;
 
     $("#tot_tax_" + arg).val(taxAmount.toFixed(2));
@@ -2419,7 +2541,8 @@ function unitchange(selectObject, arg, action) {
     grandtotalcalculation();
     paidamountcalculation();
     // batch stock
-    var unitname = selectObject.options[selectObject.selectedIndex].text;
+    var _unitOpt = (selectObject && selectObject.selectedIndex >= 0) ? selectObject.options[selectObject.selectedIndex] : null;
+    var unitname = _unitOpt ? _unitOpt.text : '';
     var unitval = $('#unit_name_' + arg).val();
     $("#bts_Unit_" + arg).text(unitname);
     $("#batchtbl-" + arg + " .bts_units").val(unitval);
@@ -2699,7 +2822,7 @@ function bsUpdate(selectObject, dataid) {
 
             $(selectObject).closest('tr').attr('class', "bs_" + result.BillSundryId);
             if ($(".bs_").length == 0) {
-                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                     addbillsundry2('addbillsundry', '', '0.00', '', '0.00', '');
                 } else {
                     addbillsundry('addbillsundry', '', '0.00', '', '0.00', '');
@@ -4480,7 +4603,7 @@ function GetCustomerMail() {
             dataType: "JSON",
             data: { CustID: CustomerId },
             success: function (result) {
-                $("#custEmailId").val(result.EmailId);
+                if (result) $("#custEmailId").val(result.EmailId);
             }
         });
 
@@ -4491,7 +4614,7 @@ function GetCustomerMail() {
             //alert($('#InvoiceId').text());
             if ($('#InvoiceId').text() != "") {
                 $("#addinvoiceItem").html("");
-                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                if ((window.innerWidth <= 820 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
                     addrow2('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");
                 } else {
                     addrow('addinvoiceItem', 'sales', "", "0.00", "0.00", "0");

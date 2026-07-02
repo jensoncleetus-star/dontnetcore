@@ -387,17 +387,22 @@
         body.bosx-qc .content-wrapper .row:has(.ribbon4) > [class*="col-"] { float:none !important; width:100% !important; padding:0 8px; text-align:left; }
         body.bosx-qc .content-wrapper .row:has(.ribbon4) > [class*="col-"]:last-child { display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
         body.bosx-qc .content-wrapper .row:has(.ribbon4) .btn { margin:0 !important; }
-        body.bosx-qc .content-wrapper .form-group { margin-bottom:10px; }
-        body.bosx-qc .content-wrapper .box.box-info > .box-body { padding:10px 12px; }
+        /* clear, even gap between the stacked top form fields so labels don't hug the field above them */
+        body.bosx-qc .content-wrapper .form-group { margin-bottom:18px; }
+        body.bosx-qc .content-wrapper .form-group > label, body.bosx-qc .content-wrapper .form-group > .control-label { margin-bottom:5px; display:inline-block; }
+        body.bosx-qc .content-wrapper .box.box-info > .box-body { padding:12px 12px; }
     }
     body.bosx-qc .mobView1 table.table-item > tbody > tr > td { border:0 !important; padding:0 !important; display:block; min-width:0; width:100% !important; box-sizing:border-box; justify-self:stretch; }
     body.bosx-qc .mobView1 table.table-item > tbody > tr > td:first-child { display:none; }
     body.bosx-qc .mobView1 table.table-item > tbody > tr > td.input-group { grid-column:1 / -1; display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; align-content:flex-start; justify-content:flex-start; gap:8px; height:auto !important; min-height:96px; }
     body.bosx-qc .mobView1 table.table-item td.input-group > select.item_name,
     body.bosx-qc .mobView1 table.table-item td.input-group > .select2 { flex:1 1 100% !important; order:0; min-width:0; }
+    /* the 4 action buttons form ONE tidy, evenly-spaced full-width toolbar row under the item name (kept in
+       sync with Edit) — display:contents flattens the wrapper so all four align as equal-width siblings. */
+    body.bosx-qc .mobView1 table.table-item td.input-group .input-group-btn { display:contents; }
     body.bosx-qc .mobView1 table.table-item td.input-group > a,
-    body.bosx-qc .mobView1 table.table-item td.input-group > .input-group-btn { flex:0 0 auto; order:1; margin:0 !important; }
-    body.bosx-qc .mobView1 table.table-item td.input-group .input-group-btn { display:inline-flex; gap:8px; }
+    body.bosx-qc .mobView1 table.table-item td.input-group .input-group-btn > a,
+    body.bosx-qc .mobView1 table.table-item td.input-group .input-group-btn > button { order:1; flex:1 1 0 !important; min-width:0 !important; margin:0 !important; }
     body.bosx-qc .mobView1 table.table-item td.input-group a, body.bosx-qc .mobView1 table.table-item td.input-group button { position:static !important; top:auto !important; }
     body.bosx-qc .mobView1 table.table-item #itmnote, body.bosx-qc .mobView1 table.table-item #itmheading,
     body.bosx-qc .mobView1 table.table-item #sh-btn-add, body.bosx-qc .mobView1 table.table-item [id^="sh-btn-dlt"] { position:static !important; top:auto !important; }
@@ -2069,12 +2074,20 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="form-group col-md-12 col-sm-12 col-xs-12 hide1">
-                            @Html.Label("Documents", null, new { @class = "control-label temp2" })
+                        <div class="form-group col-md-12 col-sm-12 col-xs-12 qc-attach-card">
+                            <label class="control-label temp2"><i class="fa fa-paperclip"></i> Attachments &amp; Documents</label>
+                            <div class="qc-attach-hint"><i class="fa fa-cloud-upload"></i> Drag &amp; drop files here, or click to browse — attach a signed quote copy, PO, or any supporting document.</div>
                             <div class="file-loading">
                                 <input id="input-24" name="input24[]" type="file" multiple>
                             </div>
                         </div>
+                        <style>
+                            .qc-attach-card { background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; margin:8px 0 4px; }
+                            .qc-attach-card > .control-label { font-size:13px; font-weight:700; color:#111827; }
+                            .qc-attach-card > .control-label .fa { color:#059669; margin-right:6px; }
+                            .qc-attach-hint { font-size:12px; color:#6b7280; margin:2px 0 10px; }
+                            .qc-attach-hint .fa { color:#059669; margin-right:5px; }
+                        </style>
                         @if (@ViewBag.PrintLayout == 0)
                         {
                             <div class="col-md-12 col-sm-12 col-xs-12 no-padding hide1">
@@ -2913,6 +2926,7 @@
                             }
 
                             fileData.append('id', e.qtnid);
+                            fileData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').first().val()); // global AutoValidateAntiforgeryToken
                             /*fileData.append('abc', e.test);*/
 
                             $.ajax({

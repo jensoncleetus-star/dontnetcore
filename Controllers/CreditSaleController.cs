@@ -3172,12 +3172,79 @@ namespace QuickSoft.Controllers
         [RedirectingAction]
         [HttpPost]
         [QkAuthorize(Roles = "Dev,Sales Entry,No Tax Sales")]
+        // ---- F1/F15 ENFORCE ---------------------------------------------------------------
+        // Recompute per-line and document money server-side and CORRECT any client tampering
+        // in-place on `array` / `saledata` BEFORE they are consumed, so the header row, the
+        // line items, the GL postings and the payment leg all use trusted values.
+        //  * qty*rate-discount for the line subtotal; round(sub*rate)/100 for the line tax.
+        //  * A 0.05 tolerance means cent-level rounding (the client taxes the full-precision
+        //    subtotal, we only see the rounded one) is NEVER touched — only real, dollar-level
+        //    tampering is corrected. Legitimate invoices are provably left byte-for-byte alone.
+        //  * The grand total keeps the posted bill-sundry / roundoff delta so bill-sundry
+        //    invoices are preserved; any correction is written to log section "SalesCalcAudit".
+        //  * try/catch => a bug here can never break a legitimate save (falls back to posted).
+        private void EnforceSaleTotals(string[][] array, string[] saledata, string user, long logId, string ctx)
+        {
+            try
+            {
+                if (array == null || saledata == null) return;
+                System.Func<string, decimal> pd = s => (string.IsNullOrWhiteSpace(s) || s == "http://") ? 0m
+                    : (decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0m);
+                System.Func<decimal, string> ps = v => v.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+                const decimal TOL = 0.05m;
+                bool corrected = false;
+                decimal sumSub = 0m, sumTax = 0m;
+                var note = new System.Text.StringBuilder();
+                foreach (var a in array)
+                {
+                    if (a == null || a.Length < 13 || string.IsNullOrWhiteSpace(a[0])) continue;
+                    decimal q = pd(a[2]), r = pd(a[4]), disc = pd(a[7]), tr = pd(a[11]);
+                    decimal pSub = pd(a[6]), pTax = pd(a[10]), pTot = pd(a[12]);
+                    decimal eSub = q * r - disc;                                 // line subtotal
+                    decimal eTax = tr == 0m ? 0m : Math.Round(eSub * tr) / 100m;  // line tax (net rate covers exclusive pricing)
+                    decimal effSub = pSub, effTax = pTax;
+                    if (Math.Abs(pSub - eSub) > TOL) { a[6] = ps(eSub); effSub = eSub; corrected = true; note.Append("item " + a[0] + " sub " + pSub + "->" + eSub + "; "); }
+                    if (Math.Abs(pTax - eTax) > TOL) { a[10] = ps(eTax); effTax = eTax; corrected = true; note.Append("item " + a[0] + " tax " + pTax + "->" + eTax + "; "); }
+                    decimal effTot = effSub + effTax;
+                    if (Math.Abs(pTot - effTot) > TOL) { a[12] = ps(effTot); corrected = true; note.Append("item " + a[0] + " tot " + pTot + "->" + effTot + "; "); }
+                    sumSub += effSub; sumTax += effTax;
+                }
+                // header string[] indices: 5=TaxAmount, 6=Discount, 7=GrandTotal, 8=SubTotal, 9=Tax
+                decimal pHSub = saledata.Length > 8 ? pd(saledata[8]) : 0m;
+                decimal pHTax = saledata.Length > 5 ? pd(saledata[5]) : 0m;
+                decimal pHGrand = saledata.Length > 7 ? pd(saledata[7]) : 0m;
+                decimal sundryDelta = pHGrand - pHSub - pHTax;                    // bill-sundry / roundoff / header discount effect (preserved)
+                // SAFETY GUARD: if the posted line array parses to ~nothing (sumSub ~ 0) yet the client posted a
+                // real document subtotal, the LINE data - not the header - is the malformed/incomplete part
+                // (e.g. a half-built row from a client-side JS glitch). NEVER zero out a real invoice on that
+                // basis: skip the header corrections and just log it for review.
+                if (sumSub <= 0.01m && pHSub > 0.01m)
+                {
+                    corrected = true;
+                    note.Append("SKIPPED header correction (degenerate line data: line-sum " + sumSub + " vs posted docsub " + pHSub + "); ");
+                }
+                else
+                {
+                    if (saledata.Length > 8 && Math.Abs(pHSub - sumSub) > TOL) { saledata[8] = ps(sumSub); corrected = true; note.Append("docsub " + pHSub + "->" + sumSub + "; "); }
+                    if (saledata.Length > 5 && Math.Abs(pHTax - sumTax) > TOL) { saledata[5] = ps(sumTax); if (saledata.Length > 9) saledata[9] = ps(sumTax); corrected = true; note.Append("doctax " + pHTax + "->" + sumTax + "; "); }
+                    decimal expGrand = sumSub + sumTax + sundryDelta;
+                    if (saledata.Length > 7 && Math.Abs(pHGrand - expGrand) > TOL) { saledata[7] = ps(expGrand); corrected = true; note.Append("docgrand " + pHGrand + "->" + expGrand + "; "); }
+                }
+                if (corrected)
+                    com.addlog(LogTypes.Updated, user, "CreditSale", "SalesCalcAudit", findip(), logId, "ENFORCE corrected tampered totals (" + ctx + "): " + note.ToString());
+            }
+            catch { }
+        }
+
         public JsonResult CreateSale(string[][] array, string[] saledata, SEBillSundryViewModel bsmodel, string[][] arrayR, ICollection<BatchStockPViewModel> bstmodel, ICollection<UBatchStockPViewModel> ubstmodel, string[][] arrayused, long? protask, ICollection<commissionViewmodel> commission, string TenderingMode, string Mode, ICollection<SettlementViewModel> SettlementData, decimal? BalanceAmount, ICollection<RackStockPViewModel> bsrackData)
         {
      
 
+            // F1/F15 ENFORCE: sanitize client-posted totals/prices before anything consumes them.
+            EnforceSaleTotals(array, saledata, User.Identity.GetUserId(), 0, "CreateSale");
+
             var currdate = User.IsInRole("Read Only Sales Invoice Date");
-           
+
 
             bool stat = false;
             string msg;
@@ -3619,6 +3686,8 @@ namespace QuickSoft.Controllers
                     dtItem.Columns.Add("SaleEntry");
                     dtItem.Columns.Add("Item");
                     dtItem.Columns.Add("Type");
+
+                    // F1/F15: line/header money already sanitized by EnforceSaleTotals() at method start.
 
                     foreach (var arr in array)
                     {
@@ -5250,7 +5319,22 @@ namespace QuickSoft.Controllers
                      && (ProjectName == 0 || ProjectName == null || j.ProjectId == ProjectName)
                      //&& (Task == 0 || Task == null || k.ProTaskId == Task)
                     && (salesstatus == null || a.SalesStatus == salesstatus)
-                     && (SearchW == "" || a.BillNo.ToLower().Contains(SearchW) || (a.customername != null && a.customername.ToLower().Contains(SearchW))) &&
+                     // Powerful "search anything" — one box matches invoice no, customer (name/code),
+                     // PO no, phone, sales executive, customer's executive, material center, and amount.
+                     && (SearchW == ""
+                        || (a.BillNo != null && a.BillNo.ToLower().Contains(SearchW))
+                        || (a.customername != null && a.customername.ToLower().Contains(SearchW))
+                        || (b != null && b.CustomerName != null && b.CustomerName.ToLower().Contains(SearchW))
+                        || (b != null && b.CustomerCode != null && b.CustomerCode.ToLower().Contains(SearchW))
+                        || (a.PONo != null && a.PONo.ToLower().Contains(SearchW))
+                        || (a.phonenumber != null && a.phonenumber.ToLower().Contains(SearchW))
+                        || (d != null && d.FirstName != null && d.FirstName.ToLower().Contains(SearchW))
+                        || (d != null && d.LastName != null && d.LastName.ToLower().Contains(SearchW))
+                        || (l != null && l.FirstName != null && l.FirstName.ToLower().Contains(SearchW))
+                        || (l != null && l.LastName != null && l.LastName.ToLower().Contains(SearchW))
+                        || (i != null && i.MCName != null && i.MCName.ToLower().Contains(SearchW))
+                        || (a.SEGrandTotal.ToString().Contains(SearchW))
+                        ) &&
                     (Ref1 == "" || Ref1 == null || a.Ref1 == Ref1) &&
                     (Ref2 == "" || Ref2 == null || a.Ref2 == Ref2) &&
                     (Ref3 == "" || Ref3 == null || a.Ref3 == Ref3) &&
@@ -8995,6 +9079,9 @@ namespace QuickSoft.Controllers
         [QkAuthorize(Roles = "Dev,Edit Sales Entry,No Tax Sales")]
         public ActionResult UpdateSale(string[][] array, string[] saledata, SEBillSundryViewModel bsmodel, ICollection<BatchStockPViewModel> bstmodel, ICollection<UBatchStockPViewModel> ubstmodel, string[][] arrayused, ICollection<commissionViewmodel> commission, string TenderingMode, string Mode, ICollection<SettlementViewModel> SettlementData, decimal? BalanceAmount, string[][] arrayR, ICollection<RackStockPViewModel> bsrackData)
         {
+            // F1/F15 ENFORCE: sanitize client-posted totals/prices before anything consumes them.
+            EnforceSaleTotals(array, saledata, User.Identity.GetUserId(), 0, "UpdateSale");
+
             string result2 = string.Empty;
             DataTable dtItem2 = new DataTable();
             dtItem2.Columns.Add("ItemUnit");
@@ -9458,6 +9545,8 @@ namespace QuickSoft.Controllers
                 dtItem.Columns.Add("SaleEntry");
                 dtItem.Columns.Add("Item");
                 dtItem.Columns.Add("Type");
+
+                // F1/F15: line/header money already sanitized by EnforceSaleTotals() at method start.
 
                 foreach (var arr in array)
                 {
@@ -13339,6 +13428,9 @@ namespace QuickSoft.Controllers
         }
 
         //For Uploading the File
+        // Security (audit F14): role-gated so only sales-invoice users can attach. Dangerous extensions
+        // (.html/.svg/.js/…) are already blocked by the SaveAs shim + the /uploads serving block.
+        [QkAuthorize(Roles = "Dev,Sales Entry,Edit Sales Entry,No Tax Sales,Edit Item Sales Entry")]
         public ActionResult UploadFiles()
         {
             if (Request.Form.Files.Count > 0)
@@ -13408,11 +13500,13 @@ namespace QuickSoft.Controllers
                                     TransactionID = SId,
                                     TransactionType = "CreditSale",
                                     FileName = Realname,
+                                    Notes = fileName, // keep ORIGINAL name for display/download (disk name stays numeric)
                                     Status = FStatus,
                                     CreatedDate = Convert.ToDateTime(System.DateTime.Now)
                                 };
                                 db.AttachmentDocuments.Add(PODocument);
                                 db.SaveChanges();
+                                com.addlog(LogTypes.Created, User.Identity.GetUserId(), "CreditSale", "AttachmentDocuments", findip(), SId, "Attached document '" + fileName + "' to Sales Invoice #" + SId);
 
                                 if (extension == ".jpg" || extension == ".jfif" || extension == ".png" || extension == ".jpeg")
                                 {
@@ -13466,13 +13560,42 @@ namespace QuickSoft.Controllers
             }
         }
 
+        // Returns the documents attached to a sales invoice (Edit gallery + list-page attach modal).
+        // NOTE: `id` binds from the URL PATH in this app, so call as /CreditSale/GetCreditSaleDocuments/{id}.
+        [QkAuthorize(Roles = "Dev,Sales Entry,Edit Sales Entry,No Tax Sales,Edit Item Sales Entry")]
+        public ActionResult GetCreditSaleDocuments(long id)
+        {
+            var docs = db.AttachmentDocuments
+                .Where(d => d.TransactionID == id && d.TransactionType == "CreditSale")
+                .OrderByDescending(d => d.DocumentID)
+                .Select(d => new { d.DocumentID, d.FileName, d.Notes, d.CreatedDate })
+                .ToList();
+            var imageExt = new[] { ".jpg", ".jpeg", ".jfif", ".png", ".gif", ".bmp", ".webp" };
+            var list = docs.Select(d => new
+            {
+                docid = d.DocumentID,
+                fileName = string.IsNullOrWhiteSpace(d.Notes) ? d.FileName : d.Notes, // original name if captured
+                url = "/uploads/CreditSaleDocuments/" + d.FileName,
+                isImage = imageExt.Contains((System.IO.Path.GetExtension(d.FileName) ?? "").ToLower()),
+                created = string.Format("{0:dd-MM-yyyy hh:mm tt}", d.CreatedDate)
+            }).ToList();
+            return new QuickSoft.Models.LegacyJsonResult { Data = list };
+        }
+
         //end
 
         //For deleteing when any of the image deleted
+        // Security (audit F13): role-gated, scoped to CreditSale attachments only, and null-checked so it can't
+        // delete another module's document by primary key or 500 on a bad key.
+        [QkAuthorize(Roles = "Dev,Edit Sales Entry,Sales Entry,No Tax Sales,Edit Item Sales Entry")]
         public JsonResult ImageDelete(long key)
         {
             //To remove the attached file(single row) from database
             AttachmentDocuments Document = db.AttachmentDocuments.Find(key);
+            if (Document == null || Document.TransactionType != "CreditSale")
+            {
+                return new QuickSoft.Models.LegacyJsonResult { Data = new { status = false, message = "Attachment not found." } };
+            }
             db.AttachmentDocuments.Remove(Document);
             db.SaveChanges();
 

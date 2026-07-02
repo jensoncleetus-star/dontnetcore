@@ -213,6 +213,7 @@ namespace QuickSoft.Controllers
                          name       =   b.UserName,
                          logtype    =   a.LogType,
                          section    =   a.LogSection,
+                         ip         =   a.LogIP,
                          time       =   a.LogTime,
                          sectionid  =   a.LogID,
                          logdetails =  a.LogDetails,
@@ -220,23 +221,29 @@ namespace QuickSoft.Controllers
                         // details = b.UserName + " " + Enum.GetName(typeof(LogTypes), a.LogType) +" "+ a.LogSection +" on "+a.LogTime
                      });
 
-            //search
+            //search — match action, details, user and IP
             if (!string.IsNullOrEmpty(search) && !string.IsNullOrWhiteSpace(search))
             {
-                v = v.Where(p =>/* p.SENo.ToString().ToLower().Contains(search.ToLower()) ||*/
-                                 p.name.ToString().ToLower().Contains(search.ToLower())
-                             );
+                var sl = search.ToLower();
+                v = v.Where(p => (p.name != null && p.name.ToLower().Contains(sl)) ||
+                                 (p.logdetails != null && p.logdetails.ToLower().Contains(sl)) ||
+                                 (p.ip != null && p.ip.ToLower().Contains(sl)));
             }
 
-            //SORT
-            if (sortColumn != "" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
+            //SORT — newest first by default
+            if (!string.IsNullOrEmpty(sortColumn) && sortColumn != "id" && !(string.IsNullOrEmpty(sortColumn) && string.IsNullOrEmpty(sortColumnDir)))
             {
                 v = v.AsQueryable().OrderBy(sortColumn + " " + sortColumnDir);
             }
+            else { v = v.OrderByDescending(o => o.time); }
             recordsTotal = v.Count();
-            var datas = v.ToList().Select(o=> new {
+            var datas = v.ToList().Select(o => new {
                 o.id,
-                details = o.name + " " + o.logdetails + " on " + o.time
+                action = o.logtype.ToString(),
+                details = string.IsNullOrEmpty(o.logdetails) ? "" : o.logdetails,
+                user = o.name,
+                ip = string.IsNullOrEmpty(o.ip) ? "-" : o.ip,
+                time = string.Format("{0:dd-MM-yyyy hh:mm:ss tt}", o.time)
             });
             var data = datas.Skip(skip).Take(pageSize).ToList();
             return Json(new { draw = draw, recordsFiltered = recordsTotal, recordsTotal = recordsTotal, data = data });

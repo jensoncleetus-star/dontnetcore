@@ -27,7 +27,9 @@ if (string.IsNullOrWhiteSpace(conn))
     if (!builder.Environment.IsDevelopment())
         throw new System.InvalidOperationException(
             "ConnectionStrings:DefaultConnection is not configured. Set it (per branch database) before running in Production.");
-    conn = @"Server=192.168.35.201;Database=REALESTATE-1163;;User Id=rmo;password=wint3er;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
+    // SECURITY: never hardcode remote DB credentials in source. The Development fallback is the LOCAL
+    // working DB via Windows auth (no password). Override with ConnectionStrings:DefaultConnection.
+    conn = @"Server=.\SQLEXPRESS;Database=emirtechlatest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False";
 }
 // EF Core 10 translates `list.Contains(column)` via OPENJSON, which fails on SQL Server databases at an
 // older compatibility level ("Incorrect syntax near '$'"). Inline such collections as constants instead

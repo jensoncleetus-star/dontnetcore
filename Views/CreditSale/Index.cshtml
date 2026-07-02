@@ -143,6 +143,14 @@
     .dataTables_paginate .paginate_button { border:1px solid #e7eaf0 !important; border-radius:8px !important; padding:6px 12px !important; margin:0 3px !important; color:#475569 !important; background:#fff !important; font-size:13px; }
     .dataTables_paginate .paginate_button.current, .dataTables_paginate .paginate_button.current:hover { background:#6366f1 !important; border-color:#6366f1 !important; color:#fff !important; }
     .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) { background:#eef2ff !important; border-color:#c7d2fe !important; color:#4f46e5 !important; }
+
+    /* ===== #4: one powerful common search — hide Filters button + filter panel ===== */
+    #srch, #advsearchlist, #list1, .bosx-filters-toggle { display:none !important; }
+    /* make the common search the primary, prominent control */
+    .dataTables_filter { float:left !important; margin:0 0 12px 0 !important; }
+    .dataTables_filter input { min-width:360px !important; height:42px !important; font-size:14px !important; padding:8px 16px 8px 40px !important; background-position:14px center !important; }
+    .dataTables_filter input:focus { border-color:#6366f1 !important; box-shadow:0 0 0 3px rgba(99,102,241,.14) !important; }
+    @@media (max-width:640px){ .dataTables_filter { float:none !important; } .dataTables_filter input { min-width:0 !important; width:100% !important; } }
 </style>
 
 <div class="box box-info">
@@ -509,6 +517,52 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
             </div>
         </div>
     </div>
+
+    @* ---- Attach documents to a sales invoice directly from the list ---- *@
+    <div id="modal-attach" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#059669;color:#fff;">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true" style="color:#fff;opacity:.9;">&times;</button>
+                    <h4><i class="fa fa-paperclip"></i> Attachments &mdash; Sales Invoice <span id="qcAttachTitle"></span></h4>
+                </div>
+                <div class="modal-body">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="qcAttachId" value="" />
+                    <div style="font-size:12.5px;color:#6b7280;margin-bottom:10px;"><i class="fa fa-cloud-upload" style="color:#059669;"></i> Drag &amp; drop or browse to upload a signed copy, PO, LPO, or any supporting document. Files are saved immediately.</div>
+                    <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9aa1ab;margin-bottom:6px;">Attached documents</div>
+                    <div id="qcAttachList" class="qc-doc-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;"></div>
+                    <div id="qcDropZone" class="qc-dropzone">
+                        <i class="fa fa-cloud-upload"></i>
+                        <div class="qc-dz-text">Drag &amp; drop files here, or <span class="qc-browse">click to browse</span></div>
+                        <div class="qc-dz-hint">JPG, PNG, PDF, Word, Excel, DWG&hellip; up to a few MB each</div>
+                        <input id="qcAttachInput" type="file" multiple style="display:none" />
+                    </div>
+                    <div id="qcSelPreview" class="qc-doc-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;"></div>
+                    <div id="qcUpWrap" style="display:none;margin-top:12px;"><div style="height:8px;background:#e5e7eb;border-radius:6px;overflow:hidden;"><div id="qcUpBar" style="height:100%;width:0;background:#059669;transition:width .15s;"></div></div></div>
+                    <div id="qcAttachProgress" style="margin-top:8px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        #modal-attach .qc-doc-list { display:flex; flex-wrap:wrap; gap:10px; }
+        #modal-attach .qc-doc-empty { font-size:12.5px; color:#9ca3af; font-style:italic; }
+        #modal-attach .qc-doc-item { display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px; min-width:240px; max-width:340px; }
+        #modal-attach .qc-doc-thumb { width:40px; height:40px; object-fit:cover; border-radius:7px; flex:0 0 40px; border:1px solid #eef0f2; }
+        #modal-attach .qc-doc-ico { width:40px; height:40px; flex:0 0 40px; border-radius:7px; background:#eef2ff; color:#4f46e5; display:flex; align-items:center; justify-content:center; font-size:18px; }
+        #modal-attach .qc-doc-meta { flex:1 1 auto; min-width:0; line-height:1.35; }
+        #modal-attach .qc-doc-name { display:block; font-size:12.5px; font-weight:600; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #modal-attach .qc-doc-meta small { color:#9ca3af; font-size:11px; }
+        #modal-attach .qc-doc-actions { display:flex; gap:6px; flex:0 0 auto; }
+        #modal-attach .qc-dropzone { border:2px dashed #cbd5e1; border-radius:12px; padding:26px 16px; text-align:center; cursor:pointer; color:#64748b; background:#f8fafc; transition:all .15s; }
+        #modal-attach .qc-dropzone:hover, #modal-attach .qc-dropzone.dragover { border-color:#059669; background:#f0fdf4; color:#059669; }
+        #modal-attach .qc-dropzone .fa { font-size:30px; color:#059669; margin-bottom:8px; }
+        #modal-attach .qc-dz-text { font-size:14px; font-weight:600; }
+        #modal-attach .qc-browse { color:#059669; text-decoration:underline; }
+        #modal-attach .qc-dz-hint { font-size:11.5px; color:#9ca3af; margin-top:4px; }
+        #modal-attach #qcAttachProgress { font-size:12.5px; color:#374151; }
+    </style>
 </div>
 
 @*@{var Model = "modal-lg";}*@
@@ -535,7 +589,7 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
     @Scripts.Render("~/js/bootstrap-datepicker")
     @Scripts.Render("~/js/bootstrap-timepicker")
     @Scripts.Render("~/js/sale-invoice2")
-    <script src="~/Content/js/salesinvoice2.js?c=232"></script>
+    <script src="~/Content/js/salesinvoice2.js?c=233"></script>
     <script type="text/javascript">
         $('#ddlPagesize').on('change', function (e) {
 
@@ -610,13 +664,17 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
             "pageLength": 50,
             responsive: true,
             "bLengthChange": false,
+            "language": { "search": "", "searchPlaceholder": "Search invoices — no, customer, executive, PO, phone, amount…" },
             "ajax": {
                 "url": '/CreditSale/GetSalesEntry',
                 "data": function (data) {
                     data.vouchertype = $('#ddlsalestype').val();
                     data.InvoiceNo = $('#InvoiceNo').val();
-                    data.FromDate = $('#FromDate').val();
-                    data.ToDate = $('#ToDate').val();
+                    // #4 powerful search: when the common search box has a term, drop the default date
+                    // window so the search spans the FULL invoice history; otherwise keep the fast recent view.
+                    var _gsearch = ($('#SalesTable_filter input').val() || '').trim();
+                    data.FromDate = _gsearch !== '' ? '' : $('#FromDate').val();
+                    data.ToDate = _gsearch !== '' ? '' : $('#ToDate').val();
                     data.customer = $('#ddlCustomer').val();
                     data.salesperson = $('#ddlEmployee').val();
                     data.paymethod = $('#ddlPayMethod').val();
@@ -747,6 +805,10 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
                                 if (User.IsInRole("Dev") || User.IsInRole("Download Sales Entry"))
                                 {
                                     actData += "<a class=\"modal-link-download\" onclick=\"download2('+ data.SalesEntryId +')\" title=\"Download Sales Entry\"><i class=\"fa-lg fa fa-cloud-download\" ></i></a> ";
+                                }
+                                if (User.IsInRole("Dev") || User.IsInRole("Edit Sales Entry") || User.IsInRole("Sales Entry"))
+                                {
+                                    actData += "<a class=\"cs-attach-open\" href=\"javascript:void(0)\" onclick=\"openCsAttach('+ data.SalesEntryId +')\" title=\"Attachments / Upload signed copy\"><i class=\"fa fa-lg fa-paperclip\" ></i></a> ";
                                 }
                                 if (User.IsInRole("Dev") || User.IsInRole("Add Task Invoice"))
                                 {
@@ -1734,5 +1796,84 @@ new SelectListItem() {Text = "All Rows", Value="10000000"},
             e.preventDefault();
             oTable.draw();
         });
+    </script>
+    <script type="text/javascript">
+        // ---- List-page attachments for sales invoices: open modal, list, upload (View/Download only; no delete) ----
+        (function () {
+            function tok() { return $('#modal-attach input[name="__RequestVerificationToken"]').val() || $('input[name="__RequestVerificationToken"]').first().val(); }
+            window.openCsAttach = function (qid) {
+                $('#qcAttachId').val(qid);
+                $('#qcAttachTitle').text('#' + qid);
+                $('#qcAttachProgress').empty();
+                $('#qcSelPreview').empty();
+                $('#qcUpWrap').hide(); $('#qcUpBar').css('width', '0');
+                $('#qcAttachInput').val('');
+                loadAttachList();
+                $('#modal-attach').modal('show');
+            };
+            function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+            function renderSelected(files) {
+                var $p = $('#qcSelPreview'); $p.empty();
+                for (var i = 0; i < files.length; i++) {
+                    var f = files[i], nm = $('<div>').text(f.name).html();
+                    var isImg = /^image\//.test(f.type);
+                    var icon = isImg ? ('<img src="' + URL.createObjectURL(f) + '" class="qc-doc-thumb">') : '<span class="qc-doc-ico"><i class="fa fa-file-o"></i></span>';
+                    $p.append('<div class="qc-doc-item">' + icon + '<div class="qc-doc-meta"><span class="qc-doc-name" title="' + nm + '">' + nm + '</span><small>' + fmtSize(f.size) + '</small></div></div>');
+                }
+            }
+            function loadAttachList() {
+                var qid = $('#qcAttachId').val();
+                $.ajax({ url: '/CreditSale/GetCreditSaleDocuments/' + qid + '?_=' + Date.now(), dataType: 'json',
+                  error: function (x) { $('#qcAttachList').html('<div class="qc-doc-empty">Could not load documents (status ' + x.status + ').</div>'); },
+                  success: function (list) {
+                    var $c = $('#qcAttachList'); $c.empty();
+                    if (!list || !list.length) { $c.html('<div class="qc-doc-empty">No documents attached yet.</div>'); return; }
+                    list.forEach(function (d) {
+                        var name = $('<div>').text(d.fileName).html();
+                        var icon = d.isImage ? ('<img src="' + d.url + '" class="qc-doc-thumb">') : '<span class="qc-doc-ico"><i class="fa fa-file-o"></i></span>';
+                        // no delete button here — deletion is only allowed inside the invoice Edit page
+                        $c.append('<div class="qc-doc-item" data-id="' + d.docid + '">' + icon +
+                            '<div class="qc-doc-meta"><a href="' + d.url + '" target="_blank" class="qc-doc-name" title="' + name + '">' + name + '</a><small>' + (d.created || '') + '</small></div>' +
+                            '<div class="qc-doc-actions"><a href="' + d.url + '" target="_blank" class="btn btn-xs btn-default" title="View / Preview"><i class="fa fa-eye"></i></a>' +
+                            '<a href="' + d.url + '" download="' + name + '" class="btn btn-xs btn-primary" title="Download"><i class="fa fa-download"></i></a></div></div>');
+                    });
+                  }
+                });
+            }
+            function uploadFiles(files) {
+                if (!files || !files.length) return;
+                var qid = $('#qcAttachId').val();
+                renderSelected(files);
+                var fd = new FormData();
+                for (var i = 0; i < files.length; i++) { fd.append(files[i].name, files[i]); }
+                fd.append('id', qid);
+                fd.append('__RequestVerificationToken', tok());
+                $('#qcUpWrap').show(); $('#qcUpBar').css('width', '0');
+                $('#qcAttachProgress').html('<span style="color:#374151;"><i class="fa fa-spinner fa-spin"></i> Uploading ' + files.length + ' file(s)…</span>');
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/CreditSale/UploadFiles');
+                if (xhr.upload) { xhr.upload.onprogress = function (e) { if (e.lengthComputable) $('#qcUpBar').css('width', Math.round(e.loaded / e.total * 100) + '%'); }; }
+                xhr.onload = function () {
+                    var ok = xhr.status >= 200 && xhr.status < 300 && !/error occurred|no files/i.test(xhr.responseText || '');
+                    if (ok) {
+                        $('#qcUpBar').css('width', '100%');
+                        $('#qcAttachProgress').html('<span style="color:#059669;"><i class="fa fa-check"></i> Uploaded. Closing…</span>');
+                        $('#qcAttachInput').val('');
+                        loadAttachList();
+                        setTimeout(function () { $('#modal-attach').modal('hide'); try { if (typeof oTable !== 'undefined') oTable.draw(false); } catch (e) { } }, 1000);
+                    } else {
+                        $('#qcUpWrap').hide();
+                        $('#qcAttachProgress').html('<span style="color:#dc2626;"><i class="fa fa-times"></i> Upload failed: ' + $('<div>').text((xhr.responseText || 'server error').replace(/^"|"$/g, '').slice(0, 160)).html() + '</span>');
+                    }
+                };
+                xhr.onerror = function () { $('#qcUpWrap').hide(); $('#qcAttachProgress').html('<span style="color:#dc2626;"><i class="fa fa-times"></i> Upload failed (network/permission).</span>'); };
+                xhr.send(fd);
+            }
+            $(document).on('click', '#qcDropZone', function (e) { if (e.target && e.target.id === 'qcAttachInput') return; var el = document.getElementById('qcAttachInput'); if (el) el.click(); });
+            $(document).on('change', '#qcAttachInput', function () { uploadFiles(this.files); });
+            $(document).on('dragover', '#qcDropZone', function (e) { e.preventDefault(); e.stopPropagation(); $(this).addClass('dragover'); });
+            $(document).on('dragleave', '#qcDropZone', function (e) { e.preventDefault(); e.stopPropagation(); $(this).removeClass('dragover'); });
+            $(document).on('drop', '#qcDropZone', function (e) { e.preventDefault(); e.stopPropagation(); $(this).removeClass('dragover'); uploadFiles(e.originalEvent.dataTransfer.files); });
+        })();
     </script>
 }
