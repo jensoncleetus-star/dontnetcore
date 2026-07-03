@@ -5251,20 +5251,40 @@ namespace QuickSoft.Controllers
                 }
 
                 var eimp = db.Employees.Where(o => o.UserId == UserId).Select(o => o.EmployeeId).FirstOrDefault();
+                string ql = orgkey.ToLower();
+                // Powerful cross-field search: also match customers by their linked contact
+                // (contact person name / mobile / phone / email) via ContactRelation.
+                var contactMatch = (from a in db.Contacts
+                                    join rel in db.ContactRelation on a.ContactID equals rel.ContactID
+                                    where rel.RelationType == 0 && (
+                                          (a.Mobile != null && a.Mobile.Contains(orgkey))
+                                       || (a.Phone != null && a.Phone.Contains(orgkey))
+                                       || (a.EmailId != null && a.EmailId.ToLower().Contains(ql))
+                                       || (a.Name != null && a.Name.ToLower().Contains(ql))
+                                       || (a.FirstName != null && a.FirstName.ToLower().Contains(ql))
+                                       || (a.LastName != null && a.LastName.ToLower().Contains(ql))
+                                    )
+                                    select rel.RelationID).Distinct().ToArray();
                 serialisedJson = (from b in db.Customers
-
                                   join d in db.Accountss on b.Accounts equals d.AccountsID
-
-                                  where !b.CustomerName.Contains("OLD-")&& (b.Type == CRMCustomerType.Customer) && (b.CustomerName.ToLower().Contains(orgkey.ToLower())||d.Alias.ToLower().Contains(q.ToLower()) || b.CustomerName.ToLower().Contains(q.ToLower()) || b.CustomerCode.ToLower().Contains(q.ToLower()) || d.Alias.Contains(q) || b.CustomerName.Contains(q) || b.CustomerCode.Contains(q)
-                                   || b.CustomerName.StartsWith(q) || b.CustomerName.EndsWith(q))
-                                         && (secnd == "" || b.CustomerName.ToLower().Contains(secnd.ToLower()))
-                            && (third == "" || b.CustomerName.ToLower().Contains(third.ToLower()))
-                                
+                                  where !b.CustomerName.Contains("OLD-") && (b.Type == CRMCustomerType.Customer)
+                                     && (
+                                          b.CustomerName.ToLower().Contains(ql)          // company / customer name
+                                       || b.CustomerCode.ToLower().Contains(ql)          // code
+                                       || (d.Alias != null && d.Alias.ToLower().Contains(ql))     // account alias
+                                       || (b.Remark != null && b.Remark.ToLower().Contains(ql))   // notes / description
+                                       || (b.TaxID_TRN != null && b.TaxID_TRN.Contains(orgkey))   // TRN
+                                       || contactMatch.Contains(b.CustomerID)            // contact person / mobile / phone / email
+                                        )
+                                     && (secnd == "" || b.CustomerName.ToLower().Contains(secnd.ToLower()))
+                                     && (third == "" || b.CustomerName.ToLower().Contains(third.ToLower()))
+                                  // relevance ranking: exact name, then name-starts-with, then code-starts-with, then rest
+                                  orderby (b.CustomerName.ToLower() == ql ? 0 : (b.CustomerName.ToLower().StartsWith(ql) ? 1 : (b.CustomerCode.ToLower().StartsWith(ql) ? 2 : 3))), b.CustomerName
                                   select new SelectFormat
                                   {
                                       text = b.CustomerCode + "-" + b.CustomerName,
                                       id = b.CustomerID
-                                  }).OrderBy(b => b.text).Skip(skip).Take(pageSize).Distinct().ToList();
+                                  }).Skip(skip).Take(pageSize).ToList();
 
 
 

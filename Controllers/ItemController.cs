@@ -3547,20 +3547,30 @@ namespace QuickSoft.Controllers
             {
 
 
+                string ql = q.ToLower();
+                // brand / category matches (name -> ids) so the item search can find by brand or category too
+                var brandIds = db.ItemBrands.Where(x => x.ItemBrandName != null && x.ItemBrandName.ToLower().Contains(ql)).Select(x => (long?)x.ItemBrandID).ToArray();
+                var catIds = db.ItemCategorys.Where(x => x.ItemCategoryName != null && x.ItemCategoryName.ToLower().Contains(ql)).Select(x => (long?)x.ItemCategoryID).ToArray();
                 serialisedJson = db.Items.Where(p => (p.Status == Status.active)
-                && (p.ItemName.ToLower().Contains(q.ToLower()) || p.ItemCode.ToLower().Contains(q.ToLower()) || p.Barcode.Contains(q))
-                 && (secnd == "" || p.ItemName.ToLower().Contains(secnd.ToLower()))
-                && (third == "" || p.ItemName.ToLower().Contains(third.ToLower()))
-
+                && (
+                     p.ItemName.ToLower().Contains(ql)                                          // item name
+                  || p.ItemCode.ToLower().Contains(ql)                                          // code / SKU
+                  || (p.Barcode != null && p.Barcode.Contains(q))                               // barcode
+                  || (p.ItemDescription != null && p.ItemDescription.ToLower().Contains(ql))    // description keywords / model
+                  || brandIds.Contains(p.ItemBrandID)                                           // brand
+                  || catIds.Contains(p.ItemCategoryID)                                          // category
+                   )
+                 && (secnd == "" || p.ItemName.ToLower().Contains(secnd.ToLower()) || (p.ItemDescription != null && p.ItemDescription.ToLower().Contains(secnd.ToLower())))
+                && (third == "" || p.ItemName.ToLower().Contains(third.ToLower()) || (p.ItemDescription != null && p.ItemDescription.ToLower().Contains(third.ToLower())))
                 )
-
-                                  //|| p.ItemCode.ToLower().Contains(q.ToLower()) || p.Barcode.ToLower().Contains(q.ToLower()) || p.ItemName.Contains(q) 
-                                  // || p.ItemCode.Contains(q) || p.Barcode.Contains(q)
-
-
+                                  // relevance ranking: exact name, then name/code starts-with, then the rest
+                                  .OrderByDescending(p => p.ItemName.ToLower() == ql)
+                                  .ThenByDescending(p => p.ItemName.ToLower().StartsWith(ql))
+                                  .ThenByDescending(p => p.ItemCode.ToLower().StartsWith(ql))
+                                  .ThenBy(p => p.ItemName)
                                   .Select(b => new SelectFormat4
                                   {
-                                      text = b.ItemCode + "-" + b.ItemName, //each json object will have 
+                                      text = b.ItemCode + "-" + b.ItemName, //each json object will have
                                       id = b.ItemID,
                                       pprice = b.PurchasePrice,
                                       sprice = b.SellingPrice,
@@ -3570,7 +3580,7 @@ namespace QuickSoft.Controllers
                                       ItemImId = b.ItemID,
                                       FileName = db.ItemImages.Where(o => o.ItemID == b.ItemID).Select(o => o.FileName).FirstOrDefault(),
                                   })
-                                  .OrderBy(b => b.text).Skip(skip).Take(pageSize).ToList();
+                                  .Skip(skip).Take(pageSize).ToList();
             }
             else
             {
